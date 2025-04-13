@@ -28,7 +28,7 @@ suite('WorkspaceManager Tests', () => {
             stat: sandbox.stub(),
             copy: sandbox.stub(),
             rename: sandbox.stub(),
-            isWritableFileSystem: sandbox.stub().callsFake((scheme: string) => true)
+            isWritableFileSystem: sandbox.stub() as unknown as ((scheme: string) => boolean | undefined) & sinon.SinonStub<[scheme: string], boolean | undefined>
         };
         
         sandbox.stub(vscode.workspace, 'fs').value(fsStub);
