@@ -18,7 +18,7 @@
   "galleryBanner": {
     "color": "#C80000",
     "theme": "dark"
-  },
+  ],
   "icon": "assets/icon.png",
   "engines": {
     "vscode": "^1.60.0"
@@ -88,6 +88,21 @@
       {
         "command": "copilot-ppa.clearConversation",
         "title": "Clear Conversation History",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.toggleWorkspaceAccess",
+        "title": "Toggle Workspace Access",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.toggleRepositoryAccess",
+        "title": "Toggle Repository Access",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.createNewRepository",
+        "title": "Create New Repository",
         "category": "Copilot PPA"
       }
     ],
@@ -210,10 +225,57 @@
               "description": "Number of worker threads (0 = auto)"
             }
           }
+        },
+        "copilot-ppa.workspaceAccess.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable/disable workspace access for the AI agent"
+        },
+        "copilot-ppa.repository.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable/disable repository access for the AI agent"
+        },
+        "copilot-ppa.github.personalAccessToken": {
+          "type": "string",
+          "description": "GitHub Personal Access Token",
+          "scope": "application"
+        },
+        "copilot-ppa.gitlab.personalAccessToken": {
+          "type": "string",
+          "description": "GitLab Personal Access Token",
+          "scope": "application"
+        },
+        "copilot-ppa.gitlab.url": {
+          "type": "string",
+          "description": "GitLab Instance URL (optional, defaults to gitlab.com)",
+          "scope": "application"
+        },
+        "copilot-ppa.bitbucket.username": {
+          "type": "string",
+          "description": "Bitbucket Username",
+          "scope": "application"
+        },
+        "copilot-ppa.bitbucket.appPassword": {
+          "type": "string",
+          "description": "Bitbucket App Password",
+          "scope": "application"
+        },
+        "copilot-ppa.bitbucket.workspace": {
+          "type": "string",
+          "description": "Bitbucket Workspace ID",
+          "scope": "application"
         }
       }
     }
   },
+  "keybindings": [
+    {
+      "command": "copilot-ppa.toggleWorkspaceAccess",
+      "key": "ctrl+alt+w",
+      "mac": "cmd+alt+w"
+    }
+  ],
   "menus": {
     "view/title": [
       {
@@ -302,6 +364,9 @@
     "@types/vscode": "^1.60.0",
     "@vscode/extension-telemetry": "^0.9.0",
     "axios": "^1.6.2",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "@octokit/rest": "^19.0.7",
+    "@gitbeaker/node": "^35.8.0",
+    "bitbucket": "^2.11.0"
   }
 }

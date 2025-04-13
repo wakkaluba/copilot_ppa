@@ -7,6 +7,7 @@ import { LLMStatusBar } from './statusBar';
 import { AgentCodeActionProvider } from './providers/AgentCodeActionProvider';
 import { LLMHostManager } from './services/LLMHostManager';
 import { LLMAutoConnector } from './services/LLMAutoConnector';
+import { RepositoryManager } from './services/repositoryManager';
 
 // Interface for LLM providers
 interface LLMProvider {
@@ -160,6 +161,28 @@ export async function activate(context: vscode.ExtensionContext) {
           // Implementation will be added in the agent functionality phase
       })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-ppa.toggleWorkspaceAccess', () => {
+        WorkspaceAccessManager.getInstance().toggleAccess();
+    })
+  );
+
+  // Register repository manager commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-ppa.toggleRepositoryAccess', () => {
+        RepositoryManager.getInstance().toggleAccess();
+    })
+  );
+  
+  context.subscriptions.push(
+    vscode.commands.registerCommand('copilot-ppa.createNewRepository', () => {
+        RepositoryManager.getInstance().createNewRepository();
+    })
+  );
+
+  // Initialize repository manager
+  context.subscriptions.push(RepositoryManager.getInstance());
 
   const hostManager = LLMHostManager.getInstance();
   await hostManager.startHost();
