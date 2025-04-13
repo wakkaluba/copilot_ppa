@@ -1,0 +1,272 @@
+{
+  "name": "copilot-ppa",
+  "displayName": "Local LLM Agent",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "description": "AI assistance through local LLM integration",
+  "categories": ["Machine Learning", "Programming Languages", "Other"],
+  "keywords": ["ai", "llm", "code-generation", "assistant"],
+  "galleryBanner": {
+    "color": "#C80000",
+    "theme": "dark"
+  },
+  "icon": "assets/icon.png",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-local-llm-agent.askAgent",
+        "title": "Ask Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.openSidebar",
+        "title": "Open Local LLM Agent Sidebar",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.showWelcomeMessage",
+        "title": "Show Welcome Message",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLlmAgent.connect",
+        "title": "Connect to LLM",
+        "category": "Local LLM Agent",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "localLlmAgent.disconnect",
+        "title": "Disconnect from LLM",
+        "category": "Local LLM Agent",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "copilot-ppa.explainCode",
+        "title": "Explain Code"
+      },
+      {
+        "command": "copilot-ppa.improveCode",
+        "title": "Improve Code"
+      },
+      {
+        "command": "copilot-ppa.generateTests",
+        "title": "Generate Tests"
+      },
+      {
+        "command": "copilot-ppa.startAgent",
+        "title": "Start Agent",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.stopAgent",
+        "title": "Stop Agent",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.restartAgent",
+        "title": "Restart Agent",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.configureModel",
+        "title": "Configure LLM Model",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.clearConversation",
+        "title": "Clear Conversation History",
+        "category": "Copilot PPA"
+      }
+    ],
+    "configuration": {
+      "title": "VS Code Local LLM Agent",
+      "properties": {
+        "vscodeLocalLLMAgent.ollamaEndpoint": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Endpoint for Ollama API"
+        },
+        "vscodeLocalLLMAgent.ollamaModel": {
+          "type": "string",
+          "default": "llama2",
+          "description": "Default model to use with Ollama"
+        },
+        "vscodeLocalLLMAgent.lmStudioEndpoint": {
+          "type": "string",
+          "default": "http://localhost:1234",
+          "description": "Endpoint for LM Studio API"
+        },
+        "vscodeLocalLLMAgent.defaultProvider": {
+          "type": "string",
+          "enum": ["ollama", "lmstudio"],
+          "default": "ollama",
+          "description": "Default LLM provider to use"
+        },
+        "vscodeLocalLLMAgent.cacheResponses": {
+          "type": "boolean",
+          "default": true,
+          "description": "Cache LLM responses to reduce API calls"
+        },
+        "localLLMAgent.cache.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable caching for LLM API requests"
+        },
+        "localLLMAgent.cache.ttlMinutes": {
+          "type": "number",
+          "default": 60,
+          "description": "Time-to-live for cached responses in minutes"
+        },
+        "copilot-ppa.models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "provider": { "enum": ["ollama", "lmstudio"] },
+              "endpoint": { "type": "string" },
+              "parameters": { "type": "object" }
+            }
+          }
+        },
+        "copilot-ppa.team": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable team collaboration features"
+            },
+            "role": {
+              "type": "string",
+              "enum": ["owner", "editor", "viewer"],
+              "default": "editor",
+              "description": "User role in team sessions"
+            }
+          }
+        },
+        "copilot-ppa.offline": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable offline mode"
+            },
+            "cacheSize": {
+              "type": "number",
+              "default": 1000,
+              "description": "Maximum number of cached responses"
+            }
+          }
+        },
+        "copilot-ppa.performance": {
+          "type": "object",
+          "properties": {
+            "chunkSize": {
+              "type": "number",
+              "default": 1048576,
+              "description": "Maximum chunk size in bytes"
+            },
+            "indexingEnabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable workspace indexing"
+            },
+            "workerCount": {
+              "type": "number",
+              "default": 0,
+              "description": "Number of worker threads (0 = auto)"
+            }
+          }
+        }
+      }
+    }
+  },
+  "menus": {
+    "view/title": [
+      {
+        "command": "localLLMAgent.openSidebar",
+        "when": "view == explorer",
+        "group": "navigation"
+      }
+    ],
+    "editor/context": [
+      {
+        "submenu": "copilot-ppa.contextMenu",
+        "when": "editorHasSelection"
+      }
+    ],
+    "copilot-ppa.contextMenu": [
+      {
+        "command": "copilot-ppa.explainCode",
+        "group": "1_modification"
+      },
+      {
+        "command": "copilot-ppa.improveCode",
+        "group": "1_modification"
+      },
+      {
+        "command": "copilot-ppa.generateTests",
+        "group": "1_modification"
+      }
+    ]
+  },
+  "views": {
+    "explorer": [
+    ],
+    "localLlmAgent": [
+      {
+        "type": "webview",
+        "id": "localLlmAgent.sidebarView",
+        "name": "Agent Control"
+      },
+      {
+        "type": "webview",
+        "id": "localLlmAgent.chatView",
+        "name": "Chat with Local LLM"
+      }
+    ]
+  },
+  "viewsContainers": {
+    "activitybar": [
+      {
+        "id": "localLlmAgent",
+        "title": "Local LLM Agent",
+        "icon": "resources/llm-icon.svg"
+      }
+    ]
+  },
+  "submenus": [
+    {
+      "id": "copilot-ppa.contextMenu",
+      "label": "Copilot PPA"
+    }
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "vscode-test --extensionDevelopmentPath . --extensionTestsPath ./out/test/unit/index.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.0",
+    "vscode-test": "^1.6.1"
+  },
+  "dependencies": {
+    "@types/vscode": "^1.60.0",
+    "@vscode/extension-telemetry": "^0.9.0",
+    "axios": "^1.6.2",
+    "node-cache": "^5.1.2"
+  }
+}

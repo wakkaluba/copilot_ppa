@@ -1,0 +1,159 @@
+:root {
+    --button-background: var(--vscode-button-background);
+    --button-foreground: var(--vscode-button-foreground);
+    --button-hover-background: var(--vscode-button-hoverBackground);
+    --input-background: var(--vscode-input-background);
+    --input-foreground: var(--vscode-input-foreground);
+    --input-border: var(--vscode-input-border);
+    --connected-color: var(--vscode-testing-iconPassed);
+    --disconnected-color: var(--vscode-testing-iconFailed);
+}
+
+body {
+    padding: 0;
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-editor-background);
+}
+
+#sidebar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+    gap: 16px;
+}
+
+h3, h4 {
+    margin: 0 0 8px 0;
+    padding: 0;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 14px;
+}
+
+h4 {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Status section */
+#status-container {
+    margin-bottom: 8px;
+}
+
+#connection-status {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-indicator.connected {
+    background-color: var(--connected-color);
+}
+
+.status-indicator.connecting {
+    background-color: var(--vscode-statusBarItem-warningBackground);
+    animation: pulse 1.5s infinite;
+}
+
+.status-indicator.disconnected {
+    background-color: var(--disconnected-color);
+}
+
+.status-indicator.error {
+    background-color: var(--vscode-errorForeground);
+}
+
+@keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+
+#status-message {
+    margin-top: 8px;
+    font-style: italic;
+    font-size: 12px;
+    display: none;
+}
+
+/* Model selector */
+#model-selector-container {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+#model-selector {
+    flex: 1;
+    padding: 4px;
+    border: 1px solid var(--input-border);
+    background-color: var(--input-background);
+    color: var(--input-foreground);
+    height: 28px;
+    border-radius: 2px;
+}
+
+#refresh-models-button {
+    width: 28px;
+    height: 28px;
+    margin-left: 4px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Buttons */
+button {
+    background-color: var(--button-background);
+    color: var(--button-foreground);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button:hover {
+    background-color: var(--button-hover-background);
+}
+
+.wide-button {
+    width: 100%;
+    margin-bottom: 6px;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Info section */
+#info-section {
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--vscode-panel-border);
+}
+
+#provider-details {
+    font-size: 12px;
+}
+
+#provider-details > div {
+    margin-bottom: 4px;
+}

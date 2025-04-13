@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "versioningStrategy": {
+    "major": "Breaking changes",
+    "minor": "New features",
+    "patch": "Bug fixes and minor improvements"
+  },
+  "releaseChecklist": [
+    "Run all tests",
+    "Update CHANGELOG.md",
+    "Update version numbers",
+    "Create git tag",
+    "Push to main branch"
+  ]
+}

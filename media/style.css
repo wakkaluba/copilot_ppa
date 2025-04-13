@@ -1,0 +1,129 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+.header {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-indicator.connected {
+  background-color: #3ddb84;
+}
+
+.status-indicator.disconnected {
+  background-color: #f44336;
+}
+
+.status-indicator.connecting {
+  background-color: #ffb74d;
+}
+
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  margin-bottom: 12px;
+  max-width: 80%;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.agent, .message.system {
+  align-self: flex-start;
+}
+
+.message-content {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.message.user .message-content {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.message.agent .message-content, .message.system .message-content {
+  background-color: var(--vscode-editor-inactiveSelectionBackground);
+}
+
+.input-container {
+  padding: 10px;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+textarea {
+  width: 100%;
+  resize: none;
+  padding: 8px;
+  border: 1px solid var(--vscode-input-border);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+button {
+  padding: 6px 12px;
+  margin-left: 8px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+button:active {
+  background-color: var(--vscode-button-background);
+  opacity: 0.8;
+}

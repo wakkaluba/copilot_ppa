@@ -1,0 +1,9 @@
+# Python dependencies for VSCode Local LLM Agent
+# This file is for any Python-based components that might be used 
+# in conjunction with the extension (e.g., for spawning local LLM processes)
+
+# Base requirements
+requests>=2.31.0
+
+# For interacting with Ollama API from Python (if needed)
+httpx>=0.24.1
