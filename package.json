@@ -4,8 +4,17 @@
   "version": "1.0.0",
   "publisher": "your-publisher-name",
   "description": "AI assistance through local LLM integration",
-  "categories": ["Machine Learning", "Programming Languages", "Other"],
-  "keywords": ["ai", "llm", "code-generation", "assistant"],
+  "categories": [
+    "Machine Learning",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "code-generation",
+    "assistant"
+  ],
   "galleryBanner": {
     "color": "#C80000",
     "theme": "dark"
@@ -102,7 +111,10 @@
         },
         "vscodeLocalLLMAgent.defaultProvider": {
           "type": "string",
-          "enum": ["ollama", "lmstudio"],
+          "enum": [
+            "ollama",
+            "lmstudio"
+          ],
           "default": "ollama",
           "description": "Default LLM provider to use"
         },
@@ -126,10 +138,21 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
-              "provider": { "enum": ["ollama", "lmstudio"] },
-              "endpoint": { "type": "string" },
-              "parameters": { "type": "object" }
+              "name": {
+                "type": "string"
+              },
+              "provider": {
+                "enum": [
+                  "ollama",
+                  "lmstudio"
+                ]
+              },
+              "endpoint": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "object"
+              }
             }
           }
         },
@@ -143,7 +166,11 @@
             },
             "role": {
               "type": "string",
-              "enum": ["owner", "editor", "viewer"],
+              "enum": [
+                "owner",
+                "editor",
+                "viewer"
+              ],
               "default": "editor",
               "description": "User role in team sessions"
             }
@@ -217,8 +244,7 @@
     ]
   },
   "views": {
-    "explorer": [
-    ],
+    "explorer": [],
     "localLlmAgent": [
       {
         "type": "webview",
@@ -254,12 +280,21 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "test:unit": "vscode-test --extensionDevelopmentPath . --extensionTestsPath ./out/test/unit/index.js",
+    "test:coverage": "nyc npm run test",
+    "report:coverage": "nyc report --reporter=html",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
+    "@types/sinon": "^10.0.19",
+    "chai": "^4.3.7",
+    "glob": "^10.3.10",
     "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "sinon": "^15.2.0",
+    "ts-node": "^10.9.1",
     "typescript": "^5.3.0",
     "vscode-test": "^1.6.1"
   },

@@ -45,6 +45,11 @@ export class TrustManager {
         return this.trustedWorkspaces.has(path) || vscode.workspace.isTrusted;
     }
 
+    // Added method that's used in the tests
+    isTrusted(): boolean {
+        return vscode.workspace.isTrusted;
+    }
+
     async requireTrust(path: string): Promise<boolean> {
         if (this.isPathTrusted(path)) {
             return true;
@@ -58,7 +63,9 @@ export class TrustManager {
         );
 
         if (result === 'Trust Workspace') {
-            await vscode.workspace.requestWorkspaceTrust();
+            // The requestWorkspaceTrust() API is not available directly in all VS Code versions
+            // Use the command instead which is more broadly supported
+            await vscode.commands.executeCommand('workbench.trust.manage');
             return vscode.workspace.isTrusted;
         }
 
