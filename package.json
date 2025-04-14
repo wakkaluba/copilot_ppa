@@ -23,7 +23,6 @@
   "engines": {
     "vscode": "^1.60.0"
   },
-  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
