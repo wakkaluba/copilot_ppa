@@ -1,13 +1,13 @@
 import { OfflineCache } from '../offline/offlineCache';
+export { LLMPromptOptions } from './types';
 
 export interface LLMProvider {
-    initialize(config: any): Promise<void>;
-    generateResponse(prompt: string): Promise<string>;
+    initialize(): Promise<void>;
+    generateResponse(prompt: string, options?: LLMPromptOptions): Promise<string>;
     testConnection(): Promise<{ success: boolean }>;
     getAvailableModels(): Promise<string[]>;
-    setOfflineMode(enabled: boolean): void;
-    useCachedResponse(prompt: string): Promise<string | null>;
-    cacheResponse(prompt: string, response: string): Promise<void>;
+    getModelId(): string;
+    sendPrompt(prompt: string, options?: LLMPromptOptions): Promise<string>;
 }
 
 export interface LLMConfig {
@@ -34,5 +34,21 @@ export abstract class BaseLLMProvider implements LLMProvider {
 
     async cacheResponse(prompt: string, response: string): Promise<void> {
         await this.cache.set(prompt, response);
+    }
+
+    abstract initialize(): Promise<void>;
+    abstract generateResponse(prompt: string, options?: LLMPromptOptions): Promise<string>;
+    abstract getAvailableModels(): Promise<string[]>;
+
+    async testConnection(): Promise<{ success: boolean }> {
+        return { success: true }; // Default implementation
+    }
+
+    getModelId(): string {
+        return 'default'; // Default implementation
+    }
+
+    async sendPrompt(prompt: string, options?: LLMPromptOptions): Promise<string> {
+        return this.generateResponse(prompt, options);
     }
 }

@@ -1,0 +1,91 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+}
+
+h1 {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+#graph-container {
+    flex: 1;
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+#graph-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    color: var(--vscode-disabledForeground);
+}
+
+#graph-visualization {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+}
+
+.node {
+    cursor: pointer;
+    fill: var(--vscode-editor-background);
+    stroke: var(--vscode-editor-foreground);
+    stroke-width: 1.5px;
+}
+
+.node.package {
+    fill: var(--vscode-editor-selectionBackground);
+}
+
+.node.dependency {
+    fill: var(--vscode-editorInfo-foreground);
+}
+
+.node.devDependency {
+    fill: var(--vscode-editorWarning-foreground);
+}
+
+.edge {
+    stroke: var(--vscode-editor-foreground);
+    stroke-opacity: 0.4;
+    stroke-width: 1px;
+    fill: none;
+}
+
+.edge.dev {
+    stroke: var(--vscode-editorWarning-foreground);
+    stroke-dasharray: 5, 5;
+}
+
+.edge.peer {
+    stroke: var(--vscode-editorInfo-foreground);
+    stroke-dasharray: 1, 1;
+}
+
+.edge.optional {
+    stroke: var(--vscode-disabledForeground);
+    stroke-dasharray: 10, 3;
+}
+
+.node-label {
+    font-size: 12px;
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: var(--vscode-editor-foreground);
+}

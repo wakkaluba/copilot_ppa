@@ -18,7 +18,7 @@
   "galleryBanner": {
     "color": "#C80000",
     "theme": "dark"
-  ],
+  },
   "icon": "assets/icon.png",
   "engines": {
     "vscode": "^1.60.0"
@@ -104,6 +104,520 @@
         "command": "copilot-ppa.createNewRepository",
         "title": "Create New Repository",
         "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.toggleRepositoryAccess",
+        "title": "Toggle Repository Access",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openRepositoryPanel",
+        "title": "Open Repository Management Panel",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openPromptTemplatePanel",
+        "title": "Open Prompt Templates",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.applyPromptTemplate",
+        "title": "Apply Prompt Template",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openVectorDatabasePanel",
+        "title": "Open Vector Database Panel",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.searchCode",
+        "title": "Search Code Semantically",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.indexWorkspace",
+        "title": "Index Workspace for Semantic Search",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openKeyboardShortcuts",
+        "title": "Open Keyboard Shortcuts",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.sendMessage",
+        "title": "Send Message",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.newLine",
+        "title": "Insert New Line in Chat",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.clearChat",
+        "title": "Clear Chat",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.explainCode",
+        "title": "Explain Selected Code",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.refactorCode",
+        "title": "Refactor Selected Code",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.documentCode",
+        "title": "Document Selected Code",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.focusChat",
+        "title": "Focus Chat Input",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.toggleSidebar",
+        "title": "Toggle Agent Sidebar",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.exportConversation",
+        "title": "Export Conversation",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.exportAllConversations",
+        "title": "Export All Conversations",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.importConversation",
+        "title": "Import Conversation",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.searchConversations",
+        "title": "Search Conversations",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.filterConversations",
+        "title": "Filter Conversations",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openConversationWithHighlights",
+        "title": "Open Conversation with Highlights",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.createSnippet",
+        "title": "Create Snippet from Messages",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.insertSnippet",
+        "title": "Insert Snippet",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.manageSnippets",
+        "title": "Manage Conversation Snippets",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openSnippetsPanel",
+        "title": "Open Snippets Panel",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.openThemeSettings",
+        "title": "Open Theme Settings",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilotPPA.createCustomTheme",
+        "title": "Create Custom Theme",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "localLLMAgent.runUnitTests",
+        "title": "Run Unit Tests",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runIntegrationTests",
+        "title": "Run Integration Tests",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.updateTestResults",
+        "title": "Update Test Results",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runE2ETests",
+        "title": "Run E2E Tests",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runPerformanceTests",
+        "title": "Run Performance Tests",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runStaticAnalysis",
+        "title": "Run Static Code Analysis",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.openFileAtLocation",
+        "title": "Open File at Location",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runCodeCoverage",
+        "title": "Run Code Coverage Analysis",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.toggleCoverageHighlight",
+        "title": "Toggle Code Coverage Highlighting",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.updateCoverageDecorations",
+        "title": "Update Code Coverage Decorations",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runSecurityTest",
+        "title": "Run Security Tests",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.viewSecurityVulnerabilities",
+        "title": "View Security Vulnerabilities",
+        "category": "LLM Agent"
+      },
+      {
+        "command": "localLlmAgent.showTestTrends",
+        "title": "Local LLM Agent: Show Test Trends Analysis"
+      },
+      {
+        "command": "localLlmAgent.exportTestResults",
+        "title": "Local LLM Agent: Export Test Results"
+      },
+      {
+        "command": "localLlmAgent.formatAndDisplayTestResults",
+        "title": "Local LLM Agent: Display Test Results"
+      },
+      {
+        "command": "localLlmAgent.terminal.createTerminal",
+        "title": "Local LLM Agent: Create Terminal"
+      },
+      {
+        "command": "localLlmAgent.terminal.executeCommand",
+        "title": "Local LLM Agent: Execute Terminal Command"
+      },
+      {
+        "command": "localLlmAgent.terminal.suggestCommands",
+        "title": "Local LLM Agent: Suggest Terminal Commands"
+      },
+      {
+        "command": "localLlmAgent.terminal.generateCommand",
+        "title": "Local LLM Agent: Generate Terminal Command from Description"
+      },
+      {
+        "command": "localLlmAgent.terminal.openCommandGenerator",
+        "title": "Local LLM Agent: Open Terminal Command Generator",
+        "category": "Terminal"
+      },
+      {
+        "command": "localLlmAgent.selectLanguage",
+        "title": "%commands.selectLanguage%",
+        "category": "%commands.category%"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.analyzeFileComplexity",
+        "title": "Analyze Current File Complexity",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.analyzeWorkspaceComplexity",
+        "title": "Analyze Workspace Complexity",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.toggleComplexityVisualization",
+        "title": "Toggle Complexity Visualization",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.analyzeDependencies",
+        "title": "Analyze Dependencies",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.analyzeFileDependencies",
+        "title": "Analyze File Dependencies",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.showDependencyGraph",
+        "title": "Show Dependency Graph",
+        "category": "VSCode Local LLM Agent"
+      },
+      {
+        "command": "vscodeLocalLLMAgent.reorganizeCodeStructure",
+        "title": "Analyze and Reorganize Code Structure",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.currentFile",
+        "title": "Local LLM Agent: Generate Documentation for Current File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.selection",
+        "title": "Local LLM Agent: Generate Documentation for Selection",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.currentNode",
+        "title": "Local LLM Agent: Generate Documentation for Current Node",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.selection",
+        "title": "Generate Documentation for Selection",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.file",
+        "title": "Generate Documentation for File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.project",
+        "title": "Generate Documentation for Project",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.readme",
+        "title": "Generate README.md",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.contributing",
+        "title": "Generate CONTRIBUTING.md",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.wiki",
+        "title": "Generate Wiki Page",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.projectDocs",
+        "title": "Generate Project Documentation",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.apiFile",
+        "title": "Generate API Documentation for File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.apiProject",
+        "title": "Generate API Documentation for Project",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.generateDocumentation.openapi",
+        "title": "Generate OpenAPI Specification",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.refactoring.simplifyCode",
+        "title": "Simplify Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.refactoring.detectUnusedCode",
+        "title": "Detect Unused Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.refactoring.removeUnusedCode",
+        "title": "Remove Unused Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLM.buildTools.detectWebpackConfig",
+        "title": "Detect Webpack Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.optimizeWebpackConfig",
+        "title": "Optimize Webpack Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.detectRollupConfig",
+        "title": "Detect Rollup Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.optimizeRollupConfig",
+        "title": "Optimize Rollup Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.detectViteConfig",
+        "title": "Detect Vite Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.optimizeViteConfig",
+        "title": "Optimize Vite Configuration",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.optimizeBuildScripts",
+        "title": "Optimize Build Scripts",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.buildTools.analyzeBundleSize",
+        "title": "Analyze Bundle Size",
+        "category": "Local LLM"
+      },
+      {
+        "command": "localLLM.formatCurrentDocument",
+        "title": "Local LLM: Format Current Document"
+      },
+      {
+        "command": "localLLM.formatSelection",
+        "title": "Local LLM: Format Selection"
+      },
+      {
+        "command": "localLLM.organizeImports",
+        "title": "Local LLM: Organize Imports"
+      },
+      {
+        "command": "localLLM.optimizeCode",
+        "title": "Local LLM: Optimize Code with LLM"
+      },
+      {
+        "command": "localLLMAgent.formatCode",
+        "title": "Format Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.optimizeImports",
+        "title": "Optimize Imports",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.applyCodeStyle",
+        "title": "Apply Code Style",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.optimizeCode",
+        "title": "Optimize Code (Format + Style + Imports)",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.codeEditor.executeSelection",
+        "title": "Execute Selected Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.codeEditor.showOverview",
+        "title": "Show Code Overview",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.codeEditor.findReferences",
+        "title": "Find Code References",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.codeEditor.createLink",
+        "title": "Create Code Link",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.codeEditor.navigateLink",
+        "title": "Navigate to Linked Code",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.analyzePerformance",
+        "title": "Analyze Current File Performance",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.analyzeWorkspacePerformance",
+        "title": "Analyze Workspace Performance",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.detectBottlenecks",
+        "title": "Detect Bottlenecks in Current File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.analyzeWorkspaceBottlenecks",
+        "title": "Detect Bottlenecks in Workspace",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.analyzeMemoryUsage",
+        "title": "Analyze Memory Usage in Current File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.analyzeWorkspaceMemory",
+        "title": "Analyze Workspace Memory Usage",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.findMemoryLeaks",
+        "title": "Find Memory Leaks in Current File",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runtimeAnalyzer.startRecording",
+        "title": "Start Runtime Analysis Recording",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runtimeAnalyzer.stopRecording",
+        "title": "Stop Runtime Analysis Recording",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runtimeAnalyzer.exportResults",
+        "title": "Export Runtime Analysis Results",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runtimeAnalyzer.visualize",
+        "title": "Visualize Runtime Analysis Results",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.runtimeAnalyzer.addMarkers",
+        "title": "Add Runtime Analysis Markers to Selected Code",
+        "category": "Local LLM Agent"
       }
     ],
     "configuration": {
@@ -265,8 +779,593 @@
           "type": "string",
           "description": "Bitbucket Workspace ID",
           "scope": "application"
+        },
+        "copilotPPA.vectorDatabase.provider": {
+          "type": "string",
+          "default": "Chroma",
+          "enum": ["Chroma", "FAISS"],
+          "description": "Vector database provider to use"
+        },
+        "copilotPPA.vectorDatabase.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable vector database for semantic code search"
+        },
+        "copilotPPA.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API key for embeddings generation"
+        },
+        "copilot-ppa.display": {
+          "type": "object",
+          "properties": {
+            "fontSize": {
+              "type": "number",
+              "default": 14,
+              "description": "Font size for chat messages"
+            },
+            "messageSpacing": {
+              "type": "number",
+              "default": 12,
+              "description": "Spacing between chat messages in pixels"
+            },
+            "codeBlockTheme": {
+              "type": "string",
+              "enum": [
+                "default",
+                "dark",
+                "light",
+                "high-contrast"
+              ],
+              "default": "default",
+              "description": "Theme for code blocks in chat"
+            },
+            "userMessageColor": {
+              "type": "string",
+              "default": "#569cd6",
+              "description": "Color for user messages in chat"
+            },
+            "agentMessageColor": {
+              "type": "string",
+              "default": "#4ec9b0",
+              "description": "Color for agent messages in chat"
+            },
+            "timestampDisplay": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show timestamps for messages"
+            },
+            "compactMode": {
+              "type": "boolean",
+              "default": false,
+              "description": "Use compact display for chat interface"
+            }
+          }
+        },
+        "copilot-ppa.theme": {
+          "type": "object",
+          "description": "Theme settings for the Copilot PPA UI",
+          "properties": {
+            "selected": {
+              "type": "string",
+              "default": "default",
+              "description": "Currently selected theme",
+              "enum": ["default", "dark", "light", "high-contrast"],
+              "enumDescriptions": [
+                "Matches VS Code's current theme",
+                "Dark theme with blue accents",
+                "Light theme with blue accents",
+                "High contrast theme for accessibility"
+              ]
+            },
+            "customThemesEnabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Allow using custom themes"
+            }
+          }
+        },
+        "localLlmAgent.terminal.defaultShellType": {
+          "type": "string",
+          "enum": ["vscode-default", "powershell", "git-bash", "wsl-bash"],
+          "default": "vscode-default",
+          "description": "Default shell type to use for terminal operations"
+        },
+        "localLlmAgent.terminal.saveCommandHistory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to save command history between sessions"
+        },
+        "localLlmAgent.terminal.maxHistorySize": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of command history entries to save"
+        },
+        "localLlmAgent.language": {
+          "type": "string",
+          "enum": ["en", "de", "es", "fr", "zh", "ja", "ru", "uk", "pl", "da", "no", "sv", "pt", "it", "el", "ar", "he", "sa", "eo", "ko", "zh-tw", "th", "ms", "mi", "cmn", "tr", "cs", "sk", "hu", "sr", "sq"],
+          "enumDescriptions": [
+            "English",
+            "Deutsch (German)",
+            "Español (Spanish)",
+            "Français (French)",
+            "中文 (Chinese)",
+            "日本語 (Japanese)",
+            "Русский (Russian)",
+            "Українська (Ukrainian)",
+            "Polski (Polish)",
+            "Dansk (Danish)",
+            "Norsk (Norwegian)",
+            "Svenska (Swedish)",
+            "Português (Portuguese)",
+            "Italiano (Italian)",
+            "Ελληνικά (Greek)",
+            "العربية (Arabic)",
+            "עברית (Hebrew)",
+            "संस्कृत (Sanskrit)",
+            "Esperanto",
+            "한국어 (Korean)",
+            "繁體中文 (Traditional Chinese)",
+            "ไทย (Thai)",
+            "Bahasa Malaysia (Malaysian)",
+            "Te Reo Māori (Maori)",
+            "普通话 (Mandarin)",
+            "Türkçe (Turkish)",
+            "Čeština (Czech)",
+            "Slovenčina (Slovak)",
+            "Magyar (Hungarian)",
+            "Српски (Serbian)",
+            "Shqip (Albanian)"
+          ],
+          "default": "en",
+          "description": "%settings.language%"
+        },
+        "localLlmAgent.autoDetectLanguage": {
+          "type": "boolean",
+          "default": true,
+          "description": "%settings.autoDetectLanguage%"
+        },
+        "localLLMAgent.documentation.style": {
+          "type": "string",
+          "default": "jsdoc",
+          "enum": ["jsdoc", "tsdoc"],
+          "description": "The style of documentation to generate (JSDoc or TSDoc)."
+        },
+        "localLLMAgent.documentation.includeExamples": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include examples in the generated documentation."
+        },
+        "localLLMAgent.documentation.includeTypes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include types in the generated documentation."
+        },
+        "localLLMAgent.documentation.includeTypeParameters": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include type parameters in the generated documentation."
+        },
+        "localLLMAgent.documentation.api.includeJavaScript": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include JavaScript files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.includeTypeScript": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include TypeScript files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.includePython": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include Python files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.includeJava": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include Java files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.includeCSharp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include C# files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.includeGo": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include Go files in API documentation generation."
+        },
+        "localLLMAgent.documentation.api.outputFormat": {
+          "type": "string",
+          "enum": ["markdown", "html", "json", "yaml", "openapi"],
+          "default": "markdown",
+          "description": "Default output format for API documentation."
+        },
+        "localLLMAgent.documentation.readme.includeBadges": {
+          "type": "boolean",
+          "default": true, 
+          "description": "Whether to include badges in generated README files."
+        },
+        "localLLMAgent.documentation.readme.includeTableOfContents": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to include a table of contents in generated README files."
+        },
+        "localLLMAgent.documentation.wiki.location": {
+          "type": "string",
+          "enum": [".github/wiki", "wiki", "docs/wiki"],
+          "default": ".github/wiki",
+          "description": "Location to store generated Wiki files."
+        },
+        "copilot-ppa.codeLinks": {
+          "type": "object",
+          "default": {},
+          "description": "Store code links between related code segments"
         }
       }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "localLLMAgent.openSidebar",
+          "when": "view == explorer",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.toggleRepositoryAccess",
+          "when": "view == copilotPPA.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.openRepositoryPanel",
+          "when": "view == copilotPPA.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.openPromptTemplatePanel",
+          "when": "view == copilotPPA.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.openVectorDatabasePanel",
+          "when": "view == copilotPPA.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.exportAllConversations",
+          "when": "view == copilotPPAConversations",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotPPA.importConversation",
+          "when": "view == copilotPPAConversations",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "copilot-ppa.contextMenu",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "copilotPPA.applyPromptTemplate",
+          "when": "editorTextFocus",
+          "group": "Copilot PPA"
+        },
+        {
+          "command": "copilotPPA.searchCode",
+          "when": "editorTextFocus",
+          "group": "Copilot PPA"
+        },
+        {
+          "command": "copilotPPA.insertSnippet",
+          "group": "copilot-ppa"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.analyzeFileComplexity",
+          "group": "VSCode Local LLM Agent"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.toggleComplexityVisualization",
+          "group": "VSCode Local LLM Agent"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.analyzeFileDependencies",
+          "group": "VSCode Local LLM Agent",
+          "when": "editorLangId =~ /javascript|typescript|javascriptreact|typescriptreact/"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.reorganizeCodeStructure",
+          "group": "refactoring",
+          "when": "editorTextFocus && !editorReadonly"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.selection",
+          "when": "editorHasSelection && (editorLangId == 'javascript' || editorLangId == 'typescript' || editorLangId == 'javascriptreact' || editorLangId == 'typescriptreact')",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.currentNode",
+          "when": "editorLangId == 'javascript' || editorLangId == 'typescript' || editorLangId == 'javascriptreact' || editorLangId == 'typescriptreact'",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.file",
+          "when": "editorLangId == 'javascript' || editorLangId == 'typescript' || editorLangId == 'javascriptreact' || editorLangId == 'typescriptreact'",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.apiFile",
+          "when": "editorLangId =~ /javascript|typescript|javascriptreact|typescriptreact|python|java|csharp|go/",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.refactoring.simplifyCode",
+          "when": "editorHasSelection || editorTextFocus",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.refactoring.detectUnusedCode",
+          "when": "editorHasSelection || editorTextFocus",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.refactoring.removeUnusedCode",
+          "when": "editorHasSelection || editorTextFocus",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLM.formatCurrentDocument",
+          "group": "localLLM.formatting",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "localLLM.formatSelection",
+          "group": "localLLM.formatting",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "localLLM.organizeImports",
+          "group": "localLLM.formatting",
+          "when": "editorTextFocus && editorLangId =~ /(typescript|javascript|typescriptreact|javascriptreact)/"
+        },
+        {
+          "command": "localLLM.optimizeCode",
+          "group": "localLLM.formatting",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "localLLMAgent.formatCode",
+          "group": "Local LLM Agent",
+          "when": "editorHasSelection || editorHasDocument"
+        },
+        {
+          "command": "localLLMAgent.optimizeImports",
+          "group": "Local LLM Agent",
+          "when": "editorHasDocument"
+        },
+        {
+          "command": "localLLMAgent.optimizeCode",
+          "group": "Local LLM Agent",
+          "when": "editorHasDocument"
+        },
+        {
+          "command": "localLLMAgent.codeEditor.executeSelection",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        },
+        {
+          "command": "localLLMAgent.codeEditor.findReferences",
+          "group": "navigation"
+        },
+        {
+          "command": "localLLMAgent.codeEditor.createLink",
+          "when": "editorHasSelection || editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "localLLMAgent.codeEditor.navigateLink",
+          "group": "navigation"
+        },
+        {
+          "command": "vscode-local-llm-agent.analyzePerformance",
+          "group": "local-llm-agent",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "vscode-local-llm-agent.detectBottlenecks",
+          "group": "local-llm-agent",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "vscode-local-llm-agent.analyzeMemoryUsage",
+          "group": "local-llm-agent",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "vscode-local-llm-agent.findMemoryLeaks",
+          "group": "local-llm-agent",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "localLLMAgent.runtimeAnalyzer.addMarkers",
+          "when": "editorHasSelection",
+          "group": "localLLMAgent"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "localLLMAgent.generateDocumentation.currentFile",
+          "when": "editorLangId == 'javascript' || editorLangId == 'typescript' || editorLangId == 'javascriptreact' || editorLangId == 'typescriptreact'",
+          "group": "Local LLM Agent"
+        }
+      ],
+      "copilot-ppa.contextMenu": [
+        {
+          "command": "copilot-ppa.explainCode",
+          "group": "1_modification"
+        },
+        {
+          "command": "copilot-ppa.improveCode",
+          "group": "1_modification"
+        },
+        {
+          "command": "copilot-ppa.generateTests",
+          "group": "1_modification"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "copilotPPA.exportConversation",
+          "when": "view == copilotPPAConversations && viewItem == conversation",
+          "group": "export"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "localLLMAgent.runUnitTests",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runIntegrationTests",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runE2ETests",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runPerformanceTests",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runStaticAnalysis",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runCodeCoverage",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "localLLMAgent.runSecurityTest",
+          "group": "test",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.analyzeWorkspaceComplexity",
+          "group": "VSCode Local LLM Agent",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscodeLocalLLMAgent.analyzeDependencies",
+          "when": "explorerResourceIsFolder",
+          "group": "VSCode Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.readme",
+          "when": "explorerResourceIsFolder",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.projectDocs",
+          "when": "explorerResourceIsFolder",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.apiProject",
+          "when": "explorerResourceIsFolder",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "localLLMAgent.generateDocumentation.openapi",
+          "when": "explorerResourceIsFolder",
+          "group": "Local LLM Agent"
+        },
+        {
+          "command": "vscode-local-llm-agent.analyzeWorkspacePerformance",
+          "group": "local-llm-agent",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-local-llm-agent.analyzeWorkspaceBottlenecks",
+          "group": "local-llm-agent",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "vscode-local-llm-agent.analyzeWorkspaceMemory",
+          "group": "local-llm-agent",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "copilotPPA.createSnippet",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "localLlmAgent",
+          "title": "Local LLM Agent",
+          "icon": "resources/llm-icon.svg"
+        },
+        {
+          "id": "copilotPPA",
+          "title": "Copilot PPA",
+          "icon": "resources/icon.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "copilotPPASnippetsPanel",
+          "title": "Copilot PPA Snippets",
+          "icon": "resources/icons/snippet.svg"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "localLlmAgent.dependencyGraphView",
+          "name": "Dependencies",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "localLlmAgent": [
+        {
+          "type": "webview",
+          "id": "localLlmAgent.sidebarView",
+          "name": "Agent Control"
+        },
+        {
+          "type": "webview",
+          "id": "localLlmAgent.chatView",
+          "name": "Chat with Local LLM"
+        }
+      ],
+      "copilotPPA": [
+        {
+          "id": "copilotPPA.keyboardShortcutsView",
+          "name": "Keyboard Shortcuts",
+          "type": "webview"
+        }
+      ],
+      "test": [
+        {
+          "id": "localLLMAgentTestExplorer",
+          "name": "LLM Agent Test Explorer",
+          "icon": "$(beaker)"
+        }
+      ]
     }
   },
   "keybindings": [
@@ -274,61 +1373,52 @@
       "command": "copilot-ppa.toggleWorkspaceAccess",
       "key": "ctrl+alt+w",
       "mac": "cmd+alt+w"
+    },
+    {
+      "command": "copilotPPA.sendMessage",
+      "key": "Enter",
+      "when": "copilotPPA.chatInputFocused && !event.shiftKey"
+    },
+    {
+      "command": "copilotPPA.newLine",
+      "key": "Shift+Enter",
+      "when": "copilotPPA.chatInputFocused"
+    },
+    {
+      "command": "copilotPPA.clearChat",
+      "key": "Ctrl+L",
+      "when": "copilotPPA.chatViewFocused"
+    },
+    {
+      "command": "copilotPPA.explainCode",
+      "key": "Ctrl+Shift+E",
+      "when": "editorHasSelection"
+    },
+    {
+      "command": "copilotPPA.refactorCode",
+      "key": "Ctrl+Shift+R",
+      "when": "editorHasSelection"
+    },
+    {
+      "command": "copilotPPA.documentCode",
+      "key": "Ctrl+Shift+D",
+      "when": "editorHasSelection"
+    },
+    {
+      "command": "copilotPPA.focusChat",
+      "key": "Ctrl+Shift+Space",
+      "when": "editorFocus"
+    },
+    {
+      "command": "copilotPPA.toggleSidebar",
+      "key": "Ctrl+Shift+A"
+    },
+    {
+      "command": "copilotPPA.manageSnippets",
+      "key": "ctrl+shift+s",
+      "when": "editorFocus || view == copilotPPAConversations"
     }
   ],
-  "menus": {
-    "view/title": [
-      {
-        "command": "localLLMAgent.openSidebar",
-        "when": "view == explorer",
-        "group": "navigation"
-      }
-    ],
-    "editor/context": [
-      {
-        "submenu": "copilot-ppa.contextMenu",
-        "when": "editorHasSelection"
-      }
-    ],
-    "copilot-ppa.contextMenu": [
-      {
-        "command": "copilot-ppa.explainCode",
-        "group": "1_modification"
-      },
-      {
-        "command": "copilot-ppa.improveCode",
-        "group": "1_modification"
-      },
-      {
-        "command": "copilot-ppa.generateTests",
-        "group": "1_modification"
-      }
-    ]
-  },
-  "views": {
-    "explorer": [],
-    "localLlmAgent": [
-      {
-        "type": "webview",
-        "id": "localLlmAgent.sidebarView",
-        "name": "Agent Control"
-      },
-      {
-        "type": "webview",
-        "id": "localLlmAgent.chatView",
-        "name": "Chat with Local LLM"
-      }
-    ]
-  },
-  "viewsContainers": {
-    "activitybar": [
-      {
-        "id": "localLlmAgent",
-        "title": "Local LLM Agent",
-        "icon": "resources/llm-icon.svg"
-      }
-    ]
-  },
   "submenus": [
     {
       "id": "copilot-ppa.contextMenu",
@@ -355,18 +1445,21 @@
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
-    "sinon": "^15.2.0",
-    "ts-node": "^10.9.1",
+    "@gitbeaker/node": "^35.8.0",
+    "@octokit/rest": "^19.0.7",
+    "node-cache": "^5.1.2",
+    "axios": "^1.6.2",
+    "@vscode/extension-telemetry": "^0.9.0",
+    "@types/vscode": "^1.60.0",
+    "vscode-test": "^1.6.1",
     "typescript": "^5.3.0",
-    "vscode-test": "^1.6.1"
+    "ts-node": "^10.9.1",
+    "sinon": "^15.2.0",
+    "bitbucket": "^2.11.0"
   },
   "dependencies": {
-    "@types/vscode": "^1.60.0",
-    "@vscode/extension-telemetry": "^0.9.0",
-    "axios": "^1.6.2",
-    "node-cache": "^5.1.2",
-    "@octokit/rest": "^19.0.7",
-    "@gitbeaker/node": "^35.8.0",
-    "bitbucket": "^2.11.0"
+    "@babel/parser": "^7.22.5",
+    "@babel/traverse": "^7.22.5",
+    "@babel/types": "^7.22.5"
   }
 }

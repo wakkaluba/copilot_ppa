@@ -1,0 +1,7 @@
+{
+  "commands.selectLanguage": "Select Language",
+  "commands.category": "Local LLM Agent",
+  "settings.title": "Local LLM Agent",
+  "settings.language": "Language for the extension UI",
+  "settings.autoDetectLanguage": "Automatically detect language in prompts and adapt responses"
+}

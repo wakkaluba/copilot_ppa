@@ -39,3 +39,6 @@ jobs:
           files: "*.vsix"
           generate_release_notes: true
           token: ${{ github.token }}
+
+      - name: Publish to Visual Studio Marketplace
+        run: npx vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}

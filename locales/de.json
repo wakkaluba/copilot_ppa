@@ -1,0 +1,73 @@
+{
+  "extension.name": "Lokaler LLM-Agent",
+  "extension.description": "VS Code-Erweiterung für die Arbeit mit lokalen LLM-Modellen zur KI-Unterstützung",
+  
+  "views.title.agent": "Lokaler LLM-Agent",
+  "views.title.promptTemplates": "Prompt-Vorlagen",
+  "views.title.history": "Gesprächsverlauf",
+  
+  "commands.category": "Lokaler LLM-Agent",
+  "commands.startChat": "Chat starten",
+  "commands.connectLLM": "Mit LLM verbinden",
+  "commands.disconnectLLM": "Von LLM trennen",
+  "commands.clearConversation": "Gespräch löschen",
+  "commands.exportConversation": "Gespräch exportieren",
+  "commands.generateCode": "Code generieren",
+  "commands.explainCode": "Ausgewählten Code erklären",
+  "commands.optimizeCode": "Ausgewählten Code optimieren",
+  "commands.testCode": "Tests für ausgewählten Code generieren",
+  "commands.workspaceAccess.toggle": "Workspace-Zugriff umschalten",
+  "commands.workspaceAccess.enabled": "Workspace-Zugriff aktiviert",
+  "commands.workspaceAccess.disabled": "Workspace-Zugriff deaktiviert",
+  "commands.terminalCommands.generate": "Terminal-Befehl generieren",
+  
+  "settings.title": "Lokaler LLM-Agent",
+  "settings.language": "Sprache für die Erweiterungs-UI",
+  "settings.llm.endpoint": "LLM-API-Endpunkt-URL",
+  "settings.llm.modelId": "Zu verwendende Modell-ID",
+  "settings.llm.provider": "LLM-Anbieter (ollama, lmstudio)",
+  "settings.llm.timeout": "API-Anforderungs-Timeout in Millisekunden",
+  "settings.promptTemplates.location": "Speicherort für benutzerdefinierte Prompt-Vorlagen",
+  
+  "status.connecting": "Verbindung zum LLM wird hergestellt...",
+  "status.connected": "Mit LLM verbunden",
+  "status.disconnected": "Von LLM getrennt",
+  "status.error": "LLM-Verbindungsfehler",
+  
+  "chat.placeholder": "Stellen Sie eine Frage oder geben Sie einen Befehl ein...",
+  "chat.send": "Senden",
+  "chat.thinking": "Denkt nach...",
+  "chat.system": "System",
+  "chat.user": "Sie",
+  "chat.assistant": "Assistent",
+  
+  "dialog.confirm": "Bestätigen",
+  "dialog.cancel": "Abbrechen",
+  "dialog.close": "Schließen",
+  "dialog.save": "Speichern",
+  "dialog.delete": "Löschen",
+  
+  "error.connectionFailed": "Verbindung zum LLM fehlgeschlagen: {error}",
+  "error.requestFailed": "Anfrage an LLM fehlgeschlagen: {error}",
+  "error.invalidResponse": "Ungültige Antwort vom LLM",
+  
+  "prompt.description": "Beschreibung",
+  "prompt.save": "Prompt speichern",
+  "prompt.category": "Kategorie",
+  "prompt.import": "Importieren",
+  "prompt.export": "Exportieren",
+  
+  "workspace.confirmFileWrite": "Der Assistent möchte die Datei '{file}' ändern. Erlauben?",
+  "workspace.confirmFileCreate": "Der Assistent möchte die Datei '{file}' erstellen. Erlauben?",
+  "workspace.confirmFileDelete": "Der Assistent möchte die Datei '{file}' löschen. Erlauben?",
+  
+  "language.select": "Sprache auswählen",
+  "language.detected": "Erkannte Sprache: {language}",
+  "language.en": "Englisch",
+  "language.de": "Deutsch",
+  "language.es": "Spanisch",
+  "language.fr": "Französisch",
+  "language.zh": "Chinesisch",
+  "language.ja": "Japanisch",
+  "language.ru": "Russisch"
+}

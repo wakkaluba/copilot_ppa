@@ -1,0 +1,7 @@
+{
+  "commands.selectLanguage": "Sprache auswählen",
+  "commands.category": "Lokaler LLM-Agent",
+  "settings.title": "Lokaler LLM-Agent",
+  "settings.language": "Sprache für die Erweiterungs-Benutzeroberfläche",
+  "settings.autoDetectLanguage": "Sprache in Prompts automatisch erkennen und Antworten anpassen"
+}

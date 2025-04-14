@@ -1,0 +1,73 @@
+{
+  "extension.name": "Local LLM Agent",
+  "extension.description": "VS Code extension to work with local LLM models for AI assistance",
+  
+  "views.title.agent": "Local LLM Agent",
+  "views.title.promptTemplates": "Prompt Templates",
+  "views.title.history": "Conversation History",
+  
+  "commands.category": "Local LLM Agent",
+  "commands.startChat": "Start Chat",
+  "commands.connectLLM": "Connect to LLM",
+  "commands.disconnectLLM": "Disconnect from LLM",
+  "commands.clearConversation": "Clear Conversation",
+  "commands.exportConversation": "Export Conversation",
+  "commands.generateCode": "Generate Code",
+  "commands.explainCode": "Explain Selected Code",
+  "commands.optimizeCode": "Optimize Selected Code",
+  "commands.testCode": "Generate Tests for Selected Code",
+  "commands.workspaceAccess.toggle": "Toggle Workspace Access",
+  "commands.workspaceAccess.enabled": "Workspace access enabled",
+  "commands.workspaceAccess.disabled": "Workspace access disabled",
+  "commands.terminalCommands.generate": "Generate Terminal Command",
+  
+  "settings.title": "Local LLM Agent",
+  "settings.language": "Language for the extension UI",
+  "settings.llm.endpoint": "LLM API endpoint URL",
+  "settings.llm.modelId": "Model ID to use",
+  "settings.llm.provider": "LLM provider (ollama, lmstudio)",
+  "settings.llm.timeout": "API request timeout in milliseconds",
+  "settings.promptTemplates.location": "Custom prompt templates location",
+  
+  "status.connecting": "Connecting to LLM...",
+  "status.connected": "Connected to LLM",
+  "status.disconnected": "Disconnected from LLM",
+  "status.error": "LLM Connection Error",
+  
+  "chat.placeholder": "Ask a question or type a command...",
+  "chat.send": "Send",
+  "chat.thinking": "Thinking...",
+  "chat.system": "System",
+  "chat.user": "You",
+  "chat.assistant": "Assistant",
+  
+  "dialog.confirm": "Confirm",
+  "dialog.cancel": "Cancel",
+  "dialog.close": "Close",
+  "dialog.save": "Save",
+  "dialog.delete": "Delete",
+  
+  "error.connectionFailed": "Failed to connect to LLM: {error}",
+  "error.requestFailed": "Request to LLM failed: {error}",
+  "error.invalidResponse": "Invalid response from LLM",
+  
+  "prompt.description": "Description",
+  "prompt.save": "Save Prompt",
+  "prompt.category": "Category",
+  "prompt.import": "Import",
+  "prompt.export": "Export",
+  
+  "workspace.confirmFileWrite": "The assistant wants to modify file '{file}'. Allow?",
+  "workspace.confirmFileCreate": "The assistant wants to create file '{file}'. Allow?",
+  "workspace.confirmFileDelete": "The assistant wants to delete file '{file}'. Allow?",
+  
+  "language.select": "Select Language",
+  "language.detected": "Detected language: {language}",
+  "language.en": "English",
+  "language.de": "German",
+  "language.es": "Spanish",
+  "language.fr": "French",
+  "language.zh": "Chinese",
+  "language.ja": "Japanese",
+  "language.ru": "Russian"
+}
