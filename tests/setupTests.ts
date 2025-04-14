@@ -89,3 +89,33 @@ jest.mock('node-fetch', () =>
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+/**
+ * Global test setup for all tests
+ * This file is automatically included by Jest
+ */
+
+// Setup environment variables needed for tests
+process.env.NODE_ENV = 'test';
+
+// Mock global.performance if needed (for Node.js environments that don't support it)
+if (typeof global.performance === 'undefined') {
+  global.performance = {
+    now: () => Date.now()
+  } as Performance;
+}
+
+// Override console methods to catch errors during tests
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  // Uncomment the line below if you want to see error messages during tests
+  // originalConsoleError(...args);
+  
+  // Optionally log errors to a file for debugging
+};
+
+// Clean up function to run after all tests
+afterAll(() => {
+  // Restore original console methods
+  console.error = originalConsoleError;
+});

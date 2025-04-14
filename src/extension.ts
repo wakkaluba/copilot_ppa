@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { CommandManager } from './commands';
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Copilot PPA extension is now active');
@@ -9,6 +10,9 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+	
+	// Initialize services - CommandManager now initializes LLMModelService internally
+	new CommandManager(context);
 }
 
 export function deactivate() {}

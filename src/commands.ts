@@ -1,13 +1,21 @@
 import * as vscode from 'vscode';
+import { LLMModelService } from './llm/modelService';
 
 export class CommandManager {
+    private modelService: LLMModelService;
+    
     constructor(context: vscode.ExtensionContext) {
+        // Create the model service instance
+        this.modelService = new LLMModelService(context);
+        
+        // Register commands
         context.subscriptions.push(
             vscode.commands.registerCommand('copilot-ppa.startAgent', this.startAgent),
             vscode.commands.registerCommand('copilot-ppa.stopAgent', this.stopAgent),
             vscode.commands.registerCommand('copilot-ppa.restartAgent', this.restartAgent),
             vscode.commands.registerCommand('copilot-ppa.configureModel', this.configureModel),
             vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation)
+            // Note: getModelRecommendations is now registered by LLMModelService
         );
     }
 
