@@ -84,6 +84,41 @@ import { MemoryOptimizer } from './features/codeOptimization/memoryOptimizer';
 // Import the runtime analyzer commands
 import { registerRuntimeAnalyzerCommands } from './commands/runtime-analyzer-commands';
 
+// Import the Copilot integration provider
+import { CopilotIntegrationProvider } from './copilot/copilotIntegrationProvider';
+
+// Import the new Copilot UI components
+import { CopilotIntegrationService } from './copilot/copilotIntegrationService';
+import { registerCopilotIntegrationCommands } from './ui/commandPaletteCopilotIntegration';
+
+import { CopilotIntegrationPanel } from './ui/copilotIntegrationPanel';
+
+import { CopilotChatViewProvider } from './views/copilotChatViewProvider';
+import { CopilotChatIntegration } from './copilot/copilotChatIntegration';
+
+// Import the performance optimization modules
+import { registerPerformanceCommands } from './commands/performanceCommands';
+
+import { SystemRequirementsChecker } from './diagnostics/systemRequirements';
+import { DiagnosticReportGenerator } from './diagnostics/diagnosticReport';
+import { Logger } from './utils/logger';
+
+// Import the new services and providers
+import { CodeExampleService } from './services/codeExamples/codeExampleService';
+import { CodeExampleViewProvider } from './ui/codeExampleView';
+
+import { CodeExampleSearch } from './codeExampleSearch';
+
+import { LLMModelsManager } from './llmProviders/llmModels';
+import { LLMSelectionView } from './llmProviders/llmSelectionView';
+
+import { ContextManager } from './contextManager';
+import { EnhancedChatProvider } from './chat/enhancedChatProvider';
+
+import { CommandToggleManager } from './ui/commandToggleManager';
+import { ToggleStatusBarItem } from './ui/toggleStatusBarItem';
+import { CommandPrefixer } from './ui/commandPrefixer';
+
 // Interface for LLM providers
 interface LLMProvider {
   name: string;
@@ -131,8 +166,98 @@ class OllamaProvider implements LLMProvider {
 import { initializeLocalization, localize, SupportedLanguage } from './i18n';
 import { LanguageSwitcher } from './ui/languageSwitcher';
 
+// Global logger instance
+let logger: Logger;
+let diagnosticReportGenerator: DiagnosticReportGenerator;
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "Local LLM Agent" is now active!');
+
+  // Initialize logger
+  logger = new Logger();
+  logger.info('Copilot PPA extension activating');
+
+  // Initialize system requirements checker
+  const systemChecker = new SystemRequirementsChecker(logger);
+
+  // Initialize diagnostic report generator
+  diagnosticReportGenerator = new DiagnosticReportGenerator(logger, context, systemChecker);
+
+  // Register commands
+  const checkSystemRequirementsCommand = vscode.commands.registerCommand(
+    'copilot-ppa.checkSystemRequirements',
+    async () => {
+      await systemChecker.checkSystemRequirements();
+    }
+  );
+
+  const generateDiagnosticReportCommand = vscode.commands.registerCommand(
+    'copilot-ppa.diagnosticReport',
+    async () => {
+      try {
+        // Show progress notification
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Generating diagnostic report...',
+            cancellable: false
+          },
+          async (progress) => {
+            progress.report({ increment: 0 });
+
+            // Generate report
+            const report = await diagnosticReportGenerator.generateReport();
+            progress.report({ increment: 50 });
+
+            // Display report in webview
+            await diagnosticReportGenerator.displayReportInWebview(report);
+            progress.report({ increment: 50 });
+          }
+        );
+      } catch (error) {
+        logger.error('Error generating diagnostic report', error);
+        vscode.window.showErrorMessage(`Failed to generate diagnostic report: ${error}`);
+      }
+    }
+  );
+
+  const clearLogsCommand = vscode.commands.registerCommand(
+    'copilot-ppa.clearLogs',
+    () => {
+      logger.clearLogs();
+      vscode.window.showInformationMessage('Copilot PPA logs cleared');
+    }
+  );
+
+  const showOutputChannelCommand = vscode.commands.registerCommand(
+    'copilot-ppa.showOutputChannel',
+    () => {
+      logger.showOutputChannel();
+    }
+  );
+
+  const exportLogsCommand = vscode.commands.registerCommand(
+    'copilot-ppa.exportLogs',
+    async () => {
+      try {
+        const filePath = await logger.exportLogs();
+        vscode.window.showInformationMessage(`Logs exported to ${filePath}`);
+      } catch (error) {
+        vscode.window.showErrorMessage('Failed to export logs');
+      }
+    }
+  );
+
+  // Register all commands with extension context
+  context.subscriptions.push(
+    checkSystemRequirementsCommand,
+    generateDiagnosticReportCommand,
+    clearLogsCommand,
+    showOutputChannelCommand,
+    exportLogsCommand
+  );
+
+  logger.info('Copilot PPA extension activated');
 
   // Initialize localization
   const localizationService = initializeLocalization(context);
@@ -939,15 +1064,296 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register runtime analyzer commands
   registerRuntimeAnalyzerCommands(context);
+
+  // Register the Copilot integration provider
+  const copilotIntegrationProvider = new CopilotIntegrationProvider(context);
+  context.subscriptions.push(copilotIntegrationProvider);
+  
+  // Make the Copilot integration available to other components
+  context.subscriptions.push(
+      vscode.commands.registerCommand('copilot-ppa.isCopilotAvailable', () => {
+          return copilotIntegrationProvider.forwardToCopilot !== undefined;
+      })
+  );
+
+  // Initialize Copilot integration services
+  const copilotService = new CopilotIntegrationService(context);
+  const copilotProvider = new CopilotIntegrationProvider(context);
+  
+  // Register Copilot integration commands
+  registerCopilotIntegrationCommands(context, copilotProvider, copilotService);
+  
+  // Add to subscriptions
+  context.subscriptions.push(copilotProvider);
+
+  // Register Copilot integration command
+  context.subscriptions.push(
+      vscode.commands.registerCommand('localLlmAgent.openCopilotIntegration', () => {
+          CopilotIntegrationPanel.getInstance(context).show();
+      })
+  );
+
+  // Register Copilot chat view provider
+  const copilotChatViewProvider = new CopilotChatViewProvider(context.extensionUri);
+  context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(
+          CopilotChatViewProvider.viewType,
+          copilotChatViewProvider
+      )
+  );
+  
+  // Register commands for Copilot integration
+  context.subscriptions.push(
+      vscode.commands.registerCommand('localLlmAgent.openCopilotIntegration', () => {
+          vscode.commands.executeCommand('workbench.view.extension.localLlmAgentCopilotChatView');
+      })
+  );
+  
+  context.subscriptions.push(
+      vscode.commands.registerCommand('localLlmAgent.copilotSendMessage', async () => {
+          const message = await vscode.window.showInputBox({
+              prompt: 'Enter message to send to Copilot Chat'
+          });
+          
+          if (message) {
+              const integration = CopilotChatIntegration.getInstance();
+              const success = await integration.sendMessageToCopilotChat(message);
+              
+              if (!success) {
+                  vscode.window.showErrorMessage('Failed to send message to Copilot Chat');
+              }
+          }
+      })
+  );
+
+  // Initialize performance manager
+  const performanceManager = PerformanceManager.getInstance();
+  performanceManager.initialize();
+  
+  // Register performance commands
+  registerPerformanceCommands(context);
+  
+  // Dispose performance manager on deactivation
+  context.subscriptions.push({
+      dispose: () => {
+          performanceManager.dispose();
+      }
+  });
+
+  // Initialize code example services
+  const codeExampleService = new CodeExampleService(context);
+  
+  // Register code example view
+  const codeExampleViewProvider = new CodeExampleViewProvider(
+      context.extensionUri,
+      codeExampleService
+  );
+  
+  context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(
+          CodeExampleViewProvider.viewType,
+          codeExampleViewProvider
+      )
+  );
+  
+  // Register command to search for code examples
+  context.subscriptions.push(
+      vscode.commands.registerCommand('codeExamples.search', async () => {
+          // Show the code examples view
+          await vscode.commands.executeCommand('codeExamples.view.focus');
+          
+          // Ask user for search query
+          const query = await vscode.window.showInputBox({
+              placeHolder: 'Enter search query for code examples',
+              prompt: 'Search for code examples'
+          });
+          
+          if (query) {
+              // Get current editor language
+              const editor = vscode.window.activeTextEditor;
+              const language = editor?.document.languageId;
+              
+              // Search for examples
+              codeExampleViewProvider.searchCodeExamples(query, language);
+          }
+      })
+  );
+
+  // Initialize code example search
+  const codeExampleSearch = new CodeExampleSearch(context);
+  
+  // Register command to search for code examples
+  context.subscriptions.push(
+      vscode.commands.registerCommand('vscode-local-llm-agent.searchCodeExamples', async () => {
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) {
+              vscode.window.showErrorMessage('No active editor found');
+              return;
+          }
+          
+          // Get the current language
+          const language = editor.document.languageId;
+          
+          // Get the selected text or current line as query
+          let query = '';
+          if (!editor.selection.isEmpty) {
+              query = editor.document.getText(editor.selection);
+          } else {
+              const line = editor.document.lineAt(editor.selection.active.line);
+              query = line.text.trim();
+          }
+          
+          if (!query) {
+              // Prompt user for query if no text selected
+              const inputQuery = await vscode.window.showInputBox({
+                  prompt: 'Enter search query for code examples',
+                  placeHolder: 'e.g., sort array, file upload, etc.'
+              });
+              
+              if (!inputQuery) return; // User cancelled
+              query = inputQuery;
+          }
+          
+          // Show progress indicator
+          vscode.window.withProgress({
+              location: vscode.ProgressLocation.Notification,
+              title: `Searching for ${language} code examples...`,
+              cancellable: true
+          }, async (progress, token) => {
+              try {
+                  const examples = await codeExampleSearch.searchExamples(query, language);
+                  await codeExampleSearch.showExampleUI(examples);
+              } catch (error) {
+                  vscode.window.showErrorMessage(`Error searching for code examples: ${error.message}`);
+              }
+              return Promise.resolve();
+          });
+      })
+  );
+
+  // Initialize LLM models manager
+  const llmModelsManager = new LLMModelsManager(context);
+  
+  // Register command to show LLM selection view
+  context.subscriptions.push(
+      vscode.commands.registerCommand('vscode-local-llm-agent.selectLLMModel', () => {
+          const llmSelectionView = new LLMSelectionView(context, llmModelsManager);
+          llmSelectionView.show();
+      })
+  );
+
+  // Initialize context manager
+  const contextManager = new ContextManager(context);
+  
+  // Create enhanced chat provider
+  const enhancedChatProvider = new EnhancedChatProvider(context, contextManager, llmProvider);
+  
+  // Register a view provider for enhanced chat
+  const enhancedChatViewProvider = new class implements vscode.WebviewViewProvider {
+      resolveWebviewView(webviewView: vscode.WebviewView) {
+          webviewView.webview.options = {
+              enableScripts: true,
+              localResourceRoots: [context.extensionUri]
+          };
+          
+          enhancedChatProvider.setWebview(webviewView);
+          
+          webviewView.webview.onDidReceiveMessage(async message => {
+              switch (message.command) {
+                  case 'sendMessage':
+                      await enhancedChatProvider.handleUserMessage(message.content);
+                      break;
+                  case 'clearHistory':
+                      await enhancedChatProvider.clearHistory();
+                      break;
+              }
+          });
+      }
+  };
+  
+  context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider('enhancedChat', enhancedChatViewProvider, {
+          webviewOptions: { retainContextWhenHidden: true }
+      })
+  );
+
+  // Initialize command toggle manager (singleton)
+  const toggleManager = CommandToggleManager.getInstance(context);
+  
+  // Create and initialize status bar item for toggles
+  const toggleStatusBarItem = new ToggleStatusBarItem(context);
+  
+  // Initialize command prefixer
+  const commandPrefixer = new CommandPrefixer(context);
+  
+  // Register commands for UI improvements
+  context.subscriptions.push(
+      vscode.commands.registerCommand('copilot-ppa.showCommandToggles', () => {
+          toggleStatusBarItem.showMenu();
+      }),
+      
+      vscode.commands.registerCommand('copilot-ppa.toggleWorkspaceAccess', async () => {
+          const newState = await toggleManager.toggleState('workspace');
+          vscode.window.showInformationMessage(
+              `Workspace access ${newState ? 'enabled' : 'disabled'}`
+          );
+      }),
+      
+      vscode.commands.registerCommand('copilot-ppa.toggleCodebaseSearch', async () => {
+          const newState = await toggleManager.toggleState('codebase');
+          vscode.window.showInformationMessage(
+              `Codebase search ${newState ? 'enabled' : 'disabled'}`
+          );
+      }),
+      
+      vscode.commands.registerCommand('copilot-ppa.resetCommandToggles', async () => {
+          await toggleManager.resetToggles();
+          vscode.window.showInformationMessage('All command toggles have been reset to defaults');
+      })
+  );
+  
+  // Register text editor command decorators
+  let activeEditorDecorators: vscode.Disposable[] = [];
+  
+  context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(editor => {
+          // Clean up existing decorators
+          while (activeEditorDecorators.length > 0) {
+              activeEditorDecorators.pop()?.dispose();
+          }
+          
+          // Apply decorators to new editor if exists
+          if (editor) {
+              activeEditorDecorators = commandPrefixer.registerCommandDecorators(editor);
+          }
+      })
+  );
+  
+  // Apply decorators to active editor if any
+  if (vscode.window.activeTextEditor) {
+      activeEditorDecorators = commandPrefixer.registerCommandDecorators(
+          vscode.window.activeTextEditor
+      );
+  }
 }
 
 // Extension deactivation
 export function deactivate() {
+  logger.info('Copilot PPA extension deactivating');
   // Close vector database connections
   const manager = getVectorDatabaseManager();
   if (manager) {
       manager.close().catch(err => {
           console.error('Error closing vector database connections:', err);
       });
+  }
+}
+
+/**
+ * Track LLM request for diagnostic purposes
+ */
+export function trackLlmRequest(responseTimeMs: number, isError: boolean = false, errorMessage?: string): void {
+  if (diagnosticReportGenerator) {
+      diagnosticReportGenerator.trackRequest(responseTimeMs, isError, errorMessage);
   }
 }

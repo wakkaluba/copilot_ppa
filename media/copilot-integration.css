@@ -1,0 +1,103 @@
+/* Copilot Integration Styles */
+
+.vscode-dark {
+    --copilot-color: #0D7CE3;
+    --local-llm-color: #6E9455;
+    --message-background: #2D2D30;
+    --user-message-background: #0E639C;
+    --system-message-background: #6E9455;
+    --code-background: #1E1E1E;
+}
+
+.vscode-light {
+    --copilot-color: #0078D4;
+    --local-llm-color: #388A34;
+    --message-background: #F5F5F5;
+    --user-message-background: #DCECF9;
+    --system-message-background: #EAF4E9;
+    --code-background: #EBEBEB;
+}
+
+code {
+    background-color: var(--code-background);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+pre {
+    background-color: var(--code-background);
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.copilot-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--copilot-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+.local-llm-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--local-llm-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+.message {
+    position: relative;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.message-actions {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: none;
+}
+
+.message:hover .message-actions {
+    display: flex;
+}
+
+.message-action-button {
+    background: none;
+    border: none;
+    color: var(--vscode-editor-foreground);
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 2px;
+    margin-left: 4px;
+}
+
+.message-action-button:hover {
+    opacity: 1;
+}
+
+.message .timestamp {
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-left: 8px;
+}

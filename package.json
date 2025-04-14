@@ -618,6 +618,179 @@
         "command": "localLLMAgent.runtimeAnalyzer.addMarkers",
         "title": "Add Runtime Analysis Markers to Selected Code",
         "category": "Local LLM Agent"
+      },
+      {
+        "command": "copilot-ppa.openCopilotIntegration",
+        "title": "Copilot PPA: Open Copilot Integration View"
+      },
+      {
+        "command": "copilot-ppa.toggleCopilotProvider",
+        "title": "Copilot PPA: Toggle between Local LLM and GitHub Copilot"
+      },
+      {
+        "command": "copilot-ppa.checkCopilotAvailability",
+        "title": "Copilot PPA: Check GitHub Copilot Availability"
+      },
+      {
+        "command": "copilot-ppa.sendSelectionToCopilot",
+        "title": "Copilot PPA: Process Selected Code with Copilot"
+      },
+      {
+        "command": "localLlmAgent.openCopilotIntegration",
+        "title": "Open Copilot Integration Panel",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLlmAgent.copilotSendMessage",
+        "title": "Send Message to Copilot Chat",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.performance.toggleProfiling",
+        "title": "Toggle Performance Profiling",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.performance.generateReport",
+        "title": "Generate Performance Report",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.performance.clearCache",
+        "title": "Clear Performance Cache",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.performance.analyzeBottlenecks",
+        "title": "Analyze Performance Bottlenecks",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "localLLMAgent.performance.optimizationSuggestions",
+        "title": "Get Optimization Suggestions",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "copilot-ppa.showDebugDashboard",
+        "title": "Show Debug Dashboard",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.toggleCommunicationAnalyzer",
+        "title": "Toggle Communication Analyzer",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.exportCommunicationData",
+        "title": "Export Communication Data",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.clearCommunicationHistory",
+        "title": "Clear Communication History",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.checkCudaSupport",
+        "title": "Check CUDA/GPU Support",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.checkModelCompatibility",
+        "title": "Check LLM Model Compatibility",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.getModelRecommendations",
+        "title": "Get LLM Model Recommendations",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.clearLogs",
+        "title": "Clear All Logs",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.showOutputChannel",
+        "title": "Show Output Channel",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.exportLogs",
+        "title": "Export Logs",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.checkSystemRequirements",
+        "title": "Check System Requirements",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.diagnosticReport",
+        "title": "Generate Diagnostic Report",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.monitorMemoryUsage",
+        "title": "Monitor Memory Usage",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.checkLatency",
+        "title": "Check LLM Response Latency",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.optimizePerformance",
+        "title": "Suggest Performance Optimizations",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.resetExtension",
+        "title": "Reset Extension State",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "codeExamples.search",
+        "title": "Search Code Examples",
+        "category": "Code Examples",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vscode-local-llm-agent.searchCodeExamples",
+        "title": "Search Code Examples",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.selectLLMModel",
+        "title": "Select LLM Model",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "vscode-local-llm-agent.clearChatHistory",
+        "title": "Clear Chat History",
+        "category": "Local LLM Agent"
+      },
+      {
+        "command": "copilot-ppa.showCommandToggles",
+        "title": "Show Command Toggles",
+        "category": "Copilot PPA",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "copilot-ppa.toggleWorkspaceAccess",
+        "title": "Toggle Workspace Access",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.toggleCodebaseSearch",
+        "title": "Toggle Codebase Search",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.resetCommandToggles",
+        "title": "Reset Command Toggles",
+        "category": "Copilot PPA"
       }
     ],
     "configuration": {
@@ -1002,8 +1175,179 @@
           "type": "object",
           "default": {},
           "description": "Store code links between related code segments"
+        },
+        "copilot-ppa.selectedProvider": {
+          "type": "string",
+          "enum": ["local", "copilot"],
+          "default": "local",
+          "description": "Select the AI provider to use for code assistance (Local LLM or GitHub Copilot)"
+        },
+        "localLlmAgent.enableCopilotIntegration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable integration with GitHub Copilot Chat"
+        },
+        "localLLMAgent.performance.profilingEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable performance profiling for operations"
+        },
+        "localLLMAgent.performance.bottleneckDetectionEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic detection of performance bottlenecks"
+        },
+        "localLLMAgent.performance.cachingEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable caching for performance optimization"
+        },
+        "localLLMAgent.performance.maxCacheItems": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of items to keep in performance cache"
+        },
+        "localLLMAgent.performance.reportIntervalMinutes": {
+          "type": "number",
+          "default": 30,
+          "description": "Interval in minutes between automatic performance reports (0 to disable)"
+        },
+        "copilot-ppa.debug.enableCommunicationAnalyzer": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable tracking of Copilot communication for analysis and debugging"
+        },
+        "copilot-ppa.debug.maxHistorySize": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of communication records to keep in history"
+        },
+        "copilot-ppa.debug.autoOpenDashboard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open debug dashboard on startup"
+        },
+        "copilot-ppa.debug.enableGpuDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GPU detection for performance optimization"
+        },
+        "copilot-ppa.logger.level": {
+          "type": "string",
+          "default": "info",
+          "enum": ["debug", "info", "warn", "error"],
+          "description": "Minimum log level to display"
+        },
+        "copilot-ppa.logger.logToFile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable logging to a file"
+        },
+        "copilot-ppa.logger.logFilePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to log file (leave empty for default location)"
+        },
+        "copilot-ppa.logger.maxSize": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum size of log files in MB before rotation"
+        },
+        "copilot-ppa.logger.maxFiles": {
+          "type": "number",
+          "default": 3,
+          "description": "Maximum number of log files to keep"
+        },
+        "copilot-ppa.logger.maxInMemoryLogs": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum number of log entries to keep in memory"
+        },
+        "localLLM.provider": {
+          "type": "string",
+          "default": "ollama",
+          "enum": ["ollama", "lmstudio"],
+          "enumDescriptions": [
+            "Use Ollama as the LLM provider",
+            "Use LM Studio as the LLM provider"
+          ],
+          "description": "The LLM provider to use"
+        },
+        "localLLM.modelId": {
+          "type": "string",
+          "default": "llama2",
+          "description": "The ID of the LLM model to use"
+        },
+        "localLLM.contextAwareness": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable context-aware responses based on conversation history"
+        },
+        "localLLM.persistProgrammingPreferences": {
+          "type": "boolean",
+          "default": true,
+          "description": "Persist programming language preferences between sessions"
+        },
+        "localLLM.maxHistorySize": {
+          "type": "number",
+          "default": 200,
+          "description": "Maximum number of messages to keep in history"
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "localLlmAgent.dependencyGraphView",
+          "name": "Dependencies",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "localLlmAgent.copilotChatView",
+          "name": "Copilot Chat Integration",
+          "when": "config.localLlmAgent.enableCopilotIntegration"
+        },
+        {
+          "id": "codeExamples.view",
+          "name": "Code Examples",
+          "icon": "$(code)",
+          "contextualTitle": "Code Examples"
+        }
+      ],
+      "localLlmAgent": [
+        {
+          "type": "webview",
+          "id": "localLlmAgent.sidebarView",
+          "name": "Agent Control"
+        },
+        {
+          "type": "webview",
+          "id": "localLlmAgent.chatView",
+          "name": "Chat with Local LLM"
+        }
+      ],
+      "localLLM": [
+        {
+          "type": "webview",
+          "id": "enhancedChat",
+          "name": "Enhanced Chat",
+          "icon": "$(comment-discussion)"
+        }
+      ],
+      "copilotPPA": [
+        {
+          "id": "copilotPPA.keyboardShortcutsView",
+          "name": "Keyboard Shortcuts",
+          "type": "webview"
+        }
+      ],
+      "test": [
+        {
+          "id": "localLLMAgentTestExplorer",
+          "name": "LLM Agent Test Explorer",
+          "icon": "$(beaker)"
+        }
+      ]
     },
     "menus": {
       "view/title": [
@@ -1040,6 +1384,11 @@
         {
           "command": "copilotPPA.importConversation",
           "when": "view == copilotPPAConversations",
+          "group": "navigation"
+        },
+        {
+          "command": "codeExamples.search",
+          "when": "view == codeExamples.view",
           "group": "navigation"
         }
       ],
@@ -1192,6 +1541,21 @@
           "command": "localLLMAgent.runtimeAnalyzer.addMarkers",
           "when": "editorHasSelection",
           "group": "localLLMAgent"
+        },
+        {
+          "command": "copilot-ppa.sendSelectionToCopilot",
+          "when": "editorHasSelection",
+          "group": "copilot-ppa"
+        },
+        {
+          "command": "codeExamples.search",
+          "group": "navigation",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "vscode-local-llm-agent.searchCodeExamples",
+          "group": "LocalLLMAgent",
+          "when": "editorTextFocus"
         }
       ],
       "editor/title": [
@@ -1199,6 +1563,11 @@
           "command": "localLLMAgent.generateDocumentation.currentFile",
           "when": "editorLangId == 'javascript' || editorLangId == 'typescript' || editorLangId == 'javascriptreact' || editorLangId == 'typescriptreact'",
           "group": "Local LLM Agent"
+        },
+        {
+          "command": "copilot-ppa.showCommandToggles",
+          "group": "navigation",
+          "when": "editorLangId == markdown"
         }
       ],
       "copilot-ppa.contextMenu": [
@@ -1331,41 +1700,6 @@
           "icon": "resources/icons/snippet.svg"
         }
       ]
-    },
-    "views": {
-      "explorer": [
-        {
-          "id": "localLlmAgent.dependencyGraphView",
-          "name": "Dependencies",
-          "when": "workspaceFolderCount > 0"
-        }
-      ],
-      "localLlmAgent": [
-        {
-          "type": "webview",
-          "id": "localLlmAgent.sidebarView",
-          "name": "Agent Control"
-        },
-        {
-          "type": "webview",
-          "id": "localLlmAgent.chatView",
-          "name": "Chat with Local LLM"
-        }
-      ],
-      "copilotPPA": [
-        {
-          "id": "copilotPPA.keyboardShortcutsView",
-          "name": "Keyboard Shortcuts",
-          "type": "webview"
-        }
-      ],
-      "test": [
-        {
-          "id": "localLLMAgentTestExplorer",
-          "name": "LLM Agent Test Explorer",
-          "icon": "$(beaker)"
-        }
-      ]
     }
   },
   "keybindings": [
@@ -1417,6 +1751,24 @@
       "command": "copilotPPA.manageSnippets",
       "key": "ctrl+shift+s",
       "when": "editorFocus || view == copilotPPAConversations"
+    },
+    {
+      "command": "copilot-ppa.showCommandToggles",
+      "key": "ctrl+shift+;",
+      "mac": "cmd+shift+;",
+      "when": "editorTextFocus"
+    },
+    {
+      "command": "copilot-ppa.toggleWorkspaceAccess",
+      "key": "ctrl+shift+w",
+      "mac": "cmd+shift+w",
+      "when": "editorTextFocus"
+    },
+    {
+      "command": "copilot-ppa.toggleCodebaseSearch",
+      "key": "ctrl+shift+c",
+      "mac": "cmd+shift+c",
+      "when": "editorTextFocus"
     }
   ],
   "submenus": [

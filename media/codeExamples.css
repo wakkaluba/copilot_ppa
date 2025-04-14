@@ -1,0 +1,203 @@
+.search-container {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+#search-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--vscode-input-border);
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border-radius: 2px;
+}
+
+#search-button {
+    margin-left: 8px;
+    padding: 6px 12px;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+#search-button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.language-filter {
+    margin-bottom: 10px;
+}
+
+#language-select {
+    width: 100%;
+    padding: 6px 8px;
+    background-color: var(--vscode-dropdown-background);
+    color: var(--vscode-dropdown-foreground);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 2px;
+}
+
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.loading-indicator.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--vscode-editor-foreground);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    margin-bottom: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.code-example-card {
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.code-example-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.code-example-title {
+    font-weight: bold;
+    flex: 1;
+}
+
+.code-example-language {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    padding: 2px 6px;
+    background-color: var(--vscode-badge-background);
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.code-example-source {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 4px;
+}
+
+.code-example-source a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+}
+
+.code-example-source a:hover {
+    text-decoration: underline;
+}
+
+.code-example-stars {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    display: flex;
+    align-items: center;
+}
+
+.code-example-stars::before {
+    content: "★";
+    margin-right: 4px;
+    color: gold;
+}
+
+.code-example-content {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: var(--vscode-editor-background);
+}
+
+pre {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    line-height: var(--vscode-editor-line-height);
+    white-space: pre-wrap;
+    tab-size: 4;
+}
+
+.code-example-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 12px;
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+}
+
+.action-button {
+    padding: 4px 8px;
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    margin-left: 8px;
+    font-size: 12px;
+}
+
+.action-button:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.insert-button {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.insert-button:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--vscode-descriptionForeground);
+    text-align: center;
+}
+
+.error-container {
+    background-color: var(--vscode-inputValidation-errorBackground);
+    border: 1px solid var(--vscode-inputValidation-errorBorder);
+    color: var(--vscode-inputValidation-errorForeground);
+    padding: 8px 12px;
+    margin-top: 10px;
+    border-radius: 2px;
+}
+
+.error-container.hidden {
+    display: none;
+}
+
+.error-message {
+    margin: 0;
+}

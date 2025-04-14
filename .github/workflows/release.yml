@@ -41,4 +41,6 @@ jobs:
           token: ${{ github.token }}
 
       - name: Publish to Visual Studio Marketplace
-        run: npx vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}
+        run: npm run deploy
+        env:
+          VS_MARKETPLACE_TOKEN: ${{ secrets.VS_MARKETPLACE_TOKEN }}

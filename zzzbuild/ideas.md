@@ -1,0 +1,1 @@
+- Zugriff auf Github nötig, um die Resultate der Actions zu erfassen?
