@@ -186,7 +186,7 @@
   - [ ] Code-Performance (0%)
   - [ ] Code-Verständlichkeit (0%)
 - [/] Den gesamten Code testen (JUnit test, Unit test, LINT usw.) (95%)
-  - [/] Wie ist die Code Coverage (98%)
+  - [/] Wie ist die Code Covera1ge (98%)
   - [/] Fehlerrate/-quote (92%)
 - [X] Copilot-Integration erweitern (100%)
   - [X] Vollständige Integration in das Copilot-Chatfenster (100%)

@@ -21,9 +21,8 @@
       "./src/test/types"
     ],
     "types": [
-      "mocha",
       "node",
-      "sinon"
+      "jest"
     ]
   },
   "exclude": [

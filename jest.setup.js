@@ -87,3 +87,11 @@ global.suiteSetup = beforeAll;
 global.suiteTeardown = afterAll;
 global.setup = beforeEach;
 global.teardown = afterEach;
+
+// Map Mocha globals to Jest
+global.suite = describe;
+global.test = it;
+global.suiteSetup = beforeAll;
+global.suiteTeardown = afterAll;
+global.setup = beforeEach;
+global.teardown = afterEach;

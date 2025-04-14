@@ -1,10 +1,19 @@
-// Add Mocha-like functions for use in VS Code extension tests
-global.suite = (name: string, fn: () => void) => describe(name, fn);
-global.test = (name: string, fn: () => void) => it(name, fn);
-global.suiteSetup = (fn: () => void) => beforeAll(fn);
-global.suiteTeardown = (fn: () => void) => afterAll(fn);
-global.setup = (fn: () => void) => beforeEach(fn);
-global.teardown = (fn: () => void) => afterEach(fn);
+// Import required Jest types to ensure proper type definitions
+import { describe, it, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+
+// Add properly typed Mocha-like functions for VS Code extension tests
+// @ts-ignore - Intentionally extending global
+global.suite = describe;
+// @ts-ignore - Intentionally extending global
+global.test = it;
+// @ts-ignore - Intentionally extending global
+global.suiteSetup = beforeAll;
+// @ts-ignore - Intentionally extending global
+global.suiteTeardown = afterAll;
+// @ts-ignore - Intentionally extending global
+global.setup = beforeEach;
+// @ts-ignore - Intentionally extending global
+global.teardown = afterEach;
 
 // Include this in your tests with:
 // import '../test/setup';

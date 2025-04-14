@@ -1,5 +1,4 @@
-// Mock for VS Code API
-module.exports = {
+const vscode = {
   window: {
     showInformationMessage: jest.fn(),
     showWarningMessage: jest.fn(),
@@ -9,9 +8,21 @@ module.exports = {
       clear: jest.fn(),
       show: jest.fn()
     }),
-    showQuickPick: jest.fn(),
-    showInputBox: jest.fn(),
-    createWebviewPanel: jest.fn()
+    createWebviewPanel: jest.fn().mockReturnValue({
+      webview: {
+        html: '',
+        onDidReceiveMessage: jest.fn(),
+        postMessage: jest.fn()
+      },
+      onDidDispose: jest.fn(),
+      reveal: jest.fn(),
+      dispose: jest.fn()
+    }),
+    createStatusBarItem: jest.fn().mockReturnValue({
+      show: jest.fn(),
+      hide: jest.fn(),
+      dispose: jest.fn()
+    })
   },
   workspace: {
     getConfiguration: jest.fn().mockReturnValue({
@@ -24,8 +35,7 @@ module.exports = {
       writeFile: jest.fn(),
       createDirectory: jest.fn(),
       readDirectory: jest.fn()
-    },
-    onDidChangeConfiguration: jest.fn()
+    }
   },
   commands: {
     registerCommand: jest.fn(),
@@ -37,9 +47,15 @@ module.exports = {
   },
   Position: jest.fn(),
   Range: jest.fn(),
+  StatusBarAlignment: {
+    Left: 1,
+    Right: 2
+  },
   TreeItemCollapsibleState: {
     None: 0,
     Collapsed: 1,
     Expanded: 2
   }
 };
+
+module.exports = vscode;

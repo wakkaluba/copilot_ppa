@@ -4,20 +4,17 @@ module.exports = {
   testEnvironment: 'node',
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: 'tsconfig.test.json'
+      tsconfig: 'tsconfig.json'
     }]
   },
   moduleNameMapper: {
-    "^vscode$": "<rootDir>/src/__mocks__/vscode.js"
+    "^vscode$": "<rootDir>/src/__mocks__/vscode.js",
+    // Handle case sensitivity issues
+    "\\.\\./(services|Services)/(C|c)onversationManager": "<rootDir>/src/services/conversationManager.ts",
+    "\\./(C|c)onversationManager": "<rootDir>/src/services/conversationManager.ts"
   },
   testMatch: [
-    "**/src/__tests__/**/*.test.ts"
+    "**/__tests__/**/*.test.ts"
   ],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  modulePathIgnorePatterns: [
-    "<rootDir>/tests/unit/",
-    "<rootDir>/tests/integration/",
-    "<rootDir>/tests/e2e/",
-    "<rootDir>/tests/performance/"
-  ]
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
 };

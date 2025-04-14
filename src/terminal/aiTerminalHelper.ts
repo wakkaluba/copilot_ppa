@@ -306,10 +306,10 @@ Ensure the command is:
             // Get top-level files only (for performance)
             const files = fs.readdirSync(directory);
             
-            return files.some(file => {
+            return files.some((file: string) => {
                 const filePath = path.join(directory, file);
                 if (fs.statSync(filePath).isFile()) {
-                    return extensions.some(ext => file.endsWith(ext));
+                    return extensions.some((ext: string) => file.endsWith(ext));
                 }
                 return false;
             });

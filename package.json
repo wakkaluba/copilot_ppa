@@ -1369,12 +1369,14 @@
         {
           "id": "localLlmAgent.dependencyGraphView",
           "name": "Dependencies",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0",
+          "icon": "$(references)"
         },
         {
           "id": "localLlmAgent.copilotChatView",
           "name": "Copilot Chat Integration",
-          "when": "config.localLlmAgent.enableCopilotIntegration"
+          "when": "config.localLlmAgent.enableCopilotIntegration",
+          "icon": "$(comment-discussion)"
         },
         {
           "id": "codeExamples.view",
@@ -1387,12 +1389,14 @@
         {
           "type": "webview",
           "id": "localLlmAgent.sidebarView",
-          "name": "Agent Control"
+          "name": "Agent Control",
+          "icon": "$(settings-gear)"
         },
         {
           "type": "webview",
           "id": "localLlmAgent.chatView",
-          "name": "Chat with Local LLM"
+          "name": "Chat with Local LLM",
+          "icon": "$(comment)"
         }
       ],
       "localLLM": [
@@ -1407,7 +1411,8 @@
         {
           "id": "copilotPPA.keyboardShortcutsView",
           "name": "Keyboard Shortcuts",
-          "type": "webview"
+          "type": "webview",
+          "icon": "$(keyboard)"
         }
       ],
       "test": [
@@ -1784,13 +1789,13 @@
   },
   "devDependencies": {
     "@gitbeaker/node": "^35.8.0",
-    "@octokit/rest": "^19.0.7",
+    "@octokit/rest": "^21.1.1",
     "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
     "@types/sinon": "^10.0.19",
-    "@types/vscode": "^1.60.0",
+    "@types/vscode": "^1.99.1",
     "@vscode/extension-telemetry": "^0.9.0",
     "axios": "^1.6.2",
     "bitbucket": "^2.11.0",
