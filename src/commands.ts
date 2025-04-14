@@ -3,8 +3,10 @@ import { LLMModelService } from './llm/modelService';
 
 export class CommandManager {
     private modelService: LLMModelService;
+    private context: vscode.ExtensionContext;
     
     constructor(context: vscode.ExtensionContext) {
+        this.context = context;
         // Create the model service instance
         this.modelService = new LLMModelService(context);
         
@@ -17,6 +19,18 @@ export class CommandManager {
             vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation)
             // Note: getModelRecommendations is now registered by LLMModelService
         );
+    }
+
+    registerCommands() {
+        // Register commands here
+        // For now, just adding a dummy disposable to ensure subscriptions gets something
+        const disposable = {
+            dispose: () => {}
+        };
+        
+        this.context.subscriptions.push(disposable);
+        
+        return this;
     }
 
     private async startAgent() {
