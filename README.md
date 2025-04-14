@@ -1,75 +1,27 @@
-# VSCode Local LLM Agent
+# Copilot Productivity and Performance Analyzer
 
-A Visual Studio Code extension that provides AI assistance through local LLM integration.
+Copilot PPA is a VS Code extension that helps analyze and optimize your GitHub Copilot usage, providing insights into productivity and performance.
 
 ## Features
 
-- 🤖 Local LLM Integration (Ollama & LM Studio)
-- 💬 Interactive Chat Interface
-- 🔧 Code Actions & Refactoring
-- 📝 Context-Aware Suggestions
-- 🔒 Privacy-Focused (All Processing Done Locally)
+- Integration with GitHub Copilot
+- Performance profiling and bottleneck detection
+- Code link management between related segments
 
-## Prerequisites
+## Requirements
 
 - Visual Studio Code 1.60.0 or higher
-- Node.js 14.x or higher
-- Either Ollama or LM Studio installed locally
-- At least 8GB RAM recommended
+- GitHub Copilot extension (optional)
 
-## Installation
+## Extension Settings
 
-1. **Setup Local LLM:**
-   ```bash
-   # For Ollama
-   curl https://ollama.ai/install.sh | sh
-   # Pull a compatible model
-   ollama pull codellama
-   ```
-   OR
-   - Download and install LM Studio from their official website
+This extension contributes the following settings:
 
-2. **Install the Extension:**
-   - Via VS Code:
-     1. Open VS Code
-     2. Press `Ctrl+P` / `Cmd+P`
-     3. Type `ext install copilot-ppa`
-   - Manual Installation:
-     ```bash
-     git clone https://github.com/yourusername/copilot_ppa.git
-     cd copilot_ppa
-     npm install
-     npm run compile
-     ```
-
-## Configuration
-
-1. Open VS Code settings (`Ctrl+,` / `Cmd+,`)
-2. Search for "Copilot PPA"
-3. Configure:
-   - LLM Provider (Ollama/LM Studio)
-   - API Endpoint
-   - Model Selection
-   - Temperature & Other Parameters
+* `copilot-ppa.selectedProvider`: Select the AI provider to use (Local LLM or GitHub Copilot)
+* `copilot-ppa.logger.level`: Set the logging level for diagnostics
 
 ## Usage
 
-1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "Copilot PPA" to see available commands
-3. Use the sidebar icon to open the agent panel
-4. Start interacting with the agent through the chat interface
-
-## Troubleshooting
-
-- Ensure your LLM service is running
-- Check the configuration settings
-- Verify port availability (default: 11434 for Ollama)
-- Examine VS Code output panel for detailed logs
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Contributing
-
-See CONTRIBUTING.md for development setup and guidelines.
+1. Install the extension
+2. Use the command palette to access features
+3. View insights in the Copilot PPA panel

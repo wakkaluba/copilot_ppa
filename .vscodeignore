@@ -1,6 +1,8 @@
 .git
 .github
 .vscode
+.vscode/**
+.vscode-test/**
 **/*.ts
 **/*.map
 .gitignore
@@ -11,6 +13,7 @@ node_modules
 **/yarn.lock
 **/package-lock.json
 .eslintrc.json
+**/.eslintrc.json
 .eslintignore
 .editorconfig
 .prettierrc
@@ -18,6 +21,7 @@ node_modules
 zzzbuild/**
 scripts/**
 src/**
+tests/**
 !out/**
 !src/webview/assets/**
 .nyc_output
@@ -26,3 +30,4 @@ coverage
 **/.DS_Store
 **/__pycache__
 nyc.config.js
+vsc-extension-quickstart.md

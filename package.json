@@ -1,29 +1,26 @@
 {
   "name": "copilot-ppa",
-  "displayName": "Local LLM Agent",
-  "version": "1.0.0",
-  "publisher": "your-publisher-name",
-  "description": "AI assistance through local LLM integration",
-  "categories": [
-    "Machine Learning",
-    "Programming Languages",
-    "Other"
-  ],
-  "keywords": [
-    "ai",
-    "llm",
-    "code-generation",
-    "assistant"
-  ],
-  "galleryBanner": {
-    "color": "#C80000",
-    "theme": "dark"
-  },
-  "icon": "assets/icon.png",
+  "displayName": "Copilot PPA",
+  "description": "Copilot Productivity and Performance Analyzer",
+  "version": "0.1.0",
+  "publisher": "Wakkaluba",
   "engines": {
     "vscode": "^1.60.0"
   },
-  "main": "./out/extension.js",
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "Machine Learning",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wakkaluba/copilot_ppa"
+  },
   "contributes": {
     "commands": [
       {
@@ -1776,25 +1773,34 @@
     }
   },
   "scripts": {
-    "test": "jest",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
     "test:unit": "jest --testMatch='**/tests/unit/**/*.test.ts'",
     "test:integration": "jest --testMatch='**/tests/integration/**/*.test.ts'",
     "test:e2e": "jest --testMatch='**/tests/e2e/**/*.test.ts'",
     "test:performance": "jest --testMatch='**/tests/performance/**/*.test.ts'",
     "test:coverage": "jest --coverage",
     "test:all": "node tests/run-all-tests.js",
-    "lint": "eslint 'src/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' --fix"
   },
   "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.11.7",
+    "@types/mocha": "^9.1.0",
+    "@typescript-eslint/eslint-plugin": "^5.30.0",
+    "@typescript-eslint/parser": "^5.30.0",
+    "eslint": "^8.18.0",
+    "vsce": "^2.15.0",
     "@gitbeaker/node": "^35.8.0",
     "@octokit/rest": "^21.1.1",
     "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.14",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "^20.10.0",
     "@types/sinon": "^10.0.19",
-    "@types/vscode": "^1.99.1",
     "@vscode/extension-telemetry": "^0.9.0",
     "axios": "^1.6.2",
     "bitbucket": "^2.11.0",
