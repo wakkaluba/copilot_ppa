@@ -956,10 +956,7 @@
         "copilotPPA.vectorDatabase.provider": {
           "type": "string",
           "default": "Chroma",
-          "enum": [
-            "Chroma",
-            "FAISS"
-          ],
+          "enum": ["Chroma", "FAISS"],
           "description": "Vector database provider to use"
         },
         "copilotPPA.vectorDatabase.enabled": {
@@ -1026,12 +1023,7 @@
               "type": "string",
               "default": "default",
               "description": "Currently selected theme",
-              "enum": [
-                "default",
-                "dark",
-                "light",
-                "high-contrast"
-              ],
+              "enum": ["default", "dark", "light", "high-contrast"],
               "enumDescriptions": [
                 "Matches VS Code's current theme",
                 "Dark theme with blue accents",
@@ -1048,12 +1040,7 @@
         },
         "localLlmAgent.terminal.defaultShellType": {
           "type": "string",
-          "enum": [
-            "vscode-default",
-            "powershell",
-            "git-bash",
-            "wsl-bash"
-          ],
+          "enum": ["vscode-default", "powershell", "git-bash", "wsl-bash"],
           "default": "vscode-default",
           "description": "Default shell type to use for terminal operations"
         },
@@ -1069,39 +1056,7 @@
         },
         "localLlmAgent.language": {
           "type": "string",
-          "enum": [
-            "en",
-            "de",
-            "es",
-            "fr",
-            "zh",
-            "ja",
-            "ru",
-            "uk",
-            "pl",
-            "da",
-            "no",
-            "sv",
-            "pt",
-            "it",
-            "el",
-            "ar",
-            "he",
-            "sa",
-            "eo",
-            "ko",
-            "zh-tw",
-            "th",
-            "ms",
-            "mi",
-            "cmn",
-            "tr",
-            "cs",
-            "sk",
-            "hu",
-            "sr",
-            "sq"
-          ],
+          "enum": ["en", "de", "es", "fr", "zh", "ja", "ru", "uk", "pl", "da", "no", "sv", "pt", "it", "el", "ar", "he", "sa", "eo", "ko", "zh-tw", "th", "ms", "mi", "cmn", "tr", "cs", "sk", "hu", "sr", "sq"],
           "enumDescriptions": [
             "English",
             "Deutsch (German)",
@@ -1146,10 +1101,7 @@
         "localLLMAgent.documentation.style": {
           "type": "string",
           "default": "jsdoc",
-          "enum": [
-            "jsdoc",
-            "tsdoc"
-          ],
+          "enum": ["jsdoc", "tsdoc"],
           "description": "The style of documentation to generate (JSDoc or TSDoc)."
         },
         "localLLMAgent.documentation.includeExamples": {
@@ -1199,19 +1151,13 @@
         },
         "localLLMAgent.documentation.api.outputFormat": {
           "type": "string",
-          "enum": [
-            "markdown",
-            "html",
-            "json",
-            "yaml",
-            "openapi"
-          ],
+          "enum": ["markdown", "html", "json", "yaml", "openapi"],
           "default": "markdown",
           "description": "Default output format for API documentation."
         },
         "localLLMAgent.documentation.readme.includeBadges": {
           "type": "boolean",
-          "default": true,
+          "default": true, 
           "description": "Whether to include badges in generated README files."
         },
         "localLLMAgent.documentation.readme.includeTableOfContents": {
@@ -1221,11 +1167,7 @@
         },
         "localLLMAgent.documentation.wiki.location": {
           "type": "string",
-          "enum": [
-            ".github/wiki",
-            "wiki",
-            "docs/wiki"
-          ],
+          "enum": [".github/wiki", "wiki", "docs/wiki"],
           "default": ".github/wiki",
           "description": "Location to store generated Wiki files."
         },
@@ -1236,10 +1178,7 @@
         },
         "copilot-ppa.selectedProvider": {
           "type": "string",
-          "enum": [
-            "local",
-            "copilot"
-          ],
+          "enum": ["local", "copilot"],
           "default": "local",
           "description": "Select the AI provider to use for code assistance (Local LLM or GitHub Copilot)"
         },
@@ -1296,12 +1235,7 @@
         "copilot-ppa.logger.level": {
           "type": "string",
           "default": "info",
-          "enum": [
-            "debug",
-            "info",
-            "warn",
-            "error"
-          ],
+          "enum": ["debug", "info", "warn", "error"],
           "description": "Minimum log level to display"
         },
         "copilot-ppa.logger.logToFile": {
@@ -1332,10 +1266,7 @@
         "localLLM.provider": {
           "type": "string",
           "default": "ollama",
-          "enum": [
-            "ollama",
-            "lmstudio"
-          ],
+          "enum": ["ollama", "lmstudio"],
           "enumDescriptions": [
             "Use Ollama as the LLM provider",
             "Use LM Studio as the LLM provider"
@@ -1771,81 +1702,6 @@
       ]
     }
   },
-  "keybindings": [
-    {
-      "command": "copilot-ppa.toggleWorkspaceAccess",
-      "key": "ctrl+alt+w",
-      "mac": "cmd+alt+w"
-    },
-    {
-      "command": "copilotPPA.sendMessage",
-      "key": "Enter",
-      "when": "copilotPPA.chatInputFocused && !event.shiftKey"
-    },
-    {
-      "command": "copilotPPA.newLine",
-      "key": "Shift+Enter",
-      "when": "copilotPPA.chatInputFocused"
-    },
-    {
-      "command": "copilotPPA.clearChat",
-      "key": "Ctrl+L",
-      "when": "copilotPPA.chatViewFocused"
-    },
-    {
-      "command": "copilotPPA.explainCode",
-      "key": "Ctrl+Shift+E",
-      "when": "editorHasSelection"
-    },
-    {
-      "command": "copilotPPA.refactorCode",
-      "key": "Ctrl+Shift+R",
-      "when": "editorHasSelection"
-    },
-    {
-      "command": "copilotPPA.documentCode",
-      "key": "Ctrl+Shift+D",
-      "when": "editorHasSelection"
-    },
-    {
-      "command": "copilotPPA.focusChat",
-      "key": "Ctrl+Shift+Space",
-      "when": "editorFocus"
-    },
-    {
-      "command": "copilotPPA.toggleSidebar",
-      "key": "Ctrl+Shift+A"
-    },
-    {
-      "command": "copilotPPA.manageSnippets",
-      "key": "ctrl+shift+s",
-      "when": "editorFocus || view == copilotPPAConversations"
-    },
-    {
-      "command": "copilot-ppa.showCommandToggles",
-      "key": "ctrl+shift+;",
-      "mac": "cmd+shift+;",
-      "when": "editorTextFocus"
-    },
-    {
-      "command": "copilot-ppa.toggleWorkspaceAccess",
-      "key": "ctrl+shift+w",
-      "mac": "cmd+shift+w",
-      "when": "editorTextFocus"
-    },
-    {
-      "command": "copilot-ppa.toggleCodebaseSearch",
-      "key": "ctrl+shift+c",
-      "mac": "cmd+shift+c",
-      "when": "editorTextFocus"
-    }
-  ],
-  "submenus": [
-    {
-      "id": "copilot-ppa.contextMenu",
-      "label": "Copilot PPA"
-    }
-  ],
   "scripts": {
     "test": "jest",
     "test:unit": "jest --testMatch='**/tests/unit/**/*.test.ts'",
@@ -1858,31 +1714,32 @@
     "lint:fix": "eslint 'src/**/*.ts' --fix"
   },
   "devDependencies": {
-    "@gitbeaker/node": "^35.8.0",
-    "@octokit/rest": "^19.0.7",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
     "@types/sinon": "^10.0.19",
-    "@types/vscode": "^1.60.0",
-    "@vscode/extension-telemetry": "^0.9.0",
-    "axios": "^1.6.2",
-    "bitbucket": "^2.11.0",
     "chai": "^4.3.7",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
-    "node-cache": "^5.1.2",
     "nyc": "^15.1.0",
-    "sinon": "^15.2.0",
-    "ts-jest": "^29.3.2",
-    "ts-node": "^10.9.1",
+    "@gitbeaker/node": "^35.8.0",
+    "@octokit/rest": "^19.0.7",
+    "node-cache": "^5.1.2",
+    "axios": "^1.6.2",
+    "@vscode/extension-telemetry": "^0.9.0",
+    "@types/vscode": "^1.60.0",
+    "vscode-test": "^1.6.1",
     "typescript": "^5.3.0",
-    "vscode-test": "^1.6.1"
+    "ts-node": "^10.9.1",
+    "sinon": "^15.2.0",
+    "bitbucket": "^2.11.0",
+    "jest": "^29.5.0",
+    "@types/jest": "^29.5.0",
+    "ts-jest": "^29.1.0"
   },
   "dependencies": {
     "@babel/parser": "^7.22.5",
     "@babel/traverse": "^7.22.5",
-    "@babel/types": "^7.22.5",
-    "jest": "^29.7.0"
+    "@babel/types": "^7.22.5"
   }
 }
