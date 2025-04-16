@@ -309,7 +309,19 @@ export class LLMModelsManager {
         // Check LM Studio models
         try {
             if (fs.existsSync(this.lmStudioBasePath)) {
-                const files = fs.readdirSync(this.lmStudioBasePath, { recursive: true });
+                const getAllFiles = (dirPath: string, arrayOfFiles: string[] = []): string[] => {
+                    const files = fs.readdirSync(dirPath);
+                    files.forEach((file) => {
+                        const filePath = path.join(dirPath, file);
+                        if (fs.statSync(filePath).isDirectory()) {
+                            getAllFiles(filePath, arrayOfFiles);
+                        } else {
+                            arrayOfFiles.push(filePath);
+                        }
+                    });
+                    return arrayOfFiles;
+                };
+                const files = getAllFiles(this.lmStudioBasePath);
                 
                 // Update installed status for LM Studio models
                 this.localModels.forEach(model => {
@@ -340,7 +352,7 @@ export class LLMModelsManager {
     /**
      * Get all Hugging Face models
      */
-    public getHuggingFaceModels(): LLLModel[] {
+    public getHuggingFaceModels(): LLMModel[] {
         return [...this.huggingfaceModels];
     }
 

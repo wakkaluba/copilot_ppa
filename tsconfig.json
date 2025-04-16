@@ -33,6 +33,6 @@
     "tests"
   ],
   "include": [
-    "src/extension.ts"
+    "src/**/*.ts"
   ]
 }

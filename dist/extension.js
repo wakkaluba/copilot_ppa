@@ -38,14 +38,17 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const commands_1 = require("./commands");
 function activate(context) {
-    console.log('Copilot PPA extension is now active');
-    // Register a simple command to verify the extension works
-    let disposable = vscode.commands.registerCommand('copilot-ppa.showWelcomeMessage', () => {
+    // Create a command manager and register commands
+    const commandManager = new commands_1.CommandManager(context);
+    commandManager.registerCommands();
+    // Register the welcome message command
+    const welcomeMessageDisposable = vscode.commands.registerCommand('copilot-ppa.showWelcomeMessage', () => {
         vscode.window.showInformationMessage('Copilot Productivity and Performance Analyzer is active!');
     });
-    context.subscriptions.push(disposable);
-    // Initialize services - CommandManager now initializes LLMModelService internally
-    new commands_1.CommandManager(context);
+    // Add the disposable to the subscriptions
+    context.subscriptions.push(welcomeMessageDisposable);
 }
-function deactivate() { }
+function deactivate() {
+    // Nothing to do here for now
+}
 //# sourceMappingURL=extension.js.map

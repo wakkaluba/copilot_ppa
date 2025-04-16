@@ -7,7 +7,7 @@ import axios from 'axios';
 export interface LLMModelInfo {
     id: string;
     name: string;
-    provider: 'ollama' | 'lmstudio' | 'other';
+    provider: 'ollama' | 'lmstudio' | 'huggingface';
     description: string;
     tags: string[];
     size?: number; // Size in bytes

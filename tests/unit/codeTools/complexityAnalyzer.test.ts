@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import * as assert from 'assert';
+import assert from 'assert';
 import { ComplexityAnalyzer } from '../../../src/codeTools/complexityAnalyzer';
 
 // Interface to define additional methods for testing that might not be in the actual class

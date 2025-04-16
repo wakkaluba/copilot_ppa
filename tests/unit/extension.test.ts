@@ -1,82 +1,127 @@
 import * as vscode from 'vscode';
-import { strict as assert } from 'assert';
-import * as sinon from 'sinon';
 import { activate, deactivate } from '../../src/extension';
-import { CommandManager } from '../../src/commands';
-import { mockContext } from '../__testUtils__/mocks';
 
-describe('Extension Tests', () => {
-  let sandbox: sinon.SinonSandbox;
-  let testContext: vscode.ExtensionContext;
-  let showInformationMessageStub: sinon.SinonStub;
-  let registerCommandStub: sinon.SinonStub;
-  let registerCommandsSpy: sinon.SinonSpy;
-  
+describe('Extension', () => {
+  let mockContext: vscode.ExtensionContext;
+
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
-    testContext = { ...mockContext };
-    
-    // Mock vscode API methods
-    registerCommandStub = sandbox.stub(vscode.commands, 'registerCommand').returns({ dispose: sandbox.stub() });
-    showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined as any);
-    
-    // Create proper spies on CommandManager methods
-    registerCommandsSpy = sandbox.spy(CommandManager.prototype, 'registerCommands');
-    sandbox.stub(CommandManager.prototype, 'registerCommands').callsFake(function() {
-      // This simulates what CommandManager does when registering commands
-      testContext.subscriptions.push({ dispose: () => {} });
-      return this;
+    // Create a mock context
+    mockContext = {
+      subscriptions: [],
+      extensionMode: vscode.ExtensionMode.Development,
+      extensionUri: vscode.Uri.file('/test'),
+      extensionPath: '/test',
+      globalState: {
+        get: jest.fn(),
+        update: jest.fn(),
+        setKeysForSync: jest.fn()
+      },
+      workspaceState: {
+        get: jest.fn(),
+        update: jest.fn()
+      },
+      secrets: {
+        get: jest.fn(),
+        store: jest.fn(),
+        delete: jest.fn()
+      },
+      globalStorageUri: vscode.Uri.file('/test/global'),
+      logUri: vscode.Uri.file('/test/log'),
+      storagePath: '/test/storage',
+      storageUri: vscode.Uri.file('/test/storage'),
+      logPath: '/test/log',
+      asAbsolutePath: jest.fn(path => path),
+      environmentVariableCollection: {
+        persistent: true,
+        replace: jest.fn(),
+        append: jest.fn(),
+        prepend: jest.fn(),
+        get: jest.fn(),
+        forEach: jest.fn(),
+        delete: jest.fn(),
+        clear: jest.fn()
+      }
+    };
+  });
+
+  describe('Activation', () => {
+    it('should register commands on activation', async () => {
+      await activate(mockContext);
+      
+      expect(vscode.commands.registerCommand).toHaveBeenCalled();
+      expect(mockContext.subscriptions.length).toBeGreaterThan(0);
+    });
+
+    it('should register the welcome message command', async () => {
+      await activate(mockContext);
+      
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+        'copilot-ppa.showWelcomeMessage',
+        expect.any(Function)
+      );
+    });
+
+    it('should initialize services', async () => {
+      await activate(mockContext);
+      
+      // Verify service initialization through mocked commands
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+        'copilot-ppa.startAgent',
+        expect.any(Function)
+      );
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+        'copilot-ppa.stopAgent',
+        expect.any(Function)
+      );
     });
   });
-  
-  afterEach(() => {
-    sandbox.restore();
-  });
-  
-  it('should register welcome message command on activation', () => {
-    // Call activate function
-    activate(testContext);
-    
-    // Verify that welcome message command is registered
-    assert(registerCommandStub.calledWith('copilot-ppa.showWelcomeMessage'), 
-      'Welcome message command should be registered');
-  });
-  
-  it('should show welcome message when command is triggered', () => {
-    // Call activate function
-    activate(testContext);
-    
-    // Get the welcome message callback from the registerCommand call
-    const welcomeMessageCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.showWelcomeMessage'
-    )?.args[1];
-    
-    // Call the callback
-    welcomeMessageCallback();
-    
-    // Verify that welcome message is shown
-    assert(showInformationMessageStub.calledWith('Copilot Productivity and Performance Analyzer is active!'), 
-      'Welcome message should be shown');
-  });
-  
-  it('should add disposable to subscriptions on activation', () => {
-    // Call activate function
-    activate(testContext);
-    
-    // Verify that disposable is added to subscriptions
-    assert(testContext.subscriptions.length > 0, 'Disposable should be added to subscriptions');
+
+  describe('Deactivation', () => {
+    it('should clean up on deactivation', () => {
+      const disposeStub = jest.fn();
+      mockContext.subscriptions.push({ dispose: disposeStub });
+
+      deactivate();
+
+      expect(disposeStub).toHaveBeenCalled();
+    });
   });
 
-  it('should create CommandManager instance on activation', () => {
-    // Call activate function
-    activate(testContext);
-    
-    // Verify that CommandManager's registerCommands method was called
-    assert(registerCommandsSpy.called, 'CommandManager should be created and registerCommands should be called');
-  });
-  
-  it('should not throw error on deactivation', () => {
-    // Call deactivate function, should not throw error
-    assert.doesNotThrow(() => deactivate(), 'deactivate should not throw error');
+  describe('Command Execution', () => {
+    it('should show welcome message when command is executed', async () => {
+      await activate(mockContext);
+
+      // Get the registered welcome message command handler
+      const commandHandler = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
+        call => call[0] === 'copilot-ppa.showWelcomeMessage'
+      )?.[1];
+
+      // Execute the command handler
+      if (commandHandler) {
+        await commandHandler();
+      }
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        'Copilot Productivity and Performance Analyzer is active!'
+      );
+    });
+
+    it('should handle agent start/stop commands', async () => {
+      await activate(mockContext);
+
+      // Get the start agent command handler
+      const startHandler = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
+        call => call[0] === 'copilot-ppa.startAgent'
+      )?.[1];
+
+      // Execute the command handler
+      if (startHandler) {
+        await startHandler();
+      }
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Starting')
+      );
+    });
   });
 });

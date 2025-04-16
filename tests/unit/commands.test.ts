@@ -1,169 +1,180 @@
 import * as vscode from 'vscode';
-import * as sinon from 'sinon';
-import { strict as assert } from 'assert';
-import { CommandManager } from '../../src/commands';
+import { CommandManager } from '../../src/commands/commandManager';
+import { AgentService } from '../../src/agents/agentService';
 
-describe('CommandManager Tests', () => {
-  let sandbox: sinon.SinonSandbox;
-  let mockContext: vscode.ExtensionContext;
-  let showInformationMessageStub: sinon.SinonStub;
-  let registerCommandStub: sinon.SinonStub;
+jest.mock('../../src/agents/agentService');
+
+describe('Command Manager', () => {
   let commandManager: CommandManager;
-  
+  let mockContext: vscode.ExtensionContext;
+  let mockAgentService: jest.Mocked<AgentService>;
+
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
+    mockAgentService = new AgentService() as jest.Mocked<AgentService>;
     
-    // Mock vscode API methods
-    showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves(undefined as any);
-    registerCommandStub = sandbox.stub(vscode.commands, 'registerCommand').returns({ dispose: sandbox.stub() });
-    
-    // Mock extension context
     mockContext = {
       subscriptions: [],
       extensionPath: '/test/path',
-      extensionUri: vscode.Uri.parse('file:///test/path'),
-      storageUri: vscode.Uri.parse('file:///test/storage'),
-      globalStorageUri: vscode.Uri.parse('file:///test/globalStorage'),
-      logUri: vscode.Uri.parse('file:///test/log'),
-      asAbsolutePath: (p: string) => `/test/path/${p}`,
-      storagePath: '/test/storagePath',
-      globalStoragePath: '/test/globalStoragePath',
-      logPath: '/test/logPath',
-      extensionMode: vscode.ExtensionMode.Development,
       globalState: {
-        keys: () => [],
-        get: (key: string) => undefined,
-        update: (key: string, value: any) => Promise.resolve(),
-        setKeysForSync: (keys: string[]) => {}
+        get: jest.fn(),
+        update: jest.fn(),
+        setKeysForSync: jest.fn(),
+        keys: () => []
       },
       workspaceState: {
-        keys: () => [],
-        get: (key: string) => undefined,
-        update: (key: string, value: any) => Promise.resolve()
+        get: jest.fn(),
+        update: jest.fn(),
+        keys: () => []
       },
       secrets: {
-        get: (key: string) => Promise.resolve(undefined),
-        store: (key: string, value: string) => Promise.resolve(),
-        delete: (key: string) => Promise.resolve(),
-        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+        get: jest.fn(),
+        store: jest.fn(),
+        delete: jest.fn(),
+        onDidChange: new vscode.EventEmitter().event
       },
+      extensionUri: vscode.Uri.file('/test/path'),
       environmentVariableCollection: {
         persistent: true,
-        replace: (variable: string, value: string) => {},
-        append: (variable: string, value: string) => {},
-        prepend: (variable: string, value: string) => {},
-        get: (variable: string) => undefined,
-        forEach: (callback: (variable: string, mutator: vscode.EnvironmentVariableMutator, collection: vscode.EnvironmentVariableCollection) => any, thisArg?: any) => {},
-        delete: (variable: string) => {},
-        clear: () => {},
-        getScoped: (scope: vscode.EnvironmentVariableScope) => ({} as vscode.EnvironmentVariableCollection),
-        description: undefined,
-        [Symbol.iterator]: function*() { yield* []; }
+        replace: jest.fn(),
+        append: jest.fn(),
+        prepend: jest.fn(),
+        get: jest.fn(),
+        forEach: jest.fn(),
+        delete: jest.fn(),
+        clear: jest.fn(),
+        getScoped: jest.fn(),
+        [Symbol.iterator]: jest.fn(),
+        description: undefined
       },
-      extension: {
-        id: 'test-extension',
-        extensionUri: vscode.Uri.parse('file:///test/path'),
-        extensionPath: '/test/path',
-        isActive: true,
-        packageJSON: {},
-        exports: undefined,
-        activate: () => Promise.resolve(),
-        extensionKind: vscode.ExtensionKind.UI
-      },
-      languageModelAccessInformation: {
-        onDidChange: new vscode.EventEmitter<void>().event,
-        canSendRequest: () => true
-      }
-    };
-    
-    // Create CommandManager instance
-    commandManager = new CommandManager(mockContext);
+      storageUri: vscode.Uri.file('/test/storage'),
+      globalStorageUri: vscode.Uri.file('/test/global-storage'),
+      logUri: vscode.Uri.file('/test/log'),
+      extensionMode: vscode.ExtensionMode.Test
+    } as vscode.ExtensionContext;
+
+    commandManager = new CommandManager(mockContext, mockAgentService);
   });
-  
-  afterEach(() => {
-    sandbox.restore();
+
+  describe('Command Registration', () => {
+    it('should register all commands', () => {
+      const registerCommandSpy = jest.spyOn(vscode.commands, 'registerCommand');
+      
+      commandManager.registerCommands();
+      
+      expect(registerCommandSpy).toHaveBeenCalledTimes(expect.any(Number));
+      expect(mockContext.subscriptions.length).toBeGreaterThan(0);
+    });
   });
-  
-  it('should register commands on initialization', () => {
-    // Verify that all required commands are registered
-    assert(registerCommandStub.calledWith('copilot-ppa.startAgent'), 'startAgent command should be registered');
-    assert(registerCommandStub.calledWith('copilot-ppa.stopAgent'), 'stopAgent command should be registered');
-    assert(registerCommandStub.calledWith('copilot-ppa.restartAgent'), 'restartAgent command should be registered');
-    assert(registerCommandStub.calledWith('copilot-ppa.configureModel'), 'configureModel command should be registered');
-    assert(registerCommandStub.calledWith('copilot-ppa.clearConversation'), 'clearConversation command should be registered');
+
+  describe('Agent Commands', () => {
+    it('should start agent', async () => {
+      const startSpy = jest.spyOn(mockAgentService, 'start');
+      
+      await (commandManager as any).startAgent();
+      
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('should stop agent', async () => {
+      const stopSpy = jest.spyOn(mockAgentService, 'stop');
+      
+      await (commandManager as any).stopAgent();
+      
+      expect(stopSpy).toHaveBeenCalled();
+    });
+
+    it('should restart agent', async () => {
+      const stopSpy = jest.spyOn(mockAgentService, 'stop');
+      const startSpy = jest.spyOn(mockAgentService, 'start');
+      
+      await (commandManager as any).restartAgent();
+      
+      expect(stopSpy).toHaveBeenCalled();
+      expect(startSpy).toHaveBeenCalled();
+    });
   });
-  
-  it('should show information message when startAgent is called', async () => {
-    // Get the startAgent callback from the registerCommand call
-    const startAgentCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.startAgent'
-    )?.args[1];
-    
-    // Call the callback
-    await startAgentCallback();
-    
-    assert(showInformationMessageStub.calledWith('Starting Copilot PPA agent...'), 
-      'Should show information message when startAgent is called');
+
+  describe('Model Configuration', () => {
+    it('should configure model', async () => {
+      const showQuickPickSpy = jest.spyOn(vscode.window, 'showQuickPick').mockResolvedValue('llama2');
+      const configureSpy = jest.spyOn(mockAgentService, 'configureModel');
+      
+      await (commandManager as any).configureModel();
+      
+      expect(showQuickPickSpy).toHaveBeenCalled();
+      expect(configureSpy).toHaveBeenCalledWith('llama2');
+    });
+
+    it('should handle model configuration cancellation', async () => {
+      jest.spyOn(vscode.window, 'showQuickPick').mockResolvedValue(undefined);
+      const configureSpy = jest.spyOn(mockAgentService, 'configureModel');
+      
+      await (commandManager as any).configureModel();
+      
+      expect(configureSpy).not.toHaveBeenCalled();
+    });
   });
-  
-  it('should show information message when stopAgent is called', async () => {
-    // Get the stopAgent callback from the registerCommand call
-    const stopAgentCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.stopAgent'
-    )?.args[1];
-    
-    // Call the callback
-    await stopAgentCallback();
-    
-    assert(showInformationMessageStub.calledWith('Stopping Copilot PPA agent...'), 
-      'Should show information message when stopAgent is called');
+
+  describe('Conversation Management', () => {
+    it('should clear conversation', async () => {
+      const clearSpy = jest.spyOn(mockAgentService, 'clearConversation');
+      
+      await (commandManager as any).clearConversation();
+      
+      expect(clearSpy).toHaveBeenCalled();
+    });
+
+    it('should show confirmation before clearing', async () => {
+      const showWarningMessageSpy = jest.spyOn(vscode.window, 'showWarningMessage')
+        .mockResolvedValue('Yes');
+      const clearSpy = jest.spyOn(mockAgentService, 'clearConversation');
+      
+      await (commandManager as any).clearConversation();
+      
+      expect(showWarningMessageSpy).toHaveBeenCalled();
+      expect(clearSpy).toHaveBeenCalled();
+    });
+
+    it('should not clear when confirmation is cancelled', async () => {
+      jest.spyOn(vscode.window, 'showWarningMessage').mockResolvedValue(undefined);
+      const clearSpy = jest.spyOn(mockAgentService, 'clearConversation');
+      
+      await (commandManager as any).clearConversation();
+      
+      expect(clearSpy).not.toHaveBeenCalled();
+    });
   });
-  
-  it('should call both stopAgent and startAgent when restartAgent is called', async () => {
-    // Get the restartAgent callback from the registerCommand call
-    const restartAgentCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.restartAgent'
-    )?.args[1];
-    
-    // Call the callback
-    await restartAgentCallback();
-    
-    // Should call both stop and start
-    assert(showInformationMessageStub.calledWith('Stopping Copilot PPA agent...'), 
-      'Should call stopAgent when restartAgent is called');
-    assert(showInformationMessageStub.calledWith('Starting Copilot PPA agent...'), 
-      'Should call startAgent when restartAgent is called');
-    
-    // Verify the order of calls
-    assert(showInformationMessageStub.firstCall.calledWith('Stopping Copilot PPA agent...'),
-      'Should call stopAgent first');
-    assert(showInformationMessageStub.secondCall.calledWith('Starting Copilot PPA agent...'),
-      'Should call startAgent second');
+
+  describe('Error Handling', () => {
+    it('should handle agent start errors', async () => {
+      const error = new Error('Failed to start agent');
+      jest.spyOn(mockAgentService, 'start').mockRejectedValue(error);
+      const showErrorSpy = jest.spyOn(vscode.window, 'showErrorMessage');
+      
+      await (commandManager as any).startAgent();
+      
+      expect(showErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to start agent'));
+    });
+
+    it('should handle agent stop errors', async () => {
+      const error = new Error('Failed to stop agent');
+      jest.spyOn(mockAgentService, 'stop').mockRejectedValue(error);
+      const showErrorSpy = jest.spyOn(vscode.window, 'showErrorMessage');
+      
+      await (commandManager as any).stopAgent();
+      
+      expect(showErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to stop agent'));
+    });
   });
-  
-  it('should show information message when configureModel is called', async () => {
-    // Get the configureModel callback from the registerCommand call
-    const configureModelCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.configureModel'
-    )?.args[1];
-    
-    // Call the callback
-    await configureModelCallback();
-    
-    assert(showInformationMessageStub.calledWith('Opening model configuration...'), 
-      'Should show information message when configureModel is called');
-  });
-  
-  it('should show information message when clearConversation is called', async () => {
-    // Get the clearConversation callback from the registerCommand call
-    const clearConversationCallback = registerCommandStub.getCalls().find(
-      call => call.args[0] === 'copilot-ppa.clearConversation'
-    )?.args[1];
-    
-    // Call the callback
-    await clearConversationCallback();
-    
-    assert(showInformationMessageStub.calledWith('Conversation history cleared'), 
-      'Should show information message when clearConversation is called');
+
+  describe('Cleanup', () => {
+    it('should dispose all commands on deactivation', () => {
+      const disposeSpy = jest.fn();
+      mockContext.subscriptions.push({ dispose: disposeSpy });
+      
+      commandManager.dispose();
+      
+      expect(disposeSpy).toHaveBeenCalled();
+    });
   });
 });

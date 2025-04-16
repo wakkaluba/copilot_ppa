@@ -68,27 +68,7 @@ const vscode = {
 // Mock out the VS Code module
 jest.mock('vscode', () => vscode, { virtual: true });
 
-// Define global testing objects
-global.suite = (name, callback) => describe(name, callback);
-global.test = (name, callback) => it(name, callback);
-
-// Mock Mocha functions
-global.suite = (name, fn) => describe(name, fn);
-global.test = (name, fn) => it(name, fn);
-global.suiteSetup = (fn) => beforeAll(fn);
-global.suiteTeardown = (fn) => afterAll(fn);
-global.setup = (fn) => beforeEach(fn);
-global.teardown = (fn) => afterEach(fn);
-
-// Add Mocha-like functions for Jest
-global.suite = describe;
-global.test = it;
-global.suiteSetup = beforeAll;
-global.suiteTeardown = afterAll;
-global.setup = beforeEach;
-global.teardown = afterEach;
-
-// Map Mocha globals to Jest
+// Map Mocha globals to Jest - single declaration
 global.suite = describe;
 global.test = it;
 global.suiteSetup = beforeAll;

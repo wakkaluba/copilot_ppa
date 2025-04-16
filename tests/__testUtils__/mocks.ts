@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import { HardwareSpecs } from '../../src/llm/hardwareSpecs';
 
+// Define ExtensionMode values if not available in test environment
+enum ExtensionMode {
+    Production = 1,
+    Development = 2,
+    Test = 3
+}
+
 export const mockContext: vscode.ExtensionContext = {
     subscriptions: [],
     extensionPath: '/test/path',
@@ -12,7 +19,7 @@ export const mockContext: vscode.ExtensionContext = {
     storagePath: '/test/storagePath',
     globalStoragePath: '/test/globalStoragePath',
     logPath: '/test/logPath',
-    extensionMode: vscode.ExtensionMode.Development,
+    extensionMode: (vscode.ExtensionMode?.Development || ExtensionMode.Development) as vscode.ExtensionMode,
     globalState: {
         keys: () => [],
         get: (key: string) => undefined,

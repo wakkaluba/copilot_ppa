@@ -20,13 +20,11 @@ module.exports = {
   ],
   collectCoverage: true,
   coverageDirectory: "coverage",
-  coverageReporters: ["text", "lcov", "clover", "json"],
+  coverageReporters: ["text", "lcov"],
   collectCoverageFrom: [
-    "src/**/*.{ts,tsx}",
+    "src/**/*.ts",
     "!src/**/*.d.ts",
-    "!src/__mocks__/**",
-    "!src/__tests__/**",
-    "!**/node_modules/**"
+    "!src/**/*.test.ts"
   ],
   coverageThreshold: {
     global: {

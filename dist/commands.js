@@ -38,12 +38,16 @@ const vscode = __importStar(require("vscode"));
 const modelService_1 = require("./llm/modelService");
 class CommandManager {
     constructor(context) {
+        this.context = context;
         // Create the model service instance
         this.modelService = new modelService_1.LLMModelService(context);
-        // Register commands
-        context.subscriptions.push(vscode.commands.registerCommand('copilot-ppa.startAgent', this.startAgent), vscode.commands.registerCommand('copilot-ppa.stopAgent', this.stopAgent), vscode.commands.registerCommand('copilot-ppa.restartAgent', this.restartAgent), vscode.commands.registerCommand('copilot-ppa.configureModel', this.configureModel), vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation)
+    }
+    registerCommands() {
+        // Register commands with proper binding of 'this' context
+        this.context.subscriptions.push(vscode.commands.registerCommand('copilot-ppa.startAgent', this.startAgent.bind(this)), vscode.commands.registerCommand('copilot-ppa.stopAgent', this.stopAgent.bind(this)), vscode.commands.registerCommand('copilot-ppa.restartAgent', this.restartAgent.bind(this)), vscode.commands.registerCommand('copilot-ppa.configureModel', this.configureModel.bind(this)), vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation.bind(this))
         // Note: getModelRecommendations is now registered by LLMModelService
         );
+        return this;
     }
     async startAgent() {
         // TODO: Implement agent startup logic
