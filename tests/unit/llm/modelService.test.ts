@@ -5,41 +5,32 @@ import axios from 'axios';
 import { LLMModelService } from '../../../src/llm/modelService';
 import { HardwareSpecs } from '../../../src/llm/types';
 
-// Hardware specification types for LLM compatibility checking
-export interface HardwareSpecs {
-  gpu: {
-    available: boolean;
-    name?: string;
-    vram?: number;
-    cudaSupport?: boolean;
-  };
-  ram: {
-    total: number;
-    free: number;
-  };
-  cpu: {
-    cores: number;
-    model?: string;
-  };
-}
-
 describe('LLMModelService Tests', () => {
+  // Test stubs
   let sandbox: sinon.SinonSandbox;
   let mockContext: vscode.ExtensionContext;
+  
+  // VSCode window stubs
   let createStatusBarItemStub: sinon.SinonStub;
   let createOutputChannelStub: sinon.SinonStub;
-  let registerCommandStub: sinon.SinonStub;
-  let axiosGetStub: sinon.SinonStub;
-  let mockStatusBarItem: any;
-  let mockOutputChannel: any;
-  let mockConfig: any;
-  let getConfigurationStub: sinon.SinonStub;
-  let withProgressStub: sinon.SinonStub;
+  let createWebviewPanelStub: sinon.SinonStub;
+  let showQuickPickStub: sinon.SinonStub;
   let showInformationMessageStub: sinon.SinonStub;
   let showWarningMessageStub: sinon.SinonStub;
   let showErrorMessageStub: sinon.SinonStub;
-  let createWebviewPanelStub: sinon.SinonStub;
-  let showQuickPickStub: sinon.SinonStub;
+  let withProgressStub: sinon.SinonStub;
+  
+  // VSCode commands and workspace stubs
+  let registerCommandStub: sinon.SinonStub;
+  let getConfigurationStub: sinon.SinonStub;
+  
+  // Mock objects
+  let mockStatusBarItem: any;
+  let mockOutputChannel: any;
+  let mockConfig: any;
+  
+  // External API stubs
+  let axiosGetStub: sinon.SinonStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();

@@ -39,10 +39,22 @@ describe('Extension Activation Integration Test', () => {
         delete: (key: string) => Promise.resolve(),
         onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
       },
-      environmentVariableCollection: {} as vscode.EnvironmentVariableCollection,
+      environmentVariableCollection: {
+        getScoped: () => ({} as vscode.EnvironmentVariableCollection),
+        append: () => {},
+        clear: () => {},
+        delete: () => {},
+        forEach: () => {},
+        get: () => {},
+        prepend: () => {},
+        replace: () => {},
+        persistent: false,
+        description: undefined,
+        [Symbol.iterator]: function* () { yield* []; }
+      } as vscode.GlobalEnvironmentVariableCollection,
       extensionMode: vscode.ExtensionMode.Test,
       extension: {} as vscode.Extension<any>,
-      languageModelAccessInformation: { keyEnabled: false }
+      languageModelAccessInformation: {} as vscode.LanguageModelAccessInformation
     };
   });
 
