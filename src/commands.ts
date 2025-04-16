@@ -9,26 +9,18 @@ export class CommandManager {
         this.context = context;
         // Create the model service instance
         this.modelService = new LLMModelService(context);
-        
-        // Register commands
-        context.subscriptions.push(
-            vscode.commands.registerCommand('copilot-ppa.startAgent', this.startAgent),
-            vscode.commands.registerCommand('copilot-ppa.stopAgent', this.stopAgent),
-            vscode.commands.registerCommand('copilot-ppa.restartAgent', this.restartAgent),
-            vscode.commands.registerCommand('copilot-ppa.configureModel', this.configureModel),
-            vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation)
-            // Note: getModelRecommendations is now registered by LLMModelService
-        );
     }
 
     registerCommands() {
-        // Register commands here
-        // For now, just adding a dummy disposable to ensure subscriptions gets something
-        const disposable = {
-            dispose: () => {}
-        };
-        
-        this.context.subscriptions.push(disposable);
+        // Register commands with proper binding of 'this' context
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand('copilot-ppa.startAgent', this.startAgent.bind(this)),
+            vscode.commands.registerCommand('copilot-ppa.stopAgent', this.stopAgent.bind(this)),
+            vscode.commands.registerCommand('copilot-ppa.restartAgent', this.restartAgent.bind(this)),
+            vscode.commands.registerCommand('copilot-ppa.configureModel', this.configureModel.bind(this)),
+            vscode.commands.registerCommand('copilot-ppa.clearConversation', this.clearConversation.bind(this))
+            // Note: getModelRecommendations is now registered by LLMModelService
+        );
         
         return this;
     }

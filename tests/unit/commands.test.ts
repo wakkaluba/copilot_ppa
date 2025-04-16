@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import * as assert from 'assert';
+import { strict as assert } from 'assert';
 import { CommandManager } from '../../src/commands';
 
 describe('CommandManager Tests', () => {
@@ -40,6 +40,39 @@ describe('CommandManager Tests', () => {
         keys: () => [],
         get: (key: string) => undefined,
         update: (key: string, value: any) => Promise.resolve()
+      },
+      secrets: {
+        get: (key: string) => Promise.resolve(undefined),
+        store: (key: string, value: string) => Promise.resolve(),
+        delete: (key: string) => Promise.resolve(),
+        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+      },
+      environmentVariableCollection: {
+        persistent: true,
+        replace: (variable: string, value: string) => {},
+        append: (variable: string, value: string) => {},
+        prepend: (variable: string, value: string) => {},
+        get: (variable: string) => undefined,
+        forEach: (callback: (variable: string, mutator: vscode.EnvironmentVariableMutator, collection: vscode.EnvironmentVariableCollection) => any, thisArg?: any) => {},
+        delete: (variable: string) => {},
+        clear: () => {},
+        getScoped: (scope: vscode.EnvironmentVariableScope) => ({} as vscode.EnvironmentVariableCollection),
+        description: undefined,
+        [Symbol.iterator]: function*() { yield* []; }
+      },
+      extension: {
+        id: 'test-extension',
+        extensionUri: vscode.Uri.parse('file:///test/path'),
+        extensionPath: '/test/path',
+        isActive: true,
+        packageJSON: {},
+        exports: undefined,
+        activate: () => Promise.resolve(),
+        extensionKind: vscode.ExtensionKind.UI
+      },
+      languageModelAccessInformation: {
+        onDidChange: new vscode.EventEmitter<void>().event,
+        canSendRequest: () => true
       }
     };
     

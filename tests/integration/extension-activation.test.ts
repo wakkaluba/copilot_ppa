@@ -31,7 +31,18 @@ describe('Extension Activation Integration Test', () => {
       globalStoragePath: '',
       globalStorageUri: vscode.Uri.parse(''),
       logPath: '',
-      logUri: vscode.Uri.parse('')
+      logUri: vscode.Uri.parse(''),
+      // Add missing required properties
+      secrets: {
+        get: (key: string) => Promise.resolve(undefined),
+        store: (key: string, value: string) => Promise.resolve(),
+        delete: (key: string) => Promise.resolve(),
+        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+      },
+      environmentVariableCollection: {} as vscode.EnvironmentVariableCollection,
+      extensionMode: vscode.ExtensionMode.Test,
+      extension: {} as vscode.Extension<any>,
+      languageModelAccessInformation: { keyEnabled: false }
     };
   });
 

@@ -1,9 +1,27 @@
-import * as assert from 'assert';
-import * as sinon from 'sinon';
 import * as vscode from 'vscode';
+import * as sinon from 'sinon';
+import { assert } from 'chai';
 import axios from 'axios';
 import { LLMModelService } from '../../../src/llm/modelService';
-import { HardwareSpecs } from '../../../src/llm/hardwareSpecs';
+import { HardwareSpecs } from '../../../src/llm/types';
+
+// Hardware specification types for LLM compatibility checking
+export interface HardwareSpecs {
+  gpu: {
+    available: boolean;
+    name?: string;
+    vram?: number;
+    cudaSupport?: boolean;
+  };
+  ram: {
+    total: number;
+    free: number;
+  };
+  cpu: {
+    cores: number;
+    model?: string;
+  };
+}
 
 describe('LLMModelService Tests', () => {
   let sandbox: sinon.SinonSandbox;
@@ -60,42 +78,45 @@ describe('LLMModelService Tests', () => {
       const progress = { 
         report: sandbox.stub()
       };
+      const token = new vscode.CancellationTokenSource().token;
       try {
-        return await callback(progress);
+        return await callback(progress, token);
       } catch (error) {
         console.error('Error in withProgress:', error);
         throw error;
       }
     });
     
-    showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves('OK');
-    showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage').resolves('OK');
-    showErrorMessageStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves('OK');
+    showInformationMessageStub = sandbox.stub(vscode.window, 'showInformationMessage').resolves({ title: 'OK' } as vscode.MessageItem);
+    showWarningMessageStub = sandbox.stub(vscode.window, 'showWarningMessage').resolves({ title: 'OK' } as vscode.MessageItem);
+    showErrorMessageStub = sandbox.stub(vscode.window, 'showErrorMessage').resolves({ title: 'OK' } as vscode.MessageItem);
     
     // Mock webview panel with complete properties and event emitters
     const webviewMessageHandler = new vscode.EventEmitter<any>();
     const onDidDisposeEmitter = new vscode.EventEmitter<void>();
     const onDidChangeViewStateEmitter = new vscode.EventEmitter<vscode.WebviewPanelOnDidChangeViewStateEvent>();
     
+    // Fix the webview panel mock creation
     createWebviewPanelStub = sandbox.stub(vscode.window, 'createWebviewPanel').returns({
+      viewType: 'modelCompatibility',
+      title: 'Model Compatibility',
       webview: {
         html: '',
         onDidReceiveMessage: webviewMessageHandler.event,
         postMessage: sandbox.stub().resolves(true),
         asWebviewUri: (uri: vscode.Uri) => uri,
         options: { enableScripts: true },
-        cspSource: 'https://mock-webview'
+        cspSource: ''
       },
+      dispose: () => {},
       onDidDispose: onDidDisposeEmitter.event,
       onDidChangeViewState: onDidChangeViewStateEmitter.event,
       reveal: sandbox.stub(),
-      dispose: sandbox.stub().callsFake(() => {
-        onDidDisposeEmitter.fire();
-      }),
       visible: true,
       active: true,
+      options: {},
       viewColumn: vscode.ViewColumn.One
-    });
+    } as vscode.WebviewPanel);
 
     // Mock quick pick to support different return values per test
     showQuickPickStub = sandbox.stub(vscode.window, 'showQuickPick').callsFake((items) => {
@@ -148,6 +169,50 @@ describe('LLMModelService Tests', () => {
         keys: () => [],
         get: (key: string) => undefined,
         update: (key: string, value: any) => Promise.resolve()
+      },
+      secrets: {
+        get: (key: string) => Promise.resolve(undefined),
+        store: (key: string, value: string) => Promise.resolve(),
+        delete: (key: string) => Promise.resolve(),
+        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+      },
+      environmentVariableCollection: {
+        persistent: true,
+        description: undefined,
+        replace: (variable: string, value: string) => {},
+        append: (variable: string, value: string) => {},
+        prepend: (variable: string, value: string) => {},
+        get: (variable: string): vscode.EnvironmentVariableMutator | undefined => undefined,
+        forEach: (callback: (variable: string, mutator: vscode.EnvironmentVariableMutator, collection: vscode.EnvironmentVariableCollection) => any, thisArg?: any) => {},
+        delete: (variable: string) => {},
+        clear: () => {},
+        getScoped: (scope: vscode.EnvironmentVariableScope): vscode.EnvironmentVariableCollection => ({
+          persistent: true,
+          description: undefined,
+          replace: () => {},
+          append: () => {},
+          prepend: () => {},
+          get: () => undefined,
+          forEach: () => {},
+          delete: () => {},
+          clear: () => {},
+          [Symbol.iterator]: function* () { yield* []; }
+        }),
+        [Symbol.iterator]: function* () { yield* []; }
+      } as vscode.GlobalEnvironmentVariableCollection,
+      extension: {
+        id: 'test-extension',
+        extensionUri: vscode.Uri.parse('file:///test/path'),
+        extensionPath: '/test/path',
+        isActive: true,
+        packageJSON: {},
+        exports: undefined,
+        activate: () => Promise.resolve(),
+        extensionKind: vscode.ExtensionKind.Workspace
+      },
+      languageModelAccessInformation: {
+        onDidChange: new vscode.EventEmitter<void>().event,
+        canSendRequest: (chat: vscode.LanguageModelChat) => true
       }
     };
 
@@ -167,8 +232,8 @@ describe('LLMModelService Tests', () => {
     // Create the service with a properly mocked context
     const modelService = new LLMModelService(mockContext);
     
-    // Wait for any async initialization to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Directly await initialization rather than using setTimeout
+    await (modelService as any).initPromise;
     
     assert(createStatusBarItemStub.called, 'Should create status bar item');
     assert(createOutputChannelStub.calledWith('LLM Models'), 'Should create output channel');
@@ -285,6 +350,43 @@ describe('LLMModelService Tests', () => {
       assert(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
       assert.deepStrictEqual(quickPickArgs, defaultRecommendations, 'Should show hardware-based recommendations');
     });
+
+    it('should handle Ollama API failure gracefully', async () => {
+      // Mock a failed API response
+      (modelService as any).getOllamaModels = sandbox.stub().rejects(new Error('Connection refused'));
+      
+      await (modelService as any).getModelRecommendations();
+      
+      assert(withProgressStub.called, 'Should display progress');
+      assert(showQuickPickStub.called, 'Should show quick pick with default models');
+      assert(mockOutputChannel.appendLine.calledWith(sinon.match(/Error getting Ollama models/)), 
+        'Should log the error');
+    });
+
+    it('should filter models based on hardware compatibility', async () => {
+      // Mock hardware with limited VRAM
+      const limitedHardware = {
+        ...mockHardwareSpecs,
+        gpu: { ...mockHardwareSpecs.gpu, vram: 2048 }
+      };
+      (modelService as any).getHardwareSpecs = sandbox.stub().resolves(limitedHardware);
+      
+      // Mock larger models and smaller models
+      const mockModels = [
+        { label: 'small-model', description: '2GB', detail: 'Compatible model' },
+        { label: 'large-model', description: '8GB', detail: 'Incompatible model' }
+      ];
+      (modelService as any).getOllamaModels = sandbox.stub().resolves(mockModels);
+      
+      await (modelService as any).getModelRecommendations();
+      
+      // Verify that showQuickPick was called with filtered models
+      assert(showQuickPickStub.calledWith(
+        sinon.match.array.deepEquals([
+          { label: 'small-model', description: '2GB', detail: 'Compatible model' }
+        ])
+      ), 'Should filter out incompatible models');
+    });
   });
 
   describe('checkCudaSupport', () => {
@@ -350,10 +452,56 @@ describe('LLMModelService Tests', () => {
       
       assert(showWarningMessageStub.calledWith(sinon.match(/No GPU with CUDA support detected/)), 'Should show no GPU message');
     });
+
+    it('should show information message when CUDA is supported', async () => {
+      // Mock GPU with CUDA support
+      (modelService as any).getHardwareSpecs = sandbox.stub().resolves({
+        gpu: { available: true, name: 'NVIDIA GPU', vram: 4096, cudaSupport: true },
+        ram: { total: 16384, free: 8192 },
+        cpu: { cores: 8, model: 'Test CPU' }
+      });
+      
+      await (modelService as any).checkCudaSupport();
+      
+      assert(showInformationMessageStub.calledWith(
+        sinon.match(/CUDA is supported/)
+      ), 'Should show message confirming CUDA support');
+    });
+    
+    it('should show warning message when CUDA is not supported', async () => {
+      // Mock GPU without CUDA support
+      (modelService as any).getHardwareSpecs = sandbox.stub().resolves({
+        gpu: { available: true, name: 'AMD GPU', vram: 4096, cudaSupport: false },
+        ram: { total: 16384, free: 8192 },
+        cpu: { cores: 8, model: 'Test CPU' }
+      });
+      
+      await (modelService as any).checkCudaSupport();
+      
+      assert(showWarningMessageStub.calledWith(
+        sinon.match(/CUDA is not supported/)
+      ), 'Should show warning about missing CUDA support');
+    });
   });
 
   describe('checkModelCompatibility', () => {
     let modelService: LLMModelService;
+    const mockHardwareSpecs: HardwareSpecs = {
+      gpu: {
+        available: true,
+        name: 'Test GPU',
+        vram: 4096,
+        cudaSupport: true
+      },
+      ram: {
+        total: 16384,
+        free: 8192
+      },
+      cpu: {
+        cores: 8,
+        model: 'Test CPU'
+      }
+    };
     
     beforeEach(() => {
       modelService = new LLMModelService(mockContext);
@@ -424,8 +572,35 @@ describe('LLMModelService Tests', () => {
       assert(showErrorMessageStub.calledWith(sinon.match(/Error checking model compatibility/)), 
         'Should show error message when compatibility check fails');
     });
+
+    it('should show compatibility information for installed models', async () => {
+      // Mock installed models
+      (modelService as any).getOllamaModels = sandbox.stub().resolves([
+        { label: 'llama2', description: '4GB', detail: 'A language model' }
+      ]);
+      
+      // Mock hardware specs
+      (modelService as any).getHardwareSpecs = sandbox.stub().resolves(mockHardwareSpecs);
+      
+      await (modelService as any).checkModelCompatibility();
+      
+      // Verify that a webview panel is created to display compatibility info
+      assert(createWebviewPanelStub.called, 'Should create webview panel for compatibility info');
+    });
+    
+    it('should handle no installed models scenario', async () => {
+      // Mock no installed models
+      (modelService as any).getOllamaModels = sandbox.stub().resolves([]);
+      (modelService as any).getLMStudioModels = sandbox.stub().resolves([]);
+      
+      await (modelService as any).checkModelCompatibility();
+      
+      assert(showInformationMessageStub.calledWith(
+        sinon.match(/No models installed/)
+      ), 'Should show message about no installed models');
+    });
   });
-  
+
   describe('getHardwareSpecs', () => {
     let modelService: LLMModelService;
     let execStub: sinon.SinonStub;
@@ -462,6 +637,72 @@ describe('LLMModelService Tests', () => {
       assert(specs.gpu, 'Should have gpu object');
       assert(specs.ram, 'Should have ram object');
       assert(specs.cpu, 'Should have cpu object');
+    });
+  });
+
+  describe('getOllamaModels', () => {
+    let modelService: LLMModelService;
+    
+    beforeEach(() => {
+      modelService = new LLMModelService(mockContext);
+    });
+    
+    it('should correctly parse Ollama API response', async () => {
+      // Setup mock response
+      axiosGetStub.withArgs('http://localhost:11434/api/tags').resolves({
+        data: {
+          models: [
+            { name: 'llama2', modified_at: '2023-07-25T14:33:40Z', size: 3791730298 },
+            { name: 'mistral', modified_at: '2023-08-15T10:22:15Z', size: 4815162342 }
+          ]
+        }
+      });
+      
+      const models = await (modelService as any).getOllamaModels();
+      
+      assert.strictEqual(models.length, 2, 'Should return two models');
+      assert.strictEqual(models[0].label, 'llama2', 'First model should be llama2');
+      assert.strictEqual(models[1].label, 'mistral', 'Second model should be mistral');
+    });
+    
+    it('should handle connection errors', async () => {
+      // Setup mock error response
+      axiosGetStub.withArgs('http://localhost:11434/api/tags').rejects(new Error('Connection refused'));
+      
+      const models = await (modelService as any).getOllamaModels();
+      
+      assert.deepStrictEqual(models, [], 'Should return empty array on error');
+      assert(mockOutputChannel.appendLine.calledWith(sinon.match(/Error/)), 'Should log the error');
+    });
+  });
+  
+  describe('updateStatusBarItem', () => {
+    let modelService: LLMModelService;
+    
+    beforeEach(() => {
+      modelService = new LLMModelService(mockContext);
+    });
+    
+    it('should update status bar with active model', async () => {
+      // Wait for initialization
+      await (modelService as any).initPromise;
+      
+      // Call the method with a model name
+      await (modelService as any).updateStatusBarItem('llama2');
+      
+      assert(mockStatusBarItem.text.includes('llama2'), 'Status bar should show model name');
+      assert(mockStatusBarItem.show.called, 'Status bar should be shown');
+    });
+    
+    it('should handle no active model', async () => {
+      // Wait for initialization
+      await (modelService as any).initPromise;
+      
+      // Call the method with no model
+      await (modelService as any).updateStatusBarItem();
+      
+      assert(mockStatusBarItem.text.includes('No Model'), 'Status bar should show No Model');
+      assert(mockStatusBarItem.show.called, 'Status bar should be shown');
     });
   });
 });
