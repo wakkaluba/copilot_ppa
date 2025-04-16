@@ -1,15 +1,36 @@
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { assert } from 'chai';
+// import { expect } from 'chai';
+import assert from 'assert';
 import axios from 'axios';
 import { LLMModelService } from '../../../src/llm/modelService';
-import { HardwareSpecs } from '../../../src/llm/types';
+
+// Hardware Specs interface
+interface HardwareSpecs {
+  gpu: {
+    available: boolean;
+    name?: string;
+    vram?: number;
+    cudaSupport?: boolean;
+  };
+  ram: {
+    total: number;
+    free: number;
+  };
+  cpu: {
+    cores: number;
+    model?: string;
+  };
+}
+
+// Test stubs
+let sandbox: sinon.SinonSandbox;
+let mockContext: vscode.ExtensionContext;
 
 describe('LLMModelService Tests', () => {
-  // Test stubs
+  // Test sandbox
   let sandbox: sinon.SinonSandbox;
-  let mockContext: vscode.ExtensionContext;
-  
+
   // VSCode window stubs
   let createStatusBarItemStub: sinon.SinonStub;
   let createOutputChannelStub: sinon.SinonStub;
@@ -226,12 +247,12 @@ describe('LLMModelService Tests', () => {
     // Directly await initialization rather than using setTimeout
     await (modelService as any).initPromise;
     
-    assert(createStatusBarItemStub.called, 'Should create status bar item');
-    assert(createOutputChannelStub.calledWith('LLM Models'), 'Should create output channel');
-    assert(registerCommandStub.calledWith('copilot-ppa.getModelRecommendations'), 'Should register getModelRecommendations command');
-    assert(registerCommandStub.calledWith('copilot-ppa.checkCudaSupport'), 'Should register checkCudaSupport command');
-    assert(registerCommandStub.calledWith('copilot-ppa.checkModelCompatibility'), 'Should register checkModelCompatibility command');
-    assert(mockStatusBarItem.show.called, 'Should show status bar item');
+    assert.ok(createStatusBarItemStub.called, 'Should create status bar item');
+    assert.ok(createOutputChannelStub.calledWith('LLM Models'), 'Should create output channel');
+    assert.ok(registerCommandStub.calledWith('copilot-ppa.getModelRecommendations'), 'Should register getModelRecommendations command');
+    assert.ok(registerCommandStub.calledWith('copilot-ppa.checkCudaSupport'), 'Should register checkCudaSupport command');
+    assert.ok(registerCommandStub.calledWith('copilot-ppa.checkModelCompatibility'), 'Should register checkModelCompatibility command');
+    assert.ok(mockStatusBarItem.show.called, 'Should show status bar item');
   });
 
   describe('getModelRecommendations', () => {
@@ -286,12 +307,12 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).getModelRecommendations();
       
-      assert(withProgressStub.called, 'Should display progress');
-      assert(showQuickPickStub.called, 'Should show quick pick with models');
+      assert.ok(withProgressStub.called, 'Should display progress');
+      assert.ok(showQuickPickStub.called, 'Should show quick pick with models');
       
       // Verify that the quick pick was called with an array that includes our models
       const quickPickArgs = showQuickPickStub.firstCall.args[0];
-      assert(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
+      assert.ok(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
     });
     
     it('should handle when no models are available', async () => {
@@ -307,10 +328,10 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).getModelRecommendations();
       
-      assert(withProgressStub.called, 'Should display progress');
-      assert(showQuickPickStub.called, 'Should show quick pick with recommendations');
+      assert.ok(withProgressStub.called, 'Should display progress');
+      assert.ok(showQuickPickStub.called, 'Should show quick pick with recommendations');
       const quickPickArgs = showQuickPickStub.firstCall.args[0];
-      assert(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
+      assert.ok(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
       assert.deepStrictEqual(quickPickArgs, defaultRecommendations, 'Should show default recommendations');
     });
     
@@ -320,7 +341,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).getModelRecommendations();
       
-      assert(showErrorMessageStub.called, 'Should show error message');
+      assert.ok(showErrorMessageStub.called, 'Should show error message');
     });
 
     it('should generate recommendations based on hardware specs', async () => {
@@ -333,12 +354,12 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).getModelRecommendations();
       
-      assert(withProgressStub.called, 'Should display progress');
-      assert(showQuickPickStub.called, 'Should show quick pick with recommendations');
+      assert.ok(withProgressStub.called, 'Should display progress');
+      assert.ok(showQuickPickStub.called, 'Should show quick pick with recommendations');
       
       // Verify default recommendations are shown
       const quickPickArgs = showQuickPickStub.firstCall.args[0];
-      assert(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
+      assert.ok(Array.isArray(quickPickArgs), 'Quick pick should receive an array');
       assert.deepStrictEqual(quickPickArgs, defaultRecommendations, 'Should show hardware-based recommendations');
     });
 
@@ -348,9 +369,9 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).getModelRecommendations();
       
-      assert(withProgressStub.called, 'Should display progress');
-      assert(showQuickPickStub.called, 'Should show quick pick with default models');
-      assert(mockOutputChannel.appendLine.calledWith(sinon.match(/Error getting Ollama models/)), 
+      assert.ok(withProgressStub.called, 'Should display progress');
+      assert.ok(showQuickPickStub.called, 'Should show quick pick with default models');
+      assert.ok(mockOutputChannel.appendLine.calledWith(sinon.match(/Error getting Ollama models/)), 
         'Should log the error');
     });
 
@@ -372,7 +393,7 @@ describe('LLMModelService Tests', () => {
       await (modelService as any).getModelRecommendations();
       
       // Verify that showQuickPick was called with filtered models
-      assert(showQuickPickStub.calledWith(
+      assert.ok(showQuickPickStub.calledWith(
         sinon.match.array.deepEquals([
           { label: 'small-model', description: '2GB', detail: 'Compatible model' }
         ])
@@ -404,7 +425,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkCudaSupport();
       
-      assert(showInformationMessageStub.calledWith(sinon.match(/CUDA support detected/)), 'Should show CUDA detected message');
+      assert.ok(showInformationMessageStub.calledWith(sinon.match(/CUDA support detected/)), 'Should show CUDA detected message');
     });
     
     it('should show warning when GPU is available but no CUDA', async () => {
@@ -424,7 +445,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkCudaSupport();
       
-      assert(showInformationMessageStub.calledWith(sinon.match(/GPU detected, but CUDA support not available/)), 'Should show GPU without CUDA message');
+      assert.ok(showInformationMessageStub.calledWith(sinon.match(/GPU detected, but CUDA support not available/)), 'Should show GPU without CUDA message');
     });
     
     it('should show warning when no GPU is available', async () => {
@@ -441,7 +462,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkCudaSupport();
       
-      assert(showWarningMessageStub.calledWith(sinon.match(/No GPU with CUDA support detected/)), 'Should show no GPU message');
+      assert.ok(showWarningMessageStub.calledWith(sinon.match(/No GPU with CUDA support detected/)), 'Should show no GPU message');
     });
 
     it('should show information message when CUDA is supported', async () => {
@@ -454,7 +475,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkCudaSupport();
       
-      assert(showInformationMessageStub.calledWith(
+      assert.ok(showInformationMessageStub.calledWith(
         sinon.match(/CUDA is supported/)
       ), 'Should show message confirming CUDA support');
     });
@@ -469,7 +490,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkCudaSupport();
       
-      assert(showWarningMessageStub.calledWith(
+      assert.ok(showWarningMessageStub.calledWith(
         sinon.match(/CUDA is not supported/)
       ), 'Should show warning about missing CUDA support');
     });
@@ -525,7 +546,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkModelCompatibility();
       
-      assert(showInformationMessageStub.called, 'Should show information message');
+      assert.ok(showInformationMessageStub.called, 'Should show information message');
     });
     
     it('should show warning for large model with insufficient RAM', async () => {
@@ -549,7 +570,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkModelCompatibility();
       
-      assert(showWarningMessageStub.calledWith(sinon.match(/may be too large for your system/)), 'Should show warning for large model');
+      assert.ok(showWarningMessageStub.calledWith(sinon.match(/may be too large for your system/)), 'Should show warning for large model');
     });
 
     it('should handle errors during compatibility check', async () => {
@@ -560,7 +581,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkModelCompatibility();
       
-      assert(showErrorMessageStub.calledWith(sinon.match(/Error checking model compatibility/)), 
+      assert.ok(showErrorMessageStub.calledWith(sinon.match(/Error checking model compatibility/)), 
         'Should show error message when compatibility check fails');
     });
 
@@ -576,7 +597,7 @@ describe('LLMModelService Tests', () => {
       await (modelService as any).checkModelCompatibility();
       
       // Verify that a webview panel is created to display compatibility info
-      assert(createWebviewPanelStub.called, 'Should create webview panel for compatibility info');
+      assert.ok(createWebviewPanelStub.called, 'Should create webview panel for compatibility info');
     });
     
     it('should handle no installed models scenario', async () => {
@@ -586,7 +607,7 @@ describe('LLMModelService Tests', () => {
       
       await (modelService as any).checkModelCompatibility();
       
-      assert(showInformationMessageStub.calledWith(
+      assert.ok(showInformationMessageStub.calledWith(
         sinon.match(/No models installed/)
       ), 'Should show message about no installed models');
     });
@@ -624,10 +645,10 @@ describe('LLMModelService Tests', () => {
       const specs = await (modelService as any).getHardwareSpecs();
       
       // Even with errors, it should return an object with default values
-      assert(specs, 'Should return a specs object');
-      assert(specs.gpu, 'Should have gpu object');
-      assert(specs.ram, 'Should have ram object');
-      assert(specs.cpu, 'Should have cpu object');
+      assert.ok(specs, 'Should return a specs object');
+      assert.ok(specs.gpu, 'Should have gpu object');
+      assert.ok(specs.ram, 'Should have ram object');
+      assert.ok(specs.cpu, 'Should have cpu object');
     });
   });
 
@@ -663,7 +684,7 @@ describe('LLMModelService Tests', () => {
       const models = await (modelService as any).getOllamaModels();
       
       assert.deepStrictEqual(models, [], 'Should return empty array on error');
-      assert(mockOutputChannel.appendLine.calledWith(sinon.match(/Error/)), 'Should log the error');
+      assert.ok(mockOutputChannel.appendLine.calledWith(sinon.match(/Error/)), 'Should log the error');
     });
   });
   
@@ -681,8 +702,8 @@ describe('LLMModelService Tests', () => {
       // Call the method with a model name
       await (modelService as any).updateStatusBarItem('llama2');
       
-      assert(mockStatusBarItem.text.includes('llama2'), 'Status bar should show model name');
-      assert(mockStatusBarItem.show.called, 'Status bar should be shown');
+      assert.ok(mockStatusBarItem.text.includes('llama2'), 'Status bar should show model name');
+      assert.ok(mockStatusBarItem.show.called, 'Status bar should be shown');
     });
     
     it('should handle no active model', async () => {
@@ -692,8 +713,8 @@ describe('LLMModelService Tests', () => {
       // Call the method with no model
       await (modelService as any).updateStatusBarItem();
       
-      assert(mockStatusBarItem.text.includes('No Model'), 'Status bar should show No Model');
-      assert(mockStatusBarItem.show.called, 'Status bar should be shown');
+      assert.ok(mockStatusBarItem.text.includes('No Model'), 'Status bar should show No Model');
+      assert.ok(mockStatusBarItem.show.called, 'Status bar should be shown');
     });
   });
 });
