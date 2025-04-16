@@ -18,12 +18,16 @@ export class MemoryOptimizer {
     private context: vscode.ExtensionContext;
     private diagnosticCollection: vscode.DiagnosticCollection;
     private outputChannel: vscode.OutputChannel;
+    private disposables: vscode.Disposable[] = [];
+    private contentCache: Map<string, { timestamp: number, analysis: MemoryIssue[] }>;
+    private static readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     
     constructor(context: vscode.ExtensionContext, llmService: LLMService) {
         this.context = context;
         this.llmService = llmService;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('memory-issues');
         this.outputChannel = vscode.window.createOutputChannel('Memory Optimization');
+        this.contentCache = new Map();
         
         context.subscriptions.push(
             vscode.commands.registerCommand('vscode-local-llm-agent.analyzeMemoryUsage', 
@@ -35,6 +39,40 @@ export class MemoryOptimizer {
             this.diagnosticCollection,
             this.outputChannel
         );
+
+        // Clean up cache periodically
+        const cleanupInterval = setInterval(() => this.cleanupCache(), 60000);
+        this.disposables.push(new vscode.Disposable(() => clearInterval(cleanupInterval)));
+    }
+
+    public dispose(): void {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        this.contentCache.clear();
+    }
+
+    private cleanupCache(): void {
+        const now = Date.now();
+        for (const [key, value] of this.contentCache.entries()) {
+            if (now - value.timestamp > MemoryOptimizer.CACHE_TTL) {
+                this.contentCache.delete(key);
+            }
+        }
+    }
+
+    private getCachedAnalysis(content: string): MemoryIssue[] | null {
+        const cached = this.contentCache.get(content);
+        if (cached && Date.now() - cached.timestamp < MemoryOptimizer.CACHE_TTL) {
+            return cached.analysis;
+        }
+        return null;
+    }
+
+    private cacheAnalysis(content: string, analysis: MemoryIssue[]): void {
+        this.contentCache.set(content, {
+            timestamp: Date.now(),
+            analysis
+        });
     }
     
     /**
@@ -301,7 +339,7 @@ export class MemoryOptimizer {
             Return only the JSON array with no additional text.
             `;
             
-            const response = await this.llmService.sendMessage(prompt);
+            const response = await this.llmService.generateResponse(prompt);
             
             try {
                 // Extract and parse JSON
@@ -535,7 +573,6 @@ export class MemoryOptimizer {
      * LLM-based memory analysis
      */
     private async performLLMMemoryAnalysis(content: string, fileType: string): Promise<MemoryIssue[]> {
-        // Only analyze files under a certain size to prevent token limit issues
         if (content.length > 10000) {
             content = content.substring(0, 10000) + "\n... (content truncated for analysis)";
         }
@@ -562,10 +599,13 @@ export class MemoryOptimizer {
         `;
         
         try {
-            const response = await this.llmService.sendMessage(prompt);
+            const response = await this.llmService.generateResponse(prompt, {
+                model: "code-analysis",
+                temperature: 0.3,
+                maxTokens: 1000
+            });
             
             try {
-                // Extract JSON from response
                 const jsonStr = response.trim().replace(/```json|```/g, '').trim();
                 const issues = JSON.parse(jsonStr) as Array<Omit<MemoryIssue, 'file'>>;
                 

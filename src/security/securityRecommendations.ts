@@ -335,7 +335,7 @@ jobs:
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: \$\{{ secrets.SNYK_TOKEN \}}
         with:
           command: test
 \`\`\`

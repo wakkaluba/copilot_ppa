@@ -102,11 +102,6 @@
         "category": "Copilot PPA"
       },
       {
-        "command": "copilotPPA.toggleRepositoryAccess",
-        "title": "Toggle Repository Access",
-        "category": "Copilot PPA"
-      },
-      {
         "command": "copilotPPA.openRepositoryPanel",
         "title": "Open Repository Management Panel",
         "category": "Copilot PPA"
@@ -381,17 +376,12 @@
       },
       {
         "command": "localLLMAgent.generateDocumentation.selection",
-        "title": "Local LLM Agent: Generate Documentation for Selection",
+        "title": "Generate Documentation for Selection",
         "category": "Local LLM Agent"
       },
       {
         "command": "localLLMAgent.generateDocumentation.currentNode",
         "title": "Local LLM Agent: Generate Documentation for Current Node",
-        "category": "Local LLM Agent"
-      },
-      {
-        "command": "localLLMAgent.generateDocumentation.selection",
-        "title": "Generate Documentation for Selection",
         "category": "Local LLM Agent"
       },
       {
@@ -772,11 +762,6 @@
         "title": "Show Command Toggles",
         "category": "Copilot PPA",
         "icon": "$(list-selection)"
-      },
-      {
-        "command": "copilot-ppa.toggleWorkspaceAccess",
-        "title": "Toggle Workspace Access",
-        "category": "Copilot PPA"
       },
       {
         "command": "copilot-ppa.toggleCodebaseSearch",

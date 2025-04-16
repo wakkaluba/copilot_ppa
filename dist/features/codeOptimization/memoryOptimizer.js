@@ -39,11 +39,42 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class MemoryOptimizer {
     constructor(context, llmService) {
+        this.disposables = [];
         this.context = context;
         this.llmService = llmService;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('memory-issues');
         this.outputChannel = vscode.window.createOutputChannel('Memory Optimization');
+        this.contentCache = new Map();
         context.subscriptions.push(vscode.commands.registerCommand('vscode-local-llm-agent.analyzeMemoryUsage', this.analyzeCurrentFile.bind(this)), vscode.commands.registerCommand('vscode-local-llm-agent.analyzeWorkspaceMemory', this.analyzeWorkspace.bind(this)), vscode.commands.registerCommand('vscode-local-llm-agent.findMemoryLeaks', this.findMemoryLeaks.bind(this)), this.diagnosticCollection, this.outputChannel);
+        // Clean up cache periodically
+        const cleanupInterval = setInterval(() => this.cleanupCache(), 60000);
+        this.disposables.push(new vscode.Disposable(() => clearInterval(cleanupInterval)));
+    }
+    dispose() {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        this.contentCache.clear();
+    }
+    cleanupCache() {
+        const now = Date.now();
+        for (const [key, value] of this.contentCache.entries()) {
+            if (now - value.timestamp > MemoryOptimizer.CACHE_TTL) {
+                this.contentCache.delete(key);
+            }
+        }
+    }
+    getCachedAnalysis(content) {
+        const cached = this.contentCache.get(content);
+        if (cached && Date.now() - cached.timestamp < MemoryOptimizer.CACHE_TTL) {
+            return cached.analysis;
+        }
+        return null;
+    }
+    cacheAnalysis(content, analysis) {
+        this.contentCache.set(content, {
+            timestamp: Date.now(),
+            analysis
+        });
     }
     /**
      * Analyzes memory usage in the currently active file
@@ -277,7 +308,7 @@ class MemoryOptimizer {
             
             Return only the JSON array with no additional text.
             `;
-            const response = await this.llmService.sendMessage(prompt);
+            const response = await this.llmService.generateResponse(prompt);
             try {
                 // Extract and parse JSON
                 const jsonMatch = response.match(/\[\s*\{.*\}\s*\]/s);
@@ -501,7 +532,6 @@ class MemoryOptimizer {
      * LLM-based memory analysis
      */
     async performLLMMemoryAnalysis(content, fileType) {
-        // Only analyze files under a certain size to prevent token limit issues
         if (content.length > 10000) {
             content = content.substring(0, 10000) + "\n... (content truncated for analysis)";
         }
@@ -526,9 +556,12 @@ class MemoryOptimizer {
         Only return the JSON array, nothing else.
         `;
         try {
-            const response = await this.llmService.sendMessage(prompt);
+            const response = await this.llmService.generateResponse(prompt, {
+                model: "code-analysis",
+                temperature: 0.3,
+                maxTokens: 1000
+            });
             try {
-                // Extract JSON from response
                 const jsonStr = response.trim().replace(/```json|```/g, '').trim();
                 const issues = JSON.parse(jsonStr);
                 return issues.map(issue => ({
@@ -691,4 +724,5 @@ class MemoryOptimizer {
     }
 }
 exports.MemoryOptimizer = MemoryOptimizer;
+MemoryOptimizer.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 //# sourceMappingURL=memoryOptimizer.js.map

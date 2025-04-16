@@ -9,6 +9,10 @@ export class CodeSecurityScanner {
     private context: vscode.ExtensionContext;
     private securityPatterns: SecurityPattern[];
     private diagnosticCollection: vscode.DiagnosticCollection;
+    private messageQueue: Array<() => Promise<void>> = [];
+    private isProcessing: boolean = false;
+    private disposables: vscode.Disposable[] = [];
+    private webviewMap = new Map<string, vscode.Webview>();
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
@@ -118,62 +122,74 @@ export class CodeSecurityScanner {
     public async scanFile(fileUri: vscode.Uri): Promise<CodeScanResult> {
         try {
             const document = await vscode.workspace.openTextDocument(fileUri);
-            const languageId = document.languageId;
-            const text = document.getText();
-            const fileName = path.basename(fileUri.fsPath);
+            const { diagnostics, issues } = await this.scanFileContent(document);
             
-            const diagnostics: vscode.Diagnostic[] = [];
-            const issues: SecurityIssue[] = [];
-            
-            // Filter for patterns relevant to this file type
-            const relevantPatterns = this.securityPatterns.filter(pattern => 
-                pattern.languages.includes(languageId));
-                
-            for (const pattern of relevantPatterns) {
-                const regex = pattern.pattern;
-                let match;
-                
-                // Reset regex for new file
-                regex.lastIndex = 0;
-                
-                while ((match = regex.exec(text)) !== null) {
-                    const startPos = document.positionAt(match.index);
-                    const endPos = document.positionAt(match.index + match[0].length);
-                    const range = new vscode.Range(startPos, endPos);
-                    
-                    const diagnostic = new vscode.Diagnostic(
-                        range,
-                        `${pattern.name}: ${pattern.description}`,
-                        pattern.severity
-                    );
-                    
-                    diagnostic.code = pattern.id;
-                    diagnostic.source = 'VSCode Local LLM Agent - Security Scanner';
-                    
-                    diagnostics.push(diagnostic);
-                    
-                    issues.push({
-                        id: pattern.id,
-                        name: pattern.name,
-                        description: pattern.description,
-                        file: fileUri.fsPath,
-                        line: startPos.line + 1,
-                        column: startPos.character + 1,
-                        code: match[0],
-                        severity: this.severityToString(pattern.severity),
-                        fix: pattern.fix
-                    });
-                }
-            }
-            
-            // Update diagnostics for this file
-            this.diagnosticCollection.set(fileUri, diagnostics);
+            // Update diagnostics in a thread-safe way
+            this.updateDiagnostics(fileUri, diagnostics);
             
             return { issues, scannedFiles: 1 };
         } catch (error) {
             console.error(`Error scanning file ${fileUri.fsPath}:`, error);
             return { issues: [], scannedFiles: 0 };
         }
+    }
+
+    private updateDiagnostics(fileUri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
+        // Queue diagnostic updates to prevent race conditions
+        this.messageQueue.push(async () => {
+            this.diagnosticCollection.set(fileUri, diagnostics);
+        });
+        this.processMessageQueue();
+    }
+
+    private async scanFileContent(document: vscode.TextDocument): Promise<{ diagnostics: vscode.Diagnostic[], issues: SecurityIssue[] }> {
+        const languageId = document.languageId;
+        const text = document.getText();
+        const diagnostics: vscode.Diagnostic[] = [];
+        const issues: SecurityIssue[] = [];
+        
+        // Filter for patterns relevant to this file type
+        const relevantPatterns = this.securityPatterns.filter(pattern => 
+            pattern.languages.includes(languageId));
+            
+        for (const pattern of relevantPatterns) {
+            const regex = pattern.pattern;
+            let match;
+            
+            // Reset regex for new file
+            regex.lastIndex = 0;
+            
+            while ((match = regex.exec(text)) !== null) {
+                const startPos = document.positionAt(match.index);
+                const endPos = document.positionAt(match.index + match[0].length);
+                const range = new vscode.Range(startPos, endPos);
+                
+                const diagnostic = new vscode.Diagnostic(
+                    range,
+                    `${pattern.name}: ${pattern.description}`,
+                    pattern.severity
+                );
+                
+                diagnostic.code = pattern.id;
+                diagnostic.source = 'VSCode Local LLM Agent - Security Scanner';
+                
+                diagnostics.push(diagnostic);
+                
+                issues.push({
+                    id: pattern.id,
+                    name: pattern.name,
+                    description: pattern.description,
+                    file: document.uri.fsPath,
+                    line: startPos.line + 1,
+                    column: startPos.character + 1,
+                    code: match[0],
+                    severity: this.severityToString(pattern.severity),
+                    fix: pattern.fix
+                });
+            }
+        }
+
+        return { diagnostics, issues };
     }
 
     /**
@@ -492,6 +508,184 @@ export class CodeSecurityScanner {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    private async processMessageQueue(): Promise<void> {
+        if (this.isProcessing) return;
+        this.isProcessing = true;
+
+        while (this.messageQueue.length > 0) {
+            const handler = this.messageQueue.shift();
+            if (handler) {
+                try {
+                    await handler();
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                }
+            }
+        }
+
+        this.isProcessing = false;
+    }
+
+    private handleWebviewMessage(webview: vscode.Webview, message: any): void {
+        this.messageQueue.push(async () => {
+            try {
+                switch (message.command) {
+                    case 'openFile':
+                        const document = await vscode.workspace.openTextDocument(message.path);
+                        await vscode.window.showTextDocument(document);
+                        break;
+                    case 'fixIssue':
+                        await this.applySecurityFix(message.issueId, message.path);
+                        break;
+                }
+            } catch (error) {
+                console.error('Error handling webview message:', error);
+                vscode.window.showErrorMessage(`Error: ${error}`);
+            }
+        });
+        this.processMessageQueue();
+    }
+
+    public registerWebview(id: string, webview: vscode.Webview): void {
+        this.webviewMap.set(id, webview);
+        
+        const disposable = webview.onDidReceiveMessage(
+            message => this.handleWebviewMessage(webview, message),
+            undefined,
+            this.disposables
+        );
+        
+        this.disposables.push(disposable);
+    }
+
+    public unregisterWebview(id: string): void {
+        this.webviewMap.delete(id);
+    }
+
+    public dispose(): void {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        this.webviewMap.clear();
+        this.messageQueue = [];
+        this.isProcessing = false;
+    }
+
+    /**
+     * Apply security fix for a specific issue
+     */
+    private async applySecurityFix(issueId: string, filePath: string): Promise<void> {
+        try {
+            const document = await vscode.workspace.openTextDocument(filePath);
+            const text = document.getText();
+            const pattern = this.securityPatterns.find(p => p.id === issueId);
+            
+            if (!pattern) {
+                throw new Error(`No fix available for issue ${issueId}`);
+            }
+            
+            // Create edit to fix the issue
+            const edit = new vscode.WorkspaceEdit();
+            const regex = pattern.pattern;
+            let match;
+            
+            // Reset regex
+            regex.lastIndex = 0;
+            
+            while ((match = regex.exec(text)) !== null) {
+                const startPos = document.positionAt(match.index);
+                const endPos = document.positionAt(match.index + match[0].length);
+                const range = new vscode.Range(startPos, endPos);
+                
+                // Apply fix based on issue type
+                let replacement = '';
+                switch (issueId) {
+                    case 'SEC001': // SQL Injection
+                        replacement = this.generateParameterizedQuery(match[0]);
+                        break;
+                    case 'SEC002': // XSS
+                        replacement = this.generateSafeHtmlUpdate(match[0]);
+                        break;
+                    case 'SEC004': // Hardcoded Credentials
+                        replacement = this.generateEnvironmentVariableUsage(match[0]);
+                        break;
+                    case 'SEC005': // Weak Cryptography
+                        replacement = this.generateStrongCrypto(match[0]);
+                        break;
+                    default:
+                        // Generic fix: add a comment about the security issue
+                        replacement = `/* TODO: Security Fix Needed - ${pattern.description} */\n${match[0]}`;
+                }
+                
+                edit.replace(document.uri, range, replacement);
+            }
+            
+            // Apply the edit
+            await vscode.workspace.applyEdit(edit);
+            
+            // Show success message
+            vscode.window.showInformationMessage(`Applied security fix for ${pattern.name}`);
+            
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to apply security fix: ${error}`);
+        }
+    }
+
+    /**
+     * Generate a parameterized query replacement
+     */
+    private generateParameterizedQuery(originalQuery: string): string {
+        // Extract the dynamic parts
+        const dynamicParts = originalQuery.match(/\$\{([^}]+)\}/g) || [];
+        let parameterizedQuery = originalQuery;
+        
+        // Replace ${...} with ? or $1, $2, etc. depending on the context
+        dynamicParts.forEach((part, index) => {
+            parameterizedQuery = parameterizedQuery.replace(part, '?');
+        });
+        
+        // Add parameters array
+        const params = dynamicParts.map(part => part.slice(2, -1)).join(', ');
+        return `// Parameterized query\nconst params = [${params}];\n${parameterizedQuery}`;
+    }
+
+    /**
+     * Generate safe HTML update code
+     */
+    private generateSafeHtmlUpdate(originalCode: string): string {
+        if (originalCode.includes('innerHTML')) {
+            return originalCode.replace('innerHTML', 'textContent');
+        } else if (originalCode.includes('document.write')) {
+            return `// Safe DOM update\nconst element = document.createElement('div');\nelement.textContent = ${originalCode.match(/write\s*\((.*)\)/)[1]};`;
+        }
+        return originalCode;
+    }
+
+    /**
+     * Generate environment variable usage
+     */
+    private generateEnvironmentVariableUsage(originalCode: string): string {
+        // Extract the credential name and value
+        const match = originalCode.match(/(password|secret|token|key|api[_-]?key|access[_-]?token)\s*[:=]\s*["'`]([^"'`]+)["'`]/i);
+        if (!match) return originalCode;
+        
+        const [_, name, value] = match;
+        const envName = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+        
+        return `// Use environment variable\nconst ${name} = process.env.${envName}; // Move "${value}" to environment variable ${envName}`;
+    }
+
+    /**
+     * Generate strong crypto replacement
+     */
+    private generateStrongCrypto(originalCode: string): string {
+        if (originalCode.includes('md5')) {
+            return originalCode.replace('md5', 'sha256');
+        } else if (originalCode.includes('sha1')) {
+            return originalCode.replace('sha1', 'sha256');
+        }
+        return originalCode;
     }
 }
 

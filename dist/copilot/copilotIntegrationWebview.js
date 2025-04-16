@@ -472,12 +472,11 @@ class CopilotIntegrationWebview {
                     function formatMessage(text) {
                         // Simple markdown-like formatting
                         // Replace code blocks with syntax highlighting
-                        text = text.replace(/\`\`\`([\\w]*)(\\n?[^\\`;
-         * ;
-        `\`\`/g, '<pre><code class="$1">$2</code></pre>');
+                        text = text.replace(/` ``([w] * );
+        n ? (. *  ?  : ) `` `/gs, '<pre><code class="$1">$2</code></pre>');
                         
                         // Replace inline code
-                        text = text.replace(/\`([^\\`;
+                        text = text.replace(/\`([^\\` : ;
         +;
         `/g, '<code>$1</code>');
                         

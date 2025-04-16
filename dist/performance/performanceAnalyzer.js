@@ -41,6 +41,7 @@ const path = __importStar(require("path"));
  */
 class PerformanceAnalyzer {
     constructor(context) {
+        this.disposables = [];
         this.context = context;
         this.analysisResults = new Map();
         // Create status bar item
@@ -50,6 +51,20 @@ class PerformanceAnalyzer {
         this.statusBarItem.command = 'vscode-local-llm-agent.performance.analyzeActiveFile';
         this.statusBarItem.show();
         context.subscriptions.push(this.statusBarItem);
+    }
+    /**
+     * Clean up event listeners and resources
+     */
+    dispose() {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        this.analysisResults.clear();
+    }
+    /**
+     * Register an event listener with automatic cleanup
+     */
+    registerDisposable(disposable) {
+        this.disposables.push(disposable);
     }
     /**
      * Analyze the active file for performance issues
@@ -209,21 +224,56 @@ class PerformanceAnalyzer {
      * Show a report for a specific file's performance analysis
      */
     showFileAnalysisReport(result) {
-        const panel = vscode.window.createWebviewPanel('performanceAnalysis', `Performance Analysis: ${path.basename(result.filePath)}`, vscode.ViewColumn.One, { enableScripts: true });
-        panel.webview.html = this.generateFileReportHtml(result);
-        // Handle messages from the webview
-        panel.webview.onDidReceiveMessage(async (message) => {
-            if (message.command === 'openFile') {
-                const document = await vscode.workspace.openTextDocument(message.filePath);
-                const editor = await vscode.window.showTextDocument(document);
-                // Navigate to the specific line
-                if (message.line) {
-                    const position = new vscode.Position(message.line - 1, 0);
-                    editor.selection = new vscode.Selection(position, position);
-                    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+        const panel = vscode.window.createWebviewPanel('performanceAnalysis', `Performance Analysis: ${path.basename(result.filePath)}`, vscode.ViewColumn.One, {
+            enableScripts: true,
+            localResourceRoots: [vscode.Uri.file(this.context.extensionPath)]
+        });
+        // Queue to handle messages in order
+        const messageQueue = [];
+        let processing = false;
+        const processMessageQueue = async () => {
+            if (processing)
+                return;
+            processing = true;
+            while (messageQueue.length > 0) {
+                const handler = messageQueue.shift();
+                if (handler) {
+                    try {
+                        await handler();
+                    }
+                    catch (error) {
+                        console.error('Error processing message:', error);
+                    }
                 }
             }
-        }, undefined, this.context.subscriptions);
+            processing = false;
+        };
+        panel.webview.onDidReceiveMessage(async (message) => {
+            messageQueue.push(async () => {
+                if (message.command === 'openFile') {
+                    try {
+                        const document = await vscode.workspace.openTextDocument(message.filePath);
+                        const editor = await vscode.window.showTextDocument(document);
+                        if (message.line) {
+                            const position = new vscode.Position(message.line - 1, 0);
+                            editor.selection = new vscode.Selection(position, position);
+                            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                        }
+                    }
+                    catch (error) {
+                        console.error('Error opening file:', error);
+                        vscode.window.showErrorMessage(`Failed to open file: ${error}`);
+                    }
+                }
+            });
+            processMessageQueue();
+        }, undefined, this.disposables);
+        panel.webview.html = this.generateFileReportHtml(result);
+        // Clean up when the panel is closed
+        panel.onDidDispose(() => {
+            messageQueue.length = 0;
+            processing = false;
+        }, null, this.disposables);
     }
     /**
      * Show a comprehensive workspace performance report
@@ -1105,7 +1155,7 @@ class PerformanceAnalyzer {
         const lines = fileContent.split('\n');
         // This is a placeholder implementation - in a real system, you would have more sophisticated Java analysis
         // Check for inefficient string concatenation
-        const stringConcatRegex = /String\s+\w+\s*=\s*"[^"]*";\s*(?:\n|\r\n?)[^}]*\1\s*\+=/g;
+        const stringConcatRegex = /String\s+(\w+)\s*=\s*"[^"]*";\s*(?:\n|\r\n?)[^}]*\1\s*\+=/g;
         let match;
         while ((match = stringConcatRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
