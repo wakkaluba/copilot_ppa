@@ -37,6 +37,7 @@ exports.AdvancedLogger = exports.LogLevel = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const os = __importStar(require("os"));
 /**
  * Log levels
  */
