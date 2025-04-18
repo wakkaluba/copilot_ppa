@@ -128,7 +128,7 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                             svg.append('defs').selectAll('marker')
                                 .data(['dependency', 'import', 'require'])
                                 .join('marker')
-                                .attr('id', d => `arrow-${d}`)
+                                .attr('id', d => 'arrow-' + d)
                                 .attr('viewBox', '0 -5 10 10')
                                 .attr('refX', 15)
                                 .attr('refY', 0)
@@ -147,7 +147,7 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                                 .join('line')
                                 .attr('stroke', d => d.type === 'dependency' ? '#999' : d.type === 'import' ? '#569cd6' : '#4ec9b0')
                                 .attr('stroke-width', d => d.strength ? d.strength * 2 : 1.5)
-                                .attr('marker-end', d => `url(#arrow-${d.type})`);
+                                .attr('marker-end', d => 'url(#arrow-' + d.type + ')');
                             
                             // Create node groups
                             const node = svg.append('g')
@@ -181,7 +181,7 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                             
                             // Add title for hover tooltip
                             node.append('title')
-                                .text(d => `${d.name}\nType: ${d.type}\nPath: ${d.path}`);
+                                .text(d => d.name + '\nType: ' + d.type + '\nPath: ' + d.path);
                             
                             // Update positions on simulation tick
                             simulation.on('tick', () => {
@@ -191,7 +191,7 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                                     .attr('x2', d => d.target.x)
                                     .attr('y2', d => d.target.y);
                                 
-                                node.attr('transform', d => `translate(${d.x},${d.y})`);
+                                node.attr('transform', d => 'translate(' + d.x + ',' + d.y + ')');
                             });
                             
                             // Drag behavior function
@@ -225,14 +225,7 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                             // Add legend
                             const legend = document.createElement('div');
                             legend.className = 'legend';
-                            legend.innerHTML = `
-                                <div class="legend-item"><span class="legend-dot file"></span> File</div>
-                                <div class="legend-item"><span class="legend-dot package"></span> Package</div>
-                                <div class="legend-item"><span class="legend-dot external"></span> External</div>
-                                <div class="legend-item"><span class="legend-line dependency"></span> Dependency</div>
-                                <div class="legend-item"><span class="legend-line import"></span> ES Import</div>
-                                <div class="legend-item"><span class="legend-line require"></span> Require</div>
-                            `;
+                            legend.innerHTML = getLegendHtml();
                             container.appendChild(legend);
                         }
                         
@@ -244,6 +237,17 @@ export class DependencyGraphViewProvider implements vscode.WebviewViewProvider {
                 </script>
             </body>
             </html>`;
+    }
+
+    private getLegendHtml(): string {
+        return [
+            '<div class="legend-item"><span class="legend-dot file"></span> File</div>',
+            '<div class="legend-item"><span class="legend-dot package"></span> Package</div>',
+            '<div class="legend-item"><span class="legend-dot external"></span> External</div>',
+            '<div class="legend-item"><span class="legend-line dependency"></span> Dependency</div>',
+            '<div class="legend-item"><span class="legend-line import"></span> ES Import</div>',
+            '<div class="legend-item"><span class="legend-line require"></span> Require</div>'
+        ].join('');
     }
 }
 

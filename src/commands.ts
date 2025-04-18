@@ -50,3 +50,21 @@ export class CommandManager {
         await vscode.window.showInformationMessage('Conversation history cleared');
     }
 }
+
+export function registerMemoryCommands(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        vscode.commands.registerCommand('copilot-ppa.showMemoryVisualization', () => {
+            const panel = vscode.window.createWebviewPanel(
+                'memoryVisualization',
+                'Memory Usage Visualization',
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true
+                }
+            );
+
+            const memoryMonitor = getMemoryPerformanceMonitor();
+            panel.webview.html = MemoryVisualizationPanel.getWebviewContent(memoryMonitor.getMetricsHistory());
+        })
+    );
+}

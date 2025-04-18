@@ -1,19 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from './WorkspaceManager';
-
-interface ChatMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: number;
-}
-
-interface Conversation {
-    id: string;
-    title: string;
-    messages: ChatMessage[];
-    created: number;
-    updated: number;
-}
+import { ChatMessage, Conversation } from '../types/conversation';
 
 export class ConversationManager {
     private static instance: ConversationManager;

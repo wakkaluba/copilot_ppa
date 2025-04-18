@@ -1,0 +1,46 @@
+{
+  "extends": "./.eslintrc.json",
+  "rules": {
+    // Rules specific to test files
+    "jest/expect-expect": "error",
+    "jest/no-disabled-tests": "warn",
+    "jest/no-focused-tests": "error",
+    "jest/no-identical-title": "error",
+    "jest/valid-expect": "error",
+    "jest/no-conditional-expect": "error",
+    "jest/prefer-to-be": "warn",
+    "jest/prefer-to-contain": "warn",
+    "jest/prefer-to-have-length": "warn",
+    "jest/prefer-expect-assertions": [
+      "warn",
+      { "onlyFunctionsWithAsyncKeyword": true }
+    ],
+    
+    // Enforce consistency in test structure
+    "jest/consistent-test-it": [
+      "error",
+      { "fn": "it", "withinDescribe": "it" }
+    ],
+    
+    // Enforce proper naming
+    "jest/valid-title": [
+      "error",
+      {
+        "ignoreTypeOfDescribeName": true
+      }
+    ],
+    
+    // Allow dev dependencies in test files
+    "import/no-extraneous-dependencies": [
+      "error", 
+      { 
+        "devDependencies": true 
+      }
+    ],
+    
+    // More lenient rules for test files
+    "max-lines": "off",
+    "max-nested-callbacks": "off",
+    "max-statements": "off"
+  }
+}

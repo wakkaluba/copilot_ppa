@@ -196,173 +196,208 @@ export class CopilotIntegrationWebview {
             vscode.Uri.file(path.join(this.extensionPath, 'media', 'copilot-integration.css'))
         );
 
+        // Handle message formatting in a separate script
+        const messageFormattingScript = `
+function formatMessage(text) {
+    // Escape HTML special characters
+    text = text.replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+
+    // Handle code blocks with syntax highlighting
+    text = text.replace(/\`\`\`(\w*)\n?([\s\S]*?)\`\`\`/g, (_, lang, code) => 
+        '<pre><code class="' + (lang || '') + '">' + code + '</code></pre>'
+    );
+
+    // Handle inline code
+    text = text.replace(/\`([^\`]+)\`/g, (_, code) => 
+        '<code>' + code + '</code>'
+    );
+
+    // Handle line breaks
+    text = text.replace(/\\n/g, '<br>');
+
+    return text;
+}
+`;
+
+        // Add the formatting script to the head section
+        const headContent = `
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Integration</title>
+    <link rel="stylesheet" type="text/css" href="${cssUri}">
+    <script>${messageFormattingScript}</script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: var(--vscode-font-family);
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .message {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .copilot-message {
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            color: var(--vscode-editor-foreground);
+            align-self: flex-start;
+        }
+        .system-message {
+            background-color: var(--vscode-editorInfo-foreground);
+            color: var(--vscode-editor-background);
+            align-self: center;
+            font-style: italic;
+        }
+        .input-container {
+            display: flex;
+            padding: 8px;
+            background-color: var(--vscode-editor-background);
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+        .input-box {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            resize: none;
+            border-radius: 4px;
+            min-height: 60px;
+        }
+        .send-button {
+            margin-left: 8px;
+            padding: 8px 16px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .send-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 28px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--vscode-input-background);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--vscode-editor-foreground);
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: var(--vscode-button-background);
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(32px);
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            margin: 8px 0;
+        }
+        .loading-dots {
+            display: flex;
+        }
+        .loading-dots div {
+            width: 8px;
+            height: 8px;
+            margin: 0 4px;
+            background-color: var(--vscode-button-background);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading-dots div:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .loading-dots div:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+        .clear-button {
+            padding: 4px 8px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clear-button:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+    </style>
+</head>
+`;
+
         return `<!DOCTYPE html>
         <html lang="en" class="${themeClass}">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Copilot Integration</title>
-            <link rel="stylesheet" type="text/css" href="${cssUri}">
-            <style>
-                body {
-                    padding: 0;
-                    margin: 0;
-                    font-family: var(--vscode-font-family);
-                    background-color: var(--vscode-editor-background);
-                    color: var(--vscode-editor-foreground);
-                }
-                .container {
-                    display: flex;
-                    flex-direction: column;
-                    height: 100vh;
-                    padding: 10px;
-                }
-                .toolbar {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 8px;
-                    background-color: var(--vscode-editor-background);
-                    border-bottom: 1px solid var(--vscode-panel-border);
-                }
-                .chat-container {
-                    flex: 1;
-                    overflow-y: auto;
-                    padding: 8px;
-                }
-                .message {
-                    margin-bottom: 12px;
-                    padding: 8px 12px;
-                    border-radius: 6px;
-                    max-width: 80%;
-                }
-                .user-message {
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    align-self: flex-end;
-                    margin-left: auto;
-                }
-                .copilot-message {
-                    background-color: var(--vscode-editor-inactiveSelectionBackground);
-                    color: var(--vscode-editor-foreground);
-                    align-self: flex-start;
-                }
-                .system-message {
-                    background-color: var(--vscode-editorInfo-foreground);
-                    color: var(--vscode-editor-background);
-                    align-self: center;
-                    font-style: italic;
-                }
-                .input-container {
-                    display: flex;
-                    padding: 8px;
-                    background-color: var(--vscode-editor-background);
-                    border-top: 1px solid var(--vscode-panel-border);
-                }
-                .input-box {
-                    flex: 1;
-                    padding: 8px 12px;
-                    border: 1px solid var(--vscode-input-border);
-                    background-color: var(--vscode-input-background);
-                    color: var(--vscode-input-foreground);
-                    resize: none;
-                    border-radius: 4px;
-                    min-height: 60px;
-                }
-                .send-button {
-                    margin-left: 8px;
-                    padding: 8px 16px;
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                .send-button:hover {
-                    background-color: var(--vscode-button-hoverBackground);
-                }
-                .toggle-container {
-                    display: flex;
-                    align-items: center;
-                }
-                .toggle-switch {
-                    position: relative;
-                    display: inline-block;
-                    width: 60px;
-                    height: 28px;
-                    margin-right: 10px;
-                }
-                .toggle-switch input {
-                    opacity: 0;
-                    width: 0;
-                    height: 0;
-                }
-                .toggle-slider {
-                    position: absolute;
-                    cursor: pointer;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background-color: var(--vscode-input-background);
-                    transition: .4s;
-                    border-radius: 34px;
-                }
-                .toggle-slider:before {
-                    position: absolute;
-                    content: "";
-                    height: 20px;
-                    width: 20px;
-                    left: 4px;
-                    bottom: 4px;
-                    background-color: var(--vscode-editor-foreground);
-                    transition: .4s;
-                    border-radius: 50%;
-                }
-                input:checked + .toggle-slider {
-                    background-color: var(--vscode-button-background);
-                }
-                input:checked + .toggle-slider:before {
-                    transform: translateX(32px);
-                }
-                .loading {
-                    display: flex;
-                    justify-content: center;
-                    margin: 8px 0;
-                }
-                .loading-dots {
-                    display: flex;
-                }
-                .loading-dots div {
-                    width: 8px;
-                    height: 8px;
-                    margin: 0 4px;
-                    background-color: var(--vscode-button-background);
-                    border-radius: 50%;
-                    animation: bounce 1.4s infinite ease-in-out both;
-                }
-                .loading-dots div:nth-child(1) {
-                    animation-delay: -0.32s;
-                }
-                .loading-dots div:nth-child(2) {
-                    animation-delay: -0.16s;
-                }
-                @keyframes bounce {
-                    0%, 80%, 100% { transform: scale(0); }
-                    40% { transform: scale(1.0); }
-                }
-                .clear-button {
-                    padding: 4px 8px;
-                    background-color: var(--vscode-button-secondaryBackground);
-                    color: var(--vscode-button-secondaryForeground);
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                .clear-button:hover {
-                    background-color: var(--vscode-button-secondaryHoverBackground);
-                }
-            </style>
-        </head>
+        ${headContent}
         <body>
             <div class="container">
                 <div class="toolbar">
@@ -472,21 +507,6 @@ export class CopilotIntegrationWebview {
                         const state = vscode.getState() || { messages: [] };
                         state.messages.push({ text, source });
                         vscode.setState(state);
-                    }
-                    
-                    // Function to format the message text
-                    function formatMessage(text) {
-                        // Simple markdown-like formatting
-                        // Replace code blocks with syntax highlighting
-                        text = text.replace(/```([\w]*)\n?(.*?)```/gs, '<pre><code class="$1">$2</code></pre>');
-                        
-                        // Replace inline code
-                        text = text.replace(/\`([^\\`]+)\`/g, '<code>$1</code>');
-                        
-                        // Replace line breaks with <br>
-                        text = text.replace(/\\n/g, '<br>');
-                        
-                        return text;
                     }
                     
                     // Handle messages from the extension

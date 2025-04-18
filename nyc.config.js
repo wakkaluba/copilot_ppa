@@ -7,17 +7,27 @@ module.exports = {
   ],
   exclude: [
     'src/test/**/*.ts',
-    'out/**/*.js'
+    'src/__mocks__/**',
+    'src/test/helpers/**',
+    'out/**/*.js',
+    'dist/**/*.js'
   ],
   reporter: [
     'html',
     'text',
-    'lcov'
+    'lcov',
+    'json-summary',
+    'cobertura'
   ],
   all: true,
   'check-coverage': true,
-  branches: 70,
-  lines: 80,
-  functions: 80,
-  statements: 80
+  branches: 80,
+  lines: 85,
+  functions: 85,
+  statements: 85,
+  'skip-full': true,
+  'skip-empty': true,
+  excludeNodeModules: true,
+  cleanCache: true,
+  tempDirectory: './coverage/.nyc_output'
 };

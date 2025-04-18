@@ -1,6 +1,16 @@
 import { OfflineCache } from '../offline/offlineCache';
 export { LLMPromptOptions } from './types';
 
+export interface CompletionOptions {
+    conversation?: Array<{
+        role: string;
+        content: string;
+    }>;
+    context?: string;
+    maxTokens?: number;
+    temperature?: number;
+}
+
 export interface LLMProvider {
     initialize(): Promise<void>;
     generateResponse(prompt: string, options?: LLMPromptOptions): Promise<string>;
@@ -8,6 +18,9 @@ export interface LLMProvider {
     getAvailableModels(): Promise<string[]>;
     getModelId(): string;
     sendPrompt(prompt: string, options?: LLMPromptOptions): Promise<string>;
+    generateCompletion(prompt: string, options?: CompletionOptions): Promise<string>;
+    isAvailable(): Promise<boolean>;
+    getModelName(): string;
 }
 
 export interface LLMConfig {
@@ -51,4 +64,8 @@ export abstract class BaseLLMProvider implements LLMProvider {
     async sendPrompt(prompt: string, options?: LLMPromptOptions): Promise<string> {
         return this.generateResponse(prompt, options);
     }
+
+    abstract generateCompletion(prompt: string, options?: CompletionOptions): Promise<string>;
+    abstract isAvailable(): Promise<boolean>;
+    abstract getModelName(): string;
 }

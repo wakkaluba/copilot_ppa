@@ -467,13 +467,7 @@ class VectorDatabasePanel {
                     
                     // Update UI based on current state
                     function updateUI() {
-                        statusText.textContent = `;
-        Vector;
-        Database: $;
-        {
-            isEnabled ? 'Enabled' : 'Disabled';
-        }
-        `;
+                        statusText.textContent = 'Vector Database: ' + (isEnabled ? 'Enabled' : 'Disabled');
                         
                         if (isEnabled) {
                             providerSettings.classList.remove('hidden');
@@ -544,12 +538,7 @@ class VectorDatabasePanel {
                             
                             const resultScore = document.createElement('div');
                             resultScore.className = 'result-score';
-                            resultScore.textContent = `;
-        Score: $;
-        {
-            result.score.toFixed(2);
-        }
-        `;
+                            resultScore.textContent = 'Score: ' + result.score.toFixed(2);
                             
                             resultHeader.appendChild(resultPath);
                             resultHeader.appendChild(resultScore);

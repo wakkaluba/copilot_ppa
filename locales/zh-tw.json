@@ -86,5 +86,12 @@
   "language.zh-tw": "繁體中文",
   "language.th": "泰語",
   "language.ms": "馬來語",
-  "language.mi": "毛利語"
+  "language.mi": "毛利語",
+  "language.cmn": "普通話",
+  "language.tr": "土耳其語",
+  "language.cs": "捷克語",
+  "language.sk": "斯洛伐克語",
+  "language.hu": "匈牙利語",
+  "language.sr": "塞爾維亞語",
+  "language.sq": "阿爾巴尼亞語"
 }

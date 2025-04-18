@@ -1,20 +1,9 @@
 import * as vscode from 'vscode';
 import { LLMProviderManager } from '../llm/llmProviderManager';
 import { ConnectionState, ConnectionStatusService } from '../status/connectionStatusService';
+import { ChatMessage } from '../types/conversation';
+import { Context } from '../types/context';
 
-/**
- * Represents message data in a chat conversation
- */
-interface ChatMessage {
-    id: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: number;
-}
-
-/**
- * Manages the chat interface webview panel
- */
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'localLlmAgent.chatView';
     private _view?: vscode.WebviewView;
@@ -78,9 +67,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    /**
-     * Handles a user message, adds it to the chat, and gets a response from the LLM
-     */
     private async _handleUserMessage(content: string): Promise<void> {
         if (!content.trim()) {
             return;
@@ -110,7 +96,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             }
 
             const response = await activeProvider.generateCompletion(content, {
-                conversation: this._messages.map(m => ({ role: m.role, content: m.content }))
+                conversation: this._messages
             });
 
             // Add assistant response
@@ -128,7 +114,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         } catch (error) {
             // Handle error
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            
             const assistantMessage: ChatMessage = {
                 id: `assistant-${Date.now()}`,
                 role: 'assistant',
@@ -144,9 +129,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    /**
-     * Update the chat view with the current messages
-     */
     private _updateChatView() {
         if (this._view) {
             this._view.webview.postMessage({
@@ -156,9 +138,42 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    /**
-     * Generates the HTML content for the webview
-     */
+    private _updateConnectionStatus(state: ConnectionState) {
+        if (!this._view) {
+            return;
+        }
+        
+        const statusMessage = this._getStatusMessage(state);
+        const isDisabled = state !== ConnectionState.Connected;
+        
+        this._view.webview.postMessage({
+            type: 'updateConnectionStatus',
+            status: {
+                state: state,
+                message: statusMessage,
+                isInputDisabled: isDisabled
+            }
+        });
+    }
+
+    private _getStatusMessage(state: ConnectionState): string {
+        switch (state) {
+            case ConnectionState.Connected:
+                const modelName = this._connectionStatusService.activeModelName;
+                return modelName ? `Connected to ${modelName}` : 'Connected to LLM';
+                
+            case ConnectionState.Connecting:
+                return 'Connecting to LLM...';
+                
+            case ConnectionState.Error:
+                return 'Error connecting to LLM';
+                
+            case ConnectionState.Disconnected:
+            default:
+                return 'Not connected to LLM';
+        }
+    }
+
     private _getWebviewContent(webview: vscode.Webview): string {
         const scriptUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'media', 'chat.js')
@@ -202,51 +217,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             </html>`;
     }
 
-    /**
-     * Update connection status in the chat view
-     */
-    private _updateConnectionStatus(state: ConnectionState) {
-        if (!this._view) {
-            return;
-        }
-        
-        const statusMessage = this._getStatusMessage(state);
-        const isDisabled = state !== ConnectionState.Connected;
-        
-        this._view.webview.postMessage({
-            type: 'updateConnectionStatus',
-            status: {
-                state: state,
-                message: statusMessage,
-                isInputDisabled: isDisabled
-            }
-        });
-    }
-    
-    /**
-     * Get appropriate status message based on connection state
-     */
-    private _getStatusMessage(state: ConnectionState): string {
-        switch (state) {
-            case ConnectionState.Connected:
-                const modelName = this._connectionStatusService.activeModelName;
-                return modelName ? `Connected to ${modelName}` : 'Connected to LLM';
-                
-            case ConnectionState.Connecting:
-                return 'Connecting to LLM...';
-                
-            case ConnectionState.Error:
-                return 'Error connecting to LLM';
-                
-            case ConnectionState.Disconnected:
-            default:
-                return 'Not connected to LLM';
-        }
-    }
-
-    /**
-     * Dispose of resources
-     */
     public dispose() {
         this._disposables.forEach(d => d.dispose());
     }

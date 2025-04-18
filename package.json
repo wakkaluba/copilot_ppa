@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "publisher": "Wakkaluba",
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.87.0"
   },
   "categories": [
     "Other",
@@ -771,6 +771,11 @@
       {
         "command": "copilot-ppa.resetCommandToggles",
         "title": "Reset Command Toggles",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.showMemoryVisualization",
+        "title": "Show Memory Usage Visualization",
         "category": "Copilot PPA"
       }
     ],
@@ -1777,39 +1782,44 @@
     "test:coverage-report": "jest --coverage && http-server coverage/lcov-report -o",
     "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
     "test:detect-leaks": "jest --detectOpenHandles",
-    "coverage:badge": "jest-coverage-badges --output ./badges"
+    "coverage:badge": "jest-coverage-badges --output ./badges",
+    "test:parallel": "node scripts/test-sharding.js --shards=4",
+    "test:parallel:unit": "node scripts/test-sharding.js --shards=4 --testGlob=tests/unit/**/*.test.ts",
+    "test:parallel:integration": "node scripts/test-sharding.js --shards=2 --testGlob=tests/integration/**/*.test.ts",
+    "test:parallel:all": "npm run test:parallel:unit && npm run test:parallel:integration",
+    "lint:test": "eslint 'tests/**/*.ts' --config .eslintrc.test.json"
   },
   "devDependencies": {
-    "@types/vscode": "^1.60.0",
-    "@types/node": "^16.11.7",
-    "@types/mocha": "^9.1.0",
-    "@typescript-eslint/eslint-plugin": "^5.30.0",
-    "@typescript-eslint/parser": "^5.30.0",
-    "eslint": "^8.18.0",
+    "@types/vscode": "^1.87.0",
+    "@types/node": "^20.11.24",
+    "@types/mocha": "^10.0.6",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
     "vsce": "^2.15.0",
     "@gitbeaker/node": "^35.8.0",
     "@octokit/rest": "^21.1.1",
     "@types/glob": "^8.1.0",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^29.5.12",
     "@types/sinon": "^10.0.19",
-    "@vscode/extension-telemetry": "^0.9.0",
-    "axios": "^1.6.2",
+    "@vscode/extension-telemetry": "^0.9.2",
+    "axios": "^1.6.7",
     "bitbucket": "^2.11.0",
-    "chai": "^4.3.7",
+    "chai": "^5.1.0",
     "glob": "^10.3.10",
     "jest": "^29.7.0",
-    "mocha": "^10.2.0",
+    "mocha": "^10.3.0",
     "node-cache": "^5.1.2",
     "nyc": "^15.1.0",
-    "sinon": "^15.2.0",
-    "ts-jest": "^29.3.2",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.3.0",
-    "vscode-test": "^1.6.1"
+    "sinon": "^17.0.1",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vscode-test": "^2.3.6"
   },
   "dependencies": {
-    "@babel/parser": "^7.22.5",
-    "@babel/traverse": "^7.22.5",
-    "@babel/types": "^7.22.5"
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0"
   }
 }

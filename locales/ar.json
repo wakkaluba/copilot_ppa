@@ -80,5 +80,18 @@
   "language.el": "اليونانية",
   "language.ar": "العربية",
   "language.he": "العبرية",
-  "language.sa": "السنسكريتية"
+  "language.sa": "السنسكريتية",
+  "language.eo": "الإسبرانتو",
+  "language.ko": "الكورية",
+  "language.zh-tw": "الصينية التقليدية",
+  "language.th": "التايلاندية",
+  "language.ms": "الماليزية",
+  "language.mi": "الماورية",
+  "language.cmn": "الماندرين",
+  "language.tr": "التركية",
+  "language.cs": "التشيكية",
+  "language.sk": "السلوفاكية",
+  "language.hu": "المجرية",
+  "language.sr": "الصربية",
+  "language.sq": "الألبانية"
 }

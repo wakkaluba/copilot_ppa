@@ -51,15 +51,10 @@ The following interfaces should be tested next:
 - ✅ `CompletionOptions` interface - Testing property types, value constraints, and extended interfaces
 - [x] `DiagnosticResult` interface
 - [x] `VectorDatabaseConfig` interface
-- [x] `PerformanceTestConfig` interface - Testing performance framework types and test options
-- [x] `ILLMProviderConfig` interface - Testing LLM provider configuration options
-- [x] `SecurityTestOptions` interface - Testing security testing configuration options
-- [x] `StaticAnalysisOptions` interface - Testing static analysis tool configurations and options
-- [x] `CodeCoverageOptions` interface - Testing code coverage configuration options
 
 ## Test Coverage
 - Current coverage for interface tests: 25 interfaces
 - Target coverage: All public interfaces in the codebase
 
 ## Last Updated
-- April 16, 2025
+- April 18, 2025

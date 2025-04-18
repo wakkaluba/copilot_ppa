@@ -83,8 +83,15 @@
   "language.sa": "サンスクリット語",
   "language.eo": "エスペラント語",
   "language.ko": "韓国語",
-  "language.zh-tw": "台湾語",
+  "language.zh-tw": "繁体中国語",
   "language.th": "タイ語",
   "language.ms": "マレーシア語",
-  "language.mi": "マオリ語"
+  "language.mi": "マオリ語",
+  "language.cmn": "標準中国語",
+  "language.tr": "トルコ語",
+  "language.cs": "チェコ語",
+  "language.sk": "スロバキア語",
+  "language.hu": "ハンガリー語",
+  "language.sr": "セルビア語",
+  "language.sq": "アルバニア語"
 }
