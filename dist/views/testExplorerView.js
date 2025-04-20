@@ -40,11 +40,11 @@ const vscode = __importStar(require("vscode"));
  * Tree data provider for the test explorer view
  */
 class TestExplorerProvider {
+    _onDidChangeTreeData = new vscode.EventEmitter();
+    onDidChangeTreeData = this._onDidChangeTreeData.event;
+    testResults = new Map();
+    testItems = [];
     constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        this.testResults = new Map();
-        this.testItems = [];
         // Initialize with default test types
         this.testItems = [
             new TestItem('Unit Tests', 'unit', vscode.TreeItemCollapsibleState.Expanded),
@@ -315,6 +315,9 @@ exports.TestExplorerProvider = TestExplorerProvider;
  * Tree item representing a test or test result
  */
 class TestItem extends vscode.TreeItem {
+    label;
+    testType;
+    collapsibleState;
     constructor(label, testType, collapsibleState) {
         super(label, collapsibleState);
         this.label = label;

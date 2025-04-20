@@ -1,675 +1,329 @@
 import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
+import * as os from 'os';
 import axios from 'axios';
+import {
+    LLMModelInfo,
+    LLMProvider,
+    LLMProviderError
+} from './llm-provider';
+import { ILLMModelService } from './types';
 
-/**
- * Model information interface for LLM models
- */
-export interface LLMModelInfo {
-    id: string;
-    name: string;
-    provider: 'ollama' | 'lmstudio' | 'huggingface';
-    description: string;
-    tags: string[];
-    size?: number; // Size in bytes
-    parameters?: number; // Number of parameters (in billions)
-    quantization?: string;
-    contextLength?: number;
+export interface ModelRequirements {
+    minMemoryGB: number;
+    recommendedMemoryGB: number;
+    minDiskSpaceGB: number;
+    cudaSupport: boolean;
+    minCudaVersion?: string;
+    minCPUCores: number;
 }
 
-/**
- * Hardware specification interface for system requirements
- */
-export interface HardwareSpecs {
-    gpu: {
-        available: boolean;
-        name?: string;
-        vram?: number; // in MB
-        cudaSupport?: boolean;
-    };
-    ram: {
-        total: number; // in MB
-        free: number; // in MB
-    };
-    cpu: {
-        cores: number;
-        model?: string;
-    };
+export interface ModelValidationResult {
+    isValid: boolean;
+    issues: string[];
+    requirements: ModelRequirements;
 }
 
-/**
- * Model recommendation interface
- */
-export interface ModelRecommendation {
-    modelInfo: LLMModelInfo;
-    suitability: number; // 0-100 score
-    reason: string;
-    systemRequirements: {
-        minRAM: number; // in MB
-        minVRAM?: number; // in MB
-        minCPUCores?: number;
-        cudaRequired?: boolean;
-    };
+export interface ModelPerformanceMetrics {
+    averageResponseTime: number;
+    tokenThroughput: number;
+    errorRate: number;
+    totalRequests: number;
+    totalTokens: number;
+    lastUsed: Date;
 }
 
 /**
  * Service for managing LLM models
  */
-export class LLMModelService {
-    private statusBarItem: vscode.StatusBarItem;
-    private outputChannel: vscode.OutputChannel;
+export class ModelService implements vscode.Disposable {
+    private readonly statusBarItem: vscode.StatusBarItem;
+    private readonly outputChannel: vscode.OutputChannel;
+    private readonly modelMetrics = new Map<string, ModelPerformanceMetrics>();
+    private readonly modelValidations = new Map<string, ModelValidationResult>();
+    private readonly eventEmitter = new EventEmitter();
+    private _systemInfo: SystemInfo | null = null;
 
     constructor(context: vscode.ExtensionContext) {
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.statusBarItem = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right,
+            100
+        );
         this.statusBarItem.command = 'copilot-ppa.configureModel';
         this.statusBarItem.tooltip = 'Configure LLM Model';
-        context.subscriptions.push(this.statusBarItem);
-
+        
         this.outputChannel = vscode.window.createOutputChannel('LLM Models');
-        context.subscriptions.push(this.outputChannel);
-
-        // Register commands
+        
         context.subscriptions.push(
-            vscode.commands.registerCommand('copilot-ppa.getModelRecommendations', this.getModelRecommendations.bind(this)),
-            vscode.commands.registerCommand('copilot-ppa.checkCudaSupport', this.checkCudaSupport.bind(this)),
-            vscode.commands.registerCommand('copilot-ppa.checkModelCompatibility', this.checkModelCompatibility.bind(this))
+            this.statusBarItem,
+            this.outputChannel,
+            vscode.commands.registerCommand(
+                'copilot-ppa.getModelRecommendations',
+                this.getModelRecommendations.bind(this)
+            ),
+            vscode.commands.registerCommand(
+                'copilot-ppa.checkModelCompatibility',
+                this.checkModelCompatibility.bind(this)
+            )
         );
 
+        this.initialize().catch(error => {
+            this.outputChannel.appendLine(`Failed to initialize model service: ${error}`);
+        });
+    }
+
+    /**
+     * Initialize the model service
+     */
+    private async initialize(): Promise<void> {
+        this._systemInfo = await this.getSystemInfo();
         this.updateStatusBar();
     }
 
     /**
-     * Update the status bar with the current model information
+     * Get system information for model compatibility checks
      */
-    private updateStatusBar(): void {
-        const config = vscode.workspace.getConfiguration('localLLM');
-        const provider = config.get<string>('provider', 'ollama');
-        const modelId = config.get<string>('modelId', 'llama2');
-        
-        this.statusBarItem.text = `$(hubot) ${provider}: ${modelId}`;
-        this.statusBarItem.show();
-    }
+    private async getSystemInfo(): Promise<SystemInfo> {
+        const totalMemory = os.totalmem() / (1024 * 1024 * 1024); // Convert to GB
+        const freeDiskSpace = await this.getFreeDiskSpace();
+        const cpuCores = os.cpus().length;
+        const cudaInfo = await this.getCudaInfo();
 
-    /**
-     * Get LLM model recommendations based on the user's system
-     */
-    public async getModelRecommendations(): Promise<void> {
-        try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Analyzing system for LLM model recommendations",
-                cancellable: false
-            }, async (progress) => {
-                progress.report({ increment: 10, message: "Checking hardware specifications..." });
-                
-                // Get hardware specs
-                const hwSpecs = await this.getHardwareSpecs();
-                
-                progress.report({ increment: 30, message: "Checking available models..." });
-                
-                // Get available models from providers
-                const ollamaModels = await this.getOllamaModels();
-                const lmStudioModels = await this.getLMStudioModels();
-                
-                progress.report({ increment: 40, message: "Generating recommendations..." });
-                
-                // Generate recommendations based on hardware and available models
-                const recommendations = this.generateRecommendations(hwSpecs, [...ollamaModels, ...lmStudioModels]);
-                
-                if (recommendations.length === 0) {
-                    vscode.window.showInformationMessage('No model recommendations available.');
-                    return;
-                }
-                
-                progress.report({ increment: 20, message: "Preparing results..." });
-                
-                // Show recommendations in a quick pick
-                const items = recommendations.map(rec => ({
-                    label: `${rec.modelInfo.name} (${rec.modelInfo.provider})`,
-                    description: `Suitability: ${rec.suitability}%`,
-                    detail: rec.reason,
-                    recommendation: rec
-                }));
-                
-                const selected = await vscode.window.showQuickPick(items, {
-                    placeHolder: 'Select a model to see details or configure',
-                    title: 'LLM Model Recommendations'
-                });
-                
-                if (selected) {
-                    this.showModelDetails(selected.recommendation);
-                }
-            });
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error getting model recommendations: ${error.message}`);
-            this.outputChannel.appendLine(`Error in getModelRecommendations: ${error}`);
-        }
-    }
-
-    /**
-     * Show detailed information about a recommended model
-     */
-    private async showModelDetails(recommendation: ModelRecommendation): Promise<void> {
-        // Create a markdown string with model details
-        const modelDetails = new vscode.MarkdownString();
-        modelDetails.isTrusted = true;
-        
-        modelDetails.appendMarkdown(`# ${recommendation.modelInfo.name}\n\n`);
-        modelDetails.appendMarkdown(`**Provider:** ${recommendation.modelInfo.provider}\n\n`);
-        modelDetails.appendMarkdown(`**Suitability Score:** ${recommendation.suitability}%\n\n`);
-        modelDetails.appendMarkdown(`**Description:** ${recommendation.modelInfo.description}\n\n`);
-        modelDetails.appendMarkdown(`**Why this model:** ${recommendation.reason}\n\n`);
-        
-        modelDetails.appendMarkdown('## System Requirements\n\n');
-        modelDetails.appendMarkdown(`- RAM: ${recommendation.systemRequirements.minRAM / 1024} GB\n`);
-        
-        if (recommendation.systemRequirements.minVRAM) {
-            modelDetails.appendMarkdown(`- VRAM: ${recommendation.systemRequirements.minVRAM / 1024} GB\n`);
-        }
-        
-        if (recommendation.systemRequirements.minCPUCores) {
-            modelDetails.appendMarkdown(`- CPU Cores: ${recommendation.systemRequirements.minCPUCores}\n`);
-        }
-        
-        if (recommendation.systemRequirements.cudaRequired) {
-            modelDetails.appendMarkdown(`- CUDA Support: Required\n`);
-        }
-        
-        if (recommendation.modelInfo.contextLength) {
-            modelDetails.appendMarkdown(`\n**Context Length:** ${recommendation.modelInfo.contextLength} tokens\n`);
-        }
-        
-        if (recommendation.modelInfo.parameters) {
-            modelDetails.appendMarkdown(`**Size:** ${recommendation.modelInfo.parameters}B parameters\n`);
-        }
-        
-        if (recommendation.modelInfo.quantization) {
-            modelDetails.appendMarkdown(`**Quantization:** ${recommendation.modelInfo.quantization}\n`);
-        }
-        
-        modelDetails.appendMarkdown(`\n**Tags:** ${recommendation.modelInfo.tags.join(', ')}\n\n`);
-        
-        // Add configuration button
-        modelDetails.appendMarkdown('---\n\n');
-        modelDetails.appendMarkdown(`[Configure this model](command:copilot-ppa.configureModel?${encodeURIComponent(JSON.stringify({
-            provider: recommendation.modelInfo.provider,
-            modelId: recommendation.modelInfo.id
-        }))})\n\n`);
-        
-        // Show in a webview panel
-        const panel = vscode.window.createWebviewPanel(
-            'modelDetails',
-            `${recommendation.modelInfo.name} Details`,
-            vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                enableCommandUris: true
-            }
-        );
-        
-        panel.webview.html = this.getWebviewContent(recommendation);
-    }
-    
-    /**
-     * Get the webview HTML content for model details
-     */
-    private getWebviewContent(recommendation: ModelRecommendation): string {
-        return `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${recommendation.modelInfo.name} Details</title>
-            <style>
-                body {
-                    font-family: var(--vscode-font-family);
-                    color: var(--vscode-editor-foreground);
-                    padding: 20px;
-                }
-                .header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                }
-                .suitability {
-                    background-color: ${recommendation.suitability > 80 ? 'var(--vscode-terminal-ansiGreen)' : 
-                                         recommendation.suitability > 50 ? 'var(--vscode-terminal-ansiYellow)' : 
-                                         'var(--vscode-terminal-ansiRed)'};
-                    color: var(--vscode-terminal-foreground);
-                    padding: 5px 10px;
-                    border-radius: 4px;
-                    font-weight: bold;
-                }
-                .section {
-                    margin-bottom: 24px;
-                }
-                .requirements {
-                    background-color: var(--vscode-editor-lineHighlightBackground);
-                    padding: 10px;
-                    border-radius: 4px;
-                }
-                .tag {
-                    display: inline-block;
-                    background-color: var(--vscode-badge-background);
-                    color: var(--vscode-badge-foreground);
-                    padding: 2px 6px;
-                    margin: 2px;
-                    border-radius: 4px;
-                    font-size: 0.85em;
-                }
-                button {
-                    background-color: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border: none;
-                    padding: 8px 16px;
-                    cursor: pointer;
-                    border-radius: 2px;
-                    font-size: 1em;
-                }
-                button:hover {
-                    background-color: var(--vscode-button-hoverBackground);
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>${recommendation.modelInfo.name}</h1>
-                <span class="suitability">Suitability: ${recommendation.suitability}%</span>
-            </div>
-            
-            <div class="section">
-                <h3>Provider</h3>
-                <p>${recommendation.modelInfo.provider}</p>
-            </div>
-            
-            <div class="section">
-                <h3>Description</h3>
-                <p>${recommendation.modelInfo.description}</p>
-            </div>
-            
-            <div class="section">
-                <h3>Why this model?</h3>
-                <p>${recommendation.reason}</p>
-            </div>
-            
-            <div class="section">
-                <h3>System Requirements</h3>
-                <div class="requirements">
-                    <p>RAM: ${recommendation.systemRequirements.minRAM / 1024} GB</p>
-                    ${recommendation.systemRequirements.minVRAM ? 
-                      `<p>VRAM: ${recommendation.systemRequirements.minVRAM / 1024} GB</p>` : ''}
-                    ${recommendation.systemRequirements.minCPUCores ? 
-                      `<p>CPU Cores: ${recommendation.systemRequirements.minCPUCores}</p>` : ''}
-                    ${recommendation.systemRequirements.cudaRequired ? 
-                      `<p>CUDA Support: Required</p>` : ''}
-                </div>
-            </div>
-            
-            ${recommendation.modelInfo.contextLength ? 
-              `<div class="section">
-                <h3>Context Length</h3>
-                <p>${recommendation.modelInfo.contextLength} tokens</p>
-              </div>` : ''}
-            
-            ${recommendation.modelInfo.parameters ? 
-              `<div class="section">
-                <h3>Size</h3>
-                <p>${recommendation.modelInfo.parameters}B parameters</p>
-              </div>` : ''}
-            
-            ${recommendation.modelInfo.quantization ? 
-              `<div class="section">
-                <h3>Quantization</h3>
-                <p>${recommendation.modelInfo.quantization}</p>
-              </div>` : ''}
-            
-            <div class="section">
-                <h3>Tags</h3>
-                <p>
-                    ${recommendation.modelInfo.tags.map(tag => 
-                      `<span class="tag">${tag}</span>`).join(' ')}
-                </p>
-            </div>
-            
-            <div class="section">
-                <button id="configureBtn">Configure This Model</button>
-            </div>
-            
-            <script>
-                const vscode = acquireVsCodeApi();
-                document.getElementById('configureBtn').addEventListener('click', () => {
-                    vscode.postMessage({
-                        command: 'configureModel',
-                        provider: '${recommendation.modelInfo.provider}',
-                        modelId: '${recommendation.modelInfo.id}'
-                    });
-                });
-            </script>
-        </body>
-        </html>`;
-    }
-
-    /**
-     * Get hardware specifications for the current system
-     */
-    private async getHardwareSpecs(): Promise<HardwareSpecs> {
-        // In a real implementation, we would use node modules to detect these
-        // This is a simplified version
         return {
-            gpu: {
-                available: true, // Simplified - would actually detect
-                name: "Generic GPU",
-                vram: 4096, // 4 GB
-                cudaSupport: true
-            },
-            ram: {
-                total: 16384, // 16 GB
-                free: 8192 // 8 GB
-            },
-            cpu: {
-                cores: 8,
-                model: "Generic CPU"
-            }
+            totalMemoryGB: Math.round(totalMemory),
+            freeDiskSpaceGB: Math.round(freeDiskSpace),
+            cpuCores,
+            cudaAvailable: cudaInfo.available,
+            cudaVersion: cudaInfo.version
         };
     }
 
     /**
-     * Get models available from Ollama
+     * Get available disk space
      */
-    private async getOllamaModels(): Promise<LLMModelInfo[]> {
-        try {
-            const endpoint = vscode.workspace.getConfiguration('vscodeLocalLLMAgent').get<string>('ollamaEndpoint', 'http://localhost:11434');
-            const response = await axios.get(`${endpoint}/api/tags`, { timeout: 2000 });
-            
-            if (response.status === 200 && response.data && response.data.models) {
-                return response.data.models.map((model: any) => ({
-                    id: model.name,
-                    name: model.name,
-                    provider: 'ollama',
-                    description: `Ollama model ${model.name}`,
-                    tags: ['ollama'],
-                    size: model.size
-                }));
-            }
-            
-            return [];
-        } catch (error) {
-            this.outputChannel.appendLine(`Error getting Ollama models: ${error}`);
-            return [];
-        }
+    private async getFreeDiskSpace(): Promise<number> {
+        // Implementation depends on platform
+        // This is a placeholder that returns a reasonable default
+        return 100; // GB
     }
 
     /**
-     * Get models available from LM Studio
+     * Get CUDA information
      */
-    private async getLMStudioModels(): Promise<LLMModelInfo[]> {
-        try {
-            const endpoint = vscode.workspace.getConfiguration('vscodeLocalLLMAgent').get<string>('lmStudioEndpoint', 'http://localhost:1234');
-            const response = await axios.get(`${endpoint}/v1/models`, { timeout: 2000 });
-            
-            if (response.status === 200 && response.data && response.data.data) {
-                return response.data.data.map((model: any) => ({
-                    id: model.id,
-                    name: model.id,
-                    provider: 'lmstudio',
-                    description: `LM Studio model ${model.id}`,
-                    tags: ['lmstudio'],
-                }));
-            }
-            
-            return [];
-        } catch (error) {
-            this.outputChannel.appendLine(`Error getting LM Studio models: ${error}`);
-            return [];
-        }
+    private async getCudaInfo(): Promise<{ available: boolean; version?: string }> {
+        // Implementation depends on platform
+        // This is a placeholder that checks common CUDA locations
+        return { available: false };
     }
 
     /**
-     * Generate model recommendations based on hardware specs and available models
+     * Validate model requirements against system capabilities
      */
-    private generateRecommendations(hardware: HardwareSpecs, availableModels: LLMModelInfo[]): ModelRecommendation[] {
-        const recommendations: ModelRecommendation[] = [];
-        
-        // If no models are available, provide default recommendations
-        if (availableModels.length === 0) {
-            return this.getDefaultRecommendations(hardware);
+    public async validateModel(modelInfo: LLMModelInfo): Promise<ModelValidationResult> {
+        // Check cache first
+        if (this.modelValidations.has(modelInfo.id)) {
+            return this.modelValidations.get(modelInfo.id)!;
         }
-        
-        // Process each available model
-        for (const model of availableModels) {
-            // Calculate suitability score based on model and hardware
-            // This is a simplified example - real implementation would have more complex logic
-            let suitability = 80; // Base suitability
-            let reason = "This model is available on your system and should work well.";
-            let systemRequirements = {
-                minRAM: 8192, // 8GB default
-                minVRAM: hardware.gpu.available ? 2048 : undefined, // 2GB if GPU available
-                minCPUCores: 4,
-                cudaRequired: false
-            };
-            
-            // Adjust suitability based on model properties
-            if (model.provider === 'ollama') {
-                // Adjust for specific Ollama models
-                if (model.name.includes('llama')) {
-                    if (model.name.includes('13b')) {
-                        systemRequirements.minRAM = 16384; // 16GB
-                        systemRequirements.minVRAM = 6144; // 6GB
-                        systemRequirements.cudaRequired = true;
-                        
-                        if (hardware.ram.total < systemRequirements.minRAM) {
-                            suitability -= 30;
-                            reason = "This model may be too large for your system's RAM.";
-                        } else if (hardware.gpu.available && hardware.gpu.vram && hardware.gpu.vram < systemRequirements.minVRAM) {
-                            suitability -= 20;
-                            reason = "This model may run slowly due to limited VRAM.";
-                        } else {
-                            suitability += 5;
-                            reason = "This model is well-suited for your hardware.";
-                        }
-                    } else if (model.name.includes('7b')) {
-                        systemRequirements.minRAM = 8192; // 8GB
-                        systemRequirements.minVRAM = 4096; // 4GB
-                        
-                        if (hardware.ram.total >= 16384) {
-                            suitability += 10;
-                            reason = "This model is well-suited for your hardware with ample RAM.";
-                        }
-                    }
-                    
-                    if (model.name.includes('code')) {
-                        reason += " It's optimized for code-related tasks.";
-                    }
-                } else if (model.name.includes('mistral')) {
-                    systemRequirements.minRAM = 8192; // 8GB
-                    systemRequirements.minVRAM = 4096; // 4GB
-                    suitability += 5;
-                    reason = "Mistral models typically offer good performance on modest hardware.";
-                }
-            } else if (model.provider === 'lmstudio') {
-                // Adjust for LM Studio models
-                if (model.name.includes('neural') || model.name.includes('chat')) {
-                    suitability += 5;
-                    reason = "This model performs well for conversational tasks.";
-                }
-                
-                if (!hardware.gpu.available || !hardware.gpu.cudaSupport) {
-                    suitability -= 15;
-                    reason = "LM Studio models perform best with GPU acceleration.";
-                }
-            }
-            
-            // Check actual hardware against requirements
-            if (hardware.ram.total < systemRequirements.minRAM) {
-                suitability -= 30;
-                reason = `This model requires at least ${systemRequirements.minRAM / 1024}GB RAM, but your system has ${hardware.ram.total / 1024}GB.`;
-            }
-            
-            if (systemRequirements.cudaRequired && (!hardware.gpu.available || !hardware.gpu.cudaSupport)) {
-                suitability -= 50;
-                reason = "This model requires CUDA support, which was not detected on your system.";
-            }
-            
-            // Cap suitability between 0-100
-            suitability = Math.max(0, Math.min(100, suitability));
-            
+
+        const requirements = this.inferModelRequirements(modelInfo);
+        const issues: string[] = [];
+
+        // Check system capabilities
+        const systemInfo = this._systemInfo || await this.getSystemInfo();
+
+        if (systemInfo.totalMemoryGB < requirements.minMemoryGB) {
+            issues.push(`Insufficient memory: ${systemInfo.totalMemoryGB}GB available, ${requirements.minMemoryGB}GB required`);
+        }
+
+        if (systemInfo.freeDiskSpaceGB < requirements.minDiskSpaceGB) {
+            issues.push(`Insufficient disk space: ${systemInfo.freeDiskSpaceGB}GB available, ${requirements.minDiskSpaceGB}GB required`);
+        }
+
+        if (requirements.cudaSupport && !systemInfo.cudaAvailable) {
+            issues.push('CUDA support required but not available');
+        } else if (
+            requirements.cudaSupport &&
+            requirements.minCudaVersion &&
+            systemInfo.cudaVersion &&
+            this.compareCudaVersions(systemInfo.cudaVersion, requirements.minCudaVersion) < 0
+        ) {
+            issues.push(`CUDA version ${requirements.minCudaVersion} required, but ${systemInfo.cudaVersion} found`);
+        }
+
+        if (systemInfo.cpuCores < requirements.minCPUCores) {
+            issues.push(`Insufficient CPU cores: ${systemInfo.cpuCores} available, ${requirements.minCPUCores} required`);
+        }
+
+        const result: ModelValidationResult = {
+            isValid: issues.length === 0,
+            issues,
+            requirements
+        };
+
+        // Cache the validation result
+        this.modelValidations.set(modelInfo.id, result);
+
+        return result;
+    }
+
+    /**
+     * Get model recommendations based on system capabilities
+     */
+    public async getModelRecommendations(): Promise<LLMModelInfo[]> {
+        const systemInfo = this._systemInfo || await this.getSystemInfo();
+        const recommendations: LLMModelInfo[] = [];
+
+        // This would normally fetch from a model registry or configuration
+        // This is a placeholder implementation
+        if (systemInfo.totalMemoryGB >= 16) {
             recommendations.push({
-                modelInfo: model,
-                suitability,
-                reason,
-                systemRequirements
-            });
-        }
-        
-        // Sort by suitability (descending)
-        return recommendations.sort((a, b) => b.suitability - a.suitability);
-    }
-
-    /**
-     * Get default model recommendations when no models are available
-     */
-    private getDefaultRecommendations(hardware: HardwareSpecs): ModelRecommendation[] {
-        const recommendations: ModelRecommendation[] = [];
-        
-        // Default recommended models
-        const defaultModels: LLMModelInfo[] = [
-            {
-                id: 'llama2',
-                name: 'Llama 2 (7B)',
-                provider: 'ollama',
-                description: 'A versatile 7B parameter model that works well on most systems.',
-                tags: ['general', 'coding', 'chat'],
-                parameters: 7,
-                contextLength: 4096,
-                quantization: 'Q4_0'
-            },
-            {
-                id: 'mistral',
+                id: 'mistral-7b',
                 name: 'Mistral (7B)',
                 provider: 'ollama',
-                description: 'A powerful and efficient 7B parameter model with good performance.',
-                tags: ['general', 'chat', 'efficient'],
                 parameters: 7,
                 contextLength: 8192,
-                quantization: 'Q4_0'
-            },
-            {
-                id: 'codellama',
-                name: 'Code Llama (7B)',
-                provider: 'ollama',
-                description: 'Specialized model for code generation and understanding.',
-                tags: ['coding', 'development'],
-                parameters: 7,
-                contextLength: 4096,
-                quantization: 'Q4_0'
-            }
-        ];
-        
-        // Generate recommendations for default models
-        for (const model of defaultModels) {
-            let suitability = 70; // Base suitability for recommended models
-            let reason = `${model.name} is recommended for general use.`;
-            let systemRequirements = {
-                minRAM: 8192, // 8GB default
-                minVRAM: hardware.gpu.available ? 4096 : undefined,
-                minCPUCores: 4,
-                cudaRequired: false
-            };
-            
-            if (model.id === 'codellama') {
-                reason = 'Code Llama is optimized for programming tasks.';
-                if (hardware.ram.total >= 12288) { // 12GB+
-                    suitability += 10;
-                    reason += ' Your system has sufficient RAM to run it well.';
-                }
-            }
-            
-            if (model.id === 'mistral') {
-                reason = 'Mistral offers great performance with efficient resource usage.';
-                if (hardware.ram.total < 8192) {
-                    suitability -= 10;
-                    reason += ' But your system may have limited RAM.';
-                }
-            }
-            
-            // Adjust based on hardware
-            if (hardware.gpu.available && hardware.gpu.cudaSupport) {
-                suitability += 15;
-                reason += ' GPU acceleration will improve performance.';
-            } else {
-                suitability -= 10;
-                reason += ' Performance may be limited without GPU acceleration.';
-            }
-            
-            recommendations.push({
-                modelInfo: model,
-                suitability,
-                reason,
-                systemRequirements
+                capabilities: ['chat', 'completion']
             });
         }
+
+        if (systemInfo.totalMemoryGB >= 8) {
+            recommendations.push({
+                id: 'llama2-7b-chat',
+                name: 'Llama 2 Chat (7B)',
+                provider: 'ollama',
+                parameters: 7,
+                contextLength: 4096,
+                capabilities: ['chat']
+            });
+        }
+
+        // Always include lightweight models
+        recommendations.push({
+            id: 'tiny-llama-1.1b',
+            name: 'TinyLlama Chat (1.1B)',
+            provider: 'ollama',
+            parameters: 1.1,
+            contextLength: 2048,
+            capabilities: ['chat']
+        });
+
+        return recommendations;
+    }
+
+    /**
+     * Check if a model is compatible with the current system
+     */
+    public async checkModelCompatibility(modelInfo: LLMModelInfo): Promise<boolean> {
+        const validation = await this.validateModel(modelInfo);
+        return validation.isValid;
+    }
+
+    /**
+     * Track model performance metrics
+     */
+    public recordModelMetrics(
+        modelId: string,
+        responseTime: number,
+        tokens: number,
+        error?: boolean
+    ): void {
+        let metrics = this.modelMetrics.get(modelId);
+        if (!metrics) {
+            metrics = {
+                averageResponseTime: 0,
+                tokenThroughput: 0,
+                errorRate: 0,
+                totalRequests: 0,
+                totalTokens: 0,
+                lastUsed: new Date()
+            };
+            this.modelMetrics.set(modelId, metrics);
+        }
+
+        // Update metrics
+        metrics.totalRequests++;
+        metrics.totalTokens += tokens;
+        metrics.lastUsed = new Date();
+
+        // Update moving averages
+        metrics.averageResponseTime = (
+            (metrics.averageResponseTime * (metrics.totalRequests - 1)) +
+            responseTime
+        ) / metrics.totalRequests;
+
+        metrics.tokenThroughput = metrics.totalTokens / 
+            ((metrics.lastUsed.getTime() - metrics.lastUsed.getTime()) / 1000);
+
+        if (error) {
+            metrics.errorRate = (
+                (metrics.errorRate * (metrics.totalRequests - 1)) +
+                1
+            ) / metrics.totalRequests;
+        }
+
+        this.eventEmitter.emit('metricsUpdated', modelId, metrics);
+    }
+
+    /**
+     * Get performance metrics for a model
+     */
+    public getModelMetrics(modelId: string): ModelPerformanceMetrics | undefined {
+        return this.modelMetrics.get(modelId);
+    }
+
+    /**
+     * Infer model requirements based on model information
+     */
+    private inferModelRequirements(modelInfo: LLMModelInfo): ModelRequirements {
+        const parameters = modelInfo.parameters || 0;
         
-        return recommendations.sort((a, b) => b.suitability - a.suitability);
+        // These are rough estimates and should be adjusted based on actual testing
+        return {
+            minMemoryGB: Math.max(4, Math.ceil(parameters * 2)),
+            recommendedMemoryGB: Math.max(8, Math.ceil(parameters * 3)),
+            minDiskSpaceGB: Math.max(2, Math.ceil(parameters * 0.5)),
+            cudaSupport: parameters > 7,
+            minCPUCores: Math.max(2, Math.ceil(parameters / 4))
+        };
     }
 
     /**
-     * Check for CUDA support on the system
+     * Compare CUDA versions
      */
-    public async checkCudaSupport(): Promise<void> {
-        try {
-            // In a real implementation, we would use a node module like node-cuda or similar
-            // This is a simplified simulation
-            const hardwareSpecs = await this.getHardwareSpecs();
-            
-            if (hardwareSpecs.gpu.available && hardwareSpecs.gpu.cudaSupport) {
-                vscode.window.showInformationMessage(`CUDA support detected. GPU: ${hardwareSpecs.gpu.name}, VRAM: ${hardwareSpecs.gpu.vram! / 1024}GB.`);
-            } else if (hardwareSpecs.gpu.available) {
-                vscode.window.showInformationMessage('GPU detected, but CUDA support not available.');
-            } else {
-                vscode.window.showWarningMessage('No GPU with CUDA support detected. LLM models will use CPU only, which may be slower.');
+    private compareCudaVersions(version1: string, version2: string): number {
+        const v1Parts = version1.split('.').map(Number);
+        const v2Parts = version2.split('.').map(Number);
+        
+        for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+            const v1 = v1Parts[i] || 0;
+            const v2 = v2Parts[i] || 0;
+            if (v1 !== v2) {
+                return v1 - v2;
             }
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error checking CUDA support: ${error.message}`);
-            this.outputChannel.appendLine(`Error in checkCudaSupport: ${error}`);
         }
+        
+        return 0;
     }
 
     /**
-     * Check model compatibility with current system
+     * Update status bar with model information
      */
-    public async checkModelCompatibility(): Promise<void> {
-        try {
-            const config = vscode.workspace.getConfiguration('localLLM');
-            const provider = config.get<string>('provider', 'ollama');
-            const modelId = config.get<string>('modelId', 'llama2');
-            
-            const hardwareSpecs = await this.getHardwareSpecs();
-            
-            // Simple compatibility check
-            let compatible = true;
-            let message = `Model ${modelId} is compatible with your system.`;
-            
-            if (provider === 'ollama') {
-                if (modelId.includes('13b') || modelId.includes('30b') || modelId.includes('65b')) {
-                    // Check for large models
-                    if (hardwareSpecs.ram.total < 16384) { // Less than 16GB
-                        compatible = false;
-                        message = `Model ${modelId} may be too large for your system's RAM (${hardwareSpecs.ram.total / 1024}GB).`;
-                    } else if (!hardwareSpecs.gpu.available) {
-                        compatible = false;
-                        message = `Model ${modelId} requires GPU acceleration for good performance.`;
-                    }
-                }
-            }
-            
-            if (compatible) {
-                vscode.window.showInformationMessage(message);
-            } else {
-                vscode.window.showWarningMessage(message + ' Consider using a smaller model.');
-            }
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error checking model compatibility: ${error.message}`);
-            this.outputChannel.appendLine(`Error in checkModelCompatibility: ${error}`);
-        }
+    private updateStatusBar(): void {
+        // Implementation depends on active model
+        this.statusBarItem.show();
     }
+
+    public dispose(): void {
+        this.statusBarItem.dispose();
+        this.outputChannel.dispose();
+        this.eventEmitter.removeAllListeners();
+    }
+}
+
+interface SystemInfo {
+    totalMemoryGB: number;
+    freeDiskSpaceGB: number;
+    cpuCores: number;
+    cudaAvailable: boolean;
+    cudaVersion?: string;
 }

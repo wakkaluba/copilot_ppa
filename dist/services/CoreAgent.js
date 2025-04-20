@@ -6,8 +6,13 @@ const ContextManager_1 = require("./ContextManager");
 const CommandParser_1 = require("./CommandParser");
 const ConversationManager_1 = require("./ConversationManager");
 class CoreAgent {
+    static instance;
+    promptManager;
+    contextManager;
+    commandParser;
+    conversationManager;
+    status = 'idle';
     constructor() {
-        this.status = 'idle';
         this.promptManager = PromptManager_1.PromptManager.getInstance();
         this.contextManager = ContextManager_1.ContextManager.getInstance();
         this.commandParser = CommandParser_1.CommandParser.getInstance();

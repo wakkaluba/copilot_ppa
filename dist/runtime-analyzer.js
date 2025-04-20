@@ -43,16 +43,17 @@ const perf_hooks_1 = require("perf_hooks");
  * Provides tools for measuring and analyzing code performance during execution.
  */
 class RuntimeAnalyzer {
+    perfMarkers = new Map();
+    executionTimes = new Map();
+    memorySnapshots = new Map();
+    analysisResults = new Map();
+    isRecording = false;
+    outputChannel;
+    cpuUsageSnapshots = new Map();
+    asyncOperations = new Map();
+    recordingStartTime = 0;
+    performanceTrends = new Map();
     constructor() {
-        this.perfMarkers = new Map();
-        this.executionTimes = new Map();
-        this.memorySnapshots = new Map();
-        this.analysisResults = new Map();
-        this.isRecording = false;
-        this.cpuUsageSnapshots = new Map();
-        this.asyncOperations = new Map();
-        this.recordingStartTime = 0;
-        this.performanceTrends = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Runtime Analyzer');
     }
     /**

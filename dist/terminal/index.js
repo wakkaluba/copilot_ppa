@@ -51,10 +51,13 @@ __exportStar(require("./aiTerminalHelper"), exports);
  * Terminal module that integrates all terminal functionality
  */
 class TerminalModule {
+    terminalManager;
+    interactiveShell;
+    aiHelper = null;
+    context;
+    llmManager = null;
+    commandGenerationWebview = null;
     constructor(context) {
-        this.aiHelper = null;
-        this.llmManager = null;
-        this.commandGenerationWebview = null;
         this.context = context;
         this.terminalManager = new terminalManager_1.TerminalManager();
         this.interactiveShell = new interactiveShell_1.InteractiveShell(this.terminalManager);

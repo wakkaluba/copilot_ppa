@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const manager_1 = require("../services/vectordb/manager");
 const codeSearch_1 = require("../services/vectordb/codeSearch");
 class VectorDatabasePanel {
+    static viewType = 'copilotPPA.vectorDatabasePanel';
+    _panel;
+    _disposables = [];
     static createOrShow(extensionUri) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
@@ -51,7 +54,6 @@ class VectorDatabasePanel {
         return new VectorDatabasePanel(panel, extensionUri);
     }
     constructor(panel, extensionUri) {
-        this._disposables = [];
         this._panel = panel;
         // Set the webview's initial html content
         this._update();
@@ -616,5 +618,4 @@ class VectorDatabasePanel {
     }
 }
 exports.VectorDatabasePanel = VectorDatabasePanel;
-VectorDatabasePanel.viewType = 'copilotPPA.vectorDatabasePanel';
 //# sourceMappingURL=vectorDatabasePanel.js.map

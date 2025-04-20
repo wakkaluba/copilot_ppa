@@ -7,8 +7,9 @@ const multilingualPromptManager_1 = require("./multilingualPromptManager");
  * Manages LLM providers and connections
  */
 class LLMProviderManager {
+    currentProvider = null;
+    multilingualManager;
     constructor(context) {
-        this.currentProvider = null;
         this.multilingualManager = new multilingualPromptManager_1.MultilingualPromptManager();
     }
     /**

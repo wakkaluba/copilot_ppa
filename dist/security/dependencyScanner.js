@@ -46,6 +46,9 @@ const vscode_1 = require("vscode");
  * Class responsible for scanning project dependencies for known vulnerabilities
  */
 class DependencyScanner {
+    context;
+    vulnerabilityCache;
+    statusBarItem;
     constructor(context) {
         this.context = context;
         this.vulnerabilityCache = new Map();

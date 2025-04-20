@@ -38,8 +38,10 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs/promises"));
 class ConversationHistory {
+    static instance;
+    conversations = new Map();
+    storageDir;
     constructor(context) {
-        this.conversations = new Map();
         this.storageDir = path.join(context.globalStorageUri.fsPath, 'conversations');
     }
     static getInstance(context) {

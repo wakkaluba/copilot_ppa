@@ -54,13 +54,15 @@ var ApiDocFormat;
  * Generates API documentation from source code
  */
 class ApiDocumentationGenerator {
+    context;
+    llmProvider;
+    outputDir = '';
     /**
      * Constructor for API Documentation Generator
      * @param context The VSCode extension context
      * @param llmProvider The LLM provider to use for generating documentation
      */
     constructor(context, llmProvider) {
-        this.outputDir = '';
         this.context = context;
         this.llmProvider = llmProvider;
         this.registerCommands();

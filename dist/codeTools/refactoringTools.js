@@ -40,6 +40,7 @@ const path = __importStar(require("path"));
  * Provides tools for code refactoring
  */
 class RefactoringTools {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Refactoring');
     }

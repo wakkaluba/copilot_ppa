@@ -41,6 +41,10 @@ const quickAccessMenu_1 = require("./quickAccessMenu");
  * Status bar item to display and control command toggles
  */
 class ToggleStatusBarItem {
+    statusBarItem;
+    context;
+    toggleManager;
+    quickAccessMenu;
     constructor(context) {
         this.context = context;
         this.toggleManager = commandToggleManager_1.CommandToggleManager.getInstance(context);

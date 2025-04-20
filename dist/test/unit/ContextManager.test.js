@@ -189,5 +189,113 @@ suite('ContextManager Tests', () => {
         assert.strictEqual(window.messages[1], 'Message 4');
         assert.strictEqual(window.messages[2], 'Message 5');
     });
+    test('clearAllContextData should reset all context data', async () => {
+        // Set up some initial context
+        const conversationId = 'test_conversation';
+        await contextManager.updateContext(conversationId, 'Test message', 0.9);
+        // Clear all context
+        await contextManager.clearAllContextData();
+        // Verify conversation memory is cleared
+        const history = contextManager.getConversationHistory();
+        assert.strictEqual(history.length, 0);
+        // Verify user preferences are cleared
+        assert.strictEqual(contextManager.getPreferredLanguage(), undefined);
+        assert.strictEqual(contextManager.getPreferredFramework(), undefined);
+    });
+    test('analyzeMessage should properly extract language and framework preferences', () => {
+        // Test with typescript and react
+        const tsReactMessage = {
+            role: 'user',
+            content: 'Help me write a React component in TypeScript',
+            timestamp: Date.now()
+        };
+        contextManager.addMessage(tsReactMessage);
+        assert.strictEqual(contextManager.getPreferredLanguage(), 'typescript');
+        assert.strictEqual(contextManager.getPreferredFramework(), 'react');
+        // Test with python and django
+        const pythonDjangoMessage = {
+            role: 'user',
+            content: 'How do I create a Django model in Python?',
+            timestamp: Date.now()
+        };
+        contextManager.addMessage(pythonDjangoMessage);
+        assert.strictEqual(contextManager.getPreferredLanguage(), 'python');
+        assert.strictEqual(contextManager.getPreferredFramework(), 'django');
+    });
+    test('getMessagesByDateRange should return messages within specified timeframe', () => {
+        const now = Date.now();
+        const messages = [
+            { role: 'user', content: 'Message 1', timestamp: now - 3000 },
+            { role: 'assistant', content: 'Response 1', timestamp: now - 2000 },
+            { role: 'user', content: 'Message 2', timestamp: now - 1000 },
+            { role: 'assistant', content: 'Response 2', timestamp: now }
+        ];
+        // Add messages
+        messages.forEach(msg => contextManager.addMessage(msg));
+        // Get messages from last 2 seconds
+        const recentMessages = contextManager.conversationMemory
+            .getMessagesByDateRange(now - 2000, now);
+        assert.strictEqual(recentMessages.length, 2);
+        assert.strictEqual(recentMessages[0].content, 'Message 2');
+        assert.strictEqual(recentMessages[1].content, 'Response 2');
+    });
+    test('searchMessages should find messages containing search term', () => {
+        const messages = [
+            { role: 'user', content: 'Help with TypeScript', timestamp: Date.now() },
+            { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript', timestamp: Date.now() },
+            { role: 'user', content: 'How to use React hooks?', timestamp: Date.now() }
+        ];
+        // Add messages
+        messages.forEach(msg => contextManager.addMessage(msg));
+        // Search for TypeScript-related messages
+        const typeScriptMessages = contextManager.conversationMemory
+            .searchMessages('typescript');
+        assert.strictEqual(typeScriptMessages.length, 2);
+        assert.ok(typeScriptMessages.every(msg => msg.content.toLowerCase().includes('typescript')));
+    });
+    test('context should persist message history correctly', async () => {
+        const messages = [
+            { id: 'msg1', role: 'user', content: 'Hello', timestamp: Date.now() - 2000 },
+            { id: 'msg2', role: 'assistant', content: 'Hi there', timestamp: Date.now() - 1000 }
+        ];
+        contextManager.addMessage(messages[0]);
+        contextManager.addMessage(messages[1]);
+        const history = contextManager.getConversationHistory(10);
+        assert.strictEqual(history.length, 2);
+        assert.deepStrictEqual(history[0], messages[0]);
+        assert.deepStrictEqual(history[1], messages[1]);
+    });
+    test('context cleanup should remove old messages while preserving recent ones', async () => {
+        const now = Date.now();
+        const oldMessage = { id: 'old', role: 'user', content: 'Old message', timestamp: now - 1000000 };
+        const recentMessage = { id: 'recent', role: 'user', content: 'Recent message', timestamp: now - 1000 };
+        contextManager.addMessage(oldMessage);
+        contextManager.addMessage(recentMessage);
+        await contextManager.cleanupOldMessages(now - 5000);
+        const history = contextManager.getConversationHistory(10);
+        assert.strictEqual(history.length, 1);
+        assert.deepStrictEqual(history[0], recentMessage);
+    });
+    test('buildContextString should include relevant context information', () => {
+        contextManager.addMessage({
+            id: 'msg1',
+            role: 'user',
+            content: 'How do I use TypeScript with React?',
+            timestamp: Date.now()
+        });
+        const contextString = contextManager.buildContextString();
+        assert.ok(contextString.includes('typescript'));
+        assert.ok(contextString.includes('react'));
+    });
+    test('context should handle language and framework preferences', () => {
+        contextManager.addMessage({
+            id: 'msg1',
+            role: 'user',
+            content: 'I want to build a TypeScript React application',
+            timestamp: Date.now()
+        });
+        assert.strictEqual(contextManager.getPreferredLanguage(), 'typescript');
+        assert.strictEqual(contextManager.getPreferredFramework(), 'react');
+    });
 });
 //# sourceMappingURL=ContextManager.test.js.map

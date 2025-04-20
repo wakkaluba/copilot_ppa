@@ -39,6 +39,8 @@ const crypto = __importStar(require("crypto"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 class OfflineCache {
+    cachePath;
+    memoryCache;
     constructor() {
         this.cachePath = path.join(vscode.workspace.rootPath || '', '.llm-cache');
         this.memoryCache = new Map();

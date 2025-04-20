@@ -49,8 +49,9 @@ var ConnectionStatus;
  * A class that manages the status bar item for displaying LLM connection status
  */
 class ConnectionStatusBar {
+    statusBarItem;
+    status = ConnectionStatus.Disconnected;
     constructor() {
-        this.status = ConnectionStatus.Disconnected;
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.updateStatus(ConnectionStatus.Disconnected);
         this.statusBarItem.show();

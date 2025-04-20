@@ -37,10 +37,12 @@ exports.LLMConnectionManager = void 0;
 const vscode = __importStar(require("vscode"));
 const LLMHostManager_1 = require("./LLMHostManager");
 class LLMConnectionManager {
+    static instance;
+    retryCount = 0;
+    maxRetries = 3;
+    connectionTimeout = null;
+    statusBarItem;
     constructor() {
-        this.retryCount = 0;
-        this.maxRetries = 3;
-        this.connectionTimeout = null;
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
         this.updateStatus('disconnected');
     }

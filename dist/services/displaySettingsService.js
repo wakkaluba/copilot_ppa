@@ -36,9 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisplaySettingsService = void 0;
 const vscode = __importStar(require("vscode"));
 class DisplaySettingsService {
+    static instance;
+    _onSettingsChanged = new vscode.EventEmitter();
+    onSettingsChanged = this._onSettingsChanged.event;
     constructor() {
-        this._onSettingsChanged = new vscode.EventEmitter();
-        this.onSettingsChanged = this._onSettingsChanged.event;
         // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('copilot-ppa.display')) {

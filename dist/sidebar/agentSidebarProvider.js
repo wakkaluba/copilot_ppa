@@ -40,10 +40,15 @@ const connectionStatusService_1 = require("../status/connectionStatusService");
  * Provides the sidebar view for the Local LLM Agent
  */
 class AgentSidebarProvider {
+    _extensionUri;
+    _llmProviderManager;
+    static viewType = 'localLlmAgent.sidebarView';
+    _view;
+    _disposables = [];
+    _connectionStatusService;
     constructor(_extensionUri, _llmProviderManager, connectionStatusService) {
         this._extensionUri = _extensionUri;
         this._llmProviderManager = _llmProviderManager;
-        this._disposables = [];
         this._connectionStatusService = connectionStatusService;
         // Listen for connection status changes
         this._disposables.push(this._connectionStatusService.onDidChangeState(state => {
@@ -258,5 +263,4 @@ class AgentSidebarProvider {
     }
 }
 exports.AgentSidebarProvider = AgentSidebarProvider;
-AgentSidebarProvider.viewType = 'localLlmAgent.sidebarView';
 //# sourceMappingURL=agentSidebarProvider.js.map

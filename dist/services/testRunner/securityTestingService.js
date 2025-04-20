@@ -42,6 +42,7 @@ const cp = __importStar(require("child_process"));
  * Service for performing security testing
  */
 class SecurityTestingService {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Security Testing');
     }

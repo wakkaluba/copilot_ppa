@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeExampleViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 class CodeExampleViewProvider {
+    _extensionUri;
+    codeExampleService;
+    static viewType = 'codeExamples.view';
+    _view;
     constructor(_extensionUri, codeExampleService) {
         this._extensionUri = _extensionUri;
         this.codeExampleService = codeExampleService;
@@ -221,7 +225,6 @@ class CodeExampleViewProvider {
     }
 }
 exports.CodeExampleViewProvider = CodeExampleViewProvider;
-CodeExampleViewProvider.viewType = 'codeExamples.view';
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

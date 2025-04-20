@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const conversationManager_1 = require("../services/conversationManager");
 class ConversationExportCommand {
+    static commandId = 'copilotPPA.exportConversation';
+    static exportAllCommandId = 'copilotPPA.exportAllConversations';
+    conversationManager;
     constructor(context) {
         this.conversationManager = conversationManager_1.ConversationManager.getInstance(context);
     }
@@ -134,6 +137,4 @@ class ConversationExportCommand {
     }
 }
 exports.ConversationExportCommand = ConversationExportCommand;
-ConversationExportCommand.commandId = 'copilotPPA.exportConversation';
-ConversationExportCommand.exportAllCommandId = 'copilotPPA.exportAllConversations';
 //# sourceMappingURL=conversationExportCommand.js.map

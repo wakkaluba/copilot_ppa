@@ -36,12 +36,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeManager = void 0;
 const vscode = __importStar(require("vscode"));
 class ThemeManager {
+    context;
+    static instance;
+    currentThemeId;
+    builtInThemes = new Map();
+    customThemes = new Map();
+    _onThemeChanged = new vscode.EventEmitter();
+    onThemeChanged = this._onThemeChanged.event;
     constructor(context) {
         this.context = context;
-        this.builtInThemes = new Map();
-        this.customThemes = new Map();
-        this._onThemeChanged = new vscode.EventEmitter();
-        this.onThemeChanged = this._onThemeChanged.event;
         this.currentThemeId = this.getConfiguredThemeId();
         this.initializeBuiltInThemes();
         this.loadCustomThemes();

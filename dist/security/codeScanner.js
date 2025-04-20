@@ -40,11 +40,14 @@ const path = __importStar(require("path"));
  * Class responsible for scanning code for potential security issues
  */
 class CodeSecurityScanner {
+    context;
+    securityPatterns;
+    diagnosticCollection;
+    messageQueue = [];
+    isProcessing = false;
+    disposables = [];
+    webviewMap = new Map();
     constructor(context) {
-        this.messageQueue = [];
-        this.isProcessing = false;
-        this.disposables = [];
-        this.webviewMap = new Map();
         this.context = context;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('securityIssues');
         this.context.subscriptions.push(this.diagnosticCollection);

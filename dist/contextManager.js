@@ -5,6 +5,10 @@ exports.ContextManager = void 0;
  * Manages the context for the local LLM agent to provide better context-aware responses
  */
 class ContextManager {
+    context;
+    conversationMemory;
+    userPreferences;
+    filePreferences;
     constructor(context) {
         this.context = context;
         // Initialize components
@@ -282,10 +286,11 @@ exports.ContextManager = ContextManager;
  * Manages conversation memory and history
  */
 class ConversationMemory {
+    context;
+    messages = [];
+    storageKey = 'conversationMemory';
+    maxHistorySize = 200; // Store up to 200 messages
     constructor(context) {
-        this.messages = [];
-        this.storageKey = 'conversationMemory';
-        this.maxHistorySize = 200; // Store up to 200 messages
         this.context = context;
     }
     /**
@@ -357,9 +362,12 @@ class ConversationMemory {
  * Manages user preferences for programming languages and frameworks
  */
 class UserPreferences {
+    context;
+    preferredLanguage;
+    preferredFramework;
+    languageUsage = {};
+    storageKey = 'userProgrammingPreferences';
     constructor(context) {
-        this.languageUsage = {};
-        this.storageKey = 'userProgrammingPreferences';
         this.context = context;
     }
     /**
@@ -444,11 +452,12 @@ class UserPreferences {
  * Manages user preferences for file operations
  */
 class FilePreferences {
+    context;
+    recentExtensions = [];
+    recentDirectories = [];
+    namingPatterns = [];
+    storageKey = 'fileManagementPreferences';
     constructor(context) {
-        this.recentExtensions = [];
-        this.recentDirectories = [];
-        this.namingPatterns = [];
-        this.storageKey = 'fileManagementPreferences';
         this.context = context;
     }
     /**

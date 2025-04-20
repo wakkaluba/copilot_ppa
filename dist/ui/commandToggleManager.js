@@ -39,45 +39,47 @@ const vscode = __importStar(require("vscode"));
  * Manages toggle states for command switches
  */
 class CommandToggleManager {
+    static instance;
+    context;
+    // Toggle states
+    toggleStates = new Map();
+    // Event emitters for toggle state changes
+    _onToggleChange = new vscode.EventEmitter();
+    onToggleChange = this._onToggleChange.event;
+    // Available toggles with default states
+    availableToggles = {
+        'workspace': {
+            id: 'workspace',
+            label: '@workspace',
+            description: 'Enable workspace file access',
+            defaultState: false
+        },
+        'codebase': {
+            id: 'codebase',
+            label: '/codebase',
+            description: 'Search through the entire codebase',
+            defaultState: false
+        },
+        'verbose': {
+            id: 'verbose',
+            label: '!verbose',
+            description: 'Include detailed explanations',
+            defaultState: false
+        },
+        'repo': {
+            id: 'repo',
+            label: '#repo',
+            description: 'Enable repository operations',
+            defaultState: false
+        },
+        'debug': {
+            id: 'debug',
+            label: '&debug',
+            description: 'Include debug information',
+            defaultState: false
+        }
+    };
     constructor(context) {
-        // Toggle states
-        this.toggleStates = new Map();
-        // Event emitters for toggle state changes
-        this._onToggleChange = new vscode.EventEmitter();
-        this.onToggleChange = this._onToggleChange.event;
-        // Available toggles with default states
-        this.availableToggles = {
-            'workspace': {
-                id: 'workspace',
-                label: '@workspace',
-                description: 'Enable workspace file access',
-                defaultState: false
-            },
-            'codebase': {
-                id: 'codebase',
-                label: '/codebase',
-                description: 'Search through the entire codebase',
-                defaultState: false
-            },
-            'verbose': {
-                id: 'verbose',
-                label: '!verbose',
-                description: 'Include detailed explanations',
-                defaultState: false
-            },
-            'repo': {
-                id: 'repo',
-                label: '#repo',
-                description: 'Enable repository operations',
-                defaultState: false
-            },
-            'debug': {
-                id: 'debug',
-                label: '&debug',
-                description: 'Include debug information',
-                defaultState: false
-            }
-        };
         this.context = context;
         this.loadToggleStates();
     }

@@ -39,10 +39,10 @@ const llmService_1 = require("../../services/llm/llmService");
 const llmCacheService_1 = require("../../services/cache/llmCacheService");
 // Mock LLMProvider implementation for testing
 class MockLLMProvider {
+    generateText = sinon.stub();
+    getDefaultModel = sinon.stub();
+    getAvailableModels = sinon.stub();
     constructor() {
-        this.generateText = sinon.stub();
-        this.getDefaultModel = sinon.stub();
-        this.getAvailableModels = sinon.stub();
         this.getDefaultModel.returns('default-model');
         this.getAvailableModels.resolves(['default-model', 'alternative-model']);
     }

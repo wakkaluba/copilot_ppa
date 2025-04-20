@@ -38,6 +38,8 @@ const vscode = __importStar(require("vscode"));
 const displaySettingsService_1 = require("../services/displaySettingsService");
 const webviewPanelManager_1 = require("../webview/webviewPanelManager");
 class DisplaySettingsCommand {
+    static commandId = 'copilotPPA.openDisplaySettings';
+    displaySettingsService;
     constructor() {
         this.displaySettingsService = displaySettingsService_1.DisplaySettingsService.getInstance();
     }
@@ -115,5 +117,4 @@ class DisplaySettingsCommand {
     }
 }
 exports.DisplaySettingsCommand = DisplaySettingsCommand;
-DisplaySettingsCommand.commandId = 'copilotPPA.openDisplaySettings';
 //# sourceMappingURL=displaySettingsCommand.js.map

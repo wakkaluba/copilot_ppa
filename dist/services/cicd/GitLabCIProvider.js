@@ -38,8 +38,9 @@ const vscode = __importStar(require("vscode"));
 const node_1 = require("@gitbeaker/node");
 const yaml = __importStar(require("yaml"));
 class GitLabCIProvider {
+    gitlab;
+    name = 'GitLab CI/CD';
     constructor() {
-        this.name = 'GitLab CI/CD';
         this.initialize();
     }
     async initialize() {

@@ -43,6 +43,8 @@ const execAsync = (0, util_1.promisify)(child_process.exec);
  * System requirements checker for the Copilot PPA extension
  */
 class SystemRequirementsChecker {
+    _logger;
+    _outputChannel;
     constructor(logger) {
         this._logger = logger;
         this._outputChannel = vscode.window.createOutputChannel('Copilot PPA System');

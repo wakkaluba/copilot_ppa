@@ -41,12 +41,13 @@ const crypto = __importStar(require("crypto"));
  * Provider for Chroma vector database
  */
 class ChromaProvider {
+    name = 'Chroma';
+    _isAvailable = false;
+    _client = null;
+    _collection = null;
+    _embedder = null;
+    _storageDir;
     constructor(context) {
-        this.name = 'Chroma';
-        this._isAvailable = false;
-        this._client = null;
-        this._collection = null;
-        this._embedder = null;
         // Store Chroma databases in the extension's global storage directory
         this._storageDir = path.join(context.globalStorageUri.fsPath, 'chroma');
     }

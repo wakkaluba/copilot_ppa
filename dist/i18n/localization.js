@@ -78,9 +78,10 @@ var SupportedLanguage;
  * Main localization service for the extension
  */
 class LocalizationService {
+    translations = new Map();
+    currentLanguage = SupportedLanguage.English;
+    context;
     constructor(context) {
-        this.translations = new Map();
-        this.currentLanguage = SupportedLanguage.English;
         this.context = context;
         this.initialize();
     }

@@ -42,6 +42,7 @@ const cp = __importStar(require("child_process"));
  * Service for analyzing code coverage
  */
 class CodeCoverageService {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Code Coverage');
     }

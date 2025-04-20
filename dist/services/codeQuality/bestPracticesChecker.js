@@ -37,6 +37,8 @@ exports.BestPracticesChecker = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 class BestPracticesChecker {
+    _context;
+    _diagnosticCollection;
     constructor(context) {
         this._context = context;
         this._diagnosticCollection = vscode.languages.createDiagnosticCollection('best-practices');

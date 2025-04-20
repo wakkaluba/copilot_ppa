@@ -39,8 +39,9 @@ const github_1 = require("./providers/github");
 const gitlab_1 = require("./providers/gitlab");
 const bitbucket_1 = require("./providers/bitbucket");
 class RepositoryManager {
+    providers;
+    _isEnabled = false;
     constructor() {
-        this._isEnabled = false;
         this.providers = new Map();
         // Initialize providers
         this.providers.set('github', new github_1.GitHubProvider());

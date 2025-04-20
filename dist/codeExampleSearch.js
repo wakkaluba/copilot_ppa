@@ -43,8 +43,10 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const crypto = __importStar(require("crypto"));
 class CodeExampleSearch {
+    cachePath;
+    cacheLifetime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    context;
     constructor(context) {
-        this.cacheLifetime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         this.context = context;
         this.cachePath = path.join(context.globalStorageUri.fsPath, 'example-cache');
         // Ensure cache directory exists

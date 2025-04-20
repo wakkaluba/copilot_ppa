@@ -39,12 +39,14 @@ const vscode = __importStar(require("vscode"));
  * Service for integrating with GitHub Copilot
  */
 class CopilotIntegrationService {
+    extensionContext;
+    copilotExtension;
+    isInitialized = false;
     /**
      * Creates a new instance of the CopilotIntegrationService
      * @param context The extension context
      */
     constructor(context) {
-        this.isInitialized = false;
         this.extensionContext = context;
         this.initialize();
     }

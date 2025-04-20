@@ -4,10 +4,10 @@ exports.ModelManager = void 0;
 const ollamaProvider_1 = require("../llm/ollamaProvider");
 const lmStudioProvider_1 = require("../llm/lmStudioProvider");
 class ModelManager {
+    activeModel = null;
+    models = new Map();
+    providers = new Map();
     constructor() {
-        this.activeModel = null;
-        this.models = new Map();
-        this.providers = new Map();
         this.initializeProviders();
     }
     initializeProviders() {

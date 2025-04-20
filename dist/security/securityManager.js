@@ -42,6 +42,11 @@ const securityRecommendations_1 = require("./securityRecommendations");
  * Main security manager class that coordinates all security features
  */
 class SecurityManager {
+    context;
+    codeScanner;
+    dependencyScanner;
+    securityRecommendations;
+    statusBarItem;
     constructor(context) {
         this.context = context;
         this.codeScanner = new codeScanner_1.CodeSecurityScanner(context);

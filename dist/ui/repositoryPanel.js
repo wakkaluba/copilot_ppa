@@ -37,6 +37,9 @@ exports.RepositoryPanel = void 0;
 const vscode = __importStar(require("vscode"));
 const repositoryManagement_1 = require("../services/repositoryManagement");
 class RepositoryPanel {
+    static viewType = 'copilotPPA.repositoryPanel';
+    _panel;
+    _disposables = [];
     static createOrShow(extensionUri) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
@@ -50,7 +53,6 @@ class RepositoryPanel {
         return new RepositoryPanel(panel, extensionUri);
     }
     constructor(panel, extensionUri) {
-        this._disposables = [];
         this._panel = panel;
         // Set the webview's initial html content
         this._update(extensionUri);
@@ -278,5 +280,4 @@ class RepositoryPanel {
     }
 }
 exports.RepositoryPanel = RepositoryPanel;
-RepositoryPanel.viewType = 'copilotPPA.repositoryPanel';
 //# sourceMappingURL=repositoryPanel.js.map

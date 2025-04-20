@@ -36,10 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationsTreeDataProvider = void 0;
 const vscode = __importStar(require("vscode"));
 class ConversationsTreeDataProvider {
+    conversationManager;
+    _onDidChangeTreeData = new vscode.EventEmitter();
+    onDidChangeTreeData = this._onDidChangeTreeData.event;
     constructor(conversationManager) {
         this.conversationManager = conversationManager;
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         // Listen to conversation changes
         this.conversationManager.onConversationChanged(() => this.refresh());
         this.conversationManager.onConversationAdded(() => this.refresh());
@@ -65,6 +66,7 @@ class ConversationsTreeDataProvider {
 }
 exports.ConversationsTreeDataProvider = ConversationsTreeDataProvider;
 class ConversationTreeItem extends vscode.TreeItem {
+    conversation;
     constructor(conversation) {
         super(conversation.title, vscode.TreeItemCollapsibleState.None);
         this.conversation = conversation;

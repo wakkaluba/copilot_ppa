@@ -3,9 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderManager = void 0;
 const connectionStatusService_1 = require("../status/connectionStatusService");
 class LLMProviderManager {
+    _providers = new Map();
+    _activeProvider = null;
+    _connectionStatusService;
     constructor(connectionStatusService) {
-        this._providers = new Map();
-        this._activeProvider = null;
         this._connectionStatusService = connectionStatusService;
         // Initialize providers and settings
     }

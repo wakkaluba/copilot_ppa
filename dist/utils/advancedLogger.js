@@ -52,18 +52,20 @@ var LogLevel;
  * Advanced logger with memory and file support
  */
 class AdvancedLogger {
+    static instance;
+    logLevel = LogLevel.INFO;
+    inMemoryLogs = [];
+    maxInMemoryLogs = 10000;
+    outputChannel;
+    // File logging
+    fileLoggingEnabled = false;
+    logFilePath = null;
+    maxLogSizeMB = 5;
+    maxLogFiles = 3;
+    logFileStream = null;
+    // Listeners
+    onLogListeners = [];
     constructor() {
-        this.logLevel = LogLevel.INFO;
-        this.inMemoryLogs = [];
-        this.maxInMemoryLogs = 10000;
-        // File logging
-        this.fileLoggingEnabled = false;
-        this.logFilePath = null;
-        this.maxLogSizeMB = 5;
-        this.maxLogFiles = 3;
-        this.logFileStream = null;
-        // Listeners
-        this.onLogListeners = [];
         this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         // Initialize from configuration
         this.updateFromConfig();

@@ -46,11 +46,14 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class LLMModelsManager {
+    context;
+    localModels = [];
+    huggingfaceModels = [];
+    _onModelsChanged = new vscode.EventEmitter();
+    onModelsChanged = this._onModelsChanged.event;
+    ollamaBasePath;
+    lmStudioBasePath;
     constructor(context) {
-        this.localModels = [];
-        this.huggingfaceModels = [];
-        this._onModelsChanged = new vscode.EventEmitter();
-        this.onModelsChanged = this._onModelsChanged.event;
         this.context = context;
         // Default paths
         this.ollamaBasePath = this.getOllamaBasePath();

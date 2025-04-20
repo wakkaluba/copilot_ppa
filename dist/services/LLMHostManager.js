@@ -37,8 +37,10 @@ exports.LLMHostManager = void 0;
 const vscode = __importStar(require("vscode"));
 const child_process = __importStar(require("child_process"));
 class LLMHostManager {
+    static instance;
+    process = null;
+    statusBarItem;
     constructor() {
-        this.process = null;
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.updateStatus('stopped');
     }

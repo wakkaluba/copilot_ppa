@@ -47,6 +47,12 @@ const securityTestingService_1 = require("./securityTestingService");
  * Service for running various types of tests within the VS Code environment
  */
 class TestRunnerService {
+    outputChannel;
+    e2eConfigService;
+    performanceConfigService;
+    staticAnalysisService;
+    codeCoverageService;
+    securityTestingService;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Test Runner');
         this.e2eConfigService = new e2eTestConfig_1.E2ETestConfigService();

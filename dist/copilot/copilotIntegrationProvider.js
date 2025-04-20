@@ -41,13 +41,16 @@ const multilingualPromptManager_1 = require("../llm/multilingualPromptManager");
  * Provider for Copilot integration functionality
  */
 class CopilotIntegrationProvider {
+    context;
+    disposables = [];
+    copilotService;
+    promptManager;
     /**
      * Creates a new instance of the CopilotIntegrationProvider
      * @param context The extension context
      */
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.copilotService = new copilotIntegrationService_1.CopilotIntegrationService(context);
         this.promptManager = new multilingualPromptManager_1.MultilingualPromptManager();
         this.registerCommands();

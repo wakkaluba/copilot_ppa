@@ -41,9 +41,10 @@ const vscode = __importStar(require("vscode"));
  * Manager for custom keybindings
  */
 class KeybindingManager {
+    context;
+    keybindings = new Map();
     constructor(context) {
         this.context = context;
-        this.keybindings = new Map();
         // Register default keybindings
         this.registerDefaultKeybindings();
         // Load any custom keybindings

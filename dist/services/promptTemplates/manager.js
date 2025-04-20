@@ -42,6 +42,7 @@ const storage_1 = require("./storage");
  * Service for managing prompt templates
  */
 class PromptTemplateManager {
+    storage;
     constructor(context) {
         this.storage = new storage_1.PromptTemplateStorage(context);
     }

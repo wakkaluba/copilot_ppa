@@ -38,8 +38,10 @@ const vscode = __importStar(require("vscode"));
 const bitbucket_1 = require("bitbucket");
 const yaml = __importStar(require("yaml"));
 class BitbucketPipelinesProvider {
+    bitbucket;
+    workspace;
+    name = 'Bitbucket Pipelines';
     constructor() {
-        this.name = 'Bitbucket Pipelines';
         this.initialize();
     }
     async initialize() {

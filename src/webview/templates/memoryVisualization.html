@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Memory Usage Visualization</h1>
+    <div class="metric-card">
+        <h2>Memory Usage Over Time</h2>
+        <div class="chart-container" id="memoryChart">
+            <p>Loading chart data...</p>
+        </div>
+    </div>
+    <div class="metric-card">
+        <h2>Summary</h2>
+        <div id="summary">
+            <p>Collecting memory usage data...</p>
+        </div>
+    </div>
+    
+    <script>
+        // TODO: Add chart.js or other visualization library
+        // and implement memory visualization
+        document.getElementById('summary').innerHTML = 
+            '<p>Memory visualization implementation in progress</p>';
+    </script>
+</body>
+</html>

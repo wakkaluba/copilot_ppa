@@ -37,6 +37,9 @@ exports.PerformanceAnalyzer = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 class PerformanceAnalyzer {
+    llmService;
+    context;
+    diagnosticCollection;
     constructor(context, llmService) {
         this.context = context;
         this.llmService = llmService;

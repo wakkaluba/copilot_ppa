@@ -38,6 +38,7 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const dependencyAnalyzer_1 = require("./dependencyAnalyzer");
 class DependencyAnalysisCommand {
+    dependencyAnalyzer;
     constructor() {
         this.dependencyAnalyzer = new dependencyAnalyzer_1.DependencyAnalyzer();
     }

@@ -42,15 +42,18 @@ const crypto = __importStar(require("crypto"));
  * Provider for FAISS vector database
  */
 class FaissProvider {
+    name = 'FAISS';
+    _isAvailable = false;
+    _docStore = new Map();
+    _faiss = null;
+    _index = null;
+    _embedder = null;
+    _dimensions = 1536; // Default dimension for OpenAI embeddings
+    _metric = 'cosine';
+    _storageDir;
+    _indexPath;
+    _docStorePath;
     constructor(context) {
-        this.name = 'FAISS';
-        this._isAvailable = false;
-        this._docStore = new Map();
-        this._faiss = null;
-        this._index = null;
-        this._embedder = null;
-        this._dimensions = 1536; // Default dimension for OpenAI embeddings
-        this._metric = 'cosine';
         // Store FAISS index in the extension's global storage directory
         this._storageDir = path.join(context.globalStorageUri.fsPath, 'faiss');
         this._indexPath = path.join(this._storageDir, 'index.faiss');

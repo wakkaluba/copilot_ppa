@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMSelectionView = void 0;
 const vscode = __importStar(require("vscode"));
 class LLMSelectionView {
+    panel;
+    context;
+    modelsManager;
     constructor(context, modelsManager) {
         this.context = context;
         this.modelsManager = modelsManager;

@@ -41,10 +41,10 @@ const types_1 = require("./types");
  * Manages terminal instances and operations within VSCode
  */
 class TerminalManager {
+    terminals = new Map();
+    outputChannels = new Map();
+    lastActiveTerminal = null;
     constructor() {
-        this.terminals = new Map();
-        this.outputChannels = new Map();
-        this.lastActiveTerminal = null;
         // Listen for terminal close events to clean up references
         vscode.window.onDidCloseTerminal(terminal => {
             for (const [name, term] of this.terminals.entries()) {

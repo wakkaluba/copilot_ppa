@@ -38,6 +38,7 @@ const vscode = __importStar(require("vscode"));
 const ts = __importStar(require("typescript"));
 const path = __importStar(require("path"));
 class UnusedCodeDetector {
+    diagnosticCollection;
     constructor(context) {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('unusedCode');
         context.subscriptions.push(this.diagnosticCollection);

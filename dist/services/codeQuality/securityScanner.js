@@ -40,6 +40,8 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class SecurityScanner {
+    _context;
+    _diagnosticCollection;
     constructor(context) {
         this._context = context;
         this._diagnosticCollection = vscode.languages.createDiagnosticCollection('security-issues');

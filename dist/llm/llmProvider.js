@@ -3,8 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseLLMProvider = void 0;
 const offlineCache_1 = require("../offline/offlineCache");
 class BaseLLMProvider {
+    offlineMode = false;
+    cache;
     constructor() {
-        this.offlineMode = false;
         this.cache = new offlineCache_1.OfflineCache();
     }
     setOfflineMode(enabled) {

@@ -41,6 +41,12 @@ const reviewChecklist_1 = require("./reviewChecklist");
  * Webview provider for the code review UI
  */
 class CodeReviewWebviewProvider {
+    _extensionUri;
+    _context;
+    static viewType = 'codeReviewPanel';
+    _view;
+    _pullRequestIntegration;
+    _reviewChecklist;
     constructor(_extensionUri, _context) {
         this._extensionUri = _extensionUri;
         this._context = _context;
@@ -346,5 +352,4 @@ class CodeReviewWebviewProvider {
     }
 }
 exports.CodeReviewWebviewProvider = CodeReviewWebviewProvider;
-CodeReviewWebviewProvider.viewType = 'codeReviewPanel';
 //# sourceMappingURL=codeReviewWebviewProvider.js.map

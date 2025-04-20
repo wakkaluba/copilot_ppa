@@ -40,6 +40,9 @@ const commandToggleManager_1 = require("./commandToggleManager");
  * Provides a burger menu with quick access to command toggles
  */
 class QuickAccessMenu {
+    panel;
+    context;
+    toggleManager;
     constructor(context) {
         this.context = context;
         this.toggleManager = commandToggleManager_1.CommandToggleManager.getInstance(context);

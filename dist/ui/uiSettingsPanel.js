@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UISettingsPanel = void 0;
 class UISettingsPanel {
+    _panel;
+    _disposables = [];
     constructor(panel) {
-        this._disposables = [];
         this._panel = panel;
         // Set the webview's initial html content
         this._panel.webview.html = this._getHtmlForWebview();

@@ -42,6 +42,7 @@ const path = __importStar(require("path"));
  * Service for performing static code analysis
  */
 class StaticAnalysisService {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Static Analysis');
     }

@@ -42,6 +42,7 @@ const fs = __importStar(require("fs"));
  * Analyzes code complexity using various tools
  */
 class ComplexityAnalyzer {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Code Complexity');
     }

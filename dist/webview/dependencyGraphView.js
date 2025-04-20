@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyGraphViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 class DependencyGraphViewProvider {
+    _extensionUri;
+    static viewType = 'localLlmAgent.dependencyGraphView';
+    _view;
     constructor(_extensionUri) {
         this._extensionUri = _extensionUri;
     }
@@ -262,7 +265,6 @@ class DependencyGraphViewProvider {
     }
 }
 exports.DependencyGraphViewProvider = DependencyGraphViewProvider;
-DependencyGraphViewProvider.viewType = 'localLlmAgent.dependencyGraphView';
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

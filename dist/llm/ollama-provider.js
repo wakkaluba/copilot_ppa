@@ -10,8 +10,9 @@ const config_1 = require("../config");
  * Implementation of the LLMProvider interface for Ollama
  */
 class OllamaProvider {
+    name = 'Ollama';
+    baseUrl;
     constructor(baseUrl = config_1.Config.ollamaApiUrl) {
-        this.name = 'Ollama';
         this.baseUrl = baseUrl;
     }
     /**

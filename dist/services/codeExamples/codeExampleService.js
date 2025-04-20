@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeExampleService = void 0;
 const githubApiService_1 = require("./githubApiService");
 class CodeExampleService {
+    githubApiService;
     constructor(context) {
         this.githubApiService = new githubApiService_1.GitHubApiService(context);
     }

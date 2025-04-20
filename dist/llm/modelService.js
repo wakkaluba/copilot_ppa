@@ -43,6 +43,8 @@ const axios_1 = __importDefault(require("axios"));
  * Service for managing LLM models
  */
 class LLMModelService {
+    statusBarItem;
+    outputChannel;
     constructor(context) {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.command = 'copilot-ppa.configureModel';

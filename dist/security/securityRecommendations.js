@@ -41,6 +41,9 @@ const fs = __importStar(require("fs"));
  * Class responsible for providing proactive security recommendations
  */
 class SecurityRecommendations {
+    context;
+    codeScanner;
+    recommendationsCache;
     constructor(context, codeScanner) {
         this.context = context;
         this.codeScanner = codeScanner;

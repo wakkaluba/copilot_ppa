@@ -42,6 +42,7 @@ const manager_1 = require("./manager");
  * Service for semantic code search functionality
  */
 class CodeSearchService {
+    context;
     constructor(context) {
         this.context = context;
     }

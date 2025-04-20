@@ -40,6 +40,8 @@ const i18n_1 = require("../i18n");
  * UI component for switching between languages
  */
 class LanguageSwitcher {
+    context;
+    statusBarItem;
     constructor(context) {
         this.context = context;
         // Create status bar item for quick language switching

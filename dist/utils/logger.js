@@ -52,8 +52,13 @@ var LogLevel;
  * Logger class for Copilot PPA extension
  */
 class Logger {
+    _outputChannel;
+    _logLevel;
+    _logToFile;
+    _logFilePath;
+    _logEntries = [];
+    _maxInMemoryLogs;
     constructor() {
-        this._logEntries = [];
         this._outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         // Read configuration
         const config = vscode.workspace.getConfiguration('copilot-ppa.logger');

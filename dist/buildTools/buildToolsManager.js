@@ -43,6 +43,12 @@ const viteConfigManager_1 = require("./vite/viteConfigManager");
 const buildScriptOptimizer_1 = require("./buildScriptOptimizer");
 const bundleAnalyzer_1 = require("./bundleAnalyzer");
 class BuildToolsManager {
+    webpackManager;
+    rollupManager;
+    viteManager;
+    buildScriptOptimizer;
+    bundleAnalyzer;
+    context;
     constructor(context) {
         this.context = context;
         this.webpackManager = new webpackConfigManager_1.WebpackConfigManager();

@@ -37,8 +37,10 @@ exports.BitbucketProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const bitbucket_1 = require("bitbucket");
 class BitbucketProvider {
+    bitbucket;
+    workspace;
+    name = 'Bitbucket';
     constructor() {
-        this.name = 'Bitbucket';
         this.initialize();
     }
     async initialize() {

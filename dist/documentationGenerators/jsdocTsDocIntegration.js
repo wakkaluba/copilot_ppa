@@ -40,6 +40,8 @@ const path = __importStar(require("path"));
  * Class responsible for handling JSDoc/TSDoc generation and integration
  */
 class JSDocTSDocIntegration {
+    context;
+    llmProvider;
     /**
      * Constructor for the JSDoc/TSDoc integration
      * @param context The VSCode extension context

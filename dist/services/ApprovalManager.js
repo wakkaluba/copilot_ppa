@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const WorkspaceManager_1 = require("./WorkspaceManager");
 const TrustManager_1 = require("./TrustManager");
 class ApprovalManager {
+    static instance;
+    workspaceManager;
+    trustManager;
     constructor() {
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
         this.trustManager = TrustManager_1.TrustManager.getInstance();

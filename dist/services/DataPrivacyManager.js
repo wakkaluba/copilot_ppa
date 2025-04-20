@@ -39,6 +39,10 @@ const crypto = __importStar(require("crypto"));
 const path = __importStar(require("path"));
 const WorkspaceManager_1 = require("./WorkspaceManager");
 class DataPrivacyManager {
+    static instance;
+    workspaceManager;
+    storagePath;
+    encryptionKey;
     constructor() {
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
         this.storagePath = path.join(this.getExtensionPath(), 'secure-storage');

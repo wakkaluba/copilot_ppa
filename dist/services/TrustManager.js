@@ -36,8 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrustManager = void 0;
 const vscode = __importStar(require("vscode"));
 class TrustManager {
+    static instance;
+    trustedWorkspaces = new Set();
     constructor() {
-        this.trustedWorkspaces = new Set();
         this.initializeTrustState();
     }
     static getInstance() {

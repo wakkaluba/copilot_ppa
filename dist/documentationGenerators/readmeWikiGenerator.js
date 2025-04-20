@@ -56,6 +56,8 @@ var DocumentationType;
  * README/Wiki Generator class for creating project documentation
  */
 class ReadmeWikiGenerator {
+    context;
+    llmProvider;
     /**
      * Constructor for the README/Wiki generator
      * @param context The VSCode extension context

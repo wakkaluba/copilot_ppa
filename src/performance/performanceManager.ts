@@ -1,330 +1,305 @@
 import * as vscode from 'vscode';
-import { PerformanceProfiler } from './performanceProfiler';
-import { BottleneckDetector } from './bottleneckDetector';
-import { CachingService } from './cachingService';
-import { AsyncOptimizer } from './asyncOptimizer';
-import { Logger } from '../utils/logger';
+import { BasePerformanceAnalyzer } from './analyzers/baseAnalyzer';
+import { JavaScriptAnalyzer } from './analyzers/javascriptAnalyzer';
+import {
+    PerformanceAnalysisResult,
+    WorkspacePerformanceResult,
+    AnalyzerOptions,
+    LanguageMetricThresholds
+} from './types';
 
-/**
- * Performance configuration options
- */
-export interface PerformanceConfig {
-    profilingEnabled: boolean;
-    bottleneckDetectionEnabled: boolean;
-    cachingEnabled: boolean;
-    maxCacheItems: number;
-    reportIntervalMinutes: number;
-    trendAnalysisEnabled?: boolean;
-}
+export class PerformanceManager implements vscode.Disposable {
+    private analyzers: Map<string, BasePerformanceAnalyzer>;
+    private disposables: vscode.Disposable[] = [];
+    private analysisStatusBar: vscode.StatusBarItem;
+    private fileChangeThrottle: Map<string, NodeJS.Timeout> = new Map();
 
-/**
- * The PerformanceManager coordinates all performance optimization functionality
- * including profiling, bottleneck detection, caching, and async optimization
- */
-export class PerformanceManager {
-    private static instance: PerformanceManager;
-    private profiler: PerformanceProfiler;
-    private bottleneckDetector: BottleneckDetector;
-    private cachingService: CachingService;
-    private asyncOptimizer: AsyncOptimizer;
-    private logger: Logger;
-    private reportIntervalId: NodeJS.Timeout | null = null;
-    private context: vscode.ExtensionContext;
-    private config: PerformanceConfig = {
-        profilingEnabled: false,
-        bottleneckDetectionEnabled: false,
-        cachingEnabled: true,
-        maxCacheItems: 100,
-        reportIntervalMinutes: 30,
-        trendAnalysisEnabled: true
-    };
-
-    private constructor(context: vscode.ExtensionContext) {
-        this.context = context;
-        this.profiler = PerformanceProfiler.getInstance(context);
-        this.bottleneckDetector = BottleneckDetector.getInstance();
-        this.cachingService = CachingService.getInstance();
-        this.asyncOptimizer = AsyncOptimizer.getInstance();
-        this.logger = new Logger();
-        
-        this.loadConfiguration();
+    constructor(private readonly extensionContext: vscode.ExtensionContext) {
+        this.analyzers = this.initializeAnalyzers();
+        this.analysisStatusBar = this.createStatusBar();
+        this.registerEventListeners();
     }
 
-    public static getInstance(context?: vscode.ExtensionContext): PerformanceManager {
-        if (!PerformanceManager.instance) {
-            if (!context) {
-                throw new Error('Context required for first initialization of PerformanceManager');
-            }
-            PerformanceManager.instance = new PerformanceManager(context);
+    dispose() {
+        this.disposables.forEach(d => d.dispose());
+        this.analysisStatusBar.dispose();
+    }
+
+    public async analyzeWorkspace(): Promise<WorkspacePerformanceResult> {
+        if (!vscode.workspace.workspaceFolders) {
+            throw new Error('No workspace folders found');
         }
-        return PerformanceManager.instance;
-    }
 
-    /**
-     * Initialize the performance manager and apply configurations
-     */
-    public initialize(): void {
-        this.logger.info('Initializing PerformanceManager');
-        
-        // Register configuration change listener
-        this.registerDisposable(
-            vscode.workspace.onDidChangeConfiguration(e => {
-                if (e.affectsConfiguration('localLLMAgent.performance')) {
-                    this.loadConfiguration();
-                }
-            })
-        );
-
-        // Register commands
-        this.registerCommands();
-        
-        // Load initial configuration
-        this.loadConfiguration();
-    }
-
-    /**
-     * Register performance-related commands
-     */
-    private registerCommands(): void {
-        this.registerDisposable(
-            vscode.commands.registerCommand('localLLMAgent.clearPerformanceData', () => {
-                this.clearPerformanceData();
-            })
-        );
-
-        this.registerDisposable(
-            vscode.commands.registerCommand('localLLMAgent.generatePerformanceReport', () => {
-                this.generatePerformanceReport();
-            })
-        );
-
-        this.registerDisposable(
-            vscode.commands.registerCommand('localLLMAgent.toggleProfiling', () => {
-                const newState = !this.config.profilingEnabled;
-                this.context.workspaceState.update('profilingEnabled', newState);
-                this.config.profilingEnabled = newState;
-                this.applyConfiguration(this.config);
-                this.logger.info(`Profiling ${newState ? 'enabled' : 'disabled'}`);
-            })
-        );
-    }
-
-    /**
-     * Register a disposable for cleanup
-     */
-    private registerDisposable(disposable: vscode.Disposable): void {
-        this.context.subscriptions.push(disposable);
-    }
-
-    /**
-     * Load configuration from VSCode settings and workspace state
-     */
-    private loadConfiguration(): void {
-        const config = vscode.workspace.getConfiguration('localLLMAgent.performance');
-        const workspaceEnabled = this.context.workspaceState.get<boolean>('profilingEnabled', false);
-        
-        this.config = {
-            profilingEnabled: workspaceEnabled || config.get<boolean>('profilingEnabled', false),
-            bottleneckDetectionEnabled: config.get<boolean>('bottleneckDetectionEnabled', false),
-            cachingEnabled: config.get<boolean>('cachingEnabled', true),
-            maxCacheItems: config.get<number>('maxCacheItems', 100),
-            reportIntervalMinutes: config.get<number>('reportIntervalMinutes', 30),
-            trendAnalysisEnabled: config.get<boolean>('trendAnalysisEnabled', true)
+        const result: WorkspacePerformanceResult = {
+            fileResults: [],
+            summary: {
+                filesAnalyzed: 0,
+                totalIssues: 0,
+                criticalIssues: 0,
+                highIssues: 0,
+                mediumIssues: 0,
+                lowIssues: 0
+            }
         };
 
-        // Save current config to workspace state
-        this.context.workspaceState.update('performanceConfig', this.config);
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Analyzing workspace performance",
+            cancellable: true
+        }, async (progress, token) => {
+            const files = await this.findAnalyzableFiles();
+            const totalFiles = files.length;
+            let processedFiles = 0;
 
-        // Apply the configuration
-        this.applyConfiguration(this.config);
-    }
+            for (const file of files) {
+                if (token.isCancellationRequested) {
+                    break;
+                }
 
-    /**
-     * Apply configuration settings to all performance components
-     */
-    private applyConfiguration(config: PerformanceConfig): void {
-        this.profiler.setEnabled(config.profilingEnabled);
-        this.bottleneckDetector.setEnabled(config.bottleneckDetectionEnabled);
-        this.cachingService.setMaxCacheSize(config.maxCacheItems);
-        this.setupPerformanceReporting(config.reportIntervalMinutes);
-        
-        this.logger.info('Performance configuration applied', config);
-    }
+                try {
+                    const document = await vscode.workspace.openTextDocument(file);
+                    const analysisResult = await this.analyzeFile(document);
+                    if (analysisResult) {
+                        result.fileResults.push(analysisResult);
+                        this.updateSummary(result.summary, analysisResult);
+                    }
+                } catch (error) {
+                    console.error(`Error analyzing file ${file.fsPath}:`, error);
+                }
 
-    /**
-     * Setup periodic performance reporting
-     */
-    private setupPerformanceReporting(intervalMinutes: number): void {
-        if (this.reportIntervalId) {
-            clearInterval(this.reportIntervalId);
-            this.reportIntervalId = null;
-        }
-        
-        if (!this.config.profilingEnabled) {
-            return;
-        }
-        
-        const intervalMs = intervalMinutes * 60 * 1000;
-        this.reportIntervalId = setInterval(() => {
-            this.generatePerformanceReport();
-        }, intervalMs);
-        
-        this.logger.info(`Performance reporting scheduled`, { intervalMinutes });
-    }
-
-    /**
-     * Generate a performance report with current statistics
-     */
-    public generatePerformanceReport(): void {
-        if (!this.config.profilingEnabled) {
-            this.logger.warn('Performance reporting is disabled');
-            return;
-        }
-        
-        this.logger.info('=== PERFORMANCE REPORT ===');
-        
-        const allStats = this.profiler.getAllStats();
-        
-        if (allStats.size === 0) {
-            this.logger.info('No performance data collected yet');
-            return;
-        }
-        
-        this.logger.info(`Total operations tracked: ${allStats.size}`);
-        
-        // Report slowest operations
-        const sortedByAvg = Array.from(allStats.entries())
-            .sort((a, b) => b[1].avg - a[1].avg)
-            .slice(0, 5);
-            
-        this.logger.info('Top 5 slowest operations:');
-        sortedByAvg.forEach(([opId, stats], index) => {
-            const trendInfo = this.config.trendAnalysisEnabled ? this.profiler.getOperationTrend(opId) : undefined;
-            const resourceInfo = this.profiler.getOperationResourceStats(opId);
-            
-            const details: any = {
-                stats,
-                trend: trendInfo,
-                resources: resourceInfo
-            };
-            
-            const trendStr = trendInfo 
-                ? ` [${trendInfo.trend.toUpperCase()}: ${trendInfo.changePercent.toFixed(1)}% change]` 
-                : '';
-            
-            this.logger.info(
-                `${index + 1}. ${opId}: ${stats.avg.toFixed(2)}ms avg, ${stats.max.toFixed(2)}ms max (${stats.count} samples)${trendStr}`,
-                details
-            );
+                processedFiles++;
+                progress.report({
+                    message: `Analyzed ${processedFiles} of ${totalFiles} files`,
+                    increment: (100 / totalFiles)
+                });
+            }
         });
-        
-        // Report most frequent operations
-        const sortedByCount = Array.from(allStats.entries())
-            .sort((a, b) => b[1].count - a[1].count)
-            .slice(0, 5);
-            
-        this.logger.info('Top 5 most frequent operations:');
-        sortedByCount.forEach(([opId, stats], index) => {
-            const trendInfo = this.config.trendAnalysisEnabled ? this.profiler.getOperationTrend(opId) : undefined;
-            const resourceInfo = this.profiler.getOperationResourceStats(opId);
-            
-            const details: any = {
-                stats,
-                trend: trendInfo,
-                resources: resourceInfo
-            };
-            
-            const trendStr = trendInfo
-                ? ` [${trendInfo.trend.toUpperCase()}: recent ${trendInfo.recentAvg.toFixed(2)}ms vs historical ${trendInfo.historicalAvg.toFixed(2)}ms]`
-                : '';
-            
-            this.logger.info(
-                `${index + 1}. ${opId}: ${stats.count} executions, ${stats.avg.toFixed(2)}ms avg${trendStr}`,
-                details
-            );
-        });
-        
-        // Report high memory usage operations
-        const operationIds = Array.from(allStats.keys());
-        const memoryStats = operationIds
-            .map(opId => ({ opId, stats: this.profiler.getOperationResourceStats(opId) }))
-            .filter(item => item.stats !== undefined)
-            .sort((a, b) => (b.stats!.memory.maxHeapUsed - a.stats!.memory.maxHeapUsed))
-            .slice(0, 3);
 
-        if (memoryStats.length > 0) {
-            this.logger.info('Top 3 memory intensive operations:');
-            memoryStats.forEach(({ opId, stats }, index) => {
-                const maxHeapMB = (stats!.memory.maxHeapUsed / (1024 * 1024)).toFixed(2);
-                const avgHeapMB = (stats!.memory.avgHeapUsed / (1024 * 1024)).toFixed(2);
-                this.logger.info(
-                    `${index + 1}. ${opId}: ${maxHeapMB}MB max heap Δ, ${avgHeapMB}MB avg heap Δ`,
-                    stats
-                );
+        return result;
+    }
+
+    public async analyzeFile(document: vscode.TextDocument): Promise<PerformanceAnalysisResult | null> {
+        const analyzer = this.getAnalyzerForFile(document);
+        if (!analyzer) {
+            return null;
+        }
+
+        const content = document.getText();
+        return (analyzer as JavaScriptAnalyzer).analyze(content, document.uri.fsPath);
+    }
+
+    public async analyzeCurrentFile(): Promise<PerformanceAnalysisResult | null> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return null;
+        }
+
+        return this.analyzeFile(editor.document);
+    }
+
+    private initializeAnalyzers(): Map<string, BasePerformanceAnalyzer> {
+        const analyzers = new Map<string, BasePerformanceAnalyzer>();
+        const options: AnalyzerOptions = this.loadAnalyzerOptions();
+
+        // JavaScript/TypeScript analyzer
+        const jsAnalyzer = new JavaScriptAnalyzer(options);
+        analyzers.set('javascript', jsAnalyzer);
+        analyzers.set('typescript', jsAnalyzer);
+        analyzers.set('javascriptreact', jsAnalyzer);
+        analyzers.set('typescriptreact', jsAnalyzer);
+
+        // Add other language analyzers here as they're implemented
+        return analyzers;
+    }
+
+    private loadAnalyzerOptions(): AnalyzerOptions {
+        const config = vscode.workspace.getConfiguration('copilot-ppa.performance');
+        const thresholds: LanguageMetricThresholds = {
+            javascript: {
+                maxComplexity: config.get('javascript.maxComplexity', 10),
+                maxLength: config.get('javascript.maxLength', 200),
+                maxParameters: config.get('javascript.maxParameters', 4),
+            },
+            typescript: {
+                maxComplexity: config.get('typescript.maxComplexity', 10),
+                maxLength: config.get('typescript.maxLength', 200),
+                maxParameters: config.get('typescript.maxParameters', 4),
+            }
+        };
+
+        return { thresholds };
+    }
+
+    private async findAnalyzableFiles(): Promise<vscode.Uri[]> {
+        const files: vscode.Uri[] = [];
+        for (const folder of vscode.workspace.workspaceFolders || []) {
+            const pattern = new vscode.RelativePattern(folder, '**/*.{js,ts,jsx,tsx}');
+            const foundFiles = await vscode.workspace.findFiles(pattern, '**/node_modules/**');
+            files.push(...foundFiles);
+        }
+        return files;
+    }
+
+    private getAnalyzerForFile(document: vscode.TextDocument): BasePerformanceAnalyzer | null {
+        const languageId = document.languageId;
+        return this.analyzers.get(languageId) || null;
+    }
+
+    private createStatusBar(): vscode.StatusBarItem {
+        const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        statusBar.text = "$(pulse) PPA";
+        statusBar.tooltip = "Performance Analysis";
+        statusBar.command = 'copilot-ppa.analyzeCurrentFile';
+        statusBar.show();
+        return statusBar;
+    }
+
+    private registerEventListeners(): void {
+        this.disposables.push(
+            vscode.workspace.onDidSaveTextDocument(this.onDocumentSaved.bind(this)),
+            vscode.window.onDidChangeActiveTextEditor(this.onActiveEditorChanged.bind(this))
+        );
+    }
+
+    private onDocumentSaved(document: vscode.TextDocument): void {
+        const existingTimeout = this.fileChangeThrottle.get(document.uri.toString());
+        if (existingTimeout) {
+            clearTimeout(existingTimeout);
+        }
+
+        const timeout = setTimeout(async () => {
+            const result = await this.analyzeFile(document);
+            if (result) {
+                this.updateStatusBar(result);
+            }
+            this.fileChangeThrottle.delete(document.uri.toString());
+        }, 1000);
+
+        this.fileChangeThrottle.set(document.uri.toString(), timeout);
+    }
+
+    private onActiveEditorChanged(editor: vscode.TextEditor | undefined): void {
+        if (editor) {
+            this.analyzeFile(editor.document).then(result => {
+                if (result) {
+                    this.updateStatusBar(result);
+                }
             });
         }
+    }
 
-        // Report detected bottlenecks if enabled
-        if (this.config.bottleneckDetectionEnabled) {
-            const bottlenecks = this.bottleneckDetector.analyzeAll();
-            
-            if (bottlenecks.critical.length > 0) {
-                this.logger.error('Critical bottlenecks detected:', bottlenecks.critical);
+    private updateStatusBar(result: PerformanceAnalysisResult): void {
+        const totalIssues = result.issues.length;
+        this.analysisStatusBar.text = `$(pulse) Issues: ${totalIssues}`;
+        this.analysisStatusBar.tooltip = `Performance Issues Found: ${totalIssues}`;
+    }
+
+    private updateSummary(summary: WorkspacePerformanceResult['summary'], result: PerformanceAnalysisResult): void {
+        summary.filesAnalyzed++;
+        summary.totalIssues += result.issues.length;
+        
+        result.issues.forEach(issue => {
+            switch (issue.severity) {
+                case 'critical':
+                    summary.criticalIssues++;
+                    break;
+                case 'high':
+                    summary.highIssues++;
+                    break;
+                case 'medium':
+                    summary.mediumIssues++;
+                    break;
+                case 'low':
+                    summary.lowIssues++;
+                    break;
             }
-            
-            if (bottlenecks.warnings.length > 0) {
-                this.logger.warn('Performance warnings detected:', bottlenecks.warnings);
-            }
+        });
+    }
+
+    private updateStatusBarVisibility(document: vscode.TextDocument): void {
+        if (this.getAnalyzerForFile(document)) {
+            this.analysisStatusBar.show();
+        } else {
+            this.analysisStatusBar.hide();
         }
     }
 
-    public async clearPerformanceData(): Promise<void> {
-        await this.profiler.clearStoredMetrics();
-        this.bottleneckDetector.resetStats(); // Fix method name
-        this.logger.info('All performance data cleared');
-    }
-
-    /**
-     * Get the profiler instance
-     */
-    public getProfiler(): PerformanceProfiler {
-        return this.profiler;
-    }
-
-    /**
-     * Get the bottleneck detector instance
-     */
-    public getBottleneckDetector(): BottleneckDetector {
-        return this.bottleneckDetector;
-    }
-
-    /**
-     * Get the caching service instance
-     */
-    public getCachingService(): CachingService {
-        return this.cachingService;
-    }
-
-    /**
-     * Get the async optimizer instance
-     */
-    public getAsyncOptimizer(): AsyncOptimizer {
-        return this.asyncOptimizer;
-    }
-
-    /**
-     * Dispose all performance services
-     */
-    public dispose(): void {
-        if (this.reportIntervalId) {
-            clearInterval(this.reportIntervalId);
-            this.reportIntervalId = null;
+    private handleDocumentChange(document: vscode.TextDocument): void {
+        // Clear existing throttle timeout
+        const existing = this.fileChangeThrottle.get(document.uri.toString());
+        if (existing) {
+            clearTimeout(existing);
         }
-        
-        this.profiler.dispose();
-        this.cachingService.dispose();
-        this.asyncOptimizer.dispose();
-        
-        this.logger.info('Performance manager disposed');
+
+        // Set new throttle timeout
+        const timeout = setTimeout(() => {
+            this.analyzeFile(document).then(result => {
+                if (result) {
+                    this.updateDiagnostics(document, result);
+                }
+            });
+            this.fileChangeThrottle.delete(document.uri.toString());
+        }, 1000);
+
+        this.fileChangeThrottle.set(document.uri.toString(), timeout);
+    }
+
+    private handleDocumentSave(document: vscode.TextDocument): void {
+        const analyzer = this.getAnalyzerForFile(document);
+        if (!analyzer) {
+            return;
+        }
+
+        this.analyzeFile(document).then(result => {
+            if (result) {
+                this.updateDiagnostics(document, result);
+            }
+        });
+    }
+
+    private updateDiagnostics(document: vscode.TextDocument, result: PerformanceAnalysisResult): void {
+        const diagnostics = vscode.languages.createDiagnosticCollection('performance');
+        const documentDiagnostics: vscode.Diagnostic[] = [];
+
+        for (const issue of result.issues) {
+            if (!issue.line) continue;
+
+            const range = new vscode.Range(
+                issue.line - 1,
+                issue.column || 0,
+                issue.line - 1,
+                (issue.column || 0) + 1
+            );
+
+            const diagnostic = new vscode.Diagnostic(
+                range,
+                `${issue.title}: ${issue.description}`,
+                this.getSeverity(issue.severity)
+            );
+
+            diagnostic.source = 'Performance Analysis';
+            if (issue.code) {
+                diagnostic.code = issue.code;
+            }
+
+            documentDiagnostics.push(diagnostic);
+        }
+
+        diagnostics.set(document.uri, documentDiagnostics);
+    }
+
+    private getSeverity(severity: string): vscode.DiagnosticSeverity {
+        switch (severity) {
+            case 'critical':
+                return vscode.DiagnosticSeverity.Error;
+            case 'high':
+                return vscode.DiagnosticSeverity.Warning;
+            case 'medium':
+                return vscode.DiagnosticSeverity.Information;
+            case 'low':
+                return vscode.DiagnosticSeverity.Hint;
+            default:
+                return vscode.DiagnosticSeverity.Information;
+        }
     }
 }

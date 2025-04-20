@@ -37,6 +37,8 @@ exports.AgentToolManager = void 0;
 const vscode = __importStar(require("vscode"));
 const WorkspaceManager_1 = require("./WorkspaceManager");
 class AgentToolManager {
+    static instance;
+    workspaceManager;
     constructor() {
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
     }

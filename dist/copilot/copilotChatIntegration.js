@@ -41,9 +41,13 @@ const logger_1 = require("../utils/logger");
  * Handles direct integration with GitHub Copilot chat window
  */
 class CopilotChatIntegration {
+    static instance;
+    logger;
+    copilotApiService;
+    copilotChatProvider;
+    chatContext = new Map();
+    isIntegrationActive = false;
     constructor() {
-        this.chatContext = new Map();
-        this.isIntegrationActive = false;
         this.logger = logger_1.Logger.getInstance();
         this.copilotApiService = copilotApi_1.CopilotApiService.getInstance();
     }

@@ -36,15 +36,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const connectionStatusService_1 = require("../status/connectionStatusService");
-/**
- * Manages the chat interface webview panel
- */
 class ChatViewProvider {
+    _extensionUri;
+    _llmProviderManager;
+    static viewType = 'localLlmAgent.chatView';
+    _view;
+    _messages = [];
+    _disposables = [];
+    _connectionStatusService;
     constructor(_extensionUri, _llmProviderManager, connectionStatusService) {
         this._extensionUri = _extensionUri;
         this._llmProviderManager = _llmProviderManager;
-        this._messages = [];
-        this._disposables = [];
         this._connectionStatusService = connectionStatusService;
         // Listen for connection status changes
         this._disposables.push(this._connectionStatusService.onDidChangeState(state => {
@@ -80,9 +82,6 @@ class ChatViewProvider {
             }
         });
     }
-    /**
-     * Handles a user message, adds it to the chat, and gets a response from the LLM
-     */
     async _handleUserMessage(content) {
         if (!content.trim()) {
             return;
@@ -108,7 +107,7 @@ class ChatViewProvider {
                 throw new Error('No active LLM provider');
             }
             const response = await activeProvider.generateCompletion(content, {
-                conversation: this._messages.map(m => ({ role: m.role, content: m.content }))
+                conversation: this._messages
             });
             // Add assistant response
             const assistantMessage = {
@@ -137,9 +136,6 @@ class ChatViewProvider {
             vscode.window.showErrorMessage(`LLM Error: ${errorMessage}`);
         }
     }
-    /**
-     * Update the chat view with the current messages
-     */
     _updateChatView() {
         if (this._view) {
             this._view.webview.postMessage({
@@ -148,9 +144,35 @@ class ChatViewProvider {
             });
         }
     }
-    /**
-     * Generates the HTML content for the webview
-     */
+    _updateConnectionStatus(state) {
+        if (!this._view) {
+            return;
+        }
+        const statusMessage = this._getStatusMessage(state);
+        const isDisabled = state !== connectionStatusService_1.ConnectionState.Connected;
+        this._view.webview.postMessage({
+            type: 'updateConnectionStatus',
+            status: {
+                state: state,
+                message: statusMessage,
+                isInputDisabled: isDisabled
+            }
+        });
+    }
+    _getStatusMessage(state) {
+        switch (state) {
+            case connectionStatusService_1.ConnectionState.Connected:
+                const modelName = this._connectionStatusService.activeModelName;
+                return modelName ? `Connected to ${modelName}` : 'Connected to LLM';
+            case connectionStatusService_1.ConnectionState.Connecting:
+                return 'Connecting to LLM...';
+            case connectionStatusService_1.ConnectionState.Error:
+                return 'Error connecting to LLM';
+            case connectionStatusService_1.ConnectionState.Disconnected:
+            default:
+                return 'Not connected to LLM';
+        }
+    }
     _getWebviewContent(webview) {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'chat.js'));
         const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'chat.css'));
@@ -186,48 +208,9 @@ class ChatViewProvider {
             </body>
             </html>`;
     }
-    /**
-     * Update connection status in the chat view
-     */
-    _updateConnectionStatus(state) {
-        if (!this._view) {
-            return;
-        }
-        const statusMessage = this._getStatusMessage(state);
-        const isDisabled = state !== connectionStatusService_1.ConnectionState.Connected;
-        this._view.webview.postMessage({
-            type: 'updateConnectionStatus',
-            status: {
-                state: state,
-                message: statusMessage,
-                isInputDisabled: isDisabled
-            }
-        });
-    }
-    /**
-     * Get appropriate status message based on connection state
-     */
-    _getStatusMessage(state) {
-        switch (state) {
-            case connectionStatusService_1.ConnectionState.Connected:
-                const modelName = this._connectionStatusService.activeModelName;
-                return modelName ? `Connected to ${modelName}` : 'Connected to LLM';
-            case connectionStatusService_1.ConnectionState.Connecting:
-                return 'Connecting to LLM...';
-            case connectionStatusService_1.ConnectionState.Error:
-                return 'Error connecting to LLM';
-            case connectionStatusService_1.ConnectionState.Disconnected:
-            default:
-                return 'Not connected to LLM';
-        }
-    }
-    /**
-     * Dispose of resources
-     */
     dispose() {
         this._disposables.forEach(d => d.dispose());
     }
 }
 exports.ChatViewProvider = ChatViewProvider;
-ChatViewProvider.viewType = 'localLlmAgent.chatView';
 //# sourceMappingURL=chatView.js.map

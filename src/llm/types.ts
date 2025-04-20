@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 
 export interface LLMPromptOptions {
     maxTokens?: number;
@@ -23,4 +24,9 @@ export interface HardwareSpecs {
         cores: number;
         model?: string;
     };
+}
+
+export interface ILLMModelService extends vscode.Disposable {
+    initialize(): Promise<void>;
+    clearConversation(): Promise<void>;
 }

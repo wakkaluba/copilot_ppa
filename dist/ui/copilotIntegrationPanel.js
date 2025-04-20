@@ -42,8 +42,13 @@ const logger_1 = require("../utils/logger");
  * Manages the UI component for Copilot integration
  */
 class CopilotIntegrationPanel {
+    static instance;
+    panel;
+    context;
+    copilotApiService;
+    logger;
+    isLocalLLMActive = true;
     constructor(context) {
-        this.isLocalLLMActive = true;
         this.context = context;
         this.copilotApiService = copilotApi_1.CopilotApiService.getInstance();
         this.logger = logger_1.Logger.getInstance();

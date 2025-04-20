@@ -37,6 +37,7 @@ exports.WorkspaceManager = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 class WorkspaceManager {
+    static instance;
     constructor() { }
     static getInstance() {
         if (!WorkspaceManager.instance) {

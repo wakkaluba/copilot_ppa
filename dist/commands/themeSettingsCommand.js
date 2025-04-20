@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const themeManager_1 = require("../services/themeManager");
 const webviewPanelManager_1 = require("../webview/webviewPanelManager");
 class ThemeSettingsCommand {
+    static commandId = 'copilotPPA.openThemeSettings';
+    static createThemeCommandId = 'copilotPPA.createCustomTheme';
+    themeManager;
     constructor(context) {
         this.themeManager = themeManager_1.ThemeManager.getInstance(context);
     }
@@ -970,6 +973,4 @@ myPromise.then(result => {
     }
 }
 exports.ThemeSettingsCommand = ThemeSettingsCommand;
-ThemeSettingsCommand.commandId = 'copilotPPA.openThemeSettings';
-ThemeSettingsCommand.createThemeCommandId = 'copilotPPA.createCustomTheme';
 //# sourceMappingURL=themeSettingsCommand.js.map

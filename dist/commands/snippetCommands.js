@@ -38,6 +38,11 @@ const vscode = __importStar(require("vscode"));
 const snippetManager_1 = require("../services/snippetManager");
 const conversationManager_1 = require("../services/conversationManager");
 class SnippetCommands {
+    static createSnippetCommandId = 'copilotPPA.createSnippet';
+    static insertSnippetCommandId = 'copilotPPA.insertSnippet';
+    static manageSnippetsCommandId = 'copilotPPA.manageSnippets';
+    snippetManager;
+    conversationManager;
     constructor(context) {
         this.snippetManager = snippetManager_1.SnippetManager.getInstance(context);
         this.conversationManager = conversationManager_1.ConversationManager.getInstance(context);
@@ -268,7 +273,4 @@ class SnippetCommands {
     }
 }
 exports.SnippetCommands = SnippetCommands;
-SnippetCommands.createSnippetCommandId = 'copilotPPA.createSnippet';
-SnippetCommands.insertSnippetCommandId = 'copilotPPA.insertSnippet';
-SnippetCommands.manageSnippetsCommandId = 'copilotPPA.manageSnippets';
 //# sourceMappingURL=snippetCommands.js.map

@@ -1,118 +1,309 @@
 import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
 import { ConnectionState, ConnectionStatusService } from '../status/connectionStatusService';
-import { LLMProvider } from './llmProvider';
+import { LLMProvider, LLMProviderError, LLMModelInfo } from './llm-provider';
+import { OllamaProvider } from './ollama-provider';
+import { LMStudioProvider } from './lmstudio-provider';
 
-export class LLMProviderManager implements vscode.Disposable {
-    private _providers: Map<string, LLMProvider> = new Map();
-    private _activeProvider: LLMProvider | null = null;
-    private _connectionStatusService: ConnectionStatusService;
+interface ProviderConfig {
+    type: string;
+    endpoint?: string;
+    model?: string;
+    options?: Record<string, unknown>;
+}
 
-    constructor(connectionStatusService: ConnectionStatusService) {
-        this._connectionStatusService = connectionStatusService;
-        // Initialize providers and settings
+export interface ManagerStatus {
+    state: ConnectionState;
+    activeProvider?: string;
+    activeModel?: string;
+    error?: string;
+}
+
+/**
+ * Manages LLM providers, their lifecycle, and connections
+ */
+export class LLMProviderManager extends EventEmitter implements vscode.Disposable {
+    private providers = new Map<string, LLMProvider>();
+    private activeProvider: LLMProvider | null = null;
+    private modelInfo = new Map<string, LLMModelInfo>();
+    private readonly statusService: ConnectionStatusService;
+    private reconnectInterval: NodeJS.Timeout | null = null;
+    private reconnectAttempts = 0;
+    private readonly maxReconnectAttempts = 5;
+
+    constructor(statusService: ConnectionStatusService) {
+        super();
+        this.statusService = statusService;
+        this.initializeDefaultProviders();
     }
 
+    /**
+     * Initialize default LLM providers
+     */
+    private initializeDefaultProviders(): void {
+        this.registerProvider('ollama', new OllamaProvider());
+        this.registerProvider('lmstudio', new LMStudioProvider());
+    }
+
+    /**
+     * Register a new provider
+     */
+    public registerProvider(type: string, provider: LLMProvider): void {
+        this.providers.set(type.toLowerCase(), provider);
+        provider.on('statusChanged', (status) => this.handleProviderStatusChange(type, status));
+    }
+
+    /**
+     * Configure and initialize a provider
+     */
+    public async configureProvider(config: ProviderConfig): Promise<void> {
+        const provider = this.providers.get(config.type.toLowerCase());
+        if (!provider) {
+            throw new LLMProviderError(
+                'INVALID_PROVIDER',
+                `Provider ${config.type} not found`
+            );
+        }
+
+        // Update status while configuring
+        this.updateStatus({
+            state: ConnectionState.Configuring,
+            activeProvider: config.type,
+            activeModel: config.model
+        });
+
+        try {
+            // Initialize the provider with configuration
+            if ('initialize' in provider && typeof provider.initialize === 'function') {
+                await provider.initialize(config);
+            }
+
+            // Set as active provider
+            this.activeProvider = provider;
+
+            // Update status after successful configuration
+            this.updateStatus({
+                state: ConnectionState.Configured,
+                activeProvider: config.type,
+                activeModel: config.model
+            });
+        } catch (error) {
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Connect to the active provider
+     */
     public async connect(): Promise<void> {
+        if (!this.activeProvider) {
+            throw new LLMProviderError(
+                'NO_ACTIVE_PROVIDER',
+                'No provider is currently active'
+            );
+        }
+
+        this.updateStatus({
+            state: ConnectionState.Connecting
+        });
+
         try {
-            const provider = this.getActiveProvider();
-            if (!provider) {
-                throw new Error('No LLM provider is active');
-            }
-            
-            this._connectionStatusService.setState(
-                ConnectionState.Connecting, 
-                { 
-                    modelName: this.getActiveModelName() || '',
-                    providerName: provider.getProviderType()
-                }
-            );
-            
-            await provider.connect();
-            
-            this._connectionStatusService.setState(
-                ConnectionState.Connected,
-                {
-                    modelName: this.getActiveModelName() || '',
-                    providerName: provider.getProviderType()
-                }
-            );
-            
-            this._connectionStatusService.showNotification(
-                `Connected to ${provider.getProviderType()} with model ${this.getActiveModelName()}`
-            );
+            await this.activeProvider.connect();
+            this.reconnectAttempts = 0;
+            this.startHealthCheck();
+
+            this.updateStatus({
+                state: ConnectionState.Connected
+            });
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            
-            this._connectionStatusService.setState(
-                ConnectionState.Error, 
-                { providerName: this.getActiveProvider()?.getProviderType() || '' }
-            );
-            
-            this._connectionStatusService.showNotification(
-                `Failed to connect to LLM: ${errorMessage}`, 
-                'error'
-            );
-            
-            throw error;
+            this.handleError(error);
+            await this.handleConnectionFailure();
         }
     }
 
+    /**
+     * Disconnect from the active provider
+     */
     public async disconnect(): Promise<void> {
+        if (!this.activeProvider) return;
+
+        this.stopHealthCheck();
+        
         try {
-            const provider = this.getActiveProvider();
-            if (!provider) {
-                return;
-            }
-            
-            await provider.disconnect();
-            
-            this._connectionStatusService.setState(
-                ConnectionState.Disconnected,
-                {
-                    providerName: provider.getProviderType()
-                }
-            );
-            
-            this._connectionStatusService.showNotification(
-                `Disconnected from ${provider.getProviderType()}`
-            );
+            await this.activeProvider.disconnect();
+            this.updateStatus({
+                state: ConnectionState.Disconnected
+            });
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            
-            this._connectionStatusService.setState(ConnectionState.Error);
-            this._connectionStatusService.showNotification(
-                `Failed to disconnect from LLM: ${errorMessage}`, 
-                'error'
-            );
-            
-            throw error;
+            this.handleError(error);
         }
     }
 
-    public async setActiveModel(modelName: string): Promise<void> {
-        // ...existing code...
-        // After setting model:
-        const provider = this.getActiveProvider();
-        if (provider) {
-            this._connectionStatusService.setState(
-                provider.isConnected() ? ConnectionState.Connected : ConnectionState.Disconnected,
-                {
-                    modelName: modelName,
-                    providerName: provider.getProviderType()
-                }
-            );
-        }
-    }
-
+    /**
+     * Get the active provider
+     */
     public getActiveProvider(): LLMProvider | null {
-        return this._activeProvider;
+        return this.activeProvider;
     }
 
-    public getActiveModelName(): string | null {
-        return this._activeProvider ? this._activeProvider.getModelName() : null;
+    /**
+     * Get available models for the active provider
+     */
+    public async getAvailableModels(): Promise<LLMModelInfo[]> {
+        if (!this.activeProvider) {
+            throw new LLMProviderError(
+                'NO_ACTIVE_PROVIDER',
+                'No provider is currently active'
+            );
+        }
+
+        try {
+            const models = await this.activeProvider.getAvailableModels();
+            models.forEach(model => this.modelInfo.set(model.id, model));
+            return models;
+        } catch (error) {
+            this.handleError(error);
+            return [];
+        }
     }
 
+    /**
+     * Get information about a specific model
+     */
+    public async getModelInfo(modelId: string): Promise<LLMModelInfo | undefined> {
+        // Check cache first
+        if (this.modelInfo.has(modelId)) {
+            return this.modelInfo.get(modelId);
+        }
+
+        if (!this.activeProvider) {
+            throw new LLMProviderError(
+                'NO_ACTIVE_PROVIDER',
+                'No provider is currently active'
+            );
+        }
+
+        try {
+            const info = await this.activeProvider.getModelInfo(modelId);
+            this.modelInfo.set(modelId, info);
+            return info;
+        } catch (error) {
+            this.handleError(error);
+            return undefined;
+        }
+    }
+
+    /**
+     * Start periodic health checks
+     */
+    private startHealthCheck(): void {
+        this.stopHealthCheck(); // Clear any existing interval
+        this.reconnectInterval = setInterval(async () => {
+            if (!this.activeProvider) return;
+
+            try {
+                const status = this.activeProvider.getStatus();
+                if (!status.isConnected) {
+                    throw new Error('Provider disconnected');
+                }
+            } catch (error) {
+                await this.handleConnectionFailure();
+            }
+        }, 30000); // Check every 30 seconds
+    }
+
+    /**
+     * Stop health checks
+     */
+    private stopHealthCheck(): void {
+        if (this.reconnectInterval) {
+            clearInterval(this.reconnectInterval);
+            this.reconnectInterval = null;
+        }
+    }
+
+    /**
+     * Handle provider status changes
+     */
+    private handleProviderStatusChange(providerType: string, status: any): void {
+        if (this.activeProvider && this.providers.get(providerType) === this.activeProvider) {
+            this.updateStatus({
+                state: status.isConnected ? ConnectionState.Connected : ConnectionState.Disconnected,
+                error: status.error
+            });
+        }
+    }
+
+    /**
+     * Handle connection failures and implement retry logic
+     */
+    private async handleConnectionFailure(): Promise<void> {
+        this.reconnectAttempts++;
+        
+        if (this.reconnectAttempts <= this.maxReconnectAttempts) {
+            this.updateStatus({
+                state: ConnectionState.Reconnecting,
+                error: `Connection lost. Attempt ${this.reconnectAttempts} of ${this.maxReconnectAttempts}`
+            });
+
+            // Exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 30000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            try {
+                await this.connect();
+            } catch (error) {
+                // Error handling is done in connect()
+            }
+        } else {
+            this.updateStatus({
+                state: ConnectionState.Error,
+                error: 'Maximum reconnection attempts reached'
+            });
+            this.stopHealthCheck();
+        }
+    }
+
+    /**
+     * Update manager status and notify listeners
+     */
+    private updateStatus(updates: Partial<ManagerStatus>): void {
+        this.statusService.setState(
+            updates.state || ConnectionState.Unknown,
+            {
+                modelName: updates.activeModel || '',
+                providerName: updates.activeProvider || '',
+                error: updates.error
+            }
+        );
+        this.emit('statusChanged', updates);
+    }
+
+    /**
+     * Handle and normalize errors
+     */
+    private handleError(error: unknown): never {
+        const normalizedError = error instanceof LLMProviderError ? error :
+            new LLMProviderError(
+                'PROVIDER_ERROR',
+                error instanceof Error ? error.message : String(error),
+                error
+            );
+
+        this.updateStatus({
+            state: ConnectionState.Error,
+            error: normalizedError.message
+        });
+
+        throw normalizedError;
+    }
+
+    /**
+     * Clean up resources
+     */
     public dispose(): void {
-        // Dispose resources
+        this.stopHealthCheck();
+        this.disconnect().catch(() => {}); // Ignore errors during disposal
+        this.removeAllListeners();
     }
 }

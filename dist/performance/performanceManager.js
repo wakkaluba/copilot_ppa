@@ -45,26 +45,37 @@ const logger_1 = require("../utils/logger");
  * including profiling, bottleneck detection, caching, and async optimization
  */
 class PerformanceManager {
-    constructor() {
-        this.reportIntervalId = null;
-        this.config = {
-            profilingEnabled: false,
-            bottleneckDetectionEnabled: false,
-            cachingEnabled: true,
-            maxCacheItems: 100,
-            reportIntervalMinutes: 30
-        };
-        this.profiler = performanceProfiler_1.PerformanceProfiler.getInstance();
+    static instance;
+    profiler;
+    bottleneckDetector;
+    cachingService;
+    asyncOptimizer;
+    logger;
+    reportIntervalId = null;
+    context;
+    config = {
+        profilingEnabled: false,
+        bottleneckDetectionEnabled: false,
+        cachingEnabled: true,
+        maxCacheItems: 100,
+        reportIntervalMinutes: 30,
+        trendAnalysisEnabled: true
+    };
+    constructor(context) {
+        this.context = context;
+        this.profiler = performanceProfiler_1.PerformanceProfiler.getInstance(context);
         this.bottleneckDetector = bottleneckDetector_1.BottleneckDetector.getInstance();
         this.cachingService = cachingService_1.CachingService.getInstance();
         this.asyncOptimizer = asyncOptimizer_1.AsyncOptimizer.getInstance();
-        this.logger = logger_1.Logger.getInstance();
-        // Load configuration
+        this.logger = new logger_1.Logger();
         this.loadConfiguration();
     }
-    static getInstance() {
+    static getInstance(context) {
         if (!PerformanceManager.instance) {
-            PerformanceManager.instance = new PerformanceManager();
+            if (!context) {
+                throw new Error('Context required for first initialization of PerformanceManager');
+            }
+            PerformanceManager.instance = new PerformanceManager(context);
         }
         return PerformanceManager.instance;
     }
@@ -72,46 +83,79 @@ class PerformanceManager {
      * Initialize the performance manager and apply configurations
      */
     initialize() {
-        this.logger.log('Initializing PerformanceManager');
-        this.applyConfiguration(this.config);
+        this.logger.info('Initializing PerformanceManager');
+        // Register configuration change listener
+        this.registerDisposable(vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('localLLMAgent.performance')) {
+                this.loadConfiguration();
+            }
+        }));
+        // Register commands
+        this.registerCommands();
+        // Load initial configuration
+        this.loadConfiguration();
     }
     /**
-     * Load configuration from VSCode settings
+     * Register performance-related commands
+     */
+    registerCommands() {
+        this.registerDisposable(vscode.commands.registerCommand('localLLMAgent.clearPerformanceData', () => {
+            this.clearPerformanceData();
+        }));
+        this.registerDisposable(vscode.commands.registerCommand('localLLMAgent.generatePerformanceReport', () => {
+            this.generatePerformanceReport();
+        }));
+        this.registerDisposable(vscode.commands.registerCommand('localLLMAgent.toggleProfiling', () => {
+            const newState = !this.config.profilingEnabled;
+            this.context.workspaceState.update('profilingEnabled', newState);
+            this.config.profilingEnabled = newState;
+            this.applyConfiguration(this.config);
+            this.logger.info(`Profiling ${newState ? 'enabled' : 'disabled'}`);
+        }));
+    }
+    /**
+     * Register a disposable for cleanup
+     */
+    registerDisposable(disposable) {
+        this.context.subscriptions.push(disposable);
+    }
+    /**
+     * Load configuration from VSCode settings and workspace state
      */
     loadConfiguration() {
         const config = vscode.workspace.getConfiguration('localLLMAgent.performance');
+        const workspaceEnabled = this.context.workspaceState.get('profilingEnabled', false);
         this.config = {
-            profilingEnabled: config.get('profilingEnabled', false),
+            profilingEnabled: workspaceEnabled || config.get('profilingEnabled', false),
             bottleneckDetectionEnabled: config.get('bottleneckDetectionEnabled', false),
             cachingEnabled: config.get('cachingEnabled', true),
             maxCacheItems: config.get('maxCacheItems', 100),
-            reportIntervalMinutes: config.get('reportIntervalMinutes', 30)
+            reportIntervalMinutes: config.get('reportIntervalMinutes', 30),
+            trendAnalysisEnabled: config.get('trendAnalysisEnabled', true)
         };
+        // Save current config to workspace state
+        this.context.workspaceState.update('performanceConfig', this.config);
+        // Apply the configuration
+        this.applyConfiguration(this.config);
     }
     /**
      * Apply configuration settings to all performance components
      */
     applyConfiguration(config) {
-        // Configure profiler
         this.profiler.setEnabled(config.profilingEnabled);
-        // Configure bottleneck detector
         this.bottleneckDetector.setEnabled(config.bottleneckDetectionEnabled);
-        // Configure caching service
         this.cachingService.setMaxCacheSize(config.maxCacheItems);
-        // Setup performance reporting if enabled
         this.setupPerformanceReporting(config.reportIntervalMinutes);
-        this.logger.log('Performance configuration applied');
+        this.logger.info('Performance configuration applied', config);
     }
     /**
      * Setup periodic performance reporting
      */
     setupPerformanceReporting(intervalMinutes) {
-        // Clear existing interval if any
         if (this.reportIntervalId) {
             clearInterval(this.reportIntervalId);
             this.reportIntervalId = null;
         }
-        // Only setup reporting if profiling is enabled
         if (!this.config.profilingEnabled) {
             return;
         }
@@ -119,53 +163,89 @@ class PerformanceManager {
         this.reportIntervalId = setInterval(() => {
             this.generatePerformanceReport();
         }, intervalMs);
-        this.logger.log(`Performance reporting scheduled every ${intervalMinutes} minutes`);
+        this.logger.info(`Performance reporting scheduled`, { intervalMinutes });
     }
     /**
      * Generate a performance report with current statistics
      */
     generatePerformanceReport() {
         if (!this.config.profilingEnabled) {
-            this.logger.log('Performance reporting is disabled. Enable profiling to generate reports.');
+            this.logger.warn('Performance reporting is disabled');
             return;
         }
-        this.logger.log('=== PERFORMANCE REPORT ===');
-        // Get operation statistics
+        this.logger.info('=== PERFORMANCE REPORT ===');
         const allStats = this.profiler.getAllStats();
         if (allStats.size === 0) {
-            this.logger.log('No performance data collected yet.');
-            this.logger.log('========================');
+            this.logger.info('No performance data collected yet');
             return;
         }
-        // Report overall statistics
-        this.logger.log(`Total operations tracked: ${allStats.size}`);
+        this.logger.info(`Total operations tracked: ${allStats.size}`);
         // Report slowest operations
         const sortedByAvg = Array.from(allStats.entries())
             .sort((a, b) => b[1].avg - a[1].avg)
             .slice(0, 5);
-        this.logger.log('Top 5 slowest operations (by average time):');
+        this.logger.info('Top 5 slowest operations:');
         sortedByAvg.forEach(([opId, stats], index) => {
-            this.logger.log(`${index + 1}. ${opId}: ${stats.avg.toFixed(2)}ms avg, ${stats.max.toFixed(2)}ms max (${stats.count} samples)`);
+            const trendInfo = this.config.trendAnalysisEnabled ? this.profiler.getOperationTrend(opId) : undefined;
+            const resourceInfo = this.profiler.getOperationResourceStats(opId);
+            const details = {
+                stats,
+                trend: trendInfo,
+                resources: resourceInfo
+            };
+            const trendStr = trendInfo
+                ? ` [${trendInfo.trend.toUpperCase()}: ${trendInfo.changePercent.toFixed(1)}% change]`
+                : '';
+            this.logger.info(`${index + 1}. ${opId}: ${stats.avg.toFixed(2)}ms avg, ${stats.max.toFixed(2)}ms max (${stats.count} samples)${trendStr}`, details);
         });
         // Report most frequent operations
         const sortedByCount = Array.from(allStats.entries())
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 5);
-        this.logger.log('Top 5 most frequent operations:');
+        this.logger.info('Top 5 most frequent operations:');
         sortedByCount.forEach(([opId, stats], index) => {
-            this.logger.log(`${index + 1}. ${opId}: ${stats.count} executions, ${stats.avg.toFixed(2)}ms avg`);
+            const trendInfo = this.config.trendAnalysisEnabled ? this.profiler.getOperationTrend(opId) : undefined;
+            const resourceInfo = this.profiler.getOperationResourceStats(opId);
+            const details = {
+                stats,
+                trend: trendInfo,
+                resources: resourceInfo
+            };
+            const trendStr = trendInfo
+                ? ` [${trendInfo.trend.toUpperCase()}: recent ${trendInfo.recentAvg.toFixed(2)}ms vs historical ${trendInfo.historicalAvg.toFixed(2)}ms]`
+                : '';
+            this.logger.info(`${index + 1}. ${opId}: ${stats.count} executions, ${stats.avg.toFixed(2)}ms avg${trendStr}`, details);
         });
+        // Report high memory usage operations
+        const operationIds = Array.from(allStats.keys());
+        const memoryStats = operationIds
+            .map(opId => ({ opId, stats: this.profiler.getOperationResourceStats(opId) }))
+            .filter(item => item.stats !== undefined)
+            .sort((a, b) => (b.stats.memory.maxHeapUsed - a.stats.memory.maxHeapUsed))
+            .slice(0, 3);
+        if (memoryStats.length > 0) {
+            this.logger.info('Top 3 memory intensive operations:');
+            memoryStats.forEach(({ opId, stats }, index) => {
+                const maxHeapMB = (stats.memory.maxHeapUsed / (1024 * 1024)).toFixed(2);
+                const avgHeapMB = (stats.memory.avgHeapUsed / (1024 * 1024)).toFixed(2);
+                this.logger.info(`${index + 1}. ${opId}: ${maxHeapMB}MB max heap Δ, ${avgHeapMB}MB avg heap Δ`, stats);
+            });
+        }
         // Report detected bottlenecks if enabled
         if (this.config.bottleneckDetectionEnabled) {
             const bottlenecks = this.bottleneckDetector.analyzeAll();
             if (bottlenecks.critical.length > 0) {
-                this.logger.log(`Critical bottlenecks detected: ${bottlenecks.critical.length}`);
+                this.logger.error('Critical bottlenecks detected:', bottlenecks.critical);
             }
             if (bottlenecks.warnings.length > 0) {
-                this.logger.log(`Performance warnings detected: ${bottlenecks.warnings.length}`);
+                this.logger.warn('Performance warnings detected:', bottlenecks.warnings);
             }
         }
-        this.logger.log('========================');
+    }
+    async clearPerformanceData() {
+        await this.profiler.clearStoredMetrics();
+        this.bottleneckDetector.resetStats(); // Fix method name
+        this.logger.info('All performance data cleared');
     }
     /**
      * Get the profiler instance
@@ -199,9 +279,10 @@ class PerformanceManager {
             clearInterval(this.reportIntervalId);
             this.reportIntervalId = null;
         }
+        this.profiler.dispose();
         this.cachingService.dispose();
         this.asyncOptimizer.dispose();
-        this.logger.log('Performance manager disposed');
+        this.logger.info('Performance manager disposed');
     }
 }
 exports.PerformanceManager = PerformanceManager;

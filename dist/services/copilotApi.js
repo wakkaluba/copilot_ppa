@@ -40,6 +40,9 @@ const logger_1 = require("../utils/logger");
  * Service for interacting with the Copilot API
  */
 class CopilotApiService {
+    static instance;
+    logger;
+    copilotExtension;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
     }

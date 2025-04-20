@@ -40,11 +40,12 @@ const path = __importStar(require("path"));
  * Manages code review checklists and generates reports
  */
 class ReviewChecklist {
+    CHECKLIST_DIR = 'codeReview/checklists';
+    REPORT_DIR = 'codeReview/reports';
+    customChecklists = new Map();
+    reportHistory = [];
+    context;
     constructor(context) {
-        this.CHECKLIST_DIR = 'codeReview/checklists';
-        this.REPORT_DIR = 'codeReview/reports';
-        this.customChecklists = new Map();
-        this.reportHistory = [];
         this.context = context;
         this.loadChecklists();
         this.loadReportHistory();

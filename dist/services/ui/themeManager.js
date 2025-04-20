@@ -41,10 +41,12 @@ const vscode = __importStar(require("vscode"));
  * Manager for UI themes and customization
  */
 class ThemeManager {
+    context;
+    themes = new Map();
+    activeThemeId = 'default';
+    customSettings;
     constructor(context) {
         this.context = context;
-        this.themes = new Map();
-        this.activeThemeId = 'default';
         // Initialize with default themes
         this.registerDefaultThemes();
         // Load saved theme preference

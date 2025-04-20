@@ -40,8 +40,11 @@ const path = __importStar(require("path"));
  * Class responsible for analyzing code performance and identifying bottlenecks
  */
 class PerformanceAnalyzer {
+    context;
+    statusBarItem;
+    analysisResults;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.context = context;
         this.analysisResults = new Map();
         // Create status bar item
@@ -422,7 +425,7 @@ class PerformanceAnalyzer {
                     }
                     .severity-tag.medium {
                         background-color: var(--vscode-editorInfo-foreground);
-                        color: var(--vscode-editor-background);
+                        color: var (--vscode-editor-background);
                     }
                     .severity-tag.low {
                         background-color: var(--vscode-textLink-foreground);
@@ -652,10 +655,10 @@ class PerformanceAnalyzer {
                         border-left: 4px solid var(--vscode-editorWarning-foreground);
                     }
                     .files-table tr.medium td:first-child {
-                        border-left: 4px solid var(--vscode-editorInfo-foreground);
+                        border-left: 4px solid var (--vscode-editorInfo-foreground);
                     }
                     .files-table tr.low td:first-child {
-                        border-left: 4px solid var(--vscode-textLink-foreground);
+                        border-left: 4px solid var (--vscode-textLink-foreground);
                     }
                     .files-table tr.good td:first-child {
                         border-left: 4px solid var(--vscode-terminal-ansiGreen);
@@ -688,13 +691,13 @@ class PerformanceAnalyzer {
                         border-left: 4px solid var(--vscode-errorForeground);
                     }
                     .common-issue.high {
-                        border-left: 4px solid var(--vscode-editorWarning-foreground);
+                        border-left: 4px solid var (--vscode-editorWarning-foreground);
                     }
                     .common-issue.medium {
-                        border-left: 4px solid var(--vscode-editorInfo-foreground);
+                        border-left: 4px solid var (--vscode-editorInfo-foreground);
                     }
                     .common-issue.low {
-                        border-left: 4px solid var(--vscode-textLink-foreground);
+                        border-left: 4px solid var (--vscode-textLink-foreground);
                     }
                     .solution {
                         margin-top: 10px;
@@ -832,17 +835,44 @@ class PerformanceAnalyzer {
         return cachedResult.fileHash === this.calculateContentHash(currentContent);
     }
     /**
-     * Calculate a hash of the file content
+     * Calculate a hash of the file content using a MurmurHash3-like algorithm
      */
     calculateContentHash(content) {
-        // Simple hash function
-        let hash = 0;
-        for (let i = 0; i < content.length; i++) {
-            const char = content.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
+        const seed = 0x1234;
+        const c1 = 0xcc9e2d51;
+        const c2 = 0x1b873593;
+        let h1 = seed;
+        const chunks = Math.floor(content.length / 4);
+        for (let i = 0; i < chunks; i++) {
+            let k1 = 0;
+            for (let j = 0; j < 4; j++) {
+                k1 |= content.charCodeAt(i * 4 + j) << (j * 8);
+            }
+            k1 = Math.imul(k1, c1);
+            k1 = (k1 << 15) | (k1 >>> 17);
+            k1 = Math.imul(k1, c2);
+            h1 ^= k1;
+            h1 = (h1 << 13) | (h1 >>> 19);
+            h1 = Math.imul(h1, 5) + 0xe6546b64;
         }
-        return hash.toString();
+        // Handle remaining bytes
+        let k1 = 0;
+        const rem = content.length & 3;
+        for (let i = 0; i < rem; i++) {
+            k1 |= content.charCodeAt(chunks * 4 + i) << (i * 8);
+        }
+        k1 = Math.imul(k1, c1);
+        k1 = (k1 << 15) | (k1 >>> 17);
+        k1 = Math.imul(k1, c2);
+        h1 ^= k1;
+        // Finalization
+        h1 ^= content.length;
+        h1 ^= h1 >>> 16;
+        h1 = Math.imul(h1, 0x85ebca6b);
+        h1 ^= h1 >>> 13;
+        h1 = Math.imul(h1, 0xc2b2ae35);
+        h1 ^= h1 >>> 16;
+        return h1 >>> 0; // Convert to unsigned 32-bit
     }
     /**
      * Format metric name for display
@@ -1123,7 +1153,6 @@ class PerformanceAnalyzer {
         const issues = [];
         const fileHash = this.calculateContentHash(fileContent);
         const lines = fileContent.split('\n');
-        // This is a placeholder implementation - in a real system, you would have more sophisticated Python analysis
         // Check for inefficient list operations
         const listAppendRegex = /for\s+\w+\s+in\s+.+:\s*\n\s*.+\.append/g;
         let match;
@@ -1139,12 +1168,257 @@ class PerformanceAnalyzer {
                 solutionCode: '# Instead of:\nresult = []\nfor item in items:\n    result.append(transform(item))\n\n# Use:\nresult = [transform(item) for item in items]'
             });
         }
-        return {
-            filePath,
-            fileHash,
-            issues,
-            metrics: { linesOfCode: lines.length } // Simple metric for placeholder
+        // Check for inefficient string concatenation
+        const strConcatRegex = /\+\s*=\s*['"]/g;
+        while ((match = strConcatRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient String Concatenation',
+                description: 'Using += for string concatenation in loops can be inefficient.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use str.join() or f-strings for string concatenation.',
+                solutionCode: '# Instead of:\nresult = ""\nfor item in items:\n    result += str(item)\n\n# Use:\nresult = "".join(str(item) for item in items)\n\n# Or with f-strings:\nresult = f"${item1}${item2}${item3}"'
+            });
+        }
+        // Check for global variable usage
+        const globalVarRegex = /global\s+\w+/g;
+        while ((match = globalVarRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Global Variable Usage',
+                description: 'Using global variables can lead to maintenance issues and potential performance impacts.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Pass variables as parameters instead of using global variables.',
+                solutionCode: '# Instead of:\nglobal counter\ndef increment():\n    global counter\n    counter += 1\n\n# Use:\ndef increment(counter):\n    return counter + 1'
+            });
+        }
+        // Check for expensive copy operations
+        const expensiveCopyRegex = /\blist\s*\([^)]*\)|\b\w+\.copy\s*\(\)|\b\w+\[:\]/g;
+        while ((match = expensiveCopyRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Expensive Copy Operation',
+                description: 'Creating unnecessary copies of lists or other sequences can be memory-intensive.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider if a copy is really needed, or use itertools or generators.',
+                solutionCode: '# Instead of:\nfor item in list(expensive_generator):\n    process(item)\n\n# Use:\nfor item in expensive_generator:\n    process(item)\n\n# Instead of list copy:\nfrom itertools import islice\nresult = islice(original, 0, None)'
+            });
+        }
+        // Check for repeated dictionary access
+        const dictAccessRegex = /for\s+\w+\s+in\s+.+:\s*\n\s*.*?(\w+)\[\w+\]/g;
+        while ((match = dictAccessRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Repeated Dictionary Access',
+                description: 'Repeatedly accessing dictionary values in a loop can be inefficient.',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use dict.get() with default value or cache the lookup result.',
+                solutionCode: '# Instead of:\nfor key in keys:\n    if key in mydict:\n        value = mydict[key]\n        # process value\n\n# Use:\nfor key in keys:\n    value = mydict.get(key)\n    if value is not None:\n        # process value'
+            });
+        }
+        // Check for inefficient exception handling
+        const broadExceptRegex = /except\s*:/g;
+        while ((match = broadExceptRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Broad Exception Clause',
+                description: 'Using bare except clause can catch and hide important exceptions, impacting debugging.',
+                severity: 'high',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Specify the exceptions you expect to handle.',
+                solutionCode: '# Instead of:\ntry:\n    do_something()\nexcept:\n    handle_error()\n\n# Use:\ntry:\n    do_something()\nexcept ValueError as e:\n    handle_value_error(e)\nexcept KeyError as e:\n    handle_key_error(e)'
+            });
+        }
+        // Check for inefficient range() usage
+        const rangeRegex = /range\(len\((\w+)\)\)/g;
+        while ((match = rangeRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient Range Usage',
+                description: 'Using range(len(x)) is less readable and efficient than directly iterating.',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Directly iterate over the sequence',
+                solutionCode: '# Instead of:\nfor i in range(len(items)):\n    item = items[i]\n\n# Use:\nfor item in items:'
+            });
+        }
+        // Check for inefficient list comprehension filters
+        const listCompFilterRegex = /\[\s*x\s+for\s+x\s+in\s+\w+\s+if\s+x\s+in\s+\w+\s*\]/g;
+        while ((match = listCompFilterRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient List Comprehension Filter',
+                description: 'Using "if x in list" in a list comprehension can be O(n^2)',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Convert the lookup sequence to a set first',
+                solutionCode: '# Instead of:\n[x for x in items if x in lookup_list]\n\n# Use:\nlookup_set = set(lookup_list)\n[x for x in items if x in lookup_set]'
+            });
+        }
+        // Check for repeated method lookups in loops
+        const methodLookupRegex = /for\s+\w+\s+in\s+.+:\s*\n\s*.*?(\w+)\.\w+\s*\(/g;
+        while ((match = methodLookupRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Repeated Method Lookup',
+                description: 'Looking up object methods inside loops can be inefficient',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Cache method lookup outside the loop',
+                solutionCode: '# Instead of:\nfor item in items:\n    item.expensive_method()\n\n# Use:\nmethod = items[0].expensive_method.__get__(items[0])\nfor item in items:\n    method()'
+            });
+        }
+        // Check for inefficient default dict usage
+        const defaultDictRegex = /if\s+(\w+)\s+not\s+in\s+(\w+):\s*\n\s*\2\[\1\]\s*=\s*\{?\[?\]/g;
+        while ((match = defaultDictRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Manual Default Dict Implementation',
+                description: 'Manual dictionary default value checking can be replaced with defaultdict',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use collections.defaultdict',
+                solutionCode: '# Instead of:\nif key not in d:\n    d[key] = []\nd[key].append(value)\n\n# Use:\nfrom collections import defaultdict\nd = defaultdict(list)\nd[key].append(value)'
+            });
+        }
+        // Check for inefficient list comprehensions
+        const listComprehensionRegex = /\[\s*for\s+.*?\s+in\s+.*?\s+for\s+.*?\]/g;
+        while ((match = listComprehensionRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Complex List Comprehension',
+                description: 'Nested list comprehensions can be memory intensive',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider using generator expressions or breaking into steps',
+                solutionCode: '# Instead of:\n[x + y for x in range(1000) for y in range(1000)]\n\n# Use:\n((x, y) for x in range(1000) for y in range(1000))'
+            });
+        }
+        // Check for inefficient database operations
+        const dbOperationsRegex = /cursor\.(execute|executemany)\s*\([^)]+\)/g;
+        while ((match = dbOperationsRegex.exec(fileContent)) !== null) {
+            if (fileContent.includes('for') && fileContent.includes('commit')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Inefficient Database Operations',
+                    description: 'Multiple database operations in a loop can be slow',
+                    severity: 'high',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Use batch operations with executemany()',
+                    solutionCode: '# Instead of:\nfor item in items:\n    cursor.execute("INSERT INTO table VALUES (?)", (item,))\n\n# Use:\ncursor.executemany("INSERT INTO table VALUES (?)", [(item,) for item in items])'
+                });
+            }
+        }
+        // Check for inefficient file operations
+        const fileOpsRegex = /open\([^)]+\)/g;
+        while ((match = fileOpsRegex.exec(fileContent)) !== null) {
+            if (!fileContent.includes('with')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Unsafe File Operations',
+                    description: 'Files should be handled using context managers',
+                    severity: 'high',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Use with statement for file operations',
+                    solutionCode: '# Instead of:\nf = open("file.txt")\ntry:\n    content = f.read()\nfinally:\n    f.close()\n\n# Use:\nwith open("file.txt") as f:\n    content = f.read()'
+                });
+            }
+        }
+        // Check for inefficient set/dict comprehensions
+        const setDictCompRegex = /\{[^}]+for\s+.*?\s+in\s+.*?\}/g;
+        while ((match = setDictCompRegex.exec(fileContent)) !== null) {
+            if (fileContent.includes('if') && fileContent.includes('else')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Complex Dictionary/Set Comprehension',
+                    description: 'Complex comprehensions can be hard to read and maintain',
+                    severity: 'low',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Break complex comprehensions into multiple steps',
+                    solutionCode: '# Instead of:\n{k: v1 if cond else v2 for k, v1, v2 in data}\n\n# Use:\nresult = {}\nfor k, v1, v2 in data:\n    result[k] = v1 if cond else v2'
+                });
+            }
+        }
+        // Calculate Python-specific metrics
+        const metrics = {
+            linesOfCode: lines.length,
+            cyclomaticComplexity: this.calculatePythonComplexity(fileContent),
+            importCount: (fileContent.match(/^import\s+|^from\s+\w+\s+import/gm) || []).length,
+            classCount: (fileContent.match(/^class\s+\w+/gm) || []).length,
+            functionCount: (fileContent.match(/^def\s+\w+/gm) || []).length,
+            commentRatio: this.calculateCommentRatio(fileContent),
+            avgFunctionLength: this.calculateAveragePythonFunctionLength(fileContent),
+            nestedDepth: this.calculatePythonNestedDepth(fileContent),
+            generatorExprCount: (fileContent.match(/\([\w\s.,]+for\s+\w+\s+in\s+[\w\s.,]+\)/g) || []).length,
+            listCompCount: (fileContent.match(/\[[\w\s.,]+for\s+\w+\s+in\s+[\w\s.,]+\]/g) || []).length,
+            asyncFunctionCount: (fileContent.match(/async\s+def\s+/g) || []).length,
+            contextManagerCount: (fileContent.match(/with\s+/g) || []).length,
+            decoratorCount: (fileContent.match(/^@\w+/gm) || []).length,
+            withStatementCount: (fileContent.match(/with\s+/g) || []).length,
+            listComprehensionCount: (fileContent.match(/\[.*?for.*?\]/g) || []).length,
+            generatorExprCount: (fileContent.match(/\(.*?for.*?\)/g) || []).length,
+            contextManagerCount: (fileContent.match(/class\s+\w+.*?:\s*\n\s*def\s+__enter__/gs) || []).length,
+            asyncioUsage: (fileContent.match(/import\s+asyncio|from\s+asyncio\s+import/g) || []).length
         };
+        return { filePath, fileHash, issues, metrics };
+    }
+    /**
+     * Calculate Python-specific comment ratio
+     */
+    calculateCommentRatio(content) {
+        const lines = content.split('\n');
+        const commentLines = lines.filter(line => line.trim().startsWith('#') ||
+            line.trim().startsWith('"""') ||
+            line.trim().startsWith("'''")).length;
+        return Math.round((commentLines / lines.length) * 100);
+    }
+    /**
+     * Calculate average Python function length
+     */
+    calculateAveragePythonFunctionLength(content) {
+        const functionMatches = Array.from(content.matchAll(/^def\s+\w+/gm));
+        if (functionMatches.length === 0)
+            return 0;
+        let totalLines = 0;
+        for (let i = 0; i < functionMatches.length; i++) {
+            const start = functionMatches[i].index;
+            const end = i < functionMatches.length - 1 ? functionMatches[i + 1].index : content.length;
+            const functionContent = content.substring(start, end);
+            totalLines += functionContent.split('\n').length;
+        }
+        return Math.round(totalLines / functionMatches.length);
+    }
+    /**
+     * Calculate Python nested block depth
+     */
+    calculatePythonNestedDepth(content) {
+        const lines = content.split('\n');
+        let maxDepth = 0;
+        let currentDepth = 0;
+        for (const line of lines) {
+            const indentation = line.match(/^(\s*)/)[0].length;
+            const depth = Math.floor(indentation / 4); // Python uses 4 spaces for indentation
+            currentDepth = depth;
+            maxDepth = Math.max(maxDepth, currentDepth);
+        }
+        return maxDepth;
     }
     /**
      * Analyze Java code for performance issues
@@ -1153,7 +1427,6 @@ class PerformanceAnalyzer {
         const issues = [];
         const fileHash = this.calculateContentHash(fileContent);
         const lines = fileContent.split('\n');
-        // This is a placeholder implementation - in a real system, you would have more sophisticated Java analysis
         // Check for inefficient string concatenation
         const stringConcatRegex = /String\s+(\w+)\s*=\s*"[^"]*";\s*(?:\n|\r\n?)[^}]*\1\s*\+=/g;
         let match;
@@ -1169,12 +1442,210 @@ class PerformanceAnalyzer {
                 solutionCode: '// Instead of:\nString result = "";\nfor (String item : items) {\n    result += item;\n}\n\n// Use:\nStringBuilder sb = new StringBuilder();\nfor (String item : items) {\n    sb.append(item);\n}\nString result = sb.toString();'
             });
         }
-        return {
-            filePath,
-            fileHash,
-            issues,
-            metrics: { linesOfCode: lines.length } // Simple metric for placeholder
+        // Check for inefficient collection iteration
+        const inefficientIterationRegex = /for\s*\(\s*int\s+\w+\s*=\s*0\s*;\s*\w+\s*<\s*(\w+)\.size\(\)\s*;/g;
+        while ((match = inefficientIterationRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient Collection Iteration',
+                description: 'Calling .size() in every loop iteration is inefficient.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Cache the collection size before the loop.',
+                solutionCode: '// Instead of:\nfor (int i = 0; i < list.size(); i++) {\n    // loop body\n}\n\n// Use:\nint size = list.size();\nfor (int i = 0; i < size; i++) {\n    // loop body\n}'
+            });
+        }
+        // Check for inefficient exception handling
+        const catchBlockRegex = /catch\s*\(\s*(Exception|Throwable)\s+\w+\s*\)\s*\{/g;
+        while ((match = catchBlockRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Generic Exception Handling',
+                description: 'Catching generic exceptions can mask errors and impact performance.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Catch specific exceptions instead of using generic Exception or Throwable.',
+                solutionCode: '// Instead of:\ntry {\n    // risky operation\n} catch (Exception e) {\n    // handle error\n}\n\n// Use:\ntry {\n    // risky operation\n} catch (IOException e) {\n    // handle IO error\n} catch (SQLException e) {\n    // handle SQL error\n}'
+            });
+        }
+        // Check for inefficient stream usage
+        const repeatedStreamRegex = /(\w+)\.stream\(\)[^\n]+\.stream\(\)/g;
+        while ((match = repeatedStreamRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient Stream Usage',
+                description: 'Creating multiple streams in sequence is inefficient.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Chain stream operations instead of creating multiple streams.',
+                solutionCode: '// Instead of:\nlist.stream().filter(x -> x > 0).collect(Collectors.toList()).stream().map(String::valueOf)\n\n// Use:\nlist.stream()\n    .filter(x -> x > 0)\n    .map(String::valueOf)'
+            });
+        }
+        // Check for synchronized collection usage
+        const synchronizedCollectionRegex = /Collections\.synchronized\w+|Vector<|Hashtable</g;
+        while ((match = synchronizedCollectionRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Legacy Synchronized Collections',
+                description: 'Using legacy synchronized collections can cause unnecessary blocking.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use concurrent collections from java.util.concurrent package.',
+                solutionCode: '// Instead of:\nList<String> list = Collections.synchronizedList(new ArrayList<>());\nMap<String, Integer> map = new Hashtable<>();\n\n// Use:\nList<String> list = new CopyOnWriteArrayList<>();\nMap<String, Integer> map = new ConcurrentHashMap<>();'
+            });
+        }
+        // Check for inefficient string operations in loops
+        const stringOpInLoopRegex = /for\s*\([^{]+\{\s*[^}]*?String\s+\w+\s*=\s*[^;]+?\.substring\(/g;
+        while ((match = stringOpInLoopRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'String Operations in Loop',
+                description: 'Performing string operations in loops can create many temporary objects.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use StringBuilder for string operations in loops.',
+                solutionCode: '// Instead of:\nString result = "";\nfor (String s : strings) {\n    result += s.substring(1);\n}\n\n// Use:\nStringBuilder result = new StringBuilder();\nfor (String s : strings) {\n    result.append(s.substring(1));\n}'
+            });
+        }
+        // Check for inefficient String concatenation in loops
+        const stringConcatRegex = /for\s*\([^)]+\)\s*\{[^}]*\+\s*=\s*[^}]+\}/g;
+        while ((match = stringConcatRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient String Concatenation',
+                description: 'String concatenation in loops creates many temporary objects',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use StringBuilder instead of String concatenation',
+                solutionCode: '// Instead of:\nString result = "";\nfor (String item : items) {\n    result += item;\n}\n\n// Use:\nStringBuilder result = new StringBuilder();\nfor (String item : items) {\n    result.append(item);\n}'
+            });
+        }
+        // Check for manual array copying
+        const arrayCopyRegex = /for\s*\([^)]+\)\s*\{[^}]*\[\s*i\s*\]\s*=\s*[^}]+\[\s*i\s*\][^}]*\}/g;
+        while ((match = arrayCopyRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Manual Array Copy',
+                description: 'Manual array copying is less efficient than System.arraycopy',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use System.arraycopy or Arrays.copyOf',
+                solutionCode: '// Instead of:\nfor (int i = 0; i < arr.length; i++) {\n    newArr[i] = arr[i];\n}\n\n// Use:\nSystem.arraycopy(arr, 0, newArr, 0, arr.length);\n// Or:\nnewArr = Arrays.copyOf(arr, arr.length);'
+            });
+        }
+        // Check for inefficient collection size checks
+        const sizeCheckRegex = /if\s*\([^)]*\.size\s*\(\)\s*==\s*0\)/g;
+        while ((match = sizeCheckRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient Collection Size Check',
+                description: 'Checking collection.size() == 0 is less readable than isEmpty()',
+                severity: 'low',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use isEmpty() method',
+                solutionCode: '// Instead of:\nif (collection.size() == 0)\n\n// Use:\nif (collection.isEmpty())'
+            });
+        }
+        // Check for non-final static fields
+        const nonFinalStaticRegex = /static\s+(?!final\s+)\w+\s+\w+/g;
+        while ((match = nonFinalStaticRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Non-final Static Field',
+                description: 'Non-final static fields can cause thread safety issues',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider making the field final if it does not need to be modified',
+                solutionCode: '// Instead of:\nstatic int counter;\n\n// Use:\nstatic final int COUNTER;'
+            });
+        }
+        // Check for inefficient Stream operations
+        const streamOpsRegex = /\.stream\(\).*?\.collect\(/gs;
+        while ((match = streamOpsRegex.exec(fileContent)) !== null) {
+            if (match[0].includes('.forEach(') || match[0].includes('.parallel()')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Potentially Inefficient Stream Operation',
+                    description: 'Complex stream operations might be less performant than traditional loops',
+                    severity: 'medium',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Consider using traditional loops for simple operations or ensure parallel streams are used appropriately',
+                    solutionCode: '// Instead of:\nlist.stream().forEach(item -> process(item));\n\n// Use:\nfor (Item item : list) {\n    process(item);\n}'
+                });
+            }
+        }
+        // Check for inefficient String operations in loops
+        const stringConcatRegex = /for\s*\([^)]+\)\s*{[^}]*?\+=/gs;
+        while ((match = stringConcatRegex.exec(fileContent)) !== null) {
+            if (!match[0].includes('StringBuilder')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Inefficient String Concatenation',
+                    description: 'String concatenation in loops should use StringBuilder',
+                    severity: 'high',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Use StringBuilder for string concatenation in loops',
+                    solutionCode: '// Instead of:\nString result = "";\nfor (String s : strings) {\n    result += s;\n}\n\n// Use:\nStringBuilder result = new StringBuilder();\nfor (String s : strings) {\n    result.append(s);\n}'
+                });
+            }
+        }
+        // Check for synchronized collection usage
+        const syncCollectionRegex = /Collections\.synchronized(Map|List|Set)/g;
+        while ((match = syncCollectionRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Synchronized Collection Usage',
+                description: 'Synchronized collections can be a performance bottleneck',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider using concurrent collections from java.util.concurrent',
+                solutionCode: '// Instead of:\nMap<K,V> map = Collections.synchronizedMap(new HashMap<>());\n\n// Use:\nMap<K,V> map = new ConcurrentHashMap<>();'
+            });
+        }
+        // Calculate Java-specific metrics
+        const metrics = {
+            linesOfCode: lines.length,
+            classCount: (fileContent.match(/\bclass\s+\w+/g) || []).length,
+            methodCount: (fileContent.match(/\b(public|private|protected)\s+\w+\s+\w+\s*\(/g) || []).length,
+            importCount: (fileContent.match(/^import\s+/gm) || []).length,
+            commentRatio: Math.round(((fileContent.match(/\/\*[\s\S]*?\*\/|\/\/.*/g) || []).length / lines.length) * 100),
+            averageMethodLength: this.calculateJavaAverageMethodLength(fileContent),
+            nestingDepth: this.estimateMaxNestedDepth(fileContent),
+            lambdaCount: (fileContent.match(/\s*->\s*{/g) || []).length,
+            tryBlockCount: (fileContent.match(/\btry\s*{/g) || []).length,
+            synchronizedCount: (fileContent.match(/\bsynchronized\s*\(/g) || []).length,
+            streamApiUsage: (fileContent.match(/\.stream\(\)/g) || []).length,
+            finalFieldCount: (fileContent.match(/final\s+\w+/g) || []).length,
+            genericTypeCount: (fileContent.match(/<[^>]+>/g) || []).length,
+            streamOperationsCount: (fileContent.match(/\.stream\(\)/g) || []).length,
+            parallelStreamCount: (fileContent.match(/\.parallelStream\(\)/g) || []).length,
+            stringBuilderUsage: (fileContent.match(/StringBuilder|StringBuffer/g) || []).length,
+            synchronizedBlockCount: (fileContent.match(/synchronized\s*\([^)]*\)/g) || []).length,
+            concurrentUtilsCount: (fileContent.match(/java\.util\.concurrent/g) || []).length
         };
+        return { filePath, fileHash, issues, metrics };
+    }
+    /**
+     * Calculate average method length for Java code
+     */
+    calculateJavaAverageMethodLength(content) {
+        const methodMatches = content.match(/\b(public|private|protected)\s+\w+\s+\w+\s*\([^{]*\{(?:\{[^}]*\}|[^}])*?\n\s*\}/g) || [];
+        if (methodMatches.length === 0)
+            return 0;
+        const totalLines = methodMatches.reduce((sum, method) => sum + method.split('\n').length, 0);
+        return Math.round(totalLines / methodMatches.length);
     }
     /**
      * Analyze C# code for performance issues
@@ -1183,13 +1654,214 @@ class PerformanceAnalyzer {
         const issues = [];
         const fileHash = this.calculateContentHash(fileContent);
         const lines = fileContent.split('\n');
-        // This is a placeholder implementation - in a real system, you would have more sophisticated C# analysis
-        return {
-            filePath,
-            fileHash,
-            issues,
-            metrics: { linesOfCode: lines.length } // Simple metric for placeholder
+        // Check for inefficient string concatenation
+        const stringConcatRegex = /string\s+(\w+)\s*=\s*"[^"]*";\s*(?:\n|\r\n?)[^}]*\1\s*\+=/g;
+        let match;
+        while ((match = stringConcatRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient String Concatenation',
+                description: 'Using += for string concatenation creates unnecessary temporary string objects.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use StringBuilder for string concatenation operations.',
+                solutionCode: '// Instead of:\nstring result = "";\nforeach (var item in items)\n    result += item;\n\n// Use:\nvar sb = new StringBuilder();\nforeach (var item in items)\n    sb.Append(item);\nstring result = sb.ToString();'
+            });
+        }
+        // Check for inefficient LINQ usage
+        const repeatedLinqRegex = /\.(Where|Select)\([^)]+\)\.(ToList|ToArray)\(\)[^.]*\.(Where|Select)\(/g;
+        while ((match = repeatedLinqRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient LINQ Chaining',
+                description: 'Converting to List/Array mid-chain breaks the deferred execution and can impact performance.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Chain LINQ operations without intermediate materialization.',
+                solutionCode: '// Instead of:\nvar result = items.Where(x => x > 0).ToList().Select(x => x * 2);\n\n// Use:\nvar result = items.Where(x => x > 0).Select(x => x * 2);'
+            });
+        }
+        // Check for allocation in loops
+        const newInLoopRegex = /(?:for|foreach)\s*\([^{]+\{\s*[^}]*?new\s+(?!Exception|StringBuilder|DateTime)\w+/g;
+        while ((match = newInLoopRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Object Allocation in Loop',
+                description: 'Creating new objects inside loops can cause memory pressure.',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider object pooling or moving object creation outside the loop.',
+                solutionCode: '// Instead of:\nforeach (var item in items) {\n    var processor = new DataProcessor();\n    processor.Process(item);\n}\n\n// Use:\nvar processor = new DataProcessor();\nforeach (var item in items) {\n    processor.Process(item);\n}'
+            });
+        }
+        // Check for async void usage
+        const asyncVoidRegex = /async\s+void\s+\w+\s*\(/g;
+        while ((match = asyncVoidRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Async Void Method',
+                description: 'async void methods can\'t be awaited and can cause unhandled exceptions.',
+                severity: 'high',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use async Task instead of async void except for event handlers.',
+                solutionCode: '// Instead of:\npublic async void ProcessData() {\n    await Task.Delay(1000);\n}\n\n// Use:\npublic async Task ProcessData() {\n    await Task.Delay(1000);\n}'
+            });
+        }
+        // Check for disposable resource usage
+        const disposableRegex = /new\s+(SqlConnection|StreamReader|StreamWriter|FileStream)/g;
+        while ((match = disposableRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            const surroundingCode = this.extractCodeSnippet(lines, lineIndex, 5);
+            if (!surroundingCode.includes("using")) {
+                issues.push({
+                    title: 'Undisposed Resource',
+                    description: 'IDisposable resources should be properly disposed.',
+                    severity: 'critical',
+                    line: lineIndex + 1,
+                    code: surroundingCode,
+                    solution: 'Use using statement or using declaration.',
+                    solutionCode: '// Instead of:\nvar reader = new StreamReader(path);\ntry {\n    // use reader\n} finally {\n    reader.Dispose();\n}\n\n// Use:\nusing var reader = new StreamReader(path);\n// use reader // automatically disposed'
+                });
+            }
+        }
+        // Check for LINQ usage in performance-critical loops
+        const linqInLoopsRegex = /for\s*\([^)]+\)\s*\{[^}]*\.(Where|Select|FirstOrDefault|ToList)\([^}]+\}/g;
+        while ((match = linqInLoopsRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'LINQ in Performance-Critical Loop',
+                description: 'LINQ operations inside loops can create unnecessary allocations',
+                severity: 'high',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Consider using traditional loops for performance-critical sections',
+                solutionCode: '// Instead of:\nfor (int i = 0; i < items.Count; i++) {\n    var filtered = items.Where(x => x.IsValid);\n}\n\n// Use:\nfor (int i = 0; i < items.Count; i++) {\n    if (items[i].IsValid) {\n        // Process item\n    }\n}'
+            });
+        }
+        // Check for async void methods
+        const asyncVoidRegex = /async\s+void\s+\w+\s*\(/g;
+        while ((match = asyncVoidRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Async Void Method',
+                description: 'Async void methods cannot be awaited and can cause unhandled exceptions',
+                severity: 'high',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use async Task instead of async void',
+                solutionCode: '// Instead of:\nasync void ProcessData() {\n    await Task.Delay(1000);\n}\n\n// Use:\nasync Task ProcessData() {\n    await Task.Delay(1000);\n}'
+            });
+        }
+        // Check for inefficient string operations
+        const stringConcatRegex = /string\.Concat|(\s*\+\s*(?!"\s*\+))/g;
+        while ((match = stringConcatRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient String Operation',
+                description: 'Multiple string concatenations create unnecessary temporary objects',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use StringBuilder for multiple concatenations',
+                solutionCode: '// Instead of:\nstring result = "";\nfor (int i = 0; i < 100; i++) {\n    result += i.ToString();\n}\n\n// Use:\nvar sb = new StringBuilder();\nfor (int i = 0; i < 100; i++) {\n    sb.Append(i);\n}'
+            });
+        }
+        // Check for disposable resources without using
+        const disposableRegex = /new\s+(SqlConnection|FileStream|StreamReader|StreamWriter)/g;
+        while ((match = disposableRegex.exec(fileContent)) !== null) {
+            if (!fileContent.includes("using") && !fileContent.includes("IDisposable")) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'Unmanaged Disposable Resource',
+                    description: 'Disposable resources should be properly disposed using using statement',
+                    severity: 'high',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Wrap disposable objects in using statements',
+                    solutionCode: '// Instead of:\nvar reader = new StreamReader(path);\n\n// Use:\nusing (var reader = new StreamReader(path)) {\n    // Use reader\n}'
+                });
+            }
+        }
+        // Check for inefficient LINQ usage
+        const linqRegex = /\.Select\(.*?\)\.Where\(|\.Where\(.*?\)\.Select\(/gs;
+        while ((match = linqRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Inefficient LINQ Operation Order',
+                description: 'Where should typically come before Select for better performance',
+                severity: 'medium',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Reorder LINQ operations to filter data before transforming it',
+                solutionCode: '// Instead of:\nitems.Select(x => Transform(x)).Where(x => Filter(x))\n\n// Use:\nitems.Where(x => Filter(x)).Select(x => Transform(x))'
+            });
+        }
+        // Check for inefficient string operations in loops
+        const stringBuilderRegex = /for\s*\([^)]+\)\s*{[^}]*?\+=/gs;
+        while ((match = stringBuilderRegex.exec(fileContent)) !== null) {
+            if (!match[0].includes('StringBuilder')) {
+                const lineIndex = this.findLineNumber(fileContent, match.index);
+                issues.push({
+                    title: 'String Concatenation in Loop',
+                    description: 'String concatenation in loops should use StringBuilder',
+                    severity: 'high',
+                    line: lineIndex + 1,
+                    code: this.extractCodeSnippet(lines, lineIndex, 3),
+                    solution: 'Use StringBuilder for string concatenation in loops',
+                    solutionCode: '// Instead of:\nstring result = "";\nforeach (var item in items) {\n    result += item;\n}\n\n// Use:\nvar sb = new StringBuilder();\nforeach (var item in items) {\n    sb.Append(item);\n}'
+                });
+            }
+        }
+        // Check for async void usage
+        const asyncVoidRegex = /async\s+void\s+\w+\s*\(/g;
+        while ((match = asyncVoidRegex.exec(fileContent)) !== null) {
+            const lineIndex = this.findLineNumber(fileContent, match.index);
+            issues.push({
+                title: 'Async Void Usage',
+                description: 'Async void methods can lead to unobserved exceptions and are harder to test',
+                severity: 'high',
+                line: lineIndex + 1,
+                code: this.extractCodeSnippet(lines, lineIndex, 3),
+                solution: 'Use async Task instead of async void except for event handlers',
+                solutionCode: '// Instead of:\nasync void DoWorkAsync()\n\n// Use:\nasync Task DoWorkAsync()'
+            });
+        }
+        // Enhance metrics
+        const metrics = {
+            linesOfCode: lines.length,
+            classCount: (fileContent.match(/\bclass\s+\w+/g) || []).length,
+            methodCount: (fileContent.match(/\b(public|private|protected)\s+[\w<>]+\s+\w+\s*\(/g) || []).length,
+            usingCount: (fileContent.match(/^using\s+/gm) || []).length,
+            commentRatio: Math.round(((fileContent.match(/\/\*[\s\S]*?\*\/|\/\/.*/g) || []).length / lines.length) * 100),
+            averageMethodLength: this.calculateCSharpAverageMethodLength(fileContent),
+            nestingDepth: this.estimateMaxNestedDepth(fileContent),
+            lambdaCount: (fileContent.match(/=>\s*{|\)\s*=>/g) || []).length,
+            asyncMethodCount: (fileContent.match(/\basync\s+/g) || []).length,
+            linqUsageCount: (fileContent.match(/\.(Where|Select|OrderBy|GroupBy|Join|Skip|Take)\(/g) || []).length,
+            asyncMethodCount: (fileContent.match(/async\s+\w+/g) || []).length,
+            usingStatementCount: (fileContent.match(/using\s*\(/g) || []).length,
+            linqUsageCount: (fileContent.match(/\.(Where|Select|FirstOrDefault|ToList)\(/g) || []).length,
+            disposableUsageCount: (fileContent.match(/IDisposable/g) || []).length,
+            linqOperationsCount: (fileContent.match(/\.(Select|Where|OrderBy|GroupBy)\(/g) || []).length,
+            stringBuilderUsage: (fileContent.match(/StringBuilder/g) || []).length,
+            lockStatementCount: (fileContent.match(/lock\s*\([^)]*\)/g) || []).length,
+            disposableUsageCount: (fileContent.match(/using\s*\([^)]*\)/g) || []).length
         };
+        return { filePath, fileHash, issues, metrics };
+    }
+    /**
+     * Calculate average method length for C# code
+     */
+    calculateCSharpAverageMethodLength(content) {
+        const methodMatches = content.match(/\b(public|private|protected)\s+[\w<>]+\s+\w+\s*\([^{]*\{(?:\{[^}]*\}|[^}])*?\n\s*\}/g) || [];
+        if (methodMatches.length === 0)
+            return 0;
+        const totalLines = methodMatches.reduce((sum, method) => sum + method.split('\n').length, 0);
+        return Math.round(totalLines / methodMatches.length);
     }
     /**
      * Analyze any code with generic patterns
@@ -1226,8 +1898,8 @@ class PerformanceAnalyzer {
                 }
             }
             if (inFunction) {
-                bracketCount += (line.match(/\{/g) || []).length;
-                bracketCount -= (line.match(/\}/g) || []).length;
+                bracketCount += (line.match(/{/g) || []).length;
+                bracketCount -= (line.match(/}/g) || []).length;
                 if (bracketCount === 0 && line.includes('}')) {
                     inFunction = false;
                     const functionLength = currentLine - functionStart;

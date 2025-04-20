@@ -39,6 +39,11 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 class LLMCacheService {
+    cacheDir;
+    cacheTTL; // Time-to-live in milliseconds
+    cacheEnabled;
+    todoPath;
+    finishedPath;
     constructor() {
         this.cacheDir = path.join(this.getExtensionPath(), 'cache');
         this.ensureCacheDirectory();

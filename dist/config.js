@@ -33,59 +33,105 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Config = void 0;
+exports.ConfigManager = void 0;
 const vscode = __importStar(require("vscode"));
 /**
- * Configuration helper for accessing VS Code settings
+ * Default configuration values
  */
-class Config {
+const DEFAULT_CONFIG = {
+    enableTelemetry: true,
+    debugLogging: false,
+    showStatusBar: true,
+    analysisThreshold: 500,
+    integrationFeatures: {
+        copilotEnabled: true,
+        vscodeProfileEnabled: false,
+        perfDataCollection: true,
+    },
+    llm: {
+        provider: 'ollama',
+        modelId: 'llama2',
+        endpoint: 'http://localhost:11434',
+        maxTokens: 2048,
+        temperature: 0.7,
+    },
+};
+/**
+ * Configuration manager for the extension
+ * Handles reading and writing configuration values
+ */
+class ConfigManager {
+    context;
+    configChangeHandler;
     /**
-     * Get the Ollama API endpoint URL
+     * Creates a new configuration manager
+     * @param context The extension context
      */
-    static get ollamaEndpoint() {
-        const config = vscode.workspace.getConfiguration('vscodeLocalLLMAgent');
-        return config.get('ollamaEndpoint', 'http://localhost:11434');
+    constructor(context) {
+        this.context = context;
+        this.setupConfigChangeListener();
     }
     /**
-     * Get the Ollama API URL (with /api suffix)
+     * Get the current configuration
+     * @returns The current configuration combined with defaults
      */
-    static get ollamaApiUrl() {
-        return `${this.ollamaEndpoint}/api`;
+    getConfig() {
+        const config = vscode.workspace.getConfiguration('copilot-ppa');
+        return {
+            enableTelemetry: config.get('enableTelemetry', DEFAULT_CONFIG.enableTelemetry),
+            debugLogging: config.get('debugLogging', DEFAULT_CONFIG.debugLogging),
+            showStatusBar: config.get('showStatusBar', DEFAULT_CONFIG.showStatusBar),
+            analysisThreshold: config.get('analysisThreshold', DEFAULT_CONFIG.analysisThreshold),
+            integrationFeatures: {
+                copilotEnabled: config.get('integrationFeatures.copilotEnabled', DEFAULT_CONFIG.integrationFeatures.copilotEnabled),
+                vscodeProfileEnabled: config.get('integrationFeatures.vscodeProfileEnabled', DEFAULT_CONFIG.integrationFeatures.vscodeProfileEnabled),
+                perfDataCollection: config.get('integrationFeatures.perfDataCollection', DEFAULT_CONFIG.integrationFeatures.perfDataCollection),
+            },
+            llm: {
+                provider: config.get('llm.provider', DEFAULT_CONFIG.llm.provider),
+                modelId: config.get('llm.modelId', DEFAULT_CONFIG.llm.modelId),
+                endpoint: config.get('llm.endpoint', DEFAULT_CONFIG.llm.endpoint),
+                maxTokens: config.get('llm.maxTokens', DEFAULT_CONFIG.llm.maxTokens),
+                temperature: config.get('llm.temperature', DEFAULT_CONFIG.llm.temperature),
+            },
+        };
     }
     /**
-     * Get the default Ollama model name
+     * Update a configuration value
+     * @param section The configuration section path
+     * @param value The value to set
+     * @param configTarget The configuration target (global or workspace)
      */
-    static get ollamaModel() {
-        const config = vscode.workspace.getConfiguration('vscodeLocalLLMAgent');
-        return config.get('ollamaModel', 'llama2');
+    async updateConfig(section, value, configTarget = vscode.ConfigurationTarget.Global) {
+        await vscode.workspace.getConfiguration('copilot-ppa').update(section, value, configTarget);
     }
     /**
-     * Get the LM Studio API endpoint URL
+     * Setup the configuration change listener
      */
-    static get lmStudioEndpoint() {
-        const config = vscode.workspace.getConfiguration('vscodeLocalLLMAgent');
-        return config.get('lmStudioEndpoint', 'http://localhost:1234');
+    setupConfigChangeListener() {
+        this.configChangeHandler = vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('copilot-ppa')) {
+                // Emit an event or perform any necessary actions when config changes
+                console.log('Copilot PPA configuration changed');
+            }
+        });
+        this.context.subscriptions.push(this.configChangeHandler);
     }
     /**
-     * Get the LM Studio API URL (with /v1 suffix)
+     * Register configuration schema contributions to override defaults when not specified by user
+     * Used for dynamic runtime configuration updates
      */
-    static get lmStudioApiUrl() {
-        return `${this.lmStudioEndpoint}/v1`;
+    registerConfigurationDefaults() {
+        vscode.workspace.getConfiguration('copilot-ppa').update('defaultProvider', DEFAULT_CONFIG.llm.provider, vscode.ConfigurationTarget.Global);
     }
     /**
-     * Get the default provider (ollama or lmstudio)
+     * Dispose of any resources
      */
-    static get defaultProvider() {
-        const config = vscode.workspace.getConfiguration('vscodeLocalLLMAgent');
-        return config.get('defaultProvider', 'ollama');
-    }
-    /**
-     * Check if caching is enabled
-     */
-    static get cacheResponses() {
-        const config = vscode.workspace.getConfiguration('vscodeLocalLLMAgent');
-        return config.get('cacheResponses', true);
+    dispose() {
+        if (this.configChangeHandler) {
+            this.configChangeHandler.dispose();
+        }
     }
 }
-exports.Config = Config;
+exports.ConfigManager = ConfigManager;
 //# sourceMappingURL=config.js.map

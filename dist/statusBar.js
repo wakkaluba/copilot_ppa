@@ -33,33 +33,125 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LLMStatusBar = void 0;
+exports.StatusBarManager = void 0;
 const vscode = __importStar(require("vscode"));
-class LLMStatusBar {
-    constructor() {
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+/**
+ * Manages status bar items for the extension
+ */
+class StatusBarManager {
+    context;
+    mainStatusBarItem;
+    metricsStatusBarItem;
+    /**
+     * Creates a new status bar manager
+     * @param context The extension context
+     */
+    constructor(context) {
+        this.context = context;
+        // Create the main status bar item
+        this.mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.mainStatusBarItem.command = 'copilot-ppa.openMenu';
+        this.mainStatusBarItem.tooltip = 'Copilot PPA';
+        // Create the metrics status bar item
+        this.metricsStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+        this.metricsStatusBarItem.command = 'copilot-ppa.showMetrics';
+        this.metricsStatusBarItem.tooltip = 'PPA Metrics';
+        // Add the status bar items to context subscriptions
+        context.subscriptions.push(this.mainStatusBarItem);
+        context.subscriptions.push(this.metricsStatusBarItem);
     }
-    show() {
-        this.statusBarItem.show();
+    /**
+     * Initialize status bar items
+     */
+    initialize() {
+        this.updateMainStatusBar();
+        this.updateMetricsStatusBar();
+        // Show status bar items if enabled in settings
+        const config = vscode.workspace.getConfiguration('copilot-ppa');
+        if (config.get('showStatusBar', true)) {
+            this.mainStatusBarItem.show();
+        }
+        // Add configuration change listener to show/hide status bar
+        this.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('copilot-ppa.showStatusBar')) {
+                this.updateVisibility();
+            }
+        }));
     }
-    hide() {
-        this.statusBarItem.hide();
+    /**
+     * Update the main status bar item's text and visibility
+     * @param text Optional text to set (uses default if not provided)
+     */
+    updateMainStatusBar(text) {
+        this.mainStatusBarItem.text = text || '$(copilot) PPA';
     }
-    updateStatus(connected, modelName) {
-        if (connected) {
-            this.statusBarItem.text = `$(check) LLM: ${modelName || 'Connected'}`;
-            this.statusBarItem.tooltip = 'Connected to LLM';
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.successBackground');
+    /**
+     * Update the metrics status bar with performance information
+     * @param perfScore Optional performance score (0-100)
+     */
+    updateMetricsStatusBar(perfScore) {
+        if (perfScore !== undefined) {
+            // Use different icons based on score
+            let icon = '$(check)';
+            if (perfScore < 50) {
+                icon = '$(warning)';
+            }
+            else if (perfScore < 80) {
+                icon = '$(info)';
+            }
+            this.metricsStatusBarItem.text = `${icon} ${perfScore}`;
+            this.metricsStatusBarItem.show();
         }
         else {
-            this.statusBarItem.text = '$(error) LLM: Disconnected';
-            this.statusBarItem.tooltip = 'Not connected to LLM';
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+            this.metricsStatusBarItem.hide();
         }
     }
+    /**
+     * Shows the working animation in the status bar
+     * @param message Optional message to show while working
+     */
+    showWorkingAnimation(message) {
+        const workingMessage = message || 'Analyzing...';
+        let dots = '.';
+        let count = 0;
+        const interval = setInterval(() => {
+            this.mainStatusBarItem.text = `$(sync~spin) ${workingMessage}${dots}`;
+            count++;
+            if (count % 3 === 0) {
+                dots = '.';
+            }
+            else {
+                dots += '.';
+            }
+        }, 500);
+        return {
+            dispose: () => {
+                clearInterval(interval);
+                this.updateMainStatusBar();
+            }
+        };
+    }
+    /**
+     * Update the visibility of status bar items based on settings
+     */
+    updateVisibility() {
+        const config = vscode.workspace.getConfiguration('copilot-ppa');
+        const showStatusBar = config.get('showStatusBar', true);
+        if (showStatusBar) {
+            this.mainStatusBarItem.show();
+        }
+        else {
+            this.mainStatusBarItem.hide();
+            this.metricsStatusBarItem.hide();
+        }
+    }
+    /**
+     * Dispose of status bar resources
+     */
     dispose() {
-        this.statusBarItem.dispose();
+        this.mainStatusBarItem.dispose();
+        this.metricsStatusBarItem.dispose();
     }
 }
-exports.LLMStatusBar = LLMStatusBar;
+exports.StatusBarManager = StatusBarManager;
 //# sourceMappingURL=statusBar.js.map

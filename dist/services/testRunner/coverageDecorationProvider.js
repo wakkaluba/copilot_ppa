@@ -40,9 +40,11 @@ const path = __importStar(require("path"));
  * Provider for code coverage decorations in the editor
  */
 class CoverageDecorationProvider {
+    decorations;
+    coverage;
+    enabled = false;
+    disposables = [];
     constructor() {
-        this.enabled = false;
-        this.disposables = [];
         // Create decoration types
         this.decorations = {
             covered: vscode.window.createTextEditorDecorationType({

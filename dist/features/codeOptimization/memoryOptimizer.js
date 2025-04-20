@@ -38,8 +38,14 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class MemoryOptimizer {
+    llmService;
+    context;
+    diagnosticCollection;
+    outputChannel;
+    disposables = [];
+    contentCache;
+    static CACHE_TTL = 5 * 60 * 1000; // 5 minutes
     constructor(context, llmService) {
-        this.disposables = [];
         this.context = context;
         this.llmService = llmService;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('memory-issues');
@@ -57,10 +63,17 @@ class MemoryOptimizer {
     }
     cleanupCache() {
         const now = Date.now();
-        for (const [key, value] of this.contentCache.entries()) {
-            if (now - value.timestamp > MemoryOptimizer.CACHE_TTL) {
-                this.contentCache.delete(key);
-            }
+        const beforeSize = this.contentCache.size;
+        // Batch delete expired entries
+        const expiredKeys = Array.from(this.contentCache.entries())
+            .filter(([_, value]) => now - value.timestamp > MemoryOptimizer.CACHE_TTL)
+            .map(([key]) => key);
+        expiredKeys.forEach(key => this.contentCache.delete(key));
+        if (expiredKeys.length > 0) {
+            const memoryFreed = process.memoryUsage().heapUsed / 1024 / 1024;
+            this.outputChannel.appendLine(`Memory cleanup: Removed ${expiredKeys.length} entries. ` +
+                `Cache size reduced from ${beforeSize} to ${this.contentCache.size}. ` +
+                `Current heap usage: ${memoryFreed.toFixed(2)} MB`);
         }
     }
     getCachedAnalysis(content) {
@@ -532,30 +545,17 @@ class MemoryOptimizer {
      * LLM-based memory analysis
      */
     async performLLMMemoryAnalysis(content, fileType) {
-        if (content.length > 10000) {
-            content = content.substring(0, 10000) + "\n... (content truncated for analysis)";
-        }
-        const prompt = `
-        Analyze the following ${fileType} code for memory usage issues, inefficient memory patterns, and potential leaks.
-        Focus on memory consumption, resource management, and optimization opportunities.
-        Format your response as a JSON array of issues with the following structure:
-        [
-          {
-            "line": <line number>,
-            "issue": "<description of the memory issue>",
-            "severity": "<low|medium|high>",
-            "suggestion": "<specific suggestion to improve memory usage>"
-          }
-        ]
-        
-        Code to analyze:
-        \`\`\`${fileType}
-        ${content}
-        \`\`\`
-        
-        Only return the JSON array, nothing else.
-        `;
         try {
+            // Truncate large files to avoid excessive memory usage
+            if (content.length > 10000) {
+                content = content.substring(0, 10000) + "\n... (content truncated for analysis)";
+            }
+            const prompt = `
+                Analyze the following ${fileType} code for memory usage issues:
+                \`\`\`${fileType}
+                ${content}
+                \`\`\`
+            `.trim();
             const response = await this.llmService.generateResponse(prompt, {
                 model: "code-analysis",
                 temperature: 0.3,
@@ -570,15 +570,27 @@ class MemoryOptimizer {
                 }));
             }
             catch (error) {
-                console.error('Failed to parse LLM response as JSON:', error);
-                console.debug('Raw response:', response);
+                this.logger.error('Failed to parse LLM response:', error);
                 return [];
             }
         }
         catch (error) {
-            console.error('Error getting LLM analysis:', error);
+            this.logger.error('Error in memory analysis:', error);
             return [];
         }
+    }
+    async analyzeMemoryUsage(content, fileType) {
+        const cached = this.getCachedAnalysis(content);
+        if (cached) {
+            return cached;
+        }
+        const startHeap = process.memoryUsage().heapUsed;
+        const analysis = await this.performLLMMemoryAnalysis(content, fileType);
+        const endHeap = process.memoryUsage().heapUsed;
+        const memoryUsed = (endHeap - startHeap) / 1024 / 1024;
+        this.outputChannel.appendLine(`Memory analysis completed. Memory used: ${memoryUsed.toFixed(2)} MB`);
+        this.cacheAnalysis(content, analysis);
+        return analysis;
     }
     /**
      * Adds diagnostics to the file
@@ -724,5 +736,4 @@ class MemoryOptimizer {
     }
 }
 exports.MemoryOptimizer = MemoryOptimizer;
-MemoryOptimizer.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 //# sourceMappingURL=memoryOptimizer.js.map

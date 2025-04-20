@@ -3,18 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeScriptAgent = void 0;
 const baseAgent_1 = require("../baseAgent");
 class TypeScriptAgent extends baseAgent_1.BaseAgent {
-    constructor() {
-        super(...arguments);
-        this.config = {
-            language: 'typescript',
-            fileExtensions: ['.ts', '.tsx'],
-            promptTemplates: {
-                codeReview: 'Review this TypeScript code considering type safety and best practices:\n{code}',
-                refactor: 'Refactor this TypeScript code to improve type usage and structure:\n{code}',
-                documentation: 'Generate TypeScript documentation with proper JSDoc and type annotations:\n{code}'
-            }
-        };
-    }
+    config = {
+        language: 'typescript',
+        fileExtensions: ['.ts', '.tsx'],
+        promptTemplates: {
+            codeReview: 'Review this TypeScript code considering type safety and best practices:\n{code}',
+            refactor: 'Refactor this TypeScript code to improve type usage and structure:\n{code}',
+            documentation: 'Generate TypeScript documentation with proper JSDoc and type annotations:\n{code}'
+        }
+    };
     async reviewCode(code) {
         return this.processWithTemplate('codeReview', { code });
     }

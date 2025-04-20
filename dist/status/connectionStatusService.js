@@ -46,15 +46,16 @@ var ConnectionState;
  * Service to manage and share the LLM connection status across the extension
  */
 class ConnectionStatusService {
+    _statusBarItem;
+    _state = ConnectionState.Disconnected;
+    _stateChangeEmitter = new vscode.EventEmitter();
+    _activeModelName = '';
+    _providerName = '';
+    /**
+     * Event that fires when the connection state changes
+     */
+    onDidChangeState = this._stateChangeEmitter.event;
     constructor() {
-        this._state = ConnectionState.Disconnected;
-        this._stateChangeEmitter = new vscode.EventEmitter();
-        this._activeModelName = '';
-        this._providerName = '';
-        /**
-         * Event that fires when the connection state changes
-         */
-        this.onDidChangeState = this._stateChangeEmitter.event;
         // Create status bar item
         this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this._statusBarItem.command = 'localLlmAgent.openSidebar';

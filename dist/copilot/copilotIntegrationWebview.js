@@ -40,6 +40,12 @@ const path = __importStar(require("path"));
  * WebView implementation for Copilot integration UI
  */
 class CopilotIntegrationWebview {
+    context;
+    static viewType = 'copilotIntegration.webview';
+    panel;
+    extensionPath;
+    copilotService;
+    disposables = [];
     /**
      * Creates a new instance of the CopilotIntegrationWebview
      * @param context The extension context
@@ -47,7 +53,6 @@ class CopilotIntegrationWebview {
      */
     constructor(context, copilotService) {
         this.context = context;
-        this.disposables = [];
         this.extensionPath = context.extensionPath;
         this.copilotService = copilotService;
     }
@@ -549,5 +554,4 @@ function formatMessage(text) {
     }
 }
 exports.CopilotIntegrationWebview = CopilotIntegrationWebview;
-CopilotIntegrationWebview.viewType = 'copilotIntegration.webview';
 //# sourceMappingURL=copilotIntegrationWebview.js.map

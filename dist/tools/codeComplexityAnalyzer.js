@@ -44,6 +44,8 @@ const parser_1 = require("@babel/parser");
 const traverse_1 = __importDefault(require("@babel/traverse"));
 const t = __importStar(require("@babel/types"));
 class CodeComplexityAnalyzer {
+    static HIGH_COMPLEXITY_THRESHOLD = 15;
+    static MEDIUM_COMPLEXITY_THRESHOLD = 10;
     /**
      * Analyzes complexity for a single file
      * @param filePath Path to the file to analyze
@@ -286,6 +288,4 @@ class CodeComplexityAnalyzer {
     }
 }
 exports.CodeComplexityAnalyzer = CodeComplexityAnalyzer;
-CodeComplexityAnalyzer.HIGH_COMPLEXITY_THRESHOLD = 15;
-CodeComplexityAnalyzer.MEDIUM_COMPLEXITY_THRESHOLD = 10;
 //# sourceMappingURL=codeComplexityAnalyzer.js.map

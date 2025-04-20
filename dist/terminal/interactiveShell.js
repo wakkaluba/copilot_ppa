@@ -40,9 +40,12 @@ const types_1 = require("./types");
  * Provides interactive terminal capabilities with enhanced features
  */
 class InteractiveShell {
+    terminalManager;
+    commandHistory = [];
+    outputChannel;
+    maxHistorySize = 100; // Maximum number of commands to remember
+    aiHelper; // Replace with the correct type if known
     constructor(terminalManager) {
-        this.commandHistory = [];
-        this.maxHistorySize = 100; // Maximum number of commands to remember
         this.terminalManager = terminalManager;
         this.outputChannel = vscode.window.createOutputChannel('Terminal Output');
     }
