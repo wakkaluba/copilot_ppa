@@ -8,7 +8,7 @@ export class LLMProviderError extends Error {
     constructor(
         public readonly code: string,
         message: string,
-        public readonly cause?: unknown
+        public override readonly cause?: unknown
     ) {
         super(message);
         this.name = 'LLMProviderError';
@@ -94,7 +94,7 @@ export interface LLMProviderStatus {
 /**
  * Base interface for all LLM providers
  */
-export interface LLMProvider {
+export interface LLMProvider extends EventEmitter {
     /**
      * Name of the provider
      */

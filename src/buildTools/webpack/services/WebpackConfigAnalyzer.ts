@@ -36,45 +36,38 @@ export class WebpackConfigAnalyzer {
 
     private extractEntryPoints(content: string): WebpackEntry[] {
         const entries: WebpackEntry[] = [];
+        const entryMatch = content.match(/entry\s*:\s*({[^}]*}|\[[^\]]*\]|['"][^'"]*['"])/s);
         
-        // Match object-style entry
-        const objectEntryMatch = content.match(/entry\s*:\s*{([^}]*)}/s);
-        if (objectEntryMatch?.[1]) {
-            const entryContent = objectEntryMatch[1];
+        if (!entryMatch?.[1]) {
+            return entries;
+        }
+
+        const entryContent = entryMatch[1];
+        
+        // Handle object syntax: { main: './src/index.js' }
+        if (entryContent.startsWith('{')) {
             const entryMatches = Array.from(entryContent.matchAll(/['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g));
             entryMatches.forEach(match => {
                 if (match[1] && match[2]) {
-                    entries.push({
-                        name: match[1],
-                        path: match[2]
-                    });
+                    entries.push({ name: match[1], path: match[2] });
                 }
             });
         }
-
-        // Match array-style entry
-        const arrayEntryMatch = content.match(/entry\s*:\s*\[(([^[\]]*?))\]/s);
-        if (arrayEntryMatch?.[1]) {
-            const entryPaths = arrayEntryMatch[1].split(',')
-                .map(path => path.trim())
-                .filter(path => path.length > 0)
-                .map(path => path.replace(/['"]/g, ''));
-            
-            entryPaths.forEach(path => {
-                entries.push({
-                    name: path,
-                    path: path
-                });
+        // Handle array syntax: ['./src/index.js']
+        else if (entryContent.startsWith('[')) {
+            const entryPaths = Array.from(entryContent.matchAll(/['"]([^'"]+)['"]/g));
+            entryPaths.forEach((match, index) => {
+                if (match[1]) {
+                    entries.push({ name: `entry${index + 1}`, path: match[1] });
+                }
             });
         }
-
-        // Match string-style entry
-        const stringEntryMatch = content.match(/entry\s*:\s*['"]([^'"]*)['"]/);
-        if (stringEntryMatch?.[1]) {
-            entries.push({
-                name: 'main',
-                path: stringEntryMatch[1]
-            });
+        // Handle string syntax: './src/index.js'
+        else {
+            const pathMatch = entryContent.match(/['"]([^'"]+)['"]/);
+            if (pathMatch?.[1]) {
+                entries.push({ name: 'main', path: pathMatch[1] });
+            }
         }
 
         return entries;
@@ -99,16 +92,15 @@ export class WebpackConfigAnalyzer {
     }
 
     private extractPathValue(pathString: string): string {
-        // Handle path.resolve/join
-        const resolveMatch = pathString.match(/path\.(?:resolve|join)\s*\(([^)]+)\)/);
+        // Handle path.resolve/join syntax
+        const resolveMatch = pathString.match(/path\.(?:resolve|join)\s*\((.*)\)/);
         if (resolveMatch?.[1]) {
-            return resolveMatch[1].split(',')
-                .map(p => p.trim().replace(/['"]/g, ''))
-                .join('/');
+            const parts = Array.from(resolveMatch[1].matchAll(/['"]([^'"]+)['"]/g));
+            return parts.map(match => match[1]).join('/');
         }
 
         // Handle direct string
-        const directMatch = pathString.match(/:\s*['"]([^'"]+)['"]/);
+        const directMatch = pathString.match(/['"]([^'"]+)['"]/);
         return directMatch?.[1] || '';
     }
 
@@ -142,20 +134,15 @@ export class WebpackConfigAnalyzer {
         let depth = 0;
         let currentBlock = '';
 
-        for (let i = 0; i < rulesContent.length; i++) {
-            const char = rulesContent[i];
-            if (char === '{') {
-                depth++;
-                currentBlock += char;
-            } else if (char === '}') {
-                depth--;
-                currentBlock += char;
-                if (depth === 0) {
-                    blocks.push(currentBlock);
-                    currentBlock = '';
-                }
-            } else if (depth > 0) {
-                currentBlock += char;
+        for (const char of rulesContent) {
+            if (char === '{') depth++;
+            if (char === '}') depth--;
+
+            currentBlock += char;
+
+            if (depth === 0 && currentBlock.trim()) {
+                blocks.push(currentBlock.trim());
+                currentBlock = '';
             }
         }
 
@@ -163,8 +150,8 @@ export class WebpackConfigAnalyzer {
     }
 
     private extractTest(ruleBlock: string): string {
-        const testMatch = ruleBlock.match(/test\s*:\s*([^,}]+)/);
-        return testMatch?.[1]?.trim() || '';
+        const testMatch = ruleBlock.match(/test\s*:\s*\/([^/]+)\//);
+        return testMatch?.[1] || '';
     }
 
     private extractLoaderNames(ruleBlock: string): string[] {
@@ -223,8 +210,8 @@ export class WebpackConfigAnalyzer {
         const pluginsMatch = content.match(/plugins\s*:\s*\[(.*?)\]/s);
 
         if (pluginsMatch?.[1]) {
-            const pluginContent = pluginsMatch[1];
-            const pluginMatches = Array.from(pluginContent.matchAll(/new\s+([A-Za-z0-9_]+)/g));
+            const pluginsContent = pluginsMatch[1];
+            const pluginMatches = Array.from(pluginsContent.matchAll(/new\s+([A-Za-z]+Plugin)/g));
 
             pluginMatches.forEach(match => {
                 if (match[1]) {

@@ -1,103 +1,88 @@
-import { RollupConfigAnalysis, RollupOptimization, IRollupConfigManager, IRollupConfigDetector, IRollupConfigAnalyzer, IRollupOptimizationService, IRollupConfigValidationService } from './types';
-import { RollupConfigDetector } from './services/RollupConfigDetector';
-import { RollupConfigAnalyzer } from './services/RollupConfigAnalyzer';
-import { RollupOptimizationService } from './services/RollupOptimizationService';
-import { RollupConfigValidationService } from './services/RollupConfigValidationService';
+import { RollupConfigAnalysis, RollupPlugin, RollupInput, RollupOutput } from './types';
+import { RollupConfigAnalyzer, RollupConfigDetector, RollupOptimizationService } from './services';
 import { ILogger } from '../../services/logging/ILogger';
-import { ConfigValidationError } from './errors/ConfigValidationError';
 
-export class RollupConfigManager implements IRollupConfigManager {
-    private readonly configDetector: IRollupConfigDetector;
-    private readonly configAnalyzer: IRollupConfigAnalyzer;
-    private readonly optimizationService: IRollupOptimizationService;
-    private readonly validationService: IRollupConfigValidationService;
-
+export class RollupConfigManager {
     constructor(
-        private readonly logger: ILogger,
-        configDetector?: IRollupConfigDetector,
-        configAnalyzer?: IRollupConfigAnalyzer,
-        optimizationService?: IRollupOptimizationService,
-        validationService?: IRollupConfigValidationService
-    ) {
-        this.configDetector = configDetector ?? new RollupConfigDetector(logger);
-        this.configAnalyzer = configAnalyzer ?? new RollupConfigAnalyzer(logger);
-        this.optimizationService = optimizationService ?? new RollupOptimizationService(logger);
-        this.validationService = validationService ?? new RollupConfigValidationService(logger);
-    }
+        private readonly configDetector: RollupConfigDetector,
+        private readonly configAnalyzer: RollupConfigAnalyzer,
+        private readonly optimizationService: RollupOptimizationService,
+        private readonly logger: ILogger
+    ) {}
 
     /**
-     * Detects Rollup configuration files in the given directory
-     * @throws {ConfigValidationError} If workspace path is invalid
-     * @throws {Error} If detection fails
+     * Detects rollup configuration files in the given directory
+     * @param workspacePath The root directory to search for rollup configs
+     * @returns Array of absolute paths to rollup config files
      */
     public async detectConfigs(workspacePath: string): Promise<string[]> {
-        this.validationService.validateWorkspacePath(workspacePath);
-
         try {
-            const configs = await this.configDetector.detectConfigs(workspacePath);
-            
-            if (configs.length === 0) {
-                this.logger.warn(`No Rollup configuration files found in ${workspacePath}`);
-            } else {
-                this.logger.info(`Found ${configs.length} Rollup configuration files in ${workspacePath}`);
-            }
-
-            return configs;
+            this.logger.debug(`Detecting rollup configs in ${workspacePath}`);
+            return await this.configDetector.detectConfigs(workspacePath);
         } catch (error) {
             this.logger.error('Error detecting rollup configs:', error);
-            throw error;
+            throw new Error(`Failed to detect rollup configurations: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
     /**
-     * Analyzes a Rollup configuration file and validates its structure
-     * @throws {ConfigValidationError} If the configuration is invalid
-     * @throws {Error} If analysis fails
+     * Analyzes a rollup configuration file
+     * @param configPath Path to the rollup config file
+     * @returns Analysis results including input config, output config, plugins, and optimization suggestions
      */
     public async analyzeConfig(configPath: string): Promise<RollupConfigAnalysis> {
-        this.validationService.validateConfigPath(configPath);
-
         try {
+            this.logger.debug(`Analyzing rollup config at ${configPath}`);
             const analysis = await this.configAnalyzer.analyze(configPath);
-            
-            // Validate required configuration fields
-            this.validationService.validateConfig(analysis);
-            
-            // Generate optimization suggestions
-            analysis.optimizationSuggestions = this.optimizationService.generateOptimizations(
+            const suggestions = await this.optimizationService.generateSuggestions(
                 analysis.content,
                 analysis.input,
-                analysis.output.map(o => o.format),
-                analysis.plugins.map(p => p.name)
+                analysis.output,
+                analysis.plugins
             );
 
-            this.logger.info(`Successfully analyzed Rollup config at ${configPath}`);
-            return analysis;
+            return {
+                ...analysis,
+                optimizationSuggestions: suggestions
+            };
         } catch (error) {
-            if (error instanceof ConfigValidationError) {
-                this.logger.warn(`Invalid Rollup config at ${configPath}:`, error.message);
-                throw error;
-            }
             this.logger.error('Error analyzing rollup config:', error);
-            throw error;
+            throw new Error(`Failed to analyze rollup configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
     /**
-     * Generates optimization suggestions for a Rollup configuration
-     * @throws {ConfigValidationError} If the config path is invalid
-     * @throws {Error} If optimization generation fails
+     * Validates a rollup configuration file
+     * @param configPath Path to the rollup config file
+     * @returns True if the configuration is valid
      */
-    public async generateOptimizations(configPath: string): Promise<RollupOptimization[]> {
-        this.validationService.validateConfigPath(configPath);
-
+    public async validateConfig(configPath: string): Promise<boolean> {
         try {
+            this.logger.debug(`Validating rollup config at ${configPath}`);
+            const analysis = await this.configAnalyzer.analyze(configPath);
+            
+            // Basic validation - check if required fields are present
+            return analysis.input.length > 0 && 
+                   analysis.output.some(output => output.file || output.dir);
+        } catch (error) {
+            this.logger.error('Error validating rollup config:', error);
+            throw new Error(`Failed to validate rollup configuration: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
+     * Generates optimization suggestions for a rollup configuration
+     * @param configPath Path to the rollup config file
+     * @returns Array of optimization suggestions
+     */
+    public async generateOptimizations(configPath: string): Promise<string[]> {
+        try {
+            this.logger.debug(`Generating optimization suggestions for ${configPath}`);
             const analysis = await this.analyzeConfig(configPath);
-            this.logger.info(`Generated ${analysis.optimizationSuggestions.length} optimization suggestions for ${configPath}`);
             return analysis.optimizationSuggestions;
         } catch (error) {
             this.logger.error('Error generating optimizations:', error);
-            throw error;
+            throw new Error(`Failed to generate optimization suggestions: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

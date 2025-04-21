@@ -1,20 +1,21 @@
+/**
+ * @deprecated Use src/services/llm/LLMConnectionManager.ts instead.
+ * This class is maintained for backwards compatibility and will be removed in a future version.
+ */
 import * as vscode from 'vscode';
 import { LLMHostManager } from './LLMHostManager';
-import { LLMConnectionStatusService } from './llm/services/LLMConnectionStatusService';
-import { LLMRetryService } from './llm/services/LLMRetryService';
-import { LLMHealthCheckService } from './llm/services/LLMHealthCheckService';
+import { LLMConnectionManager as NewLLMConnectionManager } from './llm/LLMConnectionManager';
 
+/**
+ * @deprecated Use the new LLMConnectionManager from services/llm instead
+ */
 export class LLMConnectionManager {
     private static instance: LLMConnectionManager;
-    private readonly statusService: LLMConnectionStatusService;
-    private readonly retryService: LLMRetryService;
-    private readonly healthCheckService: LLMHealthCheckService;
+    private readonly newManager: NewLLMConnectionManager;
     
     private constructor() {
-        this.statusService = new LLMConnectionStatusService();
-        this.retryService = new LLMRetryService();
-        this.healthCheckService = new LLMHealthCheckService();
-        this.statusService.updateStatus('disconnected');
+        this.newManager = NewLLMConnectionManager.getInstance();
+        console.warn('LLMConnectionManager is deprecated. Use services/llm/LLMConnectionManager instead.');
     }
 
     static getInstance(): LLMConnectionManager {
@@ -25,37 +26,15 @@ export class LLMConnectionManager {
     }
 
     async connectToLLM(): Promise<boolean> {
-        try {
-            this.statusService.updateStatus('connecting');
-            const hostManager = LLMHostManager.getInstance();
-            
-            if (!hostManager.isRunning()) {
-                await hostManager.startHost();
-            }
-
-            const isHealthy = await this.healthCheckService.checkConnection();
-            if (isHealthy) {
-                this.statusService.updateStatus('connected');
-                this.retryService.resetRetries();
-                return true;
-            }
-
-            return await this.handleConnectionFailure();
-        } catch (error) {
-            console.error('Connection error:', error);
-            return await this.handleConnectionFailure();
-        }
+        return this.newManager.connectToLLM();
     }
 
     private async handleConnectionFailure(): Promise<boolean> {
-        this.statusService.updateStatus('error');
-        return this.retryService.shouldRetry() ? 
-            await this.retryService.scheduleRetry(() => this.connectToLLM()) : 
-            false;
+        // Forward to new implementation's retry mechanism
+        return false; // Let new implementation handle retries
     }
 
     dispose(): void {
-        this.retryService.dispose();
-        this.statusService.dispose();
+        this.newManager.dispose();
     }
 }

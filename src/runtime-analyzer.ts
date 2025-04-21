@@ -4,37 +4,48 @@ import * as path from 'path';
 import { performance } from 'perf_hooks';
 
 /**
- * Runtime analyzer for the VS Code Local LLM Agent extension.
- * Provides tools for measuring and analyzing code performance during execution.
+ * @deprecated Use PerformanceManager from './performance/performanceManager' instead.
+ * This class will be removed in a future version.
  */
 export class RuntimeAnalyzer {
-    private perfMarkers: Map<string, number> = new Map();
-    private executionTimes: Map<string, number[]> = new Map();
-    private memorySnapshots: Map<string, number[]> = new Map();
-    private analysisResults: Map<string, AnalysisResult> = new Map();
-    private isRecording: boolean = false;
-    private outputChannel: vscode.OutputChannel;
-    private cpuUsageSnapshots: Map<string, number[]> = new Map();
-    private asyncOperations: Map<string, AsyncOperationTracker[]> = new Map();
-    private recordingStartTime: number = 0;
-    private performanceTrends: Map<string, PerformanceTrendPoint[]> = new Map();
+    private readonly outputChannel: vscode.OutputChannel;
+    private readonly perfMarkers: Map<string, number>;
+    private readonly executionTimes: Map<string, number[]>;
+    private readonly memorySnapshots: Map<string, number[]>;
+    private readonly analysisResults: Map<string, AnalysisResult>;
+    private readonly cpuUsageSnapshots: Map<string, number[]>;
+    private readonly asyncOperations: Map<string, AsyncOperationTracker[]>;
+    private readonly performanceTrends: Map<string, PerformanceTrendPoint[]>;
+    private isRecording: boolean;
+    private recordingStartTime: number;
 
     constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('Runtime Analyzer');
+        this.outputChannel = vscode.window.createOutputChannel('Runtime Analysis');
+        this.perfMarkers = new Map();
+        this.executionTimes = new Map();
+        this.memorySnapshots = new Map();
+        this.analysisResults = new Map();
+        this.cpuUsageSnapshots = new Map();
+        this.asyncOperations = new Map();
+        this.performanceTrends = new Map();
+        this.isRecording = false;
+        this.recordingStartTime = 0;
+        
+        console.warn('RuntimeAnalyzer is deprecated. Use PerformanceManager instead.');
     }
-
+    
     /**
-     * Start recording performance metrics
+     * @deprecated Use PerformanceManager.startRecording() instead
      */
     public startRecording(): void {
         this.isRecording = true;
-        this.recordingStartTime = performance.now();
+        this.recordingStartTime = Date.now();
         this.outputChannel.appendLine('🔍 Runtime analysis recording started');
         this.outputChannel.show();
     }
 
     /**
-     * Stop recording performance metrics
+     * @deprecated Use PerformanceManager.stopRecording() instead
      */
     public stopRecording(): void {
         this.isRecording = false;
@@ -396,74 +407,9 @@ export class RuntimeAnalyzer {
      * Generate performance optimization recommendations
      */
     private generatePerformanceRecommendations(result: AnalysisResult): void {
-        this.outputChannel.appendLine(`\n   📝 RECOMMENDATIONS:`);
-        
-        // Execution time recommendations
-        if (result.averageTime > 500) {
-            this.outputChannel.appendLine(`   🔴 SLOW EXECUTION: Consider optimizing ${result.markerId}`);
-            this.outputChannel.appendLine(`      - Consider breaking down into smaller functions`);
-            this.outputChannel.appendLine(`      - Look for opportunities to use caching`);
-            this.outputChannel.appendLine(`      - Investigate if operations can be done asynchronously`);
-        } else if (result.averageTime > 100) {
-            this.outputChannel.appendLine(`   🟠 MODERATE PERFORMANCE: ${result.markerId} could be improved`);
-            this.outputChannel.appendLine(`      - Review algorithms for optimization opportunities`);
-            this.outputChannel.appendLine(`      - Consider using more efficient data structures`);
-        }
-        
-        // Execution time variance recommendations
-        if (result.standardDeviation > result.averageTime * 0.5) {
-            this.outputChannel.appendLine(`   ⚠️ HIGH VARIANCE: ${result.markerId} has inconsistent performance`);
-            this.outputChannel.appendLine(`      - Look for conditional paths that might cause slowdowns`);
-            this.outputChannel.appendLine(`      - Check for external dependencies that might affect performance`);
-            this.outputChannel.appendLine(`      - Consider adding more specific performance markers to identify bottlenecks`);
-        }
-        
-        // Memory recommendations
-        if (result.potentialMemoryLeak) {
-            this.outputChannel.appendLine(`   🚨 POTENTIAL MEMORY LEAK: Investigate ${result.markerId}`);
-            this.outputChannel.appendLine(`      - Check for unclosed resources or event listeners`);
-            this.outputChannel.appendLine(`      - Look for growing collections or caches without limits`);
-            this.outputChannel.appendLine(`      - Consider implementing weak references where appropriate`);
-        } else if (result.averageMemoryDelta > 0.5) {
-            this.outputChannel.appendLine(`   🟠 SIGNIFICANT MEMORY USAGE: ${result.markerId} consumes ${result.averageMemoryDelta.toFixed(2)}MB`);
-            this.outputChannel.appendLine(`      - Consider object pooling to reduce allocations`);
-            this.outputChannel.appendLine(`      - Look for opportunities to reuse objects instead of creating new ones`);
-        }
-        
-        // CPU recommendations
-        if (result.cpuIntensiveOperation) {
-            this.outputChannel.appendLine(`   🔥 CPU INTENSIVE: ${result.markerId} is demanding on the CPU`);
-            this.outputChannel.appendLine(`      - Consider moving work to a Web Worker if appropriate`);
-            this.outputChannel.appendLine(`      - Look for ways to parallelize computation`);
-            this.outputChannel.appendLine(`      - Consider using more efficient algorithms`);
-        }
-        
-        // Async recommendations
-        if (result.asyncOperationsCount > 0) {
-            if (result.maxConcurrentOperations > 10) {
-                this.outputChannel.appendLine(`   ⚠️ HIGH CONCURRENCY: ${result.markerId} runs ${result.maxConcurrentOperations} operations concurrently`);
-                this.outputChannel.appendLine(`      - Consider adding throttling or pooling to limit concurrency`);
-                this.outputChannel.appendLine(`      - Check for resource contention issues`);
-            }
-            
-            if (result.averageAsyncDuration > 1000) {
-                this.outputChannel.appendLine(`   🕒 LONG ASYNC OPERATIONS: ${result.markerId} average duration is ${result.averageAsyncDuration.toFixed(2)}ms`);
-                this.outputChannel.appendLine(`      - Add progress indicators for better user experience`);
-                this.outputChannel.appendLine(`      - Consider breaking down long operations into smaller chunks`);
-            }
-        }
-        
-        // Performance trend recommendations
-        if (result.performanceTrend === 'degrading' && result.trendPercentage > 10) {
-            this.outputChannel.appendLine(`   📉 DEGRADING PERFORMANCE: ${result.markerId} is getting slower by ${result.trendPercentage.toFixed(2)}%`);
-            this.outputChannel.appendLine(`      - Check for accumulating state that might be affecting performance`);
-            this.outputChannel.appendLine(`      - Look for resource leaks that compound over time`);
-            this.outputChannel.appendLine(`      - Consider implementing periodic cleanup or reset mechanisms`);
-        } else if (result.performanceTrend === 'improving' && result.trendPercentage > 10) {
-            this.outputChannel.appendLine(`   📈 IMPROVING PERFORMANCE: ${result.markerId} is getting faster by ${result.trendPercentage.toFixed(2)}%`);
-            this.outputChannel.appendLine(`      - Consider what warm-up optimizations might be happening`);
-            this.outputChannel.appendLine(`      - Document the improvement patterns for other parts of the codebase`);
-        }
+        // Forward to new PerformanceManager
+        const manager = require('./performance/performanceManager').PerformanceManager.getInstance();
+        manager.generatePerformanceReport();
     }
 
     /**

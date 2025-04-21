@@ -2,10 +2,10 @@ import { BasePerformanceAnalyzer } from './baseAnalyzer';
 import { PerformanceAnalysisResult, PerformanceIssue, AnalyzerOptions } from '../types';
 
 export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
-    private options: AnalyzerOptions;
+    protected options: AnalyzerOptions;
 
     constructor(options?: AnalyzerOptions) {
-        super();
+        super(options);
         this.options = options || {};
     }
 

@@ -1,129 +1,111 @@
+import * as glob from 'glob';
+import * as path from 'path';
 import { ILogger } from '../../../services/logging/ILogger';
 import { ConfigValidationError } from '../errors/ConfigValidationError';
 import { IRollupConfigDetector } from '../types';
 import * as fs from 'fs';
-import * as path from 'path';
-import glob = require('glob');
 
 export class RollupConfigDetector implements IRollupConfigDetector {
     private readonly configPatterns = [
         'rollup.config.js',
-        'rollup.config.mjs',
+        'rollup.*.config.js',
+        '*rollup.config.js',
+        '*rollup*.js',
         'rollup.config.ts',
-        'rollup.*.js',
-        'rollup.*.mjs',
-        'rollup.*.ts'
+        'rollup.*.config.ts',
+        '*rollup.config.ts',
+        '*rollup*.ts',
+        'rollup.config.mjs',
+        'rollup.*.config.mjs'
     ];
 
     constructor(private readonly logger: ILogger) {}
 
     /**
-     * Detects Rollup configuration files in the given directory
-     * @throws {ConfigValidationError} If workspace path is invalid
-     * @throws {Error} If detection fails
+     * Detects rollup configuration files in the given directory
+     * @param workspacePath Directory to search for rollup configs
+     * @returns Array of absolute paths to rollup config files
      */
     public async detectConfigs(workspacePath: string): Promise<string[]> {
+        this.logger.debug(`Searching for rollup configs in ${workspacePath}`);
+
         try {
-            this.validateWorkspacePath(workspacePath);
+            const configs = new Set<string>();
 
-            const configPromises = this.configPatterns.map(pattern => 
-                this.findConfigFiles(workspacePath, pattern)
-            );
-
-            const configLists = await Promise.all(configPromises);
-            const configs = Array.from(new Set(configLists.flat())).sort();
-
-            if (configs.length === 0) {
-                this.logger.warn(`No Rollup configuration files found in ${workspacePath}`);
-            } else {
-                this.logger.info(`Found ${configs.length} Rollup configuration file(s) in ${workspacePath}`);
-                configs.forEach(config => this.logger.debug(`Found config: ${config}`));
+            for (const pattern of this.configPatterns) {
+                const matches = await this.findFiles(pattern, workspacePath);
+                matches.forEach(match => configs.add(path.resolve(workspacePath, match)));
             }
 
-            // Filter out invalid config files
-            const validConfigs = await Promise.all(
-                configs.map(async config => {
-                    const isValid = await this.isValidConfigFile(config);
-                    return isValid ? config : null;
-                })
-            );
-
-            return validConfigs.filter((config): config is string => config !== null);
+            const configArray = Array.from(configs);
+            this.logger.debug(`Found ${configArray.length} rollup config files`);
+            return configArray;
         } catch (error) {
-            if (error instanceof ConfigValidationError) {
-                throw error;
-            }
-            this.logger.error('Error detecting Rollup configs:', error);
-            throw new Error(`Failed to detect Rollup configs: ${error instanceof Error ? error.message : String(error)}`);
+            this.logger.error('Error detecting rollup configs:', error);
+            throw new Error(`Failed to detect rollup configurations: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
     /**
-     * Finds configuration files matching a pattern
+     * Finds files matching the given pattern in the workspace
+     * @param pattern Glob pattern to match
+     * @param cwd Directory to search in
      */
-    private findConfigFiles(workspacePath: string, pattern: string): Promise<string[]> {
+    private findFiles(pattern: string, cwd: string): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            glob(pattern, {
-                cwd: workspacePath,
-                absolute: true,
-                nodir: true,
-                ignore: ['**/node_modules/**', '**/dist/**', '**/build/**']
-            }, (error: Error | null, files: string[]) => {
-                if (error) {
-                    this.logger.error(`Error finding config files with pattern ${pattern}:`, error);
-                    reject(error);
+            glob(pattern, { cwd }, (err, matches) => {
+                if (err) {
+                    this.logger.error(`Error searching for pattern ${pattern}:`, err);
+                    reject(err);
                 } else {
-                    resolve(files);
+                    resolve(matches);
                 }
             });
         });
     }
 
     /**
-     * Validates the workspace path
-     * @throws {ConfigValidationError} If the path is invalid
+     * Validates if a file is a rollup config
+     * @param filePath Path to the file to validate
+     * @returns true if the file appears to be a rollup config
      */
-    private validateWorkspacePath(workspacePath: string): void {
-        if (!workspacePath) {
-            throw new ConfigValidationError('No workspace path provided');
-        }
-
-        if (!path.isAbsolute(workspacePath)) {
-            throw new ConfigValidationError('Workspace path must be absolute');
-        }
-
+    public async validateConfigFile(filePath: string): Promise<boolean> {
+        this.logger.debug(`Validating rollup config file: ${filePath}`);
+        
         try {
-            const stats = fs.statSync(workspacePath);
-            if (!stats.isDirectory()) {
-                throw new ConfigValidationError(`Workspace path is not a directory: ${workspacePath}`);
+            // Check if the file matches any of our patterns
+            const fileName = path.basename(filePath);
+            const isMatch = this.configPatterns.some(pattern => 
+                new RegExp('^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$').test(fileName)
+            );
+
+            if (!isMatch) {
+                this.logger.debug(`File ${fileName} does not match rollup config patterns`);
+                return false;
             }
+
+            // Additional validation could be added here, like checking file contents
+            // for rollup-specific keywords or importing the config to validate it
+
+            return true;
         } catch (error) {
-            if (error instanceof ConfigValidationError) {
-                throw error;
-            }
-            throw new ConfigValidationError(`Invalid workspace path: ${workspacePath}`);
+            this.logger.error('Error validating rollup config file:', error);
+            throw new Error(`Failed to validate rollup configuration file: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
     /**
-     * Checks if a file is a valid Rollup config file
+     * Gets the default config pattern for a given language
+     * @param language The programming language (js, ts, etc.)
+     * @returns The default config pattern for that language
      */
-    private async isValidConfigFile(filePath: string): Promise<boolean> {
-        try {
-            const content = await fs.promises.readFile(filePath, 'utf-8');
-            
-            // Check for common Rollup config patterns
-            const hasRollupConfig = content.includes('export default') && (
-                content.includes('rollup') ||
-                content.includes('input:') ||
-                content.includes('output:') ||
-                content.includes('plugins:')
-            );
+    public getDefaultConfigPattern(language: string): string {
+        const patterns: Record<string, string> = {
+            'js': 'rollup.config.js',
+            'ts': 'rollup.config.ts',
+            'mjs': 'rollup.config.mjs'
+        };
 
-            return hasRollupConfig;
-        } catch (error) {
-            this.logger.warn(`Error reading potential config file ${filePath}:`, error);
-            return false;
-        }
+        return patterns[language] || patterns['js'];
     }
 }

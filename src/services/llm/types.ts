@@ -12,11 +12,9 @@ export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'err
  */
 export interface RetryConfig {
     maxAttempts: number;
-    baseDelay: number;  // in milliseconds
-    maxDelay: number;   // in milliseconds
-    timeout: number;    // in milliseconds
+    initialDelayMs: number;
+    maxDelayMs: number;
     backoffFactor: number;
-    currentAttempt: number;
 }
 
 /**
@@ -37,6 +35,7 @@ export interface ModelInfo {
     provider: string;
     capabilities: string[];
     parameters?: Record<string, unknown>;
+    version?: string;
 }
 
 /**
@@ -88,9 +87,9 @@ export interface ConnectionEventData {
  * Health check response from LLM service
  */
 export interface HealthCheckResponse {
-    status: 'ok' | 'error';
-    message?: string;
-    models?: ModelInfo[];
+    status: ProviderStatus;
+    latencyMs: number;
+    metadata?: Record<string, unknown>;
 }
 
 /**
@@ -103,7 +102,9 @@ export enum LLMConnectionErrorCode {
     HealthCheckFailed = 'HEALTH_CHECK_FAILED',
     AuthenticationFailed = 'AUTHENTICATION_FAILED',
     Timeout = 'TIMEOUT',
-    ProviderNotFound = 'PROVIDER_NOT_FOUND'
+    ProviderNotFound = 'PROVIDER_NOT_FOUND',
+    InvalidConfiguration = 'INVALID_CONFIGURATION',
+    NetworkError = 'NETWORK_ERROR'
 }
 
 /**
@@ -195,4 +196,128 @@ export interface ConnectionErrorEvent {
     retryCount: number;
     timestamp: number;
     isRetryable: boolean;
+}
+
+/**
+ * Provider status
+ */
+export enum ProviderStatus {
+    HEALTHY = 'HEALTHY',
+    UNHEALTHY = 'UNHEALTHY',
+    UNKNOWN = 'UNKNOWN'
+}
+
+/**
+ * Health check configuration
+ */
+export interface HealthCheckConfig {
+    checkIntervalMs: number;
+    timeoutMs: number;
+    healthyThreshold: number;
+    unhealthyThreshold: number;
+}
+
+/**
+ * Provider health information
+ */
+export interface ProviderHealth {
+    status: ProviderStatus;
+    lastCheck: number;
+    lastSuccess: number;
+    consecutiveFailures: number;
+    consecutiveSuccesses: number;
+    totalChecks: number;
+    error?: Error;
+}
+
+export interface LLMProvider extends EventEmitter {
+    id: string;
+    initialize(config: ProviderConfig): Promise<void>;
+    dispose(): Promise<void>;
+    ping(): Promise<boolean>;
+    getCapabilities(): Promise<ProviderCapabilities>;
+}
+
+export interface ProviderInfo {
+    id: string;
+    name: string;
+    version: string;
+    capabilities: ProviderCapabilities;
+}
+
+export enum ProviderEvent {
+    Registered = 'registered',
+    Unregistered = 'unregistered',
+    Initialized = 'initialized',
+    Deactivated = 'deactivated',
+    StateChanged = 'stateChanged',
+    HealthChanged = 'healthChanged',
+    MetricsUpdated = 'metricsUpdated',
+    ConnectionStateChanged = 'connectionStateChanged'
+}
+
+export class ProviderError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ProviderError';
+    }
+}
+
+export enum ProviderState {
+    Unknown = 'unknown',
+    Registered = 'registered',
+    Unregistered = 'unregistered',
+    Initializing = 'initializing',
+    Active = 'active',
+    Inactive = 'inactive',
+    Deactivating = 'deactivating',
+    Error = 'error'
+}
+
+export interface ProviderCapabilities {
+    maxTokens: number;
+    supportedModels: string[];
+    supportsStreaming: boolean;
+    supportsCompletion: boolean;
+    supportsChatCompletion: boolean;
+}
+
+export interface ProviderMetrics {
+    requestCount: number;
+    successCount: number;
+    errorCount: number;
+    tokenUsage: number;
+    averageResponseTime: number;
+    lastError: Error | null;
+}
+
+export interface ProviderConfig {
+    apiKey?: string;
+    baseUrl?: string;
+    modelName?: string;
+    maxTokens?: number;
+    temperature?: number;
+    timeout?: number;
+    retryOptions?: {
+        maxRetries: number;
+        delayMs: number;
+    };
+}
+
+export interface ProviderHealthStatus {
+    status: 'healthy' | 'unhealthy' | 'error' | 'unknown';
+    lastChecked: number;
+    errorCount: number;
+    lastError: Error | null;
+}
+
+export enum ProviderConnectionState {
+    Connected = 'connected',
+    Disconnected = 'disconnected',
+    Connecting = 'connecting',
+    Error = 'error'
 }

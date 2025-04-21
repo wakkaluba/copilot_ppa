@@ -21,9 +21,11 @@ export class CommandRegistrationService {
         }
         
         // Register an event listener for keybinding changes
-        vscode.commands.registerCommand('copilotPPA.keybindingsChanged', () => {
-            this.updateKeybindingContexts();
-        });
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand('copilotPPA.keybindingsChanged', () => {
+                this.updateKeybindingContexts();
+            })
+        );
     }
     
     /**
@@ -41,6 +43,9 @@ export class CommandRegistrationService {
         
         if (keybinding) {
             vscode.commands.executeCommand('setContext', `copilotPPA.keybinding.${keybindingId}`, keybinding.key);
+            if (keybinding.when) {
+                vscode.commands.executeCommand('setContext', `${keybindingId}.when`, keybinding.when);
+            }
         }
         
         this.registeredCommands.add(commandId);
@@ -56,6 +61,9 @@ export class CommandRegistrationService {
         for (const keybinding of keybindings) {
             if (keybinding.command.startsWith('copilotPPA.')) {
                 vscode.commands.executeCommand('setContext', `copilotPPA.keybinding.${keybinding.id}`, keybinding.key);
+                if (keybinding.when) {
+                    vscode.commands.executeCommand('setContext', `${keybinding.id}.when`, keybinding.when);
+                }
             }
         }
     }
@@ -64,75 +72,88 @@ export class CommandRegistrationService {
      * Register keyboard shortcut commands
      */
     public registerShortcutCommands(): void {
-        // Register the command to open UI settings panel
+        // Register command to open keyboard shortcuts panel
         this.context.subscriptions.push(
             vscode.commands.registerCommand('copilotPPA.openKeyboardShortcuts', () => {
                 vscode.commands.executeCommand('copilotPPA.openUISettingsPanel', 'keybindings');
             })
         );
-        
-        // Add additional shortcut-specific commands here
+
+        // Chat commands
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('copilotPPA.sendMessage', () => {
-                // Implementation for sending message
-                vscode.window.showInformationMessage('Message sent!');
-            }),
-            
-            vscode.commands.registerCommand('copilotPPA.newLine', () => {
-                // Implementation for new line in chat input
+            // Send message command
+            vscode.commands.registerCommand('copilotPPA.sendMessage', async () => {
                 const editor = vscode.window.activeTextEditor;
-                if (editor) {
+                if (editor && editor.document.uri.scheme === 'chat') {
+                    const text = editor.document.getText();
+                    if (text.trim()) {
+                        await vscode.commands.executeCommand('chat.sendMessage', { text });
+                    }
+                }
+            }),
+
+            // New line in chat command
+            vscode.commands.registerCommand('copilotPPA.newLine', () => {
+                const editor = vscode.window.activeTextEditor;
+                if (editor && editor.document.uri.scheme === 'chat') {
                     editor.edit(editBuilder => {
                         editBuilder.insert(editor.selection.active, '\n');
                     });
                 }
             }),
-            
-            vscode.commands.registerCommand('copilotPPA.clearChat', () => {
-                // Implementation for clearing chat
-                vscode.window.showInformationMessage('Chat cleared!');
-            }),
-            
-            vscode.commands.registerCommand('copilotPPA.explainCode', () => {
-                // Implementation for explaining code
+
+            // Clear chat command
+            vscode.commands.registerCommand('copilotPPA.clearChat', async () => {
+                await vscode.commands.executeCommand('chat.clearHistory');
+                vscode.window.showInformationMessage('Chat history cleared');
+            })
+        );
+
+        // Code commands
+        this.context.subscriptions.push(
+            // Explain code command
+            vscode.commands.registerCommand('copilotPPA.explainCode', async () => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor && !editor.selection.isEmpty) {
                     const selectedText = editor.document.getText(editor.selection);
-                    vscode.window.showInformationMessage(`Explaining code: ${selectedText.substring(0, 50)}...`);
+                    await vscode.commands.executeCommand('chat.explain', { code: selectedText });
                 } else {
                     vscode.window.showWarningMessage('Please select some code to explain.');
                 }
             }),
-            
-            vscode.commands.registerCommand('copilotPPA.refactorCode', () => {
-                // Implementation for refactoring code
+
+            // Refactor code command
+            vscode.commands.registerCommand('copilotPPA.refactorCode', async () => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor && !editor.selection.isEmpty) {
                     const selectedText = editor.document.getText(editor.selection);
-                    vscode.window.showInformationMessage(`Refactoring code: ${selectedText.substring(0, 50)}...`);
+                    await vscode.commands.executeCommand('chat.refactor', { code: selectedText });
                 } else {
                     vscode.window.showWarningMessage('Please select some code to refactor.');
                 }
             }),
-            
-            vscode.commands.registerCommand('copilotPPA.documentCode', () => {
-                // Implementation for documenting code
+
+            // Document code command
+            vscode.commands.registerCommand('copilotPPA.documentCode', async () => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor && !editor.selection.isEmpty) {
                     const selectedText = editor.document.getText(editor.selection);
-                    vscode.window.showInformationMessage(`Documenting code: ${selectedText.substring(0, 50)}...`);
+                    await vscode.commands.executeCommand('chat.document', { code: selectedText });
                 } else {
                     vscode.window.showWarningMessage('Please select some code to document.');
                 }
-            }),
-            
+            })
+        );
+
+        // Navigation commands
+        this.context.subscriptions.push(
+            // Focus chat command
             vscode.commands.registerCommand('copilotPPA.focusChat', () => {
-                // Implementation for focusing chat
-                vscode.window.showInformationMessage('Chat input focused!');
+                vscode.commands.executeCommand('workbench.action.focusPanel', 'chat');
             }),
-            
+
+            // Toggle sidebar command
             vscode.commands.registerCommand('copilotPPA.toggleSidebar', () => {
-                // Implementation for toggling sidebar
                 vscode.commands.executeCommand('workbench.view.extension.copilotPPA');
             })
         );

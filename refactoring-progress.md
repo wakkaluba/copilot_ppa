@@ -24,6 +24,13 @@ Status indicators:
   - Implemented JS/TS specific analysis
   - Added loop and DOM operation analysis
   - Added promise chain detection
+- 🔄 src/runtime-analyzer.ts (75%)
+  - Deprecated in favor of new performance system
+  - Moved core functionality to PerformanceManager
+  - Migrated metrics collection to dedicated services
+  - Added performance profiling integration
+  - Improved bottleneck detection
+  - TODO: Complete migration of remaining features
 - ⏳ src/performance/analyzers/pythonAnalyzer.ts
 - ⏳ src/performance/analyzers/javaAnalyzer.ts
 - ✅ src/performance/performanceManager.ts
@@ -44,26 +51,77 @@ Status indicators:
   - Added configuration management
   - Added proper cleanup
   - Added type safety improvements
+  - Improved error handling
+  - Added performance monitoring
 
-### Build Tools System
-- ✅ src/buildTools/buildToolsManager.ts
-  - Implement plugin architecture
-  - Add configuration validation
-  - Improve error handling
+### Build Tools System (In Progress)
 - ✅ src/buildTools/webpack/webpackConfigManager.ts
-  - Implemented service-based architecture with three core services:
-    - WebpackConfigDetector: Handles config file detection
-    - WebpackConfigAnalyzer: Handles config analysis and validation
-    - WebpackOptimizationService: Handles optimization suggestions
-  - Added strong type system with interfaces
   - Added comprehensive error handling
-  - Added logging integration
-  - Added configuration validation
-  - Improved code organization and maintainability
-  - Fixed all type safety issues
-  - Improved regex pattern safety
-- 🔄 src/buildTools/rollup/rollupConfigManager.ts
-- ⏳ src/buildTools/vite/viteConfigManager.ts
+  - Implemented proper dependency injection
+  - Added validation support
+  - Added configuration analysis
+  - Added optimization suggestions
+- ✅ src/buildTools/rollup/rollupConfigManager.ts
+  - Added comprehensive error handling
+  - Implemented proper dependency injection
+  - Added validation support
+  - Added configuration analysis
+  - Added optimization suggestions
+- ✅ src/buildTools/rollup/services/RollupConfigAnalyzer.ts
+  - Implemented robust config parsing
+  - Added type safety
+  - Added comprehensive validation
+  - Added detailed parsing for all config sections
+- ✅ src/buildTools/rollup/services/RollupConfigDetector.ts
+  - Added config file pattern detection
+  - Added multi-language support (js, ts, mjs)
+  - Added validation system
+  - Added comprehensive error handling
+- ✅ src/buildTools/rollup/services/RollupOptimizationService.ts
+  - Added optimization detection
+  - Added best practices validation
+  - Added suggestion generation
+  - Added code samples
+  - Added comprehensive error handling
+- ✅ src/buildTools/rollup/types/index.ts
+  - Added comprehensive type definitions
+  - Added documentation
+  - Added validation types
+- ✅ src/buildTools/rollup/errors/ConfigValidationError.ts
+  - Added custom error handling
+  - Added validation error tracking
+  - Added proper stack trace support
+- ✅ src/buildTools/vite/viteConfigManager.ts
+  - Added comprehensive error handling
+  - Implemented proper dependency injection
+  - Added validation support
+  - Added framework detection
+  - Added configuration analysis
+  - Added optimization suggestions
+- ✅ src/buildTools/vite/services/ViteConfigAnalyzer.ts
+  - Implemented robust config parsing
+  - Added comprehensive validation
+  - Added detailed parsing for all config sections
+  - Added proper error handling
+- ✅ src/buildTools/vite/services/ViteConfigDetector.ts
+  - Added config file pattern detection
+  - Added dependency validation
+  - Added multi-language support (js, ts, mjs, cjs)
+  - Added comprehensive error handling
+- ✅ src/buildTools/vite/services/ViteOptimizationService.ts
+  - Added optimization detection
+  - Added best practices validation
+  - Added suggestion generation
+  - Added code samples
+  - Added comprehensive error handling
+- ✅ src/buildTools/vite/types/index.ts
+  - Added comprehensive type definitions
+  - Added documentation
+  - Added validation types
+- ✅ src/buildTools/vite/errors/ConfigValidationError.ts
+  - Added custom error handling
+  - Added validation error tracking
+  - Added proper stack trace support
 - ✅ src/buildTools/optimization/buildScriptOptimizer.ts
   - Implemented service-based architecture
   - Added separate services for each responsibility:
@@ -287,9 +345,23 @@ Goals: Improve performance, enhance readability, reduce complexity.
   - Improved error handling and user feedback
   - Added package dependency management
   - Added cross-platform support
-- ⏳ src/llm/modelService.ts
-- ⏳ src/commands.ts
-- ⏳ src/services/codeTools/complexityAnalyzer.ts
+- ✅ src/commands.ts
+  - Split into specialized command services (AgentCommandService, ConfigurationCommandService, etc.)
+  - Added centralized error handling
+  - Added proper service initialization and disposal
+  - Improved command registration system
+  - Added better separation of concerns
+- ✅ src/services/codeTools/complexityAnalyzer.ts
+  - Implemented service-based architecture
+  - Added strong interfaces (IComplexityService, IMetricsCalculator)
+  - Split into specialized services:
+    - ComplexityAnalyzer: Main service implementing IComplexityService
+    - MetricsCalculator: Handles all complexity metrics calculations
+    - DependencyAnalyzer: Manages dependency detection and analysis
+  - Added comprehensive type safety
+  - Improved error handling
+  - Added proper parameter validation
+  - Simplified code structure
 - ⏳ src/services/ui/keybindingManager.ts
 - ⏳ src/webview/components/conversationList.ts
 - ⏳ src/sidebar/agentSidebarProvider.ts

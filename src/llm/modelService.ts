@@ -1,62 +1,42 @@
 import * as vscode from 'vscode';
-import { EventEmitter } from 'events';
-import * as os from 'os';
-import axios from 'axios';
-import {
-    LLMModelInfo,
-    LLMProvider,
-    LLMProviderError
-} from './llm-provider';
-import { ILLMModelService } from './types';
-
-export interface ModelRequirements {
-    minMemoryGB: number;
-    recommendedMemoryGB: number;
-    minDiskSpaceGB: number;
-    cudaSupport: boolean;
-    minCudaVersion?: string;
-    minCPUCores: number;
-}
-
-export interface ModelValidationResult {
-    isValid: boolean;
-    issues: string[];
-    requirements: ModelRequirements;
-}
-
-export interface ModelPerformanceMetrics {
-    averageResponseTime: number;
-    tokenThroughput: number;
-    errorRate: number;
-    totalRequests: number;
-    totalTokens: number;
-    lastUsed: Date;
-}
+import { LLMModelInfo } from './llm-provider';
+import { ModelDiscoveryService } from './services/ModelDiscoveryService';
+import { ModelMetricsService } from './services/ModelMetricsService';
+import { ModelValidationService } from './services/ModelValidationService';
+import { ModelPerformanceMetrics } from './types';
 
 /**
- * Service for managing LLM models
+ * Orchestrates model management, discovery, validation, and metrics
  */
 export class ModelService implements vscode.Disposable {
     private readonly statusBarItem: vscode.StatusBarItem;
-    private readonly outputChannel: vscode.OutputChannel;
-    private readonly modelMetrics = new Map<string, ModelPerformanceMetrics>();
-    private readonly modelValidations = new Map<string, ModelValidationResult>();
-    private readonly eventEmitter = new EventEmitter();
-    private _systemInfo: SystemInfo | null = null;
+    private readonly discoveryService: ModelDiscoveryService;
+    private readonly metricsService: ModelMetricsService;
+    private readonly validationService: ModelValidationService;
 
     constructor(context: vscode.ExtensionContext) {
+        // Initialize services
+        this.metricsService = new ModelMetricsService();
+        this.validationService = new ModelValidationService();
+        this.discoveryService = new ModelDiscoveryService(
+            this.metricsService,
+            this.validationService
+        );
+
+        // Create status bar item
         this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
             100
         );
         this.statusBarItem.command = 'copilot-ppa.configureModel';
         this.statusBarItem.tooltip = 'Configure LLM Model';
-        
-        this.outputChannel = vscode.window.createOutputChannel('LLM Models');
-        
+
+        // Register commands
         context.subscriptions.push(
             this.statusBarItem,
-            this.outputChannel,
+            this.discoveryService,
+            this.metricsService,
+            this.validationService,
             vscode.commands.registerCommand(
                 'copilot-ppa.getModelRecommendations',
                 this.getModelRecommendations.bind(this)
@@ -67,263 +47,105 @@ export class ModelService implements vscode.Disposable {
             )
         );
 
-        this.initialize().catch(error => {
-            this.outputChannel.appendLine(`Failed to initialize model service: ${error}`);
-        });
-    }
+        // Listen for model changes
+        this.discoveryService.onDidChangeModels(() => this.updateStatusBar());
 
-    /**
-     * Initialize the model service
-     */
-    private async initialize(): Promise<void> {
-        this._systemInfo = await this.getSystemInfo();
+        // Initialize status bar
         this.updateStatusBar();
     }
 
     /**
-     * Get system information for model compatibility checks
+     * Register a new model
      */
-    private async getSystemInfo(): Promise<SystemInfo> {
-        const totalMemory = os.totalmem() / (1024 * 1024 * 1024); // Convert to GB
-        const freeDiskSpace = await this.getFreeDiskSpace();
-        const cpuCores = os.cpus().length;
-        const cudaInfo = await this.getCudaInfo();
-
-        return {
-            totalMemoryGB: Math.round(totalMemory),
-            freeDiskSpaceGB: Math.round(freeDiskSpace),
-            cpuCores,
-            cudaAvailable: cudaInfo.available,
-            cudaVersion: cudaInfo.version
-        };
+    public async registerModel(model: LLMModelInfo): Promise<void> {
+        await this.discoveryService.registerModel(model);
     }
 
     /**
-     * Get available disk space
+     * Get all registered models
      */
-    private async getFreeDiskSpace(): Promise<number> {
-        // Implementation depends on platform
-        // This is a placeholder that returns a reasonable default
-        return 100; // GB
+    public getRegisteredModels(): LLMModelInfo[] {
+        return this.discoveryService.getRegisteredModels();
     }
 
     /**
-     * Get CUDA information
+     * Get model by ID
      */
-    private async getCudaInfo(): Promise<{ available: boolean; version?: string }> {
-        // Implementation depends on platform
-        // This is a placeholder that checks common CUDA locations
-        return { available: false };
+    public getModel(modelId: string): LLMModelInfo | undefined {
+        return this.discoveryService.getModel(modelId);
     }
 
     /**
-     * Validate model requirements against system capabilities
-     */
-    public async validateModel(modelInfo: LLMModelInfo): Promise<ModelValidationResult> {
-        // Check cache first
-        if (this.modelValidations.has(modelInfo.id)) {
-            return this.modelValidations.get(modelInfo.id)!;
-        }
-
-        const requirements = this.inferModelRequirements(modelInfo);
-        const issues: string[] = [];
-
-        // Check system capabilities
-        const systemInfo = this._systemInfo || await this.getSystemInfo();
-
-        if (systemInfo.totalMemoryGB < requirements.minMemoryGB) {
-            issues.push(`Insufficient memory: ${systemInfo.totalMemoryGB}GB available, ${requirements.minMemoryGB}GB required`);
-        }
-
-        if (systemInfo.freeDiskSpaceGB < requirements.minDiskSpaceGB) {
-            issues.push(`Insufficient disk space: ${systemInfo.freeDiskSpaceGB}GB available, ${requirements.minDiskSpaceGB}GB required`);
-        }
-
-        if (requirements.cudaSupport && !systemInfo.cudaAvailable) {
-            issues.push('CUDA support required but not available');
-        } else if (
-            requirements.cudaSupport &&
-            requirements.minCudaVersion &&
-            systemInfo.cudaVersion &&
-            this.compareCudaVersions(systemInfo.cudaVersion, requirements.minCudaVersion) < 0
-        ) {
-            issues.push(`CUDA version ${requirements.minCudaVersion} required, but ${systemInfo.cudaVersion} found`);
-        }
-
-        if (systemInfo.cpuCores < requirements.minCPUCores) {
-            issues.push(`Insufficient CPU cores: ${systemInfo.cpuCores} available, ${requirements.minCPUCores} required`);
-        }
-
-        const result: ModelValidationResult = {
-            isValid: issues.length === 0,
-            issues,
-            requirements
-        };
-
-        // Cache the validation result
-        this.modelValidations.set(modelInfo.id, result);
-
-        return result;
-    }
-
-    /**
-     * Get model recommendations based on system capabilities
+     * Get system-compatible models
      */
     public async getModelRecommendations(): Promise<LLMModelInfo[]> {
-        const systemInfo = this._systemInfo || await this.getSystemInfo();
-        const recommendations: LLMModelInfo[] = [];
-
-        // This would normally fetch from a model registry or configuration
-        // This is a placeholder implementation
-        if (systemInfo.totalMemoryGB >= 16) {
-            recommendations.push({
-                id: 'mistral-7b',
-                name: 'Mistral (7B)',
-                provider: 'ollama',
-                parameters: 7,
-                contextLength: 8192,
-                capabilities: ['chat', 'completion']
-            });
-        }
-
-        if (systemInfo.totalMemoryGB >= 8) {
-            recommendations.push({
-                id: 'llama2-7b-chat',
-                name: 'Llama 2 Chat (7B)',
-                provider: 'ollama',
-                parameters: 7,
-                contextLength: 4096,
-                capabilities: ['chat']
-            });
-        }
-
-        // Always include lightweight models
-        recommendations.push({
-            id: 'tiny-llama-1.1b',
-            name: 'TinyLlama Chat (1.1B)',
-            provider: 'ollama',
-            parameters: 1.1,
-            contextLength: 2048,
-            capabilities: ['chat']
-        });
-
-        return recommendations;
+        return this.discoveryService.getCompatibleModels();
     }
 
     /**
-     * Check if a model is compatible with the current system
+     * Check model compatibility
      */
-    public async checkModelCompatibility(modelInfo: LLMModelInfo): Promise<boolean> {
-        const validation = await this.validateModel(modelInfo);
+    public async checkModelCompatibility(modelId: string): Promise<boolean> {
+        const model = this.discoveryService.getModel(modelId);
+        if (!model) {
+            return false;
+        }
+        const validation = await this.validationService.validateModel(model);
         return validation.isValid;
     }
 
     /**
-     * Track model performance metrics
+     * Record performance metrics
      */
-    public recordModelMetrics(
+    public recordMetrics(
         modelId: string,
         responseTime: number,
         tokens: number,
         error?: boolean
     ): void {
-        let metrics = this.modelMetrics.get(modelId);
-        if (!metrics) {
-            metrics = {
-                averageResponseTime: 0,
-                tokenThroughput: 0,
-                errorRate: 0,
-                totalRequests: 0,
-                totalTokens: 0,
-                lastUsed: new Date()
-            };
-            this.modelMetrics.set(modelId, metrics);
-        }
-
-        // Update metrics
-        metrics.totalRequests++;
-        metrics.totalTokens += tokens;
-        metrics.lastUsed = new Date();
-
-        // Update moving averages
-        metrics.averageResponseTime = (
-            (metrics.averageResponseTime * (metrics.totalRequests - 1)) +
-            responseTime
-        ) / metrics.totalRequests;
-
-        metrics.tokenThroughput = metrics.totalTokens / 
-            ((metrics.lastUsed.getTime() - metrics.lastUsed.getTime()) / 1000);
-
-        if (error) {
-            metrics.errorRate = (
-                (metrics.errorRate * (metrics.totalRequests - 1)) +
-                1
-            ) / metrics.totalRequests;
-        }
-
-        this.eventEmitter.emit('metricsUpdated', modelId, metrics);
+        this.metricsService.recordMetrics(modelId, responseTime, tokens, error);
     }
 
     /**
-     * Get performance metrics for a model
+     * Get model metrics
      */
     public getModelMetrics(modelId: string): ModelPerformanceMetrics | undefined {
-        return this.modelMetrics.get(modelId);
+        return this.metricsService.getMetrics(modelId);
     }
 
     /**
-     * Infer model requirements based on model information
+     * Reset metrics for a model
      */
-    private inferModelRequirements(modelInfo: LLMModelInfo): ModelRequirements {
-        const parameters = modelInfo.parameters || 0;
-        
-        // These are rough estimates and should be adjusted based on actual testing
-        return {
-            minMemoryGB: Math.max(4, Math.ceil(parameters * 2)),
-            recommendedMemoryGB: Math.max(8, Math.ceil(parameters * 3)),
-            minDiskSpaceGB: Math.max(2, Math.ceil(parameters * 0.5)),
-            cudaSupport: parameters > 7,
-            minCPUCores: Math.max(2, Math.ceil(parameters / 4))
-        };
+    public resetModelMetrics(modelId: string): void {
+        this.metricsService.resetMetrics(modelId);
     }
 
     /**
-     * Compare CUDA versions
+     * Subscribe to metrics updates
      */
-    private compareCudaVersions(version1: string, version2: string): number {
-        const v1Parts = version1.split('.').map(Number);
-        const v2Parts = version2.split('.').map(Number);
-        
-        for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
-            const v1 = v1Parts[i] || 0;
-            const v2 = v2Parts[i] || 0;
-            if (v1 !== v2) {
-                return v1 - v2;
-            }
-        }
-        
-        return 0;
+    public onMetricsUpdated(callback: (modelId: string, metrics: ModelPerformanceMetrics) => void): void {
+        this.metricsService.onMetricsUpdated(callback);
     }
 
     /**
-     * Update status bar with model information
+     * Update status bar with current model info
      */
     private updateStatusBar(): void {
-        // Implementation depends on active model
+        const models = this.discoveryService.getRegisteredModels();
+        if (models.length === 0) {
+            this.statusBarItem.text = '$(hubot) No Models';
+            this.statusBarItem.tooltip = 'Click to configure LLM models';
+        } else {
+            const compatibleModels = models.filter(
+                model => this.validationService.validateModel(model)
+            );
+            this.statusBarItem.text = `$(hubot) Models: ${compatibleModels.length}/${models.length}`;
+            this.statusBarItem.tooltip = 'Click to manage LLM models';
+        }
         this.statusBarItem.show();
     }
 
     public dispose(): void {
         this.statusBarItem.dispose();
-        this.outputChannel.dispose();
-        this.eventEmitter.removeAllListeners();
     }
-}
-
-interface SystemInfo {
-    totalMemoryGB: number;
-    freeDiskSpaceGB: number;
-    cpuCores: number;
-    cudaAvailable: boolean;
-    cudaVersion?: string;
 }

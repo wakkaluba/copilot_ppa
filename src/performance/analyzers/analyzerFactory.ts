@@ -1,11 +1,14 @@
 import { BasePerformanceAnalyzer } from './baseAnalyzer';
 import { TypeScriptAnalyzer } from './typescriptAnalyzer';
+import { PythonAnalyzer } from './pythonAnalyzer';
 import { AnalyzerOptions } from '../types';
 import * as path from 'path';
 
+type AnalyzerConstructor = new (options?: AnalyzerOptions) => BasePerformanceAnalyzer;
+
 export class AnalyzerFactory {
     private static instance: AnalyzerFactory;
-    private analyzers: Map<string, typeof BasePerformanceAnalyzer>;
+    private analyzers: Map<string, AnalyzerConstructor>;
 
     private constructor() {
         this.analyzers = new Map();
@@ -30,16 +33,19 @@ export class AnalyzerFactory {
         return new analyzerClass(options);
     }
 
-    public registerAnalyzer(extensions: string[], analyzerClass: typeof BasePerformanceAnalyzer): void {
+    public registerAnalyzer(extensions: string[], analyzerClass: AnalyzerConstructor): void {
         extensions.forEach(ext => {
             this.analyzers.set(ext.toLowerCase(), analyzerClass);
         });
     }
 
     private registerDefaultAnalyzers(): void {
-        // Register TypeScript analyzer for .ts and .tsx files
+        // Register TypeScript/JavaScript analyzer
         this.registerAnalyzer(['.ts', '.tsx', '.js', '.jsx'], TypeScriptAnalyzer);
         
+        // Register Python analyzer
+        this.registerAnalyzer(['.py', '.pyw'], PythonAnalyzer);
+
         // Default analyzer for unknown file types
         this.registerAnalyzer(['.*'], TypeScriptAnalyzer);
     }

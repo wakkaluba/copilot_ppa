@@ -1,5 +1,5 @@
 import { ILogger } from '../../../services/logging/ILogger';
-import { WebpackEntry, WebpackLoader, WebpackPlugin, WebpackOptimization } from '../types';
+import { WebpackEntry, WebpackLoader, WebpackOptimization, WebpackPlugin } from '../types';
 
 export class WebpackOptimizationService {
     constructor(private readonly logger: ILogger) {}
@@ -13,221 +13,157 @@ export class WebpackOptimizationService {
         loaders: WebpackLoader[],
         plugins: WebpackPlugin[]
     ): Promise<WebpackOptimization[]> {
-        this.logger.debug('Generating webpack optimization suggestions');
-        const suggestions: WebpackOptimization[] = [];
-
         try {
-            this.checkCodeSplitting(content, suggestions);
-            this.checkProduction(content, suggestions);
-            this.checkCacheOptimization(content, suggestions);
-            this.checkMinification(plugins, suggestions);
-            this.checkCssExtraction(plugins, loaders, suggestions);
-            this.checkSourceMaps(content, suggestions);
-            this.checkTreeShaking(content, suggestions);
-            this.checkDynamicImports(content, entryPoints.length, suggestions);
-            this.checkAssetOptimization(content, suggestions);
-            this.checkModuleResolution(content, suggestions);
+            const suggestions: WebpackOptimization[] = [];
+
+            // Check for code splitting
+            if (!content.includes('splitChunks')) {
+                suggestions.push({
+                    title: 'Enable Code Splitting',
+                    description: 'Split your code into smaller chunks to improve initial load time',
+                    code: `optimization: {
+    splitChunks: {
+        chunks: 'all',
+        minSize: 20000,
+        minRemainingSize: 0,
+        minChunks: 1,
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+        enforceSizeThreshold: 50000,
+        cacheGroups: {
+            defaultVendors: {
+                test: /[\\\\/]node_modules[\\\\/]/,
+                priority: -10,
+                reuseExistingChunk: true,
+            },
+            default: {
+                minChunks: 2,
+                priority: -20,
+                reuseExistingChunk: true,
+            },
+        },
+    },
+}`
+                });
+            }
+
+            // Check for minification
+            if (!plugins.some(p => p.name === 'TerserPlugin')) {
+                suggestions.push({
+                    title: 'Add JavaScript Minification',
+                    description: 'Minify JavaScript to reduce bundle size',
+                    code: `const TerserPlugin = require('terser-webpack-plugin');
+
+optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin({
+        terserOptions: {
+            parse: {
+                ecma: 8,
+            },
+            compress: {
+                ecma: 5,
+                warnings: false,
+                comparisons: false,
+                inline: 2,
+            },
+            mangle: {
+                safari10: true,
+            },
+            output: {
+                ecma: 5,
+                comments: false,
+                ascii_only: true,
+            },
+        },
+    })],
+}`
+                });
+            }
+
+            // Check for CSS optimization
+            if (
+                loaders.some(l => l.name.includes('css')) &&
+                !plugins.some(p => p.name === 'OptimizeCSSAssetsPlugin' || p.name === 'CssMinimizerPlugin')
+            ) {
+                suggestions.push({
+                    title: 'Add CSS Optimization',
+                    description: 'Optimize and minify CSS to reduce bundle size',
+                    code: `const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+
+optimization: {
+    minimizer: [
+        // For webpack@5 you can use the \`...\" syntax to extend existing minimizers
+        '...',
+        new CssMinimizerPlugin(),
+    ],
+}`
+                });
+            }
+
+            // Check for caching
+            if (!content.includes('cache')) {
+                suggestions.push({
+                    title: 'Enable Build Caching',
+                    description: 'Cache the built modules to speed up rebuild process',
+                    code: `cache: {
+    type: 'filesystem',
+    buildDependencies: {
+        config: [__filename],
+    },
+}`
+                });
+            }
+
+            // Check for compression
+            if (!plugins.some(p => p.name === 'CompressionPlugin')) {
+                suggestions.push({
+                    title: 'Add Asset Compression',
+                    description: 'Compress assets to reduce download size',
+                    code: `const CompressionPlugin = require('compression-webpack-plugin');
+
+plugins: [
+    new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\\.js$|\\.css$|\\.html$/,
+        threshold: 10240,
+        minRatio: 0.8,
+    }),
+]`
+                });
+            }
+
+            // Check for bundle analysis
+            if (!plugins.some(p => p.name === 'BundleAnalyzerPlugin')) {
+                suggestions.push({
+                    title: 'Add Bundle Analysis',
+                    description: 'Visualize bundle size to identify optimization opportunities',
+                    code: `const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+plugins: [
+    new BundleAnalyzerPlugin({
+        analyzerMode: 'static',
+        openAnalyzer: false,
+    }),
+]`
+                });
+            }
+
+            // Check for module concatenation
+            if (!content.includes('concatenateModules')) {
+                suggestions.push({
+                    title: 'Enable Module Concatenation',
+                    description: 'Combine modules into larger chunks to reduce overhead',
+                    code: `optimization: {
+    concatenateModules: true,
+}`
+                });
+            }
 
             return suggestions;
         } catch (error) {
             this.logger.error('Error generating optimization suggestions:', error);
             throw new Error(`Failed to generate optimization suggestions: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
-
-    private checkCodeSplitting(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('splitChunks') || !content.includes('optimization')) {
-            suggestions.push({
-                title: 'Enable Code Splitting',
-                description: 'Use splitChunks to extract common dependencies into separate chunks',
-                code: `
-optimization: {
-  splitChunks: {
-    chunks: 'all',
-    cacheGroups: {
-      vendor: {
-        test: /[\\\\/]node_modules[\\\\/]/,
-        name: 'vendors',
-        chunks: 'all',
-      },
-    },
-  },
-},`
-            });
-        }
-    }
-
-    private checkProduction(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('mode: "production"') && !content.includes("mode: 'production'")) {
-            suggestions.push({
-                title: 'Use Production Mode',
-                description: 'Add mode: "production" to enable all production optimizations',
-                code: `
-module.exports = {
-  mode: 'production',
-  // ...rest of your config
-};`
-            });
-        }
-    }
-
-    private checkCacheOptimization(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('cache:')) {
-            suggestions.push({
-                title: 'Enable Build Caching',
-                description: 'Use cache options to speed up rebuilds',
-                code: `
-module.exports = {
-  // ...
-  cache: {
-    type: 'filesystem',
-    buildDependencies: {
-      config: [__filename]
-    }
-  },
-};`
-            });
-        }
-    }
-
-    private checkMinification(plugins: WebpackPlugin[], suggestions: WebpackOptimization[]): void {
-        if (!plugins.some(p => p.name === 'TerserPlugin')) {
-            suggestions.push({
-                title: 'Add TerserPlugin for JavaScript Minification',
-                description: 'Use TerserPlugin to minify your JavaScript in production builds',
-                code: `
-const TerserPlugin = require('terser-webpack-plugin');
-
-module.exports = {
-  // ...
-  optimization: {
-    minimize: true,
-    minimizer: [new TerserPlugin()],
-  },
-};`
-            });
-        }
-    }
-
-    private checkCssExtraction(plugins: WebpackPlugin[], loaders: WebpackLoader[], suggestions: WebpackOptimization[]): void {
-        if (loaders.some(l => l.name.includes('css-loader')) && !plugins.some(p => p.name === 'MiniCssExtractPlugin')) {
-            suggestions.push({
-                title: 'Use MiniCssExtractPlugin for CSS',
-                description: 'Extract CSS into separate files for production builds',
-                code: `
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
-module.exports = {
-  // ...
-  plugins: [
-    new MiniCssExtractPlugin({
-      filename: '[name].[contenthash].css',
-    }),
-  ],
-  module: {
-    rules: [
-      {
-        test: /\\.css$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader'],
-      },
-    ],
-  },
-};`
-            });
-        }
-    }
-
-    private checkSourceMaps(content: string, suggestions: WebpackOptimization[]): void {
-        if (content.includes('devtool') && content.includes('source-map') &&
-            (content.includes('mode: "production"') || content.includes("mode: 'production'"))) {
-            suggestions.push({
-                title: 'Optimize Source Maps for Production',
-                description: 'Use `hidden-source-map` or disable source maps in production for better performance',
-                code: `
-// For development
-devtool: 'eval-source-map',
-
-// For production
-devtool: 'hidden-source-map', // or false to disable`
-            });
-        }
-    }
-
-    private checkTreeShaking(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('sideEffects')) {
-            suggestions.push({
-                title: 'Enable Tree Shaking',
-                description: 'Configure sideEffects to enable better tree shaking',
-                code: `
-module.exports = {
-  // ...
-  optimization: {
-    usedExports: true,
-  },
-  // In package.json:
-  // "sideEffects": false
-};`
-            });
-        }
-    }
-
-    private checkDynamicImports(content: string, entryPointCount: number, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('import(') && entryPointCount === 1) {
-            suggestions.push({
-                title: 'Use Dynamic Imports',
-                description: 'Consider using dynamic imports for code splitting and lazy loading',
-                code: `
-// Instead of:
-import MyComponent from './MyComponent';
-
-// Use:
-const MyComponent = () => import('./MyComponent');`
-            });
-        }
-    }
-
-    private checkAssetOptimization(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('asset/resource') && !content.includes('file-loader')) {
-            suggestions.push({
-                title: 'Optimize Asset Loading',
-                description: 'Use Asset Modules for optimized asset handling',
-                code: `
-module.exports = {
-  // ...
-  module: {
-    rules: [
-      {
-        test: /\\.(png|jpg|gif)$/i,
-        type: 'asset',
-        parser: {
-          dataUrlCondition: {
-            maxSize: 8192 // 8kb
-          }
-        }
-      }
-    ]
-  }
-};`
-            });
-        }
-    }
-
-    private checkModuleResolution(content: string, suggestions: WebpackOptimization[]): void {
-        if (!content.includes('resolve')) {
-            suggestions.push({
-                title: 'Optimize Module Resolution',
-                description: 'Configure module resolution for faster builds',
-                code: `
-module.exports = {
-  // ...
-  resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx'],
-    modules: ['node_modules'],
-    symlinks: false,
-    cacheWithContext: false
-  }
-};`
-            });
         }
     }
 }

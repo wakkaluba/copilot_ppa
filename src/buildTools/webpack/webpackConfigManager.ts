@@ -7,22 +7,12 @@ import {
 import { ILogger } from '../../services/logging/ILogger';
 
 export class WebpackConfigManager {
-    private readonly configDetector: WebpackConfigDetector;
-    private readonly configAnalyzer: WebpackConfigAnalyzer;
-    private readonly optimizationService: WebpackOptimizationService;
-    private readonly logger: ILogger;
-
     constructor(
-        configDetector: WebpackConfigDetector,
-        configAnalyzer: WebpackConfigAnalyzer,
-        optimizationService: WebpackOptimizationService,
-        logger: ILogger
-    ) {
-        this.configDetector = configDetector;
-        this.configAnalyzer = configAnalyzer;
-        this.optimizationService = optimizationService;
-        this.logger = logger;
-    }
+        private readonly configDetector: WebpackConfigDetector,
+        private readonly configAnalyzer: WebpackConfigAnalyzer,
+        private readonly optimizationService: WebpackOptimizationService,
+        private readonly logger: ILogger
+    ) {}
 
     /**
      * Detects webpack configuration files in the given directory
@@ -56,32 +46,12 @@ export class WebpackConfigManager {
             );
 
             return {
-                entryPoints: analysis.entryPoints,
-                output: analysis.output,
-                loaders: analysis.loaders,
-                plugins: analysis.plugins,
-                content: analysis.content,
+                ...analysis,
                 optimizationSuggestions: suggestions
             };
         } catch (error) {
             this.logger.error('Error analyzing webpack config:', error);
             throw new Error(`Failed to analyze webpack configuration: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
-
-    /**
-     * Generates optimization suggestions for a webpack configuration
-     * @param configPath Path to the webpack config file
-     * @returns Array of optimization suggestions
-     */
-    public async generateOptimizations(configPath: string): Promise<WebpackOptimization[]> {
-        try {
-            this.logger.debug(`Generating optimization suggestions for ${configPath}`);
-            const analysis = await this.analyzeConfig(configPath);
-            return analysis.optimizationSuggestions;
-        } catch (error) {
-            this.logger.error('Error generating optimizations:', error);
-            throw new Error(`Failed to generate optimization suggestions: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -102,6 +72,22 @@ export class WebpackConfigManager {
         } catch (error) {
             this.logger.error('Error validating webpack config:', error);
             throw new Error(`Failed to validate webpack configuration: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
+     * Generates optimization suggestions for a webpack configuration
+     * @param configPath Path to the webpack config file
+     * @returns Array of optimization suggestions
+     */
+    public async generateOptimizations(configPath: string): Promise<WebpackOptimization[]> {
+        try {
+            this.logger.debug(`Generating optimization suggestions for ${configPath}`);
+            const analysis = await this.analyzeConfig(configPath);
+            return analysis.optimizationSuggestions;
+        } catch (error) {
+            this.logger.error('Error generating optimizations:', error);
+            throw new Error(`Failed to generate optimization suggestions: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

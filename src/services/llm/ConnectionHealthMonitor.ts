@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
-import { HealthCheckResponse, ProviderStatus } from './interfaces';
-import { LLMConnectionError } from './errors';
 import { ConnectionMetricsTracker } from './ConnectionMetricsTracker';
 import { ConnectionRetryHandler } from './ConnectionRetryHandler';
+import { HealthCheckConfig, HealthCheckResponse, ProviderHealth, ProviderStatus } from './types';
+import { BaseConnectionManager } from './BaseConnectionManager';
 
 /**
  * Health check configuration
@@ -46,7 +46,7 @@ export class ConnectionHealthMonitor extends EventEmitter {
     private static instance: ConnectionHealthMonitor;
     private readonly healthStates: Map<string, ProviderHealth> = new Map();
     private readonly checkIntervals: Map<string, NodeJS.Timeout> = new Map();
-    private readonly configs: Map<string, HealthCheckConfig> = new Map();
+    private readonly connectionManagers: Map<string, BaseConnectionManager> = new Map();
     private readonly metricsTracker: ConnectionMetricsTracker;
     private readonly retryHandler: ConnectionRetryHandler;
 
@@ -63,96 +63,109 @@ export class ConnectionHealthMonitor extends EventEmitter {
         return this.instance;
     }
 
-    /**
-     * Configure health monitoring for a provider
-     */
-    public configureProvider(
-        providerId: string,
-        config: Partial<HealthCheckConfig>,
-        healthCheck: () => Promise<HealthCheckResponse>
-    ): void {
-        const fullConfig = {
-            ...DEFAULT_HEALTH_CONFIG,
-            ...config
-        };
-        
-        this.configs.set(providerId, fullConfig);
+    public registerConnectionManager(providerId: string, manager: BaseConnectionManager): void {
+        this.connectionManagers.set(providerId, manager);
         this.initializeHealth(providerId);
-        this.startMonitoring(providerId, healthCheck);
-    }
-
-    /**
-     * Get current health status for a provider
-     */
-    public getProviderHealth(providerId: string): ProviderHealth | undefined {
-        return this.healthStates.get(providerId);
-    }
-
-    /**
-     * Check if a provider is healthy
-     */
-    public isHealthy(providerId: string): boolean {
-        const health = this.healthStates.get(providerId);
-        return health?.status === ProviderStatus.HEALTHY;
-    }
-
-    /**
-     * Manually trigger a health check
-     */
-    public async checkHealth(
-        providerId: string,
-        healthCheck: () => Promise<HealthCheckResponse>
-    ): Promise<HealthCheckResponse> {
-        const startTime = Date.now();
-        
-        try {
-            const response = await this.retryHandler.checkHealthWithRetry(
-                providerId,
-                healthCheck
-            );
-            
-            this.updateHealth(providerId, true);
-            this.metricsTracker.recordRequest(Date.now() - startTime);
-            
-            return response;
-        } catch (error) {
-            this.updateHealth(providerId, false, error instanceof Error ? error : new Error(String(error)));
-            this.metricsTracker.recordRequestFailure(error instanceof Error ? error : new Error(String(error)));
-            throw error;
-        }
     }
 
     private initializeHealth(providerId: string): void {
-        this.healthStates.set(providerId, {
-            status: ProviderStatus.UNKNOWN,
-            lastCheck: 0,
-            lastSuccess: 0,
-            consecutiveFailures: 0,
-            consecutiveSuccesses: 0,
-            totalChecks: 0
-        });
+        if (!this.healthStates.has(providerId)) {
+            this.healthStates.set(providerId, {
+                status: ProviderStatus.UNKNOWN,
+                lastCheck: 0,
+                lastSuccess: 0,
+                consecutiveSuccesses: 0,
+                consecutiveFailures: 0,
+                totalChecks: 0,
+                error: undefined
+            });
+        }
     }
 
-    private startMonitoring(
+    public startMonitoring(
         providerId: string,
-        healthCheck: () => Promise<HealthCheckResponse>
+        healthCheck: () => Promise<HealthCheckResponse>,
+        config: HealthCheckConfig
     ): void {
-        // Clear any existing interval
+        this.initializeHealthState(providerId);
         this.stopMonitoring(providerId);
 
-        const config = this.configs.get(providerId) || DEFAULT_HEALTH_CONFIG;
         const interval = setInterval(async () => {
-            try {
-                await this.checkHealth(providerId, healthCheck);
-            } catch (error) {
-                // Error is handled in checkHealth
-            }
+            await this.performHealthCheck(providerId, healthCheck, config);
         }, config.checkIntervalMs);
 
         this.checkIntervals.set(providerId, interval);
+        // Perform initial health check
+        this.performHealthCheck(providerId, healthCheck, config);
     }
 
-    private stopMonitoring(providerId: string): void {
+    private async performHealthCheck(
+        providerId: string,
+        healthCheck: () => Promise<HealthCheckResponse>,
+        config: HealthCheckConfig
+    ): Promise<void> {
+        const state = this.healthStates.get(providerId)!;
+        const timeoutPromise = new Promise<HealthCheckResponse>((_, reject) => {
+            setTimeout(() => reject(new Error('Health check timeout')), config.timeoutMs);
+        });
+
+        try {
+            const response = await Promise.race([healthCheck(), timeoutPromise]);
+            this.handleSuccessfulCheck(providerId, state, config);
+            this.emit('healthCheckSuccess', { providerId, response });
+        } catch (error) {
+            this.handleFailedCheck(providerId, state, config, error as Error);
+            this.emit('healthCheckFailure', { providerId, error });
+        }
+
+        state.totalChecks++;
+        this.emit('healthStateChanged', { providerId, state: { ...state } });
+    }
+
+    private handleSuccessfulCheck(
+        providerId: string,
+        state: ProviderHealth,
+        config: HealthCheckConfig
+    ): void {
+        state.lastSuccess = Date.now();
+        state.consecutiveFailures = 0;
+        state.consecutiveSuccesses++;
+        state.error = undefined;
+
+        if (state.consecutiveSuccesses >= config.healthyThreshold) {
+            state.status = ProviderStatus.HEALTHY;
+        }
+    }
+
+    private handleFailedCheck(
+        providerId: string,
+        state: ProviderHealth,
+        config: HealthCheckConfig,
+        error: Error
+    ): void {
+        state.consecutiveFailures++;
+        state.consecutiveSuccesses = 0;
+        state.error = error;
+
+        if (state.consecutiveFailures >= config.unhealthyThreshold) {
+            state.status = ProviderStatus.UNHEALTHY;
+        }
+    }
+
+    private initializeHealthState(providerId: string): void {
+        if (!this.healthStates.has(providerId)) {
+            this.healthStates.set(providerId, {
+                status: ProviderStatus.UNKNOWN,
+                lastCheck: 0,
+                lastSuccess: 0,
+                consecutiveFailures: 0,
+                consecutiveSuccesses: 0,
+                totalChecks: 0
+            });
+        }
+    }
+
+    public stopMonitoring(providerId: string): void {
         const interval = this.checkIntervals.get(providerId);
         if (interval) {
             clearInterval(interval);
@@ -160,66 +173,22 @@ export class ConnectionHealthMonitor extends EventEmitter {
         }
     }
 
-    private updateHealth(providerId: string, success: boolean, error?: Error): void {
-        const health = this.healthStates.get(providerId);
-        const config = this.configs.get(providerId) || DEFAULT_HEALTH_CONFIG;
-        
-        if (!health) return;
-
-        const now = Date.now();
-        health.lastCheck = now;
-        health.totalChecks++;
-
-        if (success) {
-            health.lastSuccess = now;
-            health.consecutiveSuccesses++;
-            health.consecutiveFailures = 0;
-            health.error = undefined;
-
-            if (health.consecutiveSuccesses >= config.healthyThreshold) {
-                health.status = ProviderStatus.HEALTHY;
-            }
-        } else {
-            health.consecutiveFailures++;
-            health.consecutiveSuccesses = 0;
-            health.error = error;
-
-            if (health.consecutiveFailures >= config.unhealthyThreshold) {
-                health.status = ProviderStatus.UNHEALTHY;
-            }
-
-            if (health.consecutiveFailures >= config.maxConsecutiveFailures) {
-                health.status = ProviderStatus.FAILED;
-                this.emit('providerFailed', {
-                    providerId,
-                    error,
-                    health: { ...health }
-                });
-            }
-        }
-
-        this.emit('healthUpdated', {
-            providerId,
-            health: { ...health }
-        });
+    public getProviderHealth(providerId: string): ProviderHealth | undefined {
+        return this.healthStates.get(providerId);
     }
 
-    /**
-     * Clear monitoring for a provider
-     */
-    public clearProvider(providerId: string): void {
-        this.stopMonitoring(providerId);
-        this.healthStates.delete(providerId);
-        this.configs.delete(providerId);
+    public isHealthy(providerId: string): boolean {
+        const health = this.healthStates.get(providerId);
+        return health?.status === ProviderStatus.HEALTHY;
     }
 
     public dispose(): void {
-        // Stop all monitoring
-        for (const providerId of this.checkIntervals.keys()) {
-            this.clearProvider(providerId);
+        for (const interval of this.checkIntervals.values()) {
+            clearInterval(interval);
         }
-        
-        this.metricsTracker.dispose();
+        this.checkIntervals.clear();
+        this.healthStates.clear();
+        this.connectionManagers.clear();
         this.removeAllListeners();
     }
 }

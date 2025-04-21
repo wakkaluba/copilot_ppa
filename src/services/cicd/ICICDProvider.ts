@@ -19,3 +19,12 @@ export interface Workflow {
     status: 'active' | 'disabled';
     lastRun?: Date;
 }
+
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export class CICDError extends Error {
+    constructor(public code: string, message: string) {
+        super(message);
+        this.name = 'CICDError';
+    }
+}

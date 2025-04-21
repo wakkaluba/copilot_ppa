@@ -1,317 +1,136 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as glob from 'glob';
-
-export interface ViteConfigAnalysis {
-    plugins: string[];
-    buildOptions: any;
-    serverOptions: any;
-    optimizationSuggestions: any[];
-}
+import { ILogger } from '../../services/logging/ILogger';
+import { ViteConfigAnalysis, VitePlugin, ViteInput, ViteOutput } from './types';
+import { ViteConfigAnalyzer, ViteConfigDetector, ViteOptimizationService } from './services';
+import { ConfigValidationError } from './errors/ConfigValidationError';
 
 export class ViteConfigManager {
+    constructor(
+        private readonly configDetector: ViteConfigDetector,
+        private readonly configAnalyzer: ViteConfigAnalyzer,
+        private readonly optimizationService: ViteOptimizationService,
+        private readonly logger: ILogger
+    ) {}
+
     /**
      * Detects Vite configuration files in the given directory
+     * @param workspacePath The root directory to search for Vite configs
+     * @returns Array of absolute paths to Vite config files
      */
     public async detectConfigs(workspacePath: string): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            const patterns = [
-                'vite.config.js',
-                'vite.config.ts',
-                'vite.config.mjs',
-                'vite.*.js',
-                'vite.*.ts',
-                'vite.*.mjs'
-            ];
-            
-            const configs: string[] = [];
-            
-            for (const pattern of patterns) {
-                const matches = glob.sync(pattern, { cwd: workspacePath });
-                
-                for (const match of matches) {
-                    configs.push(path.join(workspacePath, match));
-                }
-            }
-            
-            // Remove duplicates
-            resolve([...new Set(configs)]);
-        });
+        try {
+            this.logger.debug(`Detecting Vite configs in ${workspacePath}`);
+            return await this.configDetector.detectConfigs(workspacePath);
+        } catch (error) {
+            this.logger.error('Error detecting Vite configs:', error);
+            throw new Error(`Failed to detect Vite configurations: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
-    
+
     /**
      * Analyzes a Vite configuration file
+     * @param configPath Path to the Vite config file
+     * @returns Analysis results including build config, plugins, and optimization suggestions
      */
     public async analyzeConfig(configPath: string): Promise<ViteConfigAnalysis> {
         try {
-            const content = fs.readFileSync(configPath, 'utf-8');
-            
-            // Simple regex-based analysis for demonstration purposes
-            const pluginMatches = Array.from(content.matchAll(/plugins\s*:\s*\[([^\]]*)\]/gs) || []);
-            
-            const buildMatch = content.match(/build\s*:\s*{([^}]*)}/s);
-            
-            const serverMatch = content.match(/server\s*:\s*{([^}]*)}/s);
-            
-            // Extract plugins
-            const plugins = this.extractPlugins(pluginMatches);
-            
-            // Extract build options
-            const buildOptions = this.extractBuildOptions(buildMatch ? buildMatch[1] : '');
-            
-            // Extract server options
-            const serverOptions = this.extractServerOptions(serverMatch ? serverMatch[1] : '');
-            
-            // Generate optimization suggestions
-            const optimizationSuggestions = this.generateOptimizationSuggestions(
-                content, plugins, buildOptions, serverOptions
+            this.logger.debug(`Analyzing Vite config at ${configPath}`);
+            const analysis = await this.configAnalyzer.analyze(configPath);
+            const suggestions = await this.optimizationService.generateSuggestions(
+                analysis.content,
+                analysis.build,
+                analysis.plugins,
+                analysis.optimizationOptions
             );
-            
+
             return {
-                plugins,
-                buildOptions,
-                serverOptions,
-                optimizationSuggestions
+                ...analysis,
+                optimizationSuggestions: suggestions
             };
         } catch (error) {
-            console.error('Error analyzing Vite config:', error);
-            throw error;
+            if (error instanceof ConfigValidationError) {
+                throw error;
+            }
+            this.logger.error('Error analyzing Vite config:', error);
+            throw new Error(`Failed to analyze Vite configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
-    
+
+    /**
+     * Validates a Vite configuration file
+     * @param configPath Path to the Vite config file
+     * @returns True if the configuration is valid
+     */
+    public async validateConfig(configPath: string): Promise<boolean> {
+        try {
+            this.logger.debug(`Validating Vite config at ${configPath}`);
+            const analysis = await this.configAnalyzer.analyze(configPath);
+            
+            // Basic validation checks
+            if (!analysis.build) {
+                throw new ConfigValidationError('Missing build configuration', configPath, ['Build configuration is required']);
+            }
+
+            // Additional validation could be added here
+            return true;
+        } catch (error) {
+            if (error instanceof ConfigValidationError) {
+                throw error;
+            }
+            this.logger.error('Error validating Vite config:', error);
+            throw new Error(`Failed to validate Vite configuration: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
     /**
      * Generates optimization suggestions for a Vite configuration
+     * @param configPath Path to the Vite config file
+     * @returns Array of optimization suggestions
      */
-    public async generateOptimizations(configPath: string): Promise<any[]> {
-        const analysis = await this.analyzeConfig(configPath);
-        return analysis.optimizationSuggestions;
+    public async generateOptimizations(configPath: string): Promise<string[]> {
+        try {
+            this.logger.debug(`Generating optimization suggestions for ${configPath}`);
+            const analysis = await this.analyzeConfig(configPath);
+            return analysis.optimizationSuggestions;
+        } catch (error) {
+            this.logger.error('Error generating optimizations:', error);
+            throw new Error(`Failed to generate optimization suggestions: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
-    
-    private extractPlugins(pluginMatches: RegExpMatchArray[]): string[] {
-        const plugins: string[] = [];
-        
-        for (const match of pluginMatches) {
-            const pluginContent = match[1];
+
+    /**
+     * Gets the detected framework from a Vite configuration
+     * @param configPath Path to the Vite config file
+     * @returns The detected framework name or null if none detected
+     */
+    public async detectFramework(configPath: string): Promise<string | null> {
+        try {
+            this.logger.debug(`Detecting framework for Vite config at ${configPath}`);
+            const analysis = await this.configAnalyzer.analyze(configPath);
             
-            // Extract plugin names
-            const pluginNameMatches = Array.from(pluginContent.matchAll(/(\w+)\(/g));
-            
-            for (const pluginMatch of pluginNameMatches) {
-                const pluginName = pluginMatch[1];
-                if (!plugins.includes(pluginName)) {
-                    plugins.push(pluginName);
-                }
+            // Check plugins to detect framework
+            const frameworkPlugins = analysis.plugins.filter(plugin => 
+                plugin.name.toLowerCase().includes('react') ||
+                plugin.name.toLowerCase().includes('vue') ||
+                plugin.name.toLowerCase().includes('svelte') ||
+                plugin.name.toLowerCase().includes('solid')
+            );
+
+            if (frameworkPlugins.length > 0) {
+                const framework = frameworkPlugins[0].name.toLowerCase();
+                return framework.includes('react') ? 'React' :
+                       framework.includes('vue') ? 'Vue' :
+                       framework.includes('svelte') ? 'Svelte' :
+                       framework.includes('solid') ? 'Solid' :
+                       null;
             }
-        }
-        
-        return plugins;
-    }
-    
-    private extractBuildOptions(buildStr: string): any {
-        const options: any = {};
-        
-        const targetMatch = buildStr.match(/target\s*:\s*['"]([^'"]*)['"]/);
-        if (targetMatch) {
-            options.target = targetMatch[1];
-        }
-        
-        const outDirMatch = buildStr.match(/outDir\s*:\s*['"]([^'"]*)['"]/);
-        if (outDirMatch) {
-            options.outDir = outDirMatch[1];
-        }
-        
-        const assetsInlineLimit = buildStr.match(/assetsInlineLimit\s*:\s*(\d+)/);
-        if (assetsInlineLimit) {
-            options.assetsInlineLimit = parseInt(assetsInlineLimit[1], 10);
-        }
-        
-        const cssCodeSplitMatch = buildStr.match(/cssCodeSplit\s*:\s*(true|false)/);
-        if (cssCodeSplitMatch) {
-            options.cssCodeSplit = cssCodeSplitMatch[1] === 'true';
-        }
-        
-        const sourcemapMatch = buildStr.match(/sourcemap\s*:\s*(true|false|['"][^'"]*['"]\s*)/);
-        if (sourcemapMatch) {
-            options.sourcemap = sourcemapMatch[1] === 'true' ? true : 
-                               sourcemapMatch[1] === 'false' ? false : 
-                               sourcemapMatch[1].replace(/['"]/g, '');
-        }
-        
-        const minifyMatch = buildStr.match(/minify\s*:\s*(true|false|['"][^'"]*['"]\s*)/);
-        if (minifyMatch) {
-            options.minify = minifyMatch[1] === 'true' ? true : 
-                            minifyMatch[1] === 'false' ? false : 
-                            minifyMatch[1].replace(/['"]/g, '');
-        }
-        
-        return options;
-    }
-    
-    private extractServerOptions(serverStr: string): any {
-        const options: any = {};
-        
-        const portMatch = serverStr.match(/port\s*:\s*(\d+)/);
-        if (portMatch) {
-            options.port = parseInt(portMatch[1], 10);
-        }
-        
-        const hostMatch = serverStr.match(/host\s*:\s*(true|false|['"][^'"]*['"]\s*)/);
-        if (hostMatch) {
-            options.host = hostMatch[1] === 'true' ? true : 
-                          hostMatch[1] === 'false' ? false : 
-                          hostMatch[1].replace(/['"]/g, '');
-        }
-        
-        const httpsMatch = serverStr.match(/https\s*:\s*(true|false)/);
-        if (httpsMatch) {
-            options.https = httpsMatch[1] === 'true';
-        }
-        
-        const corsMatch = serverStr.match(/cors\s*:\s*(true|false)/);
-        if (corsMatch) {
-            options.cors = corsMatch[1] === 'true';
-        }
-        
-        const hmrMatch = serverStr.match(/hmr\s*:\s*(true|false)/);
-        if (hmrMatch) {
-            options.hmr = hmrMatch[1] === 'true';
-        }
-        
-        return options;
-    }
-    
-    private generateOptimizationSuggestions(
-        content: string,
-        plugins: string[],
-        buildOptions: any,
-        serverOptions: any
-    ): any[] {
-        const suggestions: any[] = [];
-        
-        // Check for build target
-        if (!buildOptions.target) {
-            suggestions.push({
-                title: 'Specify Build Target',
-                description: 'Specify a build target for better browser compatibility',
-                code: `
-export default {
-  // ...
-  build: {
-    target: 'es2015', // or 'modules' for modern browsers
-    // ...other build options
-  }
-};`
-            });
-        }
-        
-        // Check for CSS code splitting
-        if (buildOptions.cssCodeSplit === false) {
-            suggestions.push({
-                title: 'Enable CSS Code Splitting',
-                description: 'Consider enabling CSS code splitting for better caching and performance',
-                code: `
-export default {
-  // ...
-  build: {
-    cssCodeSplit: true,
-    // ...other build options
-  }
-};`
-            });
-        }
-        
-        // Check for source maps in production
-        if (buildOptions.sourcemap === true && !content.includes('process.env.NODE_ENV')) {
-            suggestions.push({
-                title: 'Disable Source Maps in Production',
-                description: 'Consider disabling source maps in production for better performance',
-                code: `
-export default {
-  // ...
-  build: {
-    sourcemap: process.env.NODE_ENV !== 'production',
-    // ...other build options
-  }
-};`
-            });
-        }
-        
-        // Check for build analyzer
-        if (!plugins.includes('visualizer') && !content.includes('rollup-plugin-visualizer')) {
-            suggestions.push({
-                title: 'Add Bundle Analyzer',
-                description: 'Use rollup-plugin-visualizer to analyze your bundle size',
-                code: `
-import { visualizer } from 'rollup-plugin-visualizer';
 
-export default {
-  // ...
-  plugins: [
-    // ...existing plugins
-    visualizer({
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    }),
-  ],
-};`
-            });
+            return null;
+        } catch (error) {
+            this.logger.error('Error detecting framework:', error);
+            throw new Error(`Failed to detect framework: ${error instanceof Error ? error.message : String(error)}`);
         }
-        
-        // Check for compression plugin
-        if (!plugins.includes('compression') && !content.includes('vite-plugin-compression')) {
-            suggestions.push({
-                title: 'Add Compression Plugin',
-                description: 'Use vite-plugin-compression to pre-compress your assets',
-                code: `
-import compression from 'vite-plugin-compression';
-
-export default {
-  // ...
-  plugins: [
-    // ...existing plugins
-    compression(),
-  ],
-};`
-            });
-        }
-        
-        // Check for legacy browsers support
-        if (!plugins.includes('legacy') && !content.includes('@vitejs/plugin-legacy')) {
-            suggestions.push({
-                title: 'Add Legacy Browsers Support',
-                description: 'Use @vitejs/plugin-legacy to support older browsers',
-                code: `
-import legacy from '@vitejs/plugin-legacy';
-
-export default {
-  // ...
-  plugins: [
-    // ...existing plugins
-    legacy({
-      targets: ['defaults', 'not IE 11'],
-    }),
-  ],
-};`
-            });
-        }
-        
-        // Check for build caching
-        if (!content.includes('build.cache') && !content.includes('cache: {')) {
-            suggestions.push({
-                title: 'Enable Build Caching',
-                description: 'Enable build caching for faster builds',
-                code: `
-export default {
-  // ...
-  build: {
-    // ...other build options
-    cache: true,
-  },
-};`
-            });
-        }
-        
-        return suggestions;
     }
 }

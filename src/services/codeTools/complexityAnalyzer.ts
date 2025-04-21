@@ -17,22 +17,37 @@ export interface FunctionAnalysis extends ComplexityMetrics {
     dependencies: string[];
 }
 
-export class ComplexityAnalyzer {
+export interface IComplexityService {
+    analyzeCode(document: vscode.TextDocument): Promise<ComplexityMetrics>;
+    analyzeFunction(document: vscode.TextDocument, functionName: string): Promise<FunctionAnalysis | null>;
+    analyzeMetrics(code: string): ComplexityMetrics;
+    getComplexityGrade(complexity: number): 'Low' | 'Medium' | 'High';
+}
+
+export interface IMetricsCalculator {
+    calculateCyclomaticComplexity(node: ts.Node): number;
+    calculateMaintainabilityIndex(code: string): number;
+    calculateCognitiveComplexity(node: ts.Node): number;
+    calculateHalsteadDifficulty(node: ts.Node): number;
+    calculateNestingDepth(node: ts.Node): number;
+}
+
+export class ComplexityAnalyzer implements IComplexityService {
     private readonly COMPLEXITY_THRESHOLD = {
         LOW: 10,
         MEDIUM: 20,
         HIGH: 30
     };
 
+    private readonly metricsCalculator: MetricsCalculator;
+    private readonly dependencyAnalyzer: DependencyAnalyzer;
+
     constructor() {
-        this.initialize();
+        this.metricsCalculator = new MetricsCalculator();
+        this.dependencyAnalyzer = new DependencyAnalyzer();
     }
 
-    private initialize(): void {
-        // Initialize any required resources
-    }
-
-    public analyzeCode(document: vscode.TextDocument): ComplexityMetrics {
+    public async analyzeCode(document: vscode.TextDocument): Promise<ComplexityMetrics> {
         const sourceFile = ts.createSourceFile(
             document.fileName,
             document.getText(),
@@ -43,12 +58,12 @@ export class ComplexityAnalyzer {
         const metrics = this.analyzeNode(sourceFile);
         return {
             ...metrics,
-            maintainabilityIndex: this.calculateMaintainabilityIndex(document.getText()),
+            maintainabilityIndex: this.metricsCalculator.calculateMaintainabilityIndex(document.getText()),
             lineCount: document.lineCount
         };
     }
 
-    public analyzeFunction(document: vscode.TextDocument, functionName: string): FunctionAnalysis | null {
+    public async analyzeFunction(document: vscode.TextDocument, functionName: string): Promise<FunctionAnalysis | null> {
         const sourceFile = ts.createSourceFile(
             document.fileName,
             document.getText(),
@@ -56,26 +71,17 @@ export class ComplexityAnalyzer {
             true
         );
 
-        let functionNode: ts.FunctionDeclaration | null = null;
-        const visit = (node: ts.Node) => {
-            if (ts.isFunctionDeclaration(node) && node.name?.text === functionName) {
-                functionNode = node;
-            }
-            ts.forEachChild(node, visit);
-        };
-
-        ts.forEachChild(sourceFile, visit);
-
+        const functionNode = this.findFunctionNode(sourceFile, functionName);
         if (!functionNode) return null;
 
         const metrics = this.analyzeNode(functionNode);
-        const dependencies = this.analyzeDependencies(functionNode);
+        const dependencies = this.dependencyAnalyzer.analyzeDependencies(functionNode);
         
         return {
             ...metrics,
             name: functionName,
-            parameters: this.getParameters(functionNode),
-            returnType: this.getReturnType(functionNode),
+            parameters: this.dependencyAnalyzer.getParameters(functionNode),
+            returnType: this.dependencyAnalyzer.getReturnType(functionNode),
             dependencies
         };
     }
@@ -91,19 +97,43 @@ export class ComplexityAnalyzer {
         return this.analyzeNode(sourceFile);
     }
 
+    public getComplexityGrade(complexity: number): 'Low' | 'Medium' | 'High' {
+        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW) return 'Low';
+        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM) return 'Medium';
+        return 'High';
+    }
+
     private analyzeNode(node: ts.Node): ComplexityMetrics {
         return {
-            cyclomaticComplexity: this.calculateCyclomaticComplexity(node),
-            maintainabilityIndex: this.calculateMaintainabilityIndex(node.getText()),
-            cognitiveComplexity: this.calculateCognitiveComplexity(node),
-            halsteadDifficulty: this.calculateHalsteadDifficulty(node),
+            cyclomaticComplexity: this.metricsCalculator.calculateCyclomaticComplexity(node),
+            maintainabilityIndex: this.metricsCalculator.calculateMaintainabilityIndex(node.getText()),
+            cognitiveComplexity: this.metricsCalculator.calculateCognitiveComplexity(node),
+            halsteadDifficulty: this.metricsCalculator.calculateHalsteadDifficulty(node),
             lineCount: node.getFullText().split('\n').length,
-            nestingDepth: this.calculateNestingDepth(node)
+            nestingDepth: this.metricsCalculator.calculateNestingDepth(node)
         };
     }
 
-    private calculateCyclomaticComplexity(node: ts.Node): number {
+    private findFunctionNode(sourceFile: ts.SourceFile, functionName: string): ts.FunctionDeclaration | null {
+        let functionNode: ts.FunctionDeclaration | null = null;
+        
+        const visit = (node: ts.Node) => {
+            if (ts.isFunctionDeclaration(node) && node.name?.text === functionName) {
+                functionNode = node;
+                return;
+            }
+            ts.forEachChild(node, visit);
+        };
+
+        ts.forEachChild(sourceFile, visit);
+        return functionNode;
+    }
+}
+
+export class MetricsCalculator implements IMetricsCalculator {
+    public calculateCyclomaticComplexity(node: ts.Node): number {
         let complexity = 1;
+        
         const visit = (node: ts.Node) => {
             switch (node.kind) {
                 case ts.SyntaxKind.IfStatement:
@@ -128,11 +158,12 @@ export class ComplexityAnalyzer {
             }
             ts.forEachChild(node, visit);
         };
+
         visit(node);
         return complexity;
     }
 
-    private calculateMaintainabilityIndex(code: string): number {
+    public calculateMaintainabilityIndex(code: string): number {
         const halsteadVolume = this.calculateHalsteadVolume(code);
         const cyclomaticComplexity = this.calculateCyclomaticComplexity(
             ts.createSourceFile('temp.ts', code, ts.ScriptTarget.Latest, true)
@@ -143,34 +174,7 @@ export class ComplexityAnalyzer {
         return Math.min(100, mi);
     }
 
-    private calculateNestingDepth(node: ts.Node): number {
-        let maxDepth = 0;
-        let currentDepth = 0;
-
-        const visit = (node: ts.Node) => {
-            switch (node.kind) {
-                case ts.SyntaxKind.IfStatement:
-                case ts.SyntaxKind.WhileStatement:
-                case ts.SyntaxKind.ForStatement:
-                case ts.SyntaxKind.ForInStatement:
-                case ts.SyntaxKind.ForOfStatement:
-                case ts.SyntaxKind.DoStatement:
-                case ts.SyntaxKind.Block:
-                    currentDepth++;
-                    maxDepth = Math.max(maxDepth, currentDepth);
-                    ts.forEachChild(node, visit);
-                    currentDepth--;
-                    break;
-                default:
-                    ts.forEachChild(node, visit);
-            }
-        };
-
-        visit(node);
-        return maxDepth;
-    }
-
-    private calculateCognitiveComplexity(node: ts.Node): number {
+    public calculateCognitiveComplexity(node: ts.Node): number {
         let complexity = 0;
         let nestingLevel = 0;
 
@@ -214,7 +218,7 @@ export class ComplexityAnalyzer {
         return complexity;
     }
 
-    private calculateHalsteadDifficulty(node: ts.Node): number {
+    public calculateHalsteadDifficulty(node: ts.Node): number {
         const metrics = this.getHalsteadMetrics(node);
         const n1 = metrics.distinctOperators;
         const n2 = metrics.distinctOperands;
@@ -222,6 +226,33 @@ export class ComplexityAnalyzer {
 
         if (n2 === 0) return 0;
         return (n1 * N2) / (2 * n2);
+    }
+
+    public calculateNestingDepth(node: ts.Node): number {
+        let maxDepth = 0;
+        let currentDepth = 0;
+
+        const visit = (node: ts.Node) => {
+            switch (node.kind) {
+                case ts.SyntaxKind.IfStatement:
+                case ts.SyntaxKind.WhileStatement:
+                case ts.SyntaxKind.ForStatement:
+                case ts.SyntaxKind.ForInStatement:
+                case ts.SyntaxKind.ForOfStatement:
+                case ts.SyntaxKind.DoStatement:
+                case ts.SyntaxKind.Block:
+                    currentDepth++;
+                    maxDepth = Math.max(maxDepth, currentDepth);
+                    ts.forEachChild(node, visit);
+                    currentDepth--;
+                    break;
+                default:
+                    ts.forEachChild(node, visit);
+            }
+        };
+
+        visit(node);
+        return maxDepth;
     }
 
     private calculateHalsteadVolume(code: string): number {
@@ -242,8 +273,12 @@ export class ComplexityAnalyzer {
         let totalOperands = 0;
 
         const visit = (node: ts.Node) => {
-            if (ts.isBinaryExpression(node) || ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) {
+            if (ts.isBinaryExpression(node)) {
                 operators.add(node.operatorToken.getText());
+                totalOperators++;
+            }
+            else if (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) {
+                operators.add(node.operator.toString());
                 totalOperators++;
             }
             else if (ts.isIdentifier(node)) {
@@ -266,16 +301,10 @@ export class ComplexityAnalyzer {
             totalOperands
         };
     }
+}
 
-    private getParameters(node: ts.FunctionDeclaration): string[] {
-        return node.parameters.map(param => param.name.getText());
-    }
-
-    private getReturnType(node: ts.FunctionDeclaration): string {
-        return node.type ? node.type.getText() : 'any';
-    }
-
-    private analyzeDependencies(node: ts.FunctionDeclaration): string[] {
+export class DependencyAnalyzer {
+    public analyzeDependencies(node: ts.FunctionDeclaration): string[] {
         const dependencies = new Set<string>();
         
         const visit = (node: ts.Node) => {
@@ -289,13 +318,16 @@ export class ComplexityAnalyzer {
         return Array.from(dependencies);
     }
 
-    private isParameter(node: ts.Node, parent: ts.Node | undefined): boolean {
-        return ts.isParameter(parent) && parent.name === node;
+    public getParameters(node: ts.FunctionDeclaration): string[] {
+        return node.parameters.map(param => param.name.getText());
     }
 
-    private getComplexityGrade(complexity: number): 'Low' | 'Medium' | 'High' {
-        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW) return 'Low';
-        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM) return 'Medium';
-        return 'High';
+    public getReturnType(node: ts.FunctionDeclaration): string {
+        return node.type ? node.type.getText() : 'any';
+    }
+
+    private isParameter(node: ts.Node, parent: ts.Node | undefined): boolean {
+        if (!parent) return false;
+        return ts.isParameter(parent) && parent.name === node;
     }
 }

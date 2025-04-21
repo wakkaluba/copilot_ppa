@@ -1,5 +1,17 @@
 import * as vscode from 'vscode';
-import { AnalyzerOptions } from '../types';
+import { AnalyzerOptions, LanguageMetricThresholds } from '../types';
+
+export interface CachingOptions {
+    enabled: boolean;
+    maxSize: number;
+    ttlMinutes: number;
+}
+
+export interface AsyncOptions {
+    batchSize: number;
+    concurrencyLimit: number;
+    timeoutMs: number;
+}
 
 export class PerformanceConfigService {
     private readonly configSection = 'performance';
@@ -19,6 +31,22 @@ export class PerformanceConfigService {
 
     public isBottleneckDetectionEnabled(): boolean {
         return this.config.get<boolean>('bottleneckDetectionEnabled', false);
+    }
+
+    public getCachingOptions(): CachingOptions {
+        return {
+            enabled: this.config.get<boolean>('caching.enabled', true),
+            maxSize: this.config.get<number>('caching.maxSize', 100),
+            ttlMinutes: this.config.get<number>('caching.ttlMinutes', 60)
+        };
+    }
+
+    public getAsyncOptions(): AsyncOptions {
+        return {
+            batchSize: this.config.get<number>('async.batchSize', 10),
+            concurrencyLimit: this.config.get<number>('async.concurrencyLimit', 5),
+            timeoutMs: this.config.get<number>('async.timeoutMs', 30000)
+        };
     }
 
     public getAnalyzerOptions(): AnalyzerOptions {

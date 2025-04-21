@@ -9,8 +9,17 @@ import {
     ModelInfo,
     RetryConfig,
     LLMConnectionError,
-    LLMConnectionErrorCode
+    LLMConnectionErrorCode,
+    HealthCheckConfig
 } from './types';
+
+const DEFAULT_HEALTH_CONFIG: HealthCheckConfig = {
+    checkIntervalMs: 30000,
+    timeoutMs: 5000,
+    unhealthyThreshold: 3,
+    healthyThreshold: 2,
+    maxConsecutiveFailures: 5
+};
 
 /**
  * Base class for LLM connection management
@@ -19,8 +28,13 @@ import {
 export abstract class BaseConnectionManager extends EventEmitter {
     protected activeProvider: LLMProvider | null = null;
     protected readonly providerRegistry: LLMProviderRegistryService;
-    protected currentStatus: LLMProviderStatus = { isConnected: false, isAvailable: false, error: '' };
+    protected currentStatus: LLMProviderStatus = { 
+        isConnected: false, 
+        isAvailable: false, 
+        error: '' 
+    };
     private healthCheckInterval: NodeJS.Timer | null = null;
+    protected healthConfig: HealthCheckConfig;
     
     protected readonly retryConfig: RetryConfig = {
         maxAttempts: 3,
@@ -31,17 +45,17 @@ export abstract class BaseConnectionManager extends EventEmitter {
         timeout: 10000
     };
 
-    constructor(config?: Partial<RetryConfig>) {
+    constructor(config?: Partial<RetryConfig & HealthCheckConfig>) {
         super();
         this.providerRegistry = new LLMProviderRegistryService();
-        if (config) {
-            this.retryConfig = { ...this.retryConfig, ...config };
-        }
+        this.retryConfig = { ...this.retryConfig, ...config };
+        this.healthConfig = { ...DEFAULT_HEALTH_CONFIG, ...config };
         this.setupEventHandlers();
     }
 
     private setupEventHandlers(): void {
-        this.providerRegistry.on('providerStatusChanged', this.handleProviderStatusChange.bind(this));
+        this.providerRegistry.on('providerStatusChanged', 
+            this.handleProviderStatusChange.bind(this));
     }
 
     protected registerProvider(name: string, provider: LLMProvider): void {
@@ -54,7 +68,7 @@ export abstract class BaseConnectionManager extends EventEmitter {
             this.activeProvider = provider;
             this.emit(ConnectionEvent.StateChanged, this.createConnectionEventData());
         } catch (error) {
-            this.handleConnectionError(error);
+            await this.handleConnectionError(error);
         }
     }
 
@@ -134,7 +148,7 @@ export abstract class BaseConnectionManager extends EventEmitter {
             } catch (error) {
                 await this.handleConnectionError(error);
             }
-        }, 30000); // 30 second interval
+        }, this.healthConfig.checkIntervalMs);
     }
 
     protected stopHealthChecks(): void {

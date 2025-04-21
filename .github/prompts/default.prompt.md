@@ -1,6 +1,9 @@
 # setup
+## general targets
 @workspace
 #codebase 
+
+## zzzbuild
 zzzbuild/ - folder for local build items like:
   - build scripts
     - zzzbuild\build.sh
@@ -60,7 +63,6 @@ zzzbuild/artifacts/ - folder for build artifacts like:
 ## refactor - code
 - use the markdown file zzzbuild\refactoring-progress.md to reflect which files have been processed and which ones are missing.
 - refactor all the files step by step, beginning with the largest files and finally update the markdown files refactoring\refactoring-plan.md and refactoring-progress.md
-- do not stop and run a resume on the steps done, just enter them into refactoring-progress.md.
 
 # coding
 ## coding - normal coding by list
@@ -88,15 +90,25 @@ Commence with the next most reasonable task in zzzbuild\todo.md.
 - re-organize zzzbuild\todo.md
   - compare zzzbuild\todo.md against zzzbuild\todo.md and zzzbuild\finished.md
     - Delete all duplicate tasks in zzzbuild\todo.md
-- re-organize zzzbuild\todo.md
 
 ## finished task files
 reorganize zzzbuild\finished.md
-- The zzzbuild\finished.md file is a record of completed tasks, and every entry needs to be preserved, not summarized or removed
-- group the categories
+- The zzzbuild\finished.md file is a record of completed tasks in zzzbuild\todo.md, and every entry needs to be preserved, not summarized or removed
+- group by categories
 - remove duplicates
   - DONT delete ANY entry that is not a duplicate
-- Create a consistent format for each category
+- Create a consistent format throuout the categories
   - Ensure proper formatting (headers, bullet points, etc.)
   - translate everything to english if different spoken language found.
 
+
+# credentials to use, when accessing these websites
+
+## github
+- username: <username>
+- password: <password>
+- token: <token>
+- email: <email>
+- ssh-key: <ssh-key>
+
+## 

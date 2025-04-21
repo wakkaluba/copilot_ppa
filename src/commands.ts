@@ -1,8 +1,12 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ModelService } from './llm/modelService';
 import { ConfigManager } from './config';
 import { ICommandService } from './services/interfaces';
+import { AgentCommandService } from './services/commands/AgentCommandService';
+import { ConfigurationCommandService } from './services/commands/ConfigurationCommandService';
+import { VisualizationCommandService } from './services/commands/VisualizationCommandService';
+import { MenuCommandService } from './services/commands/MenuCommandService';
+import { ErrorHandler } from './services/error/ErrorHandler';
 
 interface CommandHandler {
     execute: (...args: any[]) => Promise<void>;
@@ -10,249 +14,105 @@ interface CommandHandler {
 
 export class CommandManager implements ICommandService {
     private readonly _modelService: ModelService;
-    private readonly _context: vscode.ExtensionContext;
-    private readonly _config: ConfigManager;
     private readonly _registeredCommands: Map<string, CommandHandler>;
+    private readonly errorHandler: ErrorHandler;
+    private readonly agentService: AgentCommandService;
+    private readonly configService: ConfigurationCommandService;
+    private readonly visualizationService: VisualizationCommandService;
+    private readonly menuService: MenuCommandService;
 
-    constructor(context: vscode.ExtensionContext, configManager: ConfigManager) {
-        this._context = context;
-        this._config = configManager;
+    constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly configManager: ConfigManager
+    ) {
         this._modelService = new ModelService(context);
         this._registeredCommands = new Map();
+        
+        // Initialize services
+        this.errorHandler = new ErrorHandler();
+        this.agentService = new AgentCommandService(this._modelService, this.errorHandler);
+        this.configService = new ConfigurationCommandService(this._modelService, this.configManager, this.errorHandler);
+        this.visualizationService = new VisualizationCommandService(context, this.errorHandler);
+        this.menuService = new MenuCommandService(
+            this.agentService,
+            this.configService,
+            this.visualizationService,
+            this.errorHandler
+        );
+
+        // Add services to disposables
+        context.subscriptions.push(this.errorHandler);
     }
 
     async initialize(): Promise<void> {
-        await this.initializeCommandHandlers();
         await this.registerCommands();
-    }
-
-    private initializeCommandHandlers(): Promise<void> {
-        // Agent commands
-        this.registerCommand('copilot-ppa.startAgent', { execute: this.startAgent.bind(this) });
-        this.registerCommand('copilot-ppa.stopAgent', { execute: this.stopAgent.bind(this) });
-        this.registerCommand('copilot-ppa.restartAgent', { execute: this.restartAgent.bind(this) });
-        
-        // Configuration commands
-        this.registerCommand('copilot-ppa.configureModel', { execute: this.configureModel.bind(this) });
-        this.registerCommand('copilot-ppa.clearConversation', { execute: this.clearConversation.bind(this) });
-        
-        // Menu commands
-        this.registerCommand('copilot-ppa.openMenu', { execute: this.openMenu.bind(this) });
-        this.registerCommand('copilot-ppa.showMetrics', { execute: this.showMetrics.bind(this) });
-        
-        // Visualization commands
-        this.registerCommand('copilot-ppa.showMemoryVisualization', { execute: this.showMemoryVisualization.bind(this) });
-        this.registerCommand('copilot-ppa.showPerformanceMetrics', { execute: this.showPerformanceMetrics.bind(this) });
-        this.registerCommand('copilot-ppa.exportMetrics', { execute: this.exportMetrics.bind(this) });
-
-        return Promise.resolve();
     }
 
     registerCommand(command: string, handler: CommandHandler): void {
         this._registeredCommands.set(command, handler);
         const disposable = vscode.commands.registerCommand(command, handler.execute);
-        this._context.subscriptions.push(disposable);
+        this.context.subscriptions.push(disposable);
     }
 
     async registerCommands(): Promise<void> {
-        // All commands are already registered in constructor
-        return Promise.resolve();
+        // Agent commands
+        this.registerCommand('copilot-ppa.startAgent', { execute: this.agentService.startAgent.bind(this.agentService) });
+        this.registerCommand('copilot-ppa.stopAgent', { execute: this.agentService.stopAgent.bind(this.agentService) });
+        this.registerCommand('copilot-ppa.restartAgent', { execute: this.agentService.restartAgent.bind(this.agentService) });
+        
+        // Configuration commands
+        this.registerCommand('copilot-ppa.configureModel', { execute: this.configService.configureModel.bind(this.configService) });
+        this.registerCommand('copilot-ppa.clearConversation', { execute: this.configService.clearConversation.bind(this.configService) });
+        
+        // Menu commands
+        this.registerCommand('copilot-ppa.openMenu', { execute: this.menuService.openMenu.bind(this.menuService) });
+        this.registerCommand('copilot-ppa.showMetrics', { execute: this.visualizationService.showMetrics.bind(this.visualizationService) });
+        
+        // Visualization commands
+        this.registerCommand('copilot-ppa.showMemoryVisualization', { execute: this.visualizationService.showMemoryVisualization.bind(this.visualizationService) });
+        this.registerCommand('copilot-ppa.showPerformanceMetrics', { execute: this.visualizationService.showPerformanceMetrics.bind(this.visualizationService) });
+        this.registerCommand('copilot-ppa.exportMetrics', { execute: this.visualizationService.exportMetrics.bind(this.visualizationService) });
     }
 
+    // ICommandService implementation - delegate to specialized services
     async startAgent(): Promise<void> {
-        try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Starting Copilot PPA agent...',
-                cancellable: false
-            }, async (progress) => {
-                progress.report({ increment: 50 });
-                const recommendations = await this._modelService.getModelRecommendations();
-                if (recommendations.length > 0) {
-                    const defaultModel = recommendations[0];
-                    if (defaultModel) {
-                        await this._modelService.checkModelCompatibility(defaultModel);
-                    }
-                }
-                progress.report({ increment: 50 });
-                await vscode.window.showInformationMessage('Copilot PPA agent started successfully');
-            });
-        } catch (error) {
-            this.handleError('Failed to start Copilot PPA agent', error);
-        }
+        await this.agentService.startAgent();
     }
 
     async stopAgent(): Promise<void> {
-        try {
-            await this._modelService.dispose();
-            await vscode.window.showInformationMessage('Copilot PPA agent stopped');
-        } catch (error) {
-            this.handleError('Failed to stop Copilot PPA agent', error);
-        }
+        await this.agentService.stopAgent();
     }
 
     async restartAgent(): Promise<void> {
-        try {
-            await this.stopAgent();
-            await this.startAgent();
-        } catch (error) {
-            this.handleError('Failed to restart Copilot PPA agent', error);
-        }
+        await this.agentService.restartAgent();
     }
 
     async configureModel(): Promise<void> {
-        try {
-            const config = this._config.getConfig();
-            
-            const providers = ['ollama', 'lmstudio', 'huggingface', 'custom'];
-            const selectedProvider = await vscode.window.showQuickPick(providers, {
-                placeHolder: 'Select LLM provider',
-                title: 'Configure LLM Model'
-            });
-            
-            if (selectedProvider) {
-                await this._config.updateConfig('llm.provider', selectedProvider);
-                
-                if (selectedProvider === 'custom') {
-                    const endpoint = await vscode.window.showInputBox({
-                        prompt: 'Enter custom LLM endpoint URL',
-                        value: config.llm.endpoint,
-                        validateInput: this.validateEndpointUrl
-                    });
-                    
-                    if (endpoint) {
-                        await this._config.updateConfig('llm.endpoint', endpoint);
-                    }
-                }
-                
-                await vscode.window.showInformationMessage(`Model provider updated to ${selectedProvider}`);
-            }
-        } catch (error) {
-            this.handleError('Failed to configure model', error);
-        }
-    }
-
-    private validateEndpointUrl(url: string): string | undefined {
-        try {
-            new URL(url);
-            return undefined;
-        } catch {
-            return 'Please enter a valid URL';
-        }
+        await this.configService.configureModel();
     }
 
     async clearConversation(): Promise<void> {
-        try {
-            // Dispose the model service which will clear its state
-            await this._modelService.dispose();
-            // The service will be reinitialized on next use
-            await vscode.window.showInformationMessage('Conversation history cleared');
-        } catch (error) {
-            this.handleError('Failed to clear conversation', error);
-        }
+        await this.configService.clearConversation();
     }
 
     async openMenu(): Promise<void> {
-        const options = [
-            'Start Agent',
-            'Stop Agent',
-            'Configure Model',
-            'Show Metrics Dashboard',
-            'Clear Conversation History',
-            'View Documentation'
-        ] as const;
-        
-        const result = await vscode.window.showQuickPick(options, {
-            placeHolder: 'Select an action'
-        });
-        
-        if (result) {
-            try {
-                switch (result) {
-                    case 'Start Agent':
-                        await this.startAgent();
-                        break;
-                    case 'Stop Agent':
-                        await this.stopAgent();
-                        break;
-                    case 'Configure Model':
-                        await this.configureModel();
-                        break;
-                    case 'Show Metrics Dashboard':
-                        await this.showMetrics();
-                        break;
-                    case 'Clear Conversation History':
-                        await this.clearConversation();
-                        break;
-                    case 'View Documentation':
-                        await vscode.env.openExternal(vscode.Uri.parse('https://github.com/your-repo/copilot-ppa/docs'));
-                        break;
-                }
-            } catch (error) {
-                this.handleError('Failed to execute menu action', error);
-            }
-        }
+        await this.menuService.openMenu();
     }
 
     async showMetrics(): Promise<void> {
-        try {
-            const panel = await this.createWebviewPanel('metrics', 'PPA Metrics Dashboard');
-            panel.webview.html = '<h1>Metrics Dashboard Coming Soon</h1>';
-            await vscode.window.showInformationMessage('Metrics dashboard coming soon');
-        } catch (error) {
-            this.handleError('Failed to show metrics', error);
-        }
+        await this.visualizationService.showMetrics();
     }
 
     async showMemoryVisualization(): Promise<void> {
-        try {
-            const panel = await this.createWebviewPanel('memoryVisualization', 'Memory Usage Visualization');
-            const templatePath = path.join(this._context.extensionPath, 'src', 'webview', 'templates', 'memoryVisualization.html');
-            const template = await vscode.workspace.fs.readFile(vscode.Uri.file(templatePath));
-            panel.webview.html = template.toString();
-        } catch (error) {
-            this.handleError('Failed to show memory visualization', error);
-        }
+        await this.visualizationService.showMemoryVisualization();
     }
 
     async showPerformanceMetrics(): Promise<void> {
-        try {
-            const panel = await this.createWebviewPanel('performanceMetrics', 'Performance Metrics');
-            panel.webview.html = '<h1>Performance Metrics Coming Soon</h1>';
-            await vscode.window.showInformationMessage('Performance metrics coming soon');
-        } catch (error) {
-            this.handleError('Failed to show performance metrics', error);
-        }
+        await this.visualizationService.showPerformanceMetrics();
     }
 
     async exportMetrics(): Promise<void> {
-        try {
-            // TODO: Implement metrics export functionality
-            await vscode.window.showInformationMessage('Metrics export coming soon');
-        } catch (error) {
-            this.handleError('Failed to export metrics', error);
-        }
-    }
-
-    private async createWebviewPanel(viewType: string, title: string): Promise<vscode.WebviewPanel> {
-        return vscode.window.createWebviewPanel(
-            viewType,
-            title,
-            vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-                localResourceRoots: [
-                    vscode.Uri.file(path.join(this._context.extensionPath, 'media')),
-                    vscode.Uri.file(path.join(this._context.extensionPath, 'src', 'webview', 'templates'))
-                ]
-            }
-        );
-    }
-
-    private handleError(message: string, error: unknown): void {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        vscode.window.showErrorMessage(`${message}: ${errorMessage}`);
+        await this.visualizationService.exportMetrics();
     }
 
     dispose(): void {

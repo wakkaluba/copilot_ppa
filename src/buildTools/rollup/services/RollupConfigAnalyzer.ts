@@ -17,10 +17,10 @@ export class RollupConfigAnalyzer implements IRollupConfigAnalyzer {
             const content = await fs.promises.readFile(configPath, 'utf-8');
             
             const analysis: RollupConfigAnalysis = {
-                input: this.analyzeInput(content, path.dirname(configPath)),
-                output: this.analyzeOutput(content),
-                plugins: this.analyzePlugins(content),
-                external: this.analyzeExternals(content),
+                input: this.extractInput(content),
+                output: this.extractOutput(content),
+                plugins: this.extractPlugins(content),
+                external: this.extractExternals(content),
                 content,
                 optimizationSuggestions: []
             };
@@ -36,217 +36,212 @@ export class RollupConfigAnalyzer implements IRollupConfigAnalyzer {
         }
     }
 
-    /**
-     * Analyzes input configuration
-     * @throws {ConfigValidationError} If input configuration is invalid
-     */
-    private analyzeInput(content: string, basePath: string): RollupInput[] {
+    private extractInput(content: string): RollupInput[] {
         const inputs: RollupInput[] = [];
+        const inputMatch = content.match(/input\s*:?\s*({[^}]*}|\[[^\]]*\]|['"][^'"]*['"])/s);
         
-        // Match input as string
-        const singleInputMatch = content.match(/input\s*:\s*['"]([^'"]*)['"]/);
-        if (singleInputMatch?.[1]) {
-            inputs.push({
-                name: path.basename(singleInputMatch[1]),
-                path: path.resolve(basePath, singleInputMatch[1])
+        if (!inputMatch?.[1]) {
+            return inputs;
+        }
+
+        const inputContent = inputMatch[1];
+        
+        // Handle object syntax: { main: 'src/index.js' }
+        if (inputContent.startsWith('{')) {
+            const entryMatches = Array.from(inputContent.matchAll(/['"]([^'"]+)['"]\s*:\s*['"]([^'"]+)['"]/g));
+            entryMatches.forEach(match => {
+                if (match[1] && match[2]) {
+                    inputs.push({
+                        name: match[1],
+                        path: match[2],
+                        external: this.extractExternals(content)
+                    });
+                }
             });
-            return inputs;
         }
-
-        // Match input as object
-        const objectInputMatch = content.match(/input\s*:\s*{([^}]*)}/);
-        if (objectInputMatch?.[1]) {
-            const inputContent = objectInputMatch[1];
-            const entries = Array.from(inputContent.matchAll(/['"]([^'"]*)['"]\s*:\s*['"]([^'"]*)['"]/g));
-            
-            for (const entry of entries) {
-                const [, name, filePath] = entry;
-                if (name && filePath) {
+        // Handle array syntax: ['src/index.js']
+        else if (inputContent.startsWith('[')) {
+            const entryPaths = Array.from(inputContent.matchAll(/['"]([^'"]+)['"]/g));
+            entryPaths.forEach((match, index) => {
+                if (match[1]) {
                     inputs.push({
-                        name,
-                        path: path.resolve(basePath, filePath)
+                        name: `entry${index + 1}`,
+                        path: match[1],
+                        external: this.extractExternals(content)
                     });
                 }
+            });
+        }
+        // Handle string syntax: 'src/index.js'
+        else {
+            const pathMatch = inputContent.match(/['"]([^'"]+)['"]/);
+            if (pathMatch?.[1]) {
+                inputs.push({
+                    name: 'main',
+                    path: pathMatch[1],
+                    external: this.extractExternals(content)
+                });
             }
-            return inputs;
         }
 
-        // Match input as array
-        const arrayInputMatch = content.match(/input\s*:\s*\[([^\]]*)\]/);
-        if (arrayInputMatch?.[1]) {
-            const inputContent = arrayInputMatch[1];
-            const entries = Array.from(inputContent.matchAll(/['"]([^'"]*)['"]/g));
-            
-            for (const entry of entries) {
-                const [, filePath] = entry;
-                if (filePath) {
-                    inputs.push({
-                        name: path.basename(filePath),
-                        path: path.resolve(basePath, filePath)
-                    });
-                }
-            }
-            return inputs;
-        }
-
-        throw new ConfigValidationError('No valid input configuration found');
+        return inputs;
     }
 
-    /**
-     * Analyzes output configuration
-     * @throws {ConfigValidationError} If output configuration is invalid
-     */
-    private analyzeOutput(content: string): RollupOutput[] {
-        const outputs: RollupOutput[] = [];
-
-        // Match single output object
-        const singleOutputMatch = content.match(/output\s*:\s*({[^}]*})/);
-        if (singleOutputMatch?.[1]) {
-            outputs.push(this.parseOutputObject(singleOutputMatch[1]));
-            return outputs;
-        }
-
-        // Match output array
-        const arrayOutputMatch = content.match(/output\s*:\s*\[([\s\S]*?)\]/);
-        if (arrayOutputMatch?.[1]) {
-            const outputContent = arrayOutputMatch[1];
-            const outputObjects = this.extractObjects(outputContent);
-            
-            for (const obj of outputObjects) {
-                outputs.push(this.parseOutputObject(obj));
-            }
-            return outputs;
-        }
-
-        throw new ConfigValidationError('No valid output configuration found');
-    }
-
-    /**
-     * Analyzes plugin configuration
-     */
-    private analyzePlugins(content: string): RollupPlugin[] {
-        const plugins: RollupPlugin[] = [];
-        const pluginsMatch = content.match(/plugins\s*:\s*\[([\s\S]*?)\]/);
-        
-        if (pluginsMatch?.[1]) {
-            const pluginContent = pluginsMatch[1];
-            // Match plugin function calls
-            const pluginMatches = Array.from(pluginContent.matchAll(/(\w+)\s*\([^)]*\)/g));
-            
-            for (const match of pluginMatches) {
-                const [, name] = match;
-                if (name) {
-                    plugins.push({
-                        name,
-                        description: this.getPluginDescription(name)
-                    });
-                }
-            }
-        }
-
-        return plugins;
-    }
-
-    /**
-     * Analyzes external dependencies
-     */
-    private analyzeExternals(content: string): string[] {
+    private extractExternals(content: string): string[] {
         const externals: string[] = [];
-        
-        // Match external array
-        const arrayMatch = content.match(/external\s*:\s*\[([\s\S]*?)\]/);
-        if (arrayMatch?.[1]) {
-            const matches = Array.from(arrayMatch[1].matchAll(/['"]([^'"]*)['"]/g));
-            externals.push(...matches.map(m => m[1]).filter((dep): dep is string => !!dep));
-        }
+        const externalsMatch = content.match(/external\s*:?\s*\[(.*?)\]/s);
 
-        // Match external function
-        const funcMatch = content.match(/external\s*:\s*\(\s*id\s*\)\s*=>\s*{([^}]*)}/);
-        if (funcMatch?.[1]) {
-            const matches = Array.from(funcMatch[1].matchAll(/['"]([^'"]*)['"]/g));
-            externals.push(...matches.map(m => m[1]).filter((dep): dep is string => !!dep));
+        if (externalsMatch?.[1]) {
+            const externalContent = externalsMatch[1];
+            const matches = Array.from(externalContent.matchAll(/['"]([^'"]+)['"]/g));
+            matches.forEach(match => {
+                if (match[1]) {
+                    externals.push(match[1]);
+                }
+            });
         }
 
         return externals;
     }
 
-    /**
-     * Parses an output object configuration
-     * @throws {ConfigValidationError} If output object is invalid
-     */
-    private parseOutputObject(outputStr: string): RollupOutput {
-        const formatMatch = outputStr.match(/format\s*:\s*['"]([^'"]*)['"]/);
-        const fileMatch = outputStr.match(/file\s*:\s*['"]([^'"]*)['"]/);
-        const nameMatch = outputStr.match(/name\s*:\s*['"]([^'"]*)['"]/);
-        const sourcemapMatch = outputStr.match(/sourcemap\s*:\s*(true|false)/);
+    private extractOutput(content: string): RollupOutput[] {
+        const outputs: RollupOutput[] = [];
+        const outputMatch = content.match(/output\s*:?\s*({[^}]*}|\[[^\]]*\])/s);
 
-        if (!formatMatch?.[1] || !fileMatch?.[1]) {
-            throw new ConfigValidationError(`Invalid output configuration: ${outputStr}`);
+        if (!outputMatch?.[1]) {
+            return outputs;
+        }
+
+        const outputContent = outputMatch[1];
+
+        // Handle array of outputs: [{ file: 'bundle.js' }, { file: 'bundle.min.js' }]
+        if (outputContent.startsWith('[')) {
+            const outputBlocks = this.extractBlocks(outputContent);
+            outputBlocks.forEach(block => {
+                const output = this.parseOutputBlock(block);
+                if (output) {
+                    outputs.push(output);
+                }
+            });
+        }
+        // Handle single output: { file: 'bundle.js' }
+        else if (outputContent.startsWith('{')) {
+            const output = this.parseOutputBlock(outputContent);
+            if (output) {
+                outputs.push(output);
+            }
+        }
+
+        return outputs;
+    }
+
+    private parseOutputBlock(block: string): RollupOutput | null {
+        const fileMatch = block.match(/file\s*:\s*['"]([^'"]+)['"]/);
+        const dirMatch = block.match(/dir\s*:\s*['"]([^'"]+)['"]/);
+        const formatMatch = block.match(/format\s*:\s*['"]([^'"]+)['"]/);
+        const nameMatch = block.match(/name\s*:\s*['"]([^'"]+)['"]/);
+        const sourcemapMatch = block.match(/sourcemap\s*:\s*(true|false|['"]inline['"]|['"]hidden['"]),?/);
+
+        if (!formatMatch) {
+            return null;
         }
 
         const output: RollupOutput = {
-            format: formatMatch[1],
-            file: fileMatch[1]
+            format: formatMatch[1]
         };
 
-        if (nameMatch?.[1]) {
+        if (fileMatch) {
+            output.file = fileMatch[1];
+        }
+
+        if (dirMatch) {
+            output.dir = dirMatch[1];
+        }
+
+        if (nameMatch) {
             output.name = nameMatch[1];
         }
 
         if (sourcemapMatch) {
-            output.sourcemap = sourcemapMatch[1] === 'true';
+            const value = sourcemapMatch[1];
+            output.sourcemap = value === 'true' ? true :
+                             value === 'false' ? false :
+                             value.replace(/['"]/g, '') as 'inline' | 'hidden';
         }
 
         return output;
     }
 
-    /**
-     * Extracts objects from a string containing multiple JavaScript objects
-     */
-    private extractObjects(str: string): string[] {
-        const objects: string[] = [];
-        let depth = 0;
-        let start = -1;
-        
-        for (let i = 0; i < str.length; i++) {
-            if (str[i] === '{') {
-                if (depth === 0) {
-                    start = i;
+    private extractPlugins(content: string): RollupPlugin[] {
+        const plugins: RollupPlugin[] = [];
+        const pluginsMatch = content.match(/plugins\s*:?\s*\[(.*?)\]/s);
+
+        if (pluginsMatch?.[1]) {
+            const pluginsContent = pluginsMatch[1];
+            const pluginMatches = Array.from(pluginsContent.matchAll(/(?:import|require)\(['"]([^'"]+)['"]\)/g));
+
+            pluginMatches.forEach(match => {
+                if (match[1]) {
+                    const name = this.getPluginNameFromImport(match[1]);
+                    plugins.push({
+                        name,
+                        description: this.getPluginDescription(name)
+                    });
                 }
-                depth++;
-            } else if (str[i] === '}') {
-                depth--;
-                if (depth === 0 && start !== -1) {
-                    objects.push(str.substring(start, i + 1));
-                    start = -1;
-                }
-            }
+            });
         }
-        
-        return objects;
+
+        return plugins;
     }
 
-    /**
-     * Returns a description for a known Rollup plugin
-     */
-    private getPluginDescription(name: string): string {
+    private getPluginNameFromImport(importPath: string): string {
+        // Remove @rollup/ prefix if present
+        const name = importPath.replace(/^@rollup\//, '');
+        // Convert kebab-case to camelCase and add 'Plugin' suffix if not present
+        return name.replace(/-([a-z])/g, g => g[1].toUpperCase())
+                  .replace(/^[a-z]/, c => c.toUpperCase()) +
+                  (!name.toLowerCase().endsWith('plugin') ? 'Plugin' : '');
+    }
+
+    private getPluginDescription(pluginName: string): string {
         const descriptions: Record<string, string> = {
-            typescript: 'Adds TypeScript support',
-            resolve: 'Resolves module imports',
-            commonjs: 'Converts CommonJS modules to ES6',
-            json: 'Allows importing JSON files',
-            terser: 'Minifies the bundle',
-            babel: 'Transpiles code with Babel',
-            replace: 'Replaces strings in the code',
-            postcss: 'Processes CSS with PostCSS',
-            url: 'Handles file imports as data URIs or files',
-            image: 'Imports images as data URIs or files',
-            visualizer: 'Visualizes bundle content',
-            filesize: 'Reports bundle size',
-            serve: 'Development server',
-            livereload: 'Reloads browser on changes'
+            'CommonjsPlugin': 'Convert CommonJS modules to ES6',
+            'NodeResolvePlugin': 'Locate and bundle third-party dependencies in node_modules',
+            'TypescriptPlugin': 'Integration with TypeScript compiler',
+            'TerserPlugin': 'Minify generated bundle',
+            'JsonPlugin': 'Convert .json files to ES6 modules',
+            'ReplacePlugin': 'Replace strings in files while bundling',
+            'BabelPlugin': 'Transform code with Babel',
+            'PostcssPlugin': 'Process CSS with PostCSS',
+            'VuePlugin': 'Bundle Vue components',
+            'ImagePlugin': 'Import images as data-URIs or files',
+            'UrlPlugin': 'Import files as data-URIs or esModule',
+            'SveltePlugin': 'Bundle Svelte components',
+            'Alias': 'Define aliases for import paths',
+            'VisualizePlugin': 'Visualize the bundle composition',
+            'LiveReloadPlugin': 'Reload the browser on change'
         };
 
-        return descriptions[name] || 'Custom plugin';
+        return descriptions[pluginName] || 'A rollup plugin';
+    }
+
+    private extractBlocks(content: string): string[] {
+        const blocks: string[] = [];
+        let depth = 0;
+        let currentBlock = '';
+
+        for (const char of content) {
+            if (char === '{') depth++;
+            if (char === '}') depth--;
+
+            currentBlock += char;
+
+            if (depth === 0 && currentBlock.trim()) {
+                blocks.push(currentBlock.trim());
+                currentBlock = '';
+            }
+        }
+
+        return blocks;
     }
 }

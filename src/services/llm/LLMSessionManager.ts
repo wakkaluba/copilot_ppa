@@ -2,40 +2,44 @@
  * LLM Session Manager - Handles sessions for communicating with LLM services
  */
 import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
 import { LLMConnectionManager } from './LLMConnectionManager';
 import { ConnectionState } from '../../types/llm';
 import { LLMSessionConfigService } from './services/LLMSessionConfigService';
 import { LLMRequestExecutionService } from './services/LLMRequestExecutionService';
 import { LLMSessionTrackingService } from './services/LLMSessionTrackingService';
 import { LLMMessagePayload, LLMSessionConfig, LLMResponse } from './interfaces';
+import { ConnectionEvent } from './types';
 
 /**
- * Manager for LLM sessions
+ * Manager for LLM sessions - handles session lifecycle, configuration, and tracking
  */
 export class LLMSessionManager implements vscode.Disposable {
-    private readonly configService: LLMSessionConfigService;
-    private readonly requestService: LLMRequestExecutionService;
-    private readonly trackingService: LLMSessionTrackingService;
+    private static instance: LLMSessionManager;
     private readonly disposables: vscode.Disposable[] = [];
-    
-    /**
-     * Creates a new LLMSessionManager
-     */
-    constructor(
-        private readonly connectionManager: LLMConnectionManager,
-        private readonly hostManager: LLMHostManager
-    ) {
+    private readonly configService: LLMSessionConfigService;
+    private readonly trackingService: LLMSessionTrackingService;
+    private readonly requestService: LLMRequestExecutionService;
+    private readonly connectionManager: LLMConnectionManager;
+
+    private constructor(connectionManager: LLMConnectionManager) {
+        this.connectionManager = connectionManager;
         this.configService = new LLMSessionConfigService();
         this.requestService = new LLMRequestExecutionService();
         this.trackingService = new LLMSessionTrackingService();
         
         this.setupEventListeners();
     }
-    
-    /**
-     * Sets up event listeners for configuration changes
-     */
+
+    public static getInstance(connectionManager: LLMConnectionManager): LLMSessionManager {
+        if (!LLMSessionManager.instance) {
+            LLMSessionManager.instance = new LLMSessionManager(connectionManager);
+        }
+        return LLMSessionManager.instance;
+    }
+
     private setupEventListeners(): void {
+        // Listen for configuration changes
         this.disposables.push(
             vscode.workspace.onDidChangeConfiguration(e => {
                 if (e.affectsConfiguration('copilot-ppa.llm')) {
@@ -43,64 +47,70 @@ export class LLMSessionManager implements vscode.Disposable {
                 }
             })
         );
+
+        // Listen for connection events
+        this.connectionManager.on(ConnectionEvent.Disconnected, () => {
+            this.trackingService.stopAllSessions();
+        });
+
+        this.connectionManager.on(ConnectionEvent.Error, (error) => {
+            this.trackingService.handleError(error);
+        });
     }
-    
+
     /**
-     * Sends a message to the LLM
-     * 
-     * @param payload The message payload
-     * @param sessionConfig Optional session configuration
-     * @param sessionId Optional session ID for tracking the request
-     * @returns Promise resolving to the LLM response
+     * Execute an LLM request within a session
      */
-    public async sendMessage(
-        payload: LLMMessagePayload,
+    public async executeRequest(
+        request: string,
         sessionConfig?: Partial<LLMSessionConfig>,
         sessionId = crypto.randomUUID()
     ): Promise<LLMResponse> {
-        await this.ensureConnection();
-        
-        const config = this.configService.getConfig(sessionConfig);
-        const controller = this.trackingService.createSession(sessionId);
-        
+        await this.connectionManager.connectToLLM();
+
+        const config = this.configService.mergeConfig(sessionConfig);
+        const session = this.trackingService.startSession(sessionId, config);
+
         try {
-            return await this.requestService.executeRequest(
-                payload,
-                config,
-                controller.signal,
-                config.retries || 0
-            );
+            const response = await this.requestService.execute(request, config);
+            this.trackingService.recordSuccess(sessionId, response);
+            return response;
+        } catch (error) {
+            this.trackingService.recordError(sessionId, error);
+            throw error;
         } finally {
-            this.trackingService.removeSession(sessionId);
+            this.trackingService.endSession(sessionId);
         }
     }
-    
+
     /**
-     * Ensures the connection to the LLM service
-     */
-    private async ensureConnection(): Promise<void> {
-        if (this.connectionManager.connectionState !== ConnectionState.CONNECTED) {
-            const connected = await this.connectionManager.connectToLLM();
-            if (!connected) {
-                throw new Error('Failed to connect to LLM service');
-            }
-        }
-    }
-    
-    /**
-     * Aborts an ongoing LLM session
-     * 
-     * @param sessionId The ID of the session to abort
+     * Abort an ongoing LLM session
      */
     public abortSession(sessionId: string): boolean {
-        return this.trackingService.abortSession(sessionId);
+        const aborted = this.requestService.abortRequest(sessionId);
+        if (aborted) {
+            this.trackingService.endSession(sessionId, 'aborted');
+        }
+        return aborted;
     }
-    
+
     /**
-     * Disposes resources used by the manager
+     * Get current session statistics
      */
+    public getSessionStats() {
+        return this.trackingService.getStats();
+    }
+
+    /**
+     * Get current session configuration
+     */
+    public getSessionConfig(): LLMSessionConfig {
+        return this.configService.getCurrentConfig();
+    }
+
     public dispose(): void {
-        this.disposables.forEach(d => d.dispose());
         this.trackingService.dispose();
+        this.requestService.dispose();
+        this.disposables.forEach(d => d.dispose());
     }
 }

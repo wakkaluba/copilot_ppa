@@ -1,6 +1,14 @@
 import * as vscode from 'vscode';
 import { Logger } from '../utils/logger';
 import { PerformanceProfiler } from './performanceProfiler';
+import { AsyncOptions } from './services/PerformanceConfigService';
+
+interface AsyncStats {
+    optimizedCount: number;
+    avgResponseTime: number;
+    successRate: number;
+    batchesProcessed: number;
+}
 
 /**
  * Class to optimize asynchronous operations by providing
@@ -13,19 +21,35 @@ export class AsyncOptimizer {
     private pendingBatches: Map<string, { items: any[], resolver: Function, timer: NodeJS.Timeout }> = new Map();
     private throttleTimers: Map<string, { lastExecuted: number, timer: NodeJS.Timeout | null }> = new Map();
     private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-    
+    private config: AsyncOptions;
+    private stats: AsyncStats;
+
     private constructor() {
         this.logger = Logger.getInstance();
         this.profiler = PerformanceProfiler.getInstance();
+        this.stats = {
+            optimizedCount: 0,
+            avgResponseTime: 0,
+            successRate: 100,
+            batchesProcessed: 0
+        };
     }
-    
+
     public static getInstance(): AsyncOptimizer {
         if (!AsyncOptimizer.instance) {
             AsyncOptimizer.instance = new AsyncOptimizer();
         }
         return AsyncOptimizer.instance;
     }
-    
+
+    public setConfig(config: AsyncOptions): void {
+        this.config = config;
+    }
+
+    public getStats(): AsyncStats {
+        return { ...this.stats };
+    }
+
     /**
      * Batch multiple operations into a single execution
      * @param batchId Identifier for the batch
@@ -219,5 +243,58 @@ export class AsyncOptimizer {
             clearTimeout(timer);
         }
         this.debounceTimers.clear();
+    }
+
+    public async optimizeOperation<T>(operation: () => Promise<T>): Promise<T> {
+        const startTime = Date.now();
+        try {
+            const result = await Promise.race([
+                operation(),
+                new Promise<never>((_, reject) => 
+                    setTimeout(() => reject(new Error('Operation timed out')), this.config.timeoutMs)
+                )
+            ]);
+
+            this.updateStats(startTime, true);
+            return result;
+        } catch (error) {
+            this.updateStats(startTime, false);
+            throw error;
+        }
+    }
+
+    public async optimizeBatch<T>(operations: (() => Promise<T>)[]): Promise<T[]> {
+        const results: T[] = [];
+        const batches = this.createBatches(operations);
+
+        for (const batch of batches) {
+            const batchResults = await Promise.all(
+                batch.map(op => this.optimizeOperation(op))
+            );
+            results.push(...batchResults);
+            this.stats.batchesProcessed++;
+        }
+
+        return results;
+    }
+
+    private createBatches<T>(operations: (() => Promise<T>)[]): (() => Promise<T>)[][] {
+        const batches: (() => Promise<T>)[][] = [];
+        for (let i = 0; i < operations.length; i += this.config.batchSize) {
+            batches.push(operations.slice(i, i + this.config.batchSize));
+        }
+        return batches;
+    }
+
+    private updateStats(startTime: number, success: boolean): void {
+        const duration = Date.now() - startTime;
+        this.stats.optimizedCount++;
+        this.stats.avgResponseTime = (this.stats.avgResponseTime * (this.stats.optimizedCount - 1) + duration) / this.stats.optimizedCount;
+        
+        // Update success rate
+        const totalOps = this.stats.optimizedCount;
+        const successfulOps = Math.round(this.stats.successRate * (totalOps - 1) / 100);
+        const newSuccessfulOps = success ? successfulOps + 1 : successfulOps;
+        this.stats.successRate = (newSuccessfulOps / totalOps) * 100;
     }
 }

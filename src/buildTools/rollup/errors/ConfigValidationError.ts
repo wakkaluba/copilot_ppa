@@ -1,8 +1,15 @@
 export class ConfigValidationError extends Error {
-    constructor(message: string) {
+    constructor(
+        message: string,
+        public readonly configPath: string,
+        public readonly validationErrors: string[]
+    ) {
         super(message);
         this.name = 'ConfigValidationError';
-        // Ensure prototype chain is properly maintained in transpiled code
-        Object.setPrototypeOf(this, ConfigValidationError.prototype);
+
+        // Maintains proper stack trace for where error was thrown
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, ConfigValidationError);
+        }
     }
 }
