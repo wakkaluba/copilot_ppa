@@ -1,6 +1,20 @@
 # setup
 @workspace
 #codebase 
+zzzbuild/ - folder for local build items like:
+  - build scripts
+    - zzzbuild\build.sh
+  - list in md file format for programming
+    - zzzbuild\CHANGELOG.md
+    - zzzbuild\todo.md
+    - zzzbuild\ideas.md
+    - zzzbuild\refactoring-progress.md
+    - zzzbuild\refactoring-plan.md
+    - zzzbuild\refactoring-status.md
+    - zzzbuild\code-coverage.md
+    - zzzbuild\finished.md
+zzzbuild/artifacts/ - folder for build artifacts like:
+  - vsix files
 
 # updating
 ## task list
