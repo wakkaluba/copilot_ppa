@@ -1,19 +1,20 @@
 import * as vscode from 'vscode';
 import { LLMHostManager } from './LLMHostManager';
+import { LLMConnectionStatusService } from './llm/services/LLMConnectionStatusService';
+import { LLMRetryService } from './llm/services/LLMRetryService';
+import { LLMHealthCheckService } from './llm/services/LLMHealthCheckService';
 
 export class LLMConnectionManager {
     private static instance: LLMConnectionManager;
-    private retryCount = 0;
-    private maxRetries = 3;
-    private connectionTimeout: NodeJS.Timeout | null = null;
-    private statusBarItem: vscode.StatusBarItem;
-
+    private readonly statusService: LLMConnectionStatusService;
+    private readonly retryService: LLMRetryService;
+    private readonly healthCheckService: LLMHealthCheckService;
+    
     private constructor() {
-        this.statusBarItem = vscode.window.createStatusBarItem(
-            vscode.StatusBarAlignment.Right,
-            99
-        );
-        this.updateStatus('disconnected');
+        this.statusService = new LLMConnectionStatusService();
+        this.retryService = new LLMRetryService();
+        this.healthCheckService = new LLMHealthCheckService();
+        this.statusService.updateStatus('disconnected');
     }
 
     static getInstance(): LLMConnectionManager {
@@ -25,19 +26,17 @@ export class LLMConnectionManager {
 
     async connectToLLM(): Promise<boolean> {
         try {
-            this.updateStatus('connecting');
+            this.statusService.updateStatus('connecting');
             const hostManager = LLMHostManager.getInstance();
             
-            // Ensure host is running
             if (!hostManager.isRunning()) {
                 await hostManager.startHost();
             }
 
-            // Try to establish connection
-            const success = await this.testConnection();
-            if (success) {
-                this.updateStatus('connected');
-                this.retryCount = 0;
+            const isHealthy = await this.healthCheckService.checkConnection();
+            if (isHealthy) {
+                this.statusService.updateStatus('connected');
+                this.retryService.resetRetries();
                 return true;
             }
 
@@ -49,43 +48,14 @@ export class LLMConnectionManager {
     }
 
     private async handleConnectionFailure(): Promise<boolean> {
-        this.updateStatus('error');
-        if (this.retryCount < this.maxRetries) {
-            this.retryCount++;
-            this.connectionTimeout = setTimeout(() => {
-                this.connectToLLM();
-            }, 5000);
-            return false;
-        }
-        return false;
-    }
-
-    private async testConnection(): Promise<boolean> {
-        try {
-            // Simple ping test to LLM
-            const response = await fetch('http://localhost:11434/api/health');
-            return response.ok;
-        } catch {
-            return false;
-        }
-    }
-
-    private updateStatus(status: 'connected' | 'connecting' | 'disconnected' | 'error'): void {
-        const icons = {
-            connected: '$(link)',
-            connecting: '$(sync~spin)',
-            disconnected: '$(unlink)',
-            error: '$(warning)'
-        };
-
-        this.statusBarItem.text = `${icons[status]} LLM: ${status}`;
-        this.statusBarItem.show();
+        this.statusService.updateStatus('error');
+        return this.retryService.shouldRetry() ? 
+            await this.retryService.scheduleRetry(() => this.connectToLLM()) : 
+            false;
     }
 
     dispose(): void {
-        if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-        }
-        this.statusBarItem.dispose();
+        this.retryService.dispose();
+        this.statusService.dispose();
     }
 }

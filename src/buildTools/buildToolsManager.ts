@@ -8,17 +8,18 @@ import { BuildScriptOptimizer } from './buildScriptOptimizer';
 import { BundleAnalyzer } from './bundleAnalyzer';
 
 export class BuildToolsManager {
-    private webpackManager: WebpackConfigManager;
-    private rollupManager: RollupConfigManager;
-    private viteManager: ViteConfigManager;
+    private readonly webpackManager: WebpackConfigManager;
+    private readonly rollupManager: RollupConfigManager;
+    private readonly viteManager: ViteConfigManager;
     private buildScriptOptimizer: BuildScriptOptimizer;
     private bundleAnalyzer: BundleAnalyzer;
-    private context: vscode.ExtensionContext;
 
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
-        this.webpackManager = new WebpackConfigManager();
-        this.rollupManager = new RollupConfigManager();
+    constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly logger: ILogger
+    ) {
+        this.webpackManager = new WebpackConfigManager(logger);
+        this.rollupManager = new RollupConfigManager(logger);
         this.viteManager = new ViteConfigManager();
         this.buildScriptOptimizer = new BuildScriptOptimizer();
         this.bundleAnalyzer = new BundleAnalyzer();
@@ -50,18 +51,16 @@ export class BuildToolsManager {
 
     // Webpack methods
     public async detectWebpackConfig(): Promise<void> {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            vscode.window.showErrorMessage('No workspace folder open.');
-            return;
-        }
-
-        const configs = await this.webpackManager.detectConfigs(workspaceFolders[0].uri.fsPath);
-        if (configs.length === 0) {
-            vscode.window.showInformationMessage('No webpack configuration files found in the workspace.');
-        } else {
+        try {
+            const workspacePath = this.getFirstWorkspaceFolder();
+            const configs = await this.webpackManager.detectConfigs(workspacePath);
+            
+            if (configs.length === 0) {
+                vscode.window.showInformationMessage('No webpack configuration files found in the workspace.');
+                return;
+            }
+            
             vscode.window.showInformationMessage(`Found ${configs.length} webpack configuration files.`);
-            // Show detected configs in a quick pick
             const selected = await vscode.window.showQuickPick(
                 configs.map(c => ({ label: path.basename(c), description: c })),
                 { placeHolder: 'Select a webpack configuration file to analyze' }
@@ -70,6 +69,8 @@ export class BuildToolsManager {
             if (selected) {
                 await this.analyzeWebpackConfig(selected.description);
             }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -226,13 +227,42 @@ export class BuildToolsManager {
 
     // Similar methods for Rollup and Vite
     public async detectRollupConfig(): Promise<void> {
-        // Implementation similar to detectWebpackConfig
-        vscode.window.showInformationMessage('Detecting Rollup configuration files...');
+        try {
+            const workspacePath = this.getFirstWorkspaceFolder();
+            const configs = await this.rollupManager.detectConfigs(workspacePath);
+            
+            if (configs.length === 0) {
+                vscode.window.showInformationMessage('No Rollup configuration files found in the workspace.');
+                return;
+            }
+            
+            vscode.window.showInformationMessage(`Found ${configs.length} Rollup configuration files.`);
+            const selected = await vscode.window.showQuickPick(
+                configs.map(c => ({ label: path.basename(c), description: c })),
+                { placeHolder: 'Select a Rollup configuration file to analyze' }
+            );
+            
+            if (selected) {
+                await this.analyzeRollupConfig(selected.description);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     public async optimizeRollupConfig(): Promise<void> {
-        // Implementation similar to optimizeWebpackConfig
-        vscode.window.showInformationMessage('Optimizing Rollup configuration...');
+        const configs = await this.detectConfigsForOptimization('rollup');
+        if (!configs.length) return;
+
+        const selected = await vscode.window.showQuickPick(
+            configs.map(c => ({ label: path.basename(c), description: c })),
+            { placeHolder: 'Select a Rollup configuration file to optimize' }
+        );
+        
+        if (selected) {
+            const optimizations = await this.rollupManager.generateOptimizations(selected.description);
+            await this.showOptimizationOptions(selected.description, optimizations);
+        }
     }
 
     public async detectViteConfig(): Promise<void> {
@@ -428,60 +458,61 @@ export class BuildToolsManager {
 
     // Bundle analysis
     public async analyzeBundleSize(): Promise<void> {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            vscode.window.showErrorMessage('No workspace folder open.');
-            return;
-        }
-
-        // Try to find build output directories
-        const possibleOutputDirs = [
-            'dist',
-            'build',
-            'out',
-            'public',
-            'output'
-        ];
-        
-        let outputDirs: string[] = [];
-        for (const dir of possibleOutputDirs) {
-            const fullPath = path.join(workspaceFolders[0].uri.fsPath, dir);
-            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
-                outputDirs.push(fullPath);
-            }
-        }
-        
-        if (outputDirs.length === 0) {
-            vscode.window.showInformationMessage('No standard build output directories found. Please select a directory to analyze.');
-            const selectedDir = await vscode.window.showOpenDialog({
-                canSelectFiles: false,
-                canSelectFolders: true,
-                canSelectMany: false,
-                openLabel: 'Select Build Output Directory'
-            });
+        try {
+            const workspacePath = this.getFirstWorkspaceFolder();
             
-            if (selectedDir && selectedDir.length > 0) {
+            // Try to find build output directories
+            const possibleOutputDirs = [
+                'dist',
+                'build',
+                'out',
+                'public',
+                'output'
+            ];
+            
+            let outputDirs: string[] = [];
+            for (const dir of possibleOutputDirs) {
+                const fullPath = path.join(workspacePath, dir);
+                if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+                    outputDirs.push(fullPath);
+                }
+            }
+            
+            if (outputDirs.length === 0) {
+                vscode.window.showInformationMessage('No standard build output directories found. Please select a directory to analyze.');
+                const selectedDir = await vscode.window.showOpenDialog({
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    canSelectMany: false,
+                    openLabel: 'Select Build Output Directory'
+                });
+                
+                if (!selectedDir?.[0]?.fsPath) {
+                    return;
+                }
                 outputDirs = [selectedDir[0].fsPath];
-            } else {
-                return;
             }
-        }
-        
-        let dirToAnalyze: string;
-        if (outputDirs.length === 1) {
-            dirToAnalyze = outputDirs[0];
-        } else {
-            const selected = await vscode.window.showQuickPick(
-                outputDirs.map(dir => ({ label: path.basename(dir), description: dir })),
-                { placeHolder: 'Select a build directory to analyze' }
-            );
             
-            if (!selected) return;
-            dirToAnalyze = selected.description;
+            let dirToAnalyze: string | undefined;
+            if (outputDirs.length === 1) {
+                dirToAnalyze = outputDirs[0];
+            } else {
+                const selected = await vscode.window.showQuickPick(
+                    outputDirs.map(dir => ({ label: path.basename(dir), description: dir })),
+                    { placeHolder: 'Select a build directory to analyze' }
+                );
+                
+                if (!selected) return;
+                dirToAnalyze = selected.description;
+            }
+            
+            if (!dirToAnalyze) return;
+            
+            const analysisResult = await this.bundleAnalyzer.analyzeDirectory(dirToAnalyze);
+            this.showBundleAnalysis(analysisResult);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error analyzing bundle: ${error instanceof Error ? error.message : String(error)}`);
         }
-        
-        const analysisResult = await this.bundleAnalyzer.analyzeDirectory(dirToAnalyze);
-        this.showBundleAnalysis(analysisResult);
     }
 
     private showBundleAnalysis(analysis: any): void {
@@ -636,41 +667,48 @@ export class BuildToolsManager {
 
     // Helper methods
     private async detectConfigsForOptimization(type: 'webpack' | 'rollup' | 'vite'): Promise<string[]> {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            vscode.window.showErrorMessage('No workspace folder open.');
+        try {
+            const workspacePath = this.getFirstWorkspaceFolder();
+            let configs: string[] = [];
+            
+            switch (type) {
+                case 'webpack':
+                    configs = await this.webpackManager.detectConfigs(workspacePath);
+                    break;
+                case 'rollup':
+                    configs = await this.rollupManager.detectConfigs(workspacePath);
+                    break;
+                case 'vite':
+                    configs = await this.viteManager.detectConfigs(workspacePath);
+                    break;
+            }
+            
+            if (configs.length === 0) {
+                vscode.window.showInformationMessage(`No ${type} configuration files found in the workspace.`);
+            }
+            
+            return configs;
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
             return [];
         }
-
-        let configs: string[] = [];
-        
-        switch (type) {
-            case 'webpack':
-                configs = await this.webpackManager.detectConfigs(workspaceFolders[0].uri.fsPath);
-                break;
-            case 'rollup':
-                configs = await this.rollupManager.detectConfigs(workspaceFolders[0].uri.fsPath);
-                break;
-            case 'vite':
-                configs = await this.viteManager.detectConfigs(workspaceFolders[0].uri.fsPath);
-                break;
-        }
-        
-        if (configs.length === 0) {
-            vscode.window.showInformationMessage(`No ${type} configuration files found in the workspace.`);
-        }
-        
-        return configs;
     }
 
     private async showOptimizationOptions(configPath: string, optimizations: any[]): Promise<void> {
-        // Similar implementation as showBuildScriptOptimizations
-        vscode.window.showInformationMessage(`Showing optimization options for ${path.basename(configPath)}...`);
+        // Show optimization suggestions in a webview panel
+        const panel = vscode.window.createWebviewPanel(
+            'optimizationSuggestions',
+            `Optimization Suggestions: ${path.basename(configPath)}`,
+            vscode.ViewColumn.One,
+            { enableScripts: true }
+        );
+        
+        panel.webview.html = this.getOptimizationSuggestionsHtml(optimizations, configPath);
     }
 
     private async findPackageJson(): Promise<string | undefined> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
+        if (!workspaceFolders?.length) {
             return undefined;
         }
         
@@ -681,5 +719,214 @@ export class BuildToolsManager {
         }
         
         return undefined;
+    }
+
+    private getOptimizationSuggestionsHtml(optimizations: any[], configPath: string): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Optimization Suggestions</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    h1 { color: #333; }
+                    .suggestion {
+                        margin-bottom: 20px;
+                        padding: 15px;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                    }
+                    .suggestion-title { font-weight: bold; margin-bottom: 10px; }
+                    .suggestion-description { margin-bottom: 10px; }
+                    pre {
+                        background-color: #f5f5f5;
+                        padding: 10px;
+                        border-radius: 4px;
+                        overflow-x: auto;
+                    }
+                    code { font-family: monospace; }
+                </style>
+            </head>
+            <body>
+                <h1>Optimization Suggestions</h1>
+                <p>Configuration: ${configPath}</p>
+                
+                ${this.renderSharedSuggestions(optimizations)}
+            </body>
+            </html>
+        `;
+    }
+
+    private renderSharedSuggestions(suggestions: any[]): string {
+        if (!suggestions?.length) {
+            return '<p>No optimization suggestions available.</p>';
+        }
+        
+        return suggestions.map(suggestion => `
+            <div class="suggestion">
+                <div class="suggestion-title">${suggestion.title}</div>
+                <div class="suggestion-description">${suggestion.description}</div>
+                <pre><code>${suggestion.code}</code></pre>
+            </div>
+        `).join('');
+    }
+
+    private getRollupAnalysisHtml(analysis: any, configPath: string): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Rollup Configuration Analysis</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    h1 { color: #333; }
+                    .section { margin-bottom: 20px; }
+                    .section h2 { color: #0078d7; }
+                    .entry { margin-bottom: 10px; }
+                    .entry-title { font-weight: bold; }
+                    .performance-issue { color: #d83b01; }
+                    .optimization-suggestion { color: #107c10; }
+                </style>
+            </head>
+            <body>
+                <h1>Rollup Configuration Analysis</h1>
+                <p>Configuration: ${configPath}</p>
+                
+                <div class="section">
+                    <h2>Entry Points</h2>
+                    ${this.renderRollupInput(analysis.input)}
+                </div>
+                
+                <div class="section">
+                    <h2>Output Configuration</h2>
+                    ${this.renderRollupOutput(analysis.output)}
+                </div>
+                
+                <div class="section">
+                    <h2>Plugins</h2>
+                    ${this.renderRollupPlugins(analysis.plugins)}
+                </div>
+
+                <div class="section">
+                    <h2>External Dependencies</h2>
+                    ${this.renderRollupExternals(analysis.external)}
+                </div>
+                
+                <div class="section">
+                    <h2>Optimization Suggestions</h2>
+                    ${this.renderRollupOptimizationSuggestions(analysis.optimizationSuggestions)}
+                </div>
+            </body>
+            </html>
+        `;
+    }
+
+    private renderRollupInput(input: string[]): string {
+        if (!input || input.length === 0) {
+            return '<p>No entry points defined</p>';
+        }
+
+        return `
+            <ul>
+                ${input.map(entry => `<li>${entry}</li>`).join('\n')}
+            </ul>
+        `;
+    }
+
+    private renderRollupOutput(output: any[]): string {
+        if (!output || output.length === 0) {
+            return '<p>No output configuration defined</p>';
+        }
+
+        return `
+            <ul>
+                ${output.map(out => `
+                    <li>
+                        <div class="entry">
+                            <div class="entry-title">Format: ${out.format}</div>
+                            <div>File: ${out.file}</div>
+                            ${out.name ? `<div>Name: ${out.name}</div>` : ''}
+                        </div>
+                    </li>
+                `).join('\n')}
+            </ul>
+        `;
+    }
+
+    private renderRollupPlugins(plugins: any[]): string {
+        if (!plugins || plugins.length === 0) {
+            return '<p>No plugins configured</p>';
+        }
+
+        return `
+            <ul>
+                ${plugins.map(plugin => `
+                    <li>
+                        <div class="entry">
+                            <div class="entry-title">${plugin.name}</div>
+                            <div>${plugin.description}</div>
+                        </div>
+                    </li>
+                `).join('\n')}
+            </ul>
+        `;
+    }
+
+    private renderRollupExternals(externals: string[]): string {
+        if (!externals || externals.length === 0) {
+            return '<p>No external dependencies defined</p>';
+        }
+
+        return `
+            <ul>
+                ${externals.map(ext => `<li>${ext}</li>`).join('\n')}
+            </ul>
+        `;
+    }
+
+    private renderRollupOptimizationSuggestions(suggestions: any[]): string {
+        if (!suggestions || suggestions.length === 0) {
+            return '<p>No optimization suggestions available</p>';
+        }
+
+        return `
+            <ul>
+                ${suggestions.map(suggestion => `
+                    <li>
+                        <div class="entry optimization-suggestion">
+                            <div class="entry-title">${suggestion.title}</div>
+                            <div>${suggestion.description}</div>
+                            <pre><code>${suggestion.code}</code></pre>
+                        </div>
+                    </li>
+                `).join('\n')}
+            </ul>
+        `;
+    }
+
+    private async analyzeRollupConfig(configPath: string): Promise<void> {
+        const analysis = await this.rollupManager.analyzeConfig(configPath);
+        
+        // Show analysis in a webview
+        const panel = vscode.window.createWebviewPanel(
+            'rollupAnalysis',
+            `Rollup Analysis: ${path.basename(configPath)}`,
+            vscode.ViewColumn.One,
+            { enableScripts: true }
+        );
+        
+        panel.webview.html = this.getRollupAnalysisHtml(analysis, configPath);
+    }
+
+    private getFirstWorkspaceFolder(): string {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders?.[0]?.uri.fsPath) {
+            throw new Error('No workspace folder open.');
+        }
+        return workspaceFolders[0].uri.fsPath;
     }
 }

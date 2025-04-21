@@ -1,14 +1,15 @@
 /**
- * Types and interfaces for the LLM connection system
+ * Types and interfaces for LLM connection management
  */
 
 /**
- * Represents the connection state of the LLM service
+ * Connection states for LLM services
  */
 export enum ConnectionState {
-    DISCONNECTED = 'disconnected',
-    CONNECTING = 'connecting',
     CONNECTED = 'connected',
+    CONNECTING = 'connecting',
+    DISCONNECTED = 'disconnected',
+    RECONNECTING = 'reconnecting',
     ERROR = 'error'
 }
 
@@ -23,23 +24,16 @@ export enum HostState {
 }
 
 /**
- * Connection options for the LLM service
+ * Options for LLM connections
  */
 export interface LLMConnectionOptions {
-    /** Maximum number of connection retries */
     maxRetries: number;
-    
-    /** Base delay in ms between retries */
-    baseRetryDelay: number;
-    
-    /** Maximum delay in ms between retries */
+    initialRetryDelay: number;
     maxRetryDelay: number;
-    
-    /** Connection timeout in ms */
+    retryBackoffFactor: number;
     connectionTimeout: number;
-    
-    /** Health check endpoint for LLM service */
-    healthEndpoint: string;
+    reconnectOnError: boolean;
+    healthCheckInterval: number;
 }
 
 /**
@@ -57,11 +51,11 @@ export interface LLMHostConfig {
 }
 
 /**
- * Connection state change event
+ * Event emitted when connection state changes
  */
 export interface ConnectionStateChangeEvent {
     previousState: ConnectionState;
-    currentState: ConnectionState;
+    newState: ConnectionState;
     timestamp: number;
 }
 
@@ -75,7 +69,7 @@ export interface HostStateChangeEvent {
 }
 
 /**
- * Connection error event
+ * Event emitted when a connection error occurs
  */
 export interface ConnectionErrorEvent {
     error: Error;
@@ -88,9 +82,11 @@ export interface ConnectionErrorEvent {
  * Default connection options
  */
 export const DEFAULT_CONNECTION_OPTIONS: LLMConnectionOptions = {
-    maxRetries: 5,
-    baseRetryDelay: 1000,
+    maxRetries: 3,
+    initialRetryDelay: 1000,
     maxRetryDelay: 30000,
+    retryBackoffFactor: 2,
     connectionTimeout: 10000,
-    healthEndpoint: 'http://localhost:11434/api/health'
+    reconnectOnError: true,
+    healthCheckInterval: 30000
 };

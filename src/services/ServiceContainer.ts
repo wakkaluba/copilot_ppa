@@ -1,111 +1,79 @@
 import * as vscode from 'vscode';
 import { LoggingService } from '../utils/logging';
+import { IServiceContainer, Services } from './interfaces';
 import { ConfigManager } from '../config';
 import { StatusBarManager } from '../statusBar';
 import { CommandManager } from '../commands';
-import { TelemetryService } from '../utils/telemetry';
+import { TelemetryService } from './../utils/telemetry';
 
-export class ServiceContainer implements vscode.Disposable {
-    private readonly _context: vscode.ExtensionContext;
-    private readonly _logging: LoggingService;
-    
-    private _config?: ConfigManager;
-    private _statusBar?: StatusBarManager;
-    private _commands?: CommandManager;
-    private _telemetry?: TelemetryService;
+export class ServiceContainer implements IServiceContainer {
+    private static instance: ServiceContainer;
+    private services: Map<symbol, any> = new Map();
+    private initialized = false;
 
-    private constructor(context: vscode.ExtensionContext, logging: LoggingService) {
-        this._context = context;
-        this._logging = logging;
-    }
+    private constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly logging: LoggingService
+    ) {}
 
     static async initialize(context: vscode.ExtensionContext, logging: LoggingService): Promise<ServiceContainer> {
-        const container = new ServiceContainer(context, logging);
-        await container.initializeServices();
-        return container;
-    }
-
-    static async createMinimalStatusBar(context: vscode.ExtensionContext): Promise<StatusBarManager> {
-        const statusBar = new StatusBarManager(context);
-        await statusBar.initialize();
-        return statusBar;
+        if (!ServiceContainer.instance) {
+            ServiceContainer.instance = new ServiceContainer(context, logging);
+            await ServiceContainer.instance.initializeServices();
+        }
+        return ServiceContainer.instance;
     }
 
     private async initializeServices(): Promise<void> {
-        this._telemetry = new TelemetryService(this._context);
-        this._config = await this.initializeConfig();
-        this._statusBar = await this.initializeStatusBar();
-        this._commands = await this.initializeCommands();
+        if (this.initialized) return;
+
+        this.logging.log('Initializing core services');
+
+        // Initialize core services
+        const config = new ConfigManager(this.context);
+        const statusBar = new StatusBarManager(this.context);
+        const commands = new CommandManager(this.context, config);
+        const telemetry = new TelemetryService();
+
+        // Register services
+        this.register(Services.Config, config);
+        this.register(Services.StatusBar, statusBar);
+        this.register(Services.Commands, commands);
+        this.register(Services.Telemetry, telemetry);
+
+        // Initialize services
+        await Promise.all([
+            config.initialize(),
+            statusBar.initialize(),
+            commands.initialize(),
+            telemetry.initialize()
+        ]);
+
+        this.initialized = true;
     }
 
-    async startServices(): Promise<void> {
-        if (!this._config || !this._statusBar || !this._commands) {
-            throw new Error('Services not properly initialized');
+    get<T>(serviceIdentifier: symbol): T {
+        const service = this.services.get(serviceIdentifier);
+        if (!service) {
+            throw new Error(`Service not found: ${serviceIdentifier.toString()}`);
         }
-
-        await this._statusBar.show();
-        await this.handleFirstTimeActivation();
+        return service as T;
     }
 
-    private async initializeConfig(): Promise<ConfigManager> {
-        this._logging.log('Initializing configuration manager');
-        const config = new ConfigManager(this._context);
-        await config.initialize();
-        return config;
+    register<T>(serviceIdentifier: symbol, instance: T): void {
+        this.services.set(serviceIdentifier, instance);
     }
 
-    private async initializeStatusBar(): Promise<StatusBarManager> {
-        this._logging.log('Initializing status bar');
-        const statusBar = new StatusBarManager(this._context);
-        await statusBar.initialize();
-        return statusBar;
-    }
-
-    private async initializeCommands(): Promise<CommandManager> {
-        this._logging.log('Registering extension commands');
-        if (!this._config) {
-            throw new Error('Config manager not initialized');
-        }
-        
-        const commandManager = new CommandManager(this._context, this._config);
-        await commandManager.registerCommands();
-        return commandManager;
-    }
-
-    private async handleFirstTimeActivation(): Promise<void> {
-        const isFirstActivation = this._context.globalState.get('firstActivation', true);
-        if (isFirstActivation) {
-            this._logging.log('First time activation detected');
-            await vscode.commands.executeCommand('copilot-ppa.showWelcomeMessage');
-            await this._context.globalState.update('firstActivation', false);
-        }
+    async initialize(): Promise<void> {
+        await this.initializeServices();
     }
 
     dispose(): void {
-        this._commands?.dispose();
-        this._statusBar?.dispose();
-        this._config?.dispose();
-        this._telemetry?.dispose();
-    }
-
-    // Service accessors
-    get config(): ConfigManager {
-        if (!this._config) throw new Error('Config manager not initialized');
-        return this._config;
-    }
-
-    get statusBar(): StatusBarManager {
-        if (!this._statusBar) throw new Error('Status bar not initialized');
-        return this._statusBar;
-    }
-
-    get commands(): CommandManager {
-        if (!this._commands) throw new Error('Command manager not initialized');
-        return this._commands;
-    }
-
-    get telemetry(): TelemetryService {
-        if (!this._telemetry) throw new Error('Telemetry service not initialized');
-        return this._telemetry;
+        for (const service of this.services.values()) {
+            if (service && typeof service.dispose === 'function') {
+                service.dispose();
+            }
+        }
+        this.services.clear();
     }
 }

@@ -1,25 +1,32 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LLMModelService } from './llm/modelService';
+import { ModelService } from './llm/modelService';
 import { ConfigManager } from './config';
-import { AgentCommands, CommandHandler, CommandRegistry, ConfigurationCommands, MenuCommands, VisualizationCommands } from './commands/types';
+import { ICommandService } from './services/interfaces';
 
-export class CommandManager implements CommandRegistry, AgentCommands, ConfigurationCommands, MenuCommands, VisualizationCommands {
-    private readonly _modelService: LLMModelService;
+interface CommandHandler {
+    execute: (...args: any[]) => Promise<void>;
+}
+
+export class CommandManager implements ICommandService {
+    private readonly _modelService: ModelService;
     private readonly _context: vscode.ExtensionContext;
     private readonly _config: ConfigManager;
     private readonly _registeredCommands: Map<string, CommandHandler>;
-    
+
     constructor(context: vscode.ExtensionContext, configManager: ConfigManager) {
         this._context = context;
         this._config = configManager;
-        this._modelService = new LLMModelService(context);
+        this._modelService = new ModelService(context);
         this._registeredCommands = new Map();
-        
-        this.initializeCommandHandlers();
     }
 
-    private initializeCommandHandlers(): void {
+    async initialize(): Promise<void> {
+        await this.initializeCommandHandlers();
+        await this.registerCommands();
+    }
+
+    private initializeCommandHandlers(): Promise<void> {
         // Agent commands
         this.registerCommand('copilot-ppa.startAgent', { execute: this.startAgent.bind(this) });
         this.registerCommand('copilot-ppa.stopAgent', { execute: this.stopAgent.bind(this) });
@@ -37,6 +44,8 @@ export class CommandManager implements CommandRegistry, AgentCommands, Configura
         this.registerCommand('copilot-ppa.showMemoryVisualization', { execute: this.showMemoryVisualization.bind(this) });
         this.registerCommand('copilot-ppa.showPerformanceMetrics', { execute: this.showPerformanceMetrics.bind(this) });
         this.registerCommand('copilot-ppa.exportMetrics', { execute: this.exportMetrics.bind(this) });
+
+        return Promise.resolve();
     }
 
     registerCommand(command: string, handler: CommandHandler): void {
@@ -58,7 +67,13 @@ export class CommandManager implements CommandRegistry, AgentCommands, Configura
                 cancellable: false
             }, async (progress) => {
                 progress.report({ increment: 50 });
-                await this._modelService.initialize();
+                const recommendations = await this._modelService.getModelRecommendations();
+                if (recommendations.length > 0) {
+                    const defaultModel = recommendations[0];
+                    if (defaultModel) {
+                        await this._modelService.checkModelCompatibility(defaultModel);
+                    }
+                }
                 progress.report({ increment: 50 });
                 await vscode.window.showInformationMessage('Copilot PPA agent started successfully');
             });
@@ -128,7 +143,9 @@ export class CommandManager implements CommandRegistry, AgentCommands, Configura
 
     async clearConversation(): Promise<void> {
         try {
-            await this._modelService.clearConversation();
+            // Dispose the model service which will clear its state
+            await this._modelService.dispose();
+            // The service will be reinitialized on next use
             await vscode.window.showInformationMessage('Conversation history cleared');
         } catch (error) {
             this.handleError('Failed to clear conversation', error);

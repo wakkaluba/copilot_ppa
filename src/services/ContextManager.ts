@@ -2,26 +2,22 @@ import * as vscode from 'vscode';
 import { ChatMessage } from '../types/conversation';
 import { Context, ContextWindow, LanguageUsage, FilePreference, UserPreferences } from '../types/context';
 
-export class ContextManager {
-    private static instance: ContextManager;
+/**
+ * Manages conversation context and relevant file tracking
+ */
+export class ContextManager implements vscode.Disposable {
     private contexts: Map<string, Context> = new Map();
     private contextWindows: Map<string, ContextWindow> = new Map();
     private userPreferences: UserPreferences;
     private maxWindowSize: number = 10;
     private relevanceThreshold: number = 0.5;
     private storageKey = 'contextManager.preferences';
-    private context: vscode.ExtensionContext;
 
-    private constructor(context: vscode.ExtensionContext) {
-        this.context = context;
+    constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly promptManager: PromptManager
+    ) {
         this.userPreferences = this.loadPreferences();
-    }
-
-    static getInstance(context?: vscode.ExtensionContext): ContextManager {
-        if (!ContextManager.instance && context) {
-            ContextManager.instance = new ContextManager(context);
-        }
-        return ContextManager.instance;
     }
 
     private loadPreferences(): UserPreferences {
@@ -40,7 +36,7 @@ export class ContextManager {
         const context: Context = {
             conversationId,
             relevantFiles: [],
-            systemPrompt: this.getDefaultSystemPrompt()
+            systemPrompt: this.promptManager.getDefaultSystemPrompt()
         };
         this.contexts.set(conversationId, context);
         return context;
@@ -57,6 +53,38 @@ export class ContextManager {
     updateContext(conversationId: string, updates: Partial<Context>): void {
         const context = this.getContext(conversationId);
         Object.assign(context, updates);
+        this.contexts.set(conversationId, context);
+    }
+
+    async buildContext(input: string): Promise<Context> {
+        const conversationId = crypto.randomUUID();
+        const context = this.createContext(conversationId);
+
+        // Find relevant files based on input
+        const relevantFiles = await this.findRelevantFiles(input);
+        context.relevantFiles = relevantFiles;
+
+        // Update system prompt based on context
+        context.systemPrompt = await this.buildContextualSystemPrompt(input, relevantFiles);
+
+        return context;
+    }
+
+    private async findRelevantFiles(input: string): Promise<string[]> {
+        // Implementation details...
+        return [];
+    }
+
+    private async buildContextualSystemPrompt(input: string, relevantFiles: string[]): Promise<string> {
+        return this.promptManager.buildContextualPrompt(input, relevantFiles);
+    }
+
+    updateUserPreferences(preferences: Partial<UserPreferences>): void {
+        this.userPreferences = {
+            ...this.userPreferences,
+            ...preferences
+        };
+        this.savePreferences().catch(console.error);
     }
 
     async updateContextWindow(conversationId: string, message: string, relevance: number): Promise<void> {
@@ -156,72 +184,8 @@ export class ContextManager {
         }
     }
 
-    private getDefaultSystemPrompt(): string {
-        return `You are a helpful VS Code extension assistant.
-You can help with coding tasks, explain code, and suggest improvements.
-You have access to the current file and workspace context.
-Always provide clear and concise responses.`;
-    }
-
-    async buildPrompt(conversationId: string, userInput: string): Promise<string> {
-        const context = this.getContext(conversationId);
-        let prompt = context.systemPrompt + '\n\n';
-
-        if (context.activeFile) {
-            prompt += `Current file: ${context.activeFile}\n`;
-        }
-        if (context.selectedCode) {
-            prompt += `Selected code:\n\`\`\`${context.codeLanguage || ''}\n${context.selectedCode}\n\`\`\`\n`;
-        }
-
-        // Add relevant context from window
-        const relevantContext = await this.getRelevantContext(conversationId, userInput);
-        for (const ctx of relevantContext) {
-            prompt += ctx + '\n';
-        }
-
-        // Add language and framework preferences if set
-        if (this.userPreferences.preferredLanguage) {
-            prompt += `Preferred programming language: ${this.userPreferences.preferredLanguage}\n`;
-        }
-        if (this.userPreferences.preferredFramework) {
-            prompt += `Preferred framework: ${this.userPreferences.preferredFramework}\n`;
-        }
-
-        prompt += `User: ${userInput}\nAssistant: `;
-        return prompt;
-    }
-
-    private async getRelevantContext(conversationId: string, currentPrompt: string): Promise<string[]> {
-        const window = this.contextWindows.get(conversationId);
-        if (!window || window.relevance < this.relevanceThreshold) {
-            return [];
-        }
-
-        return this.filterByRelevance(window.messages, currentPrompt);
-    }
-
-    private async filterByRelevance(messages: string[], prompt: string): Promise<string[]> {
-        // Simple relevance filtering based on time for now
-        // TODO: Implement semantic similarity checking
-        return messages.slice(-5);
-    }
-
-    setMaxWindowSize(size: number): void {
-        this.maxWindowSize = size;
-    }
-
-    setRelevanceThreshold(threshold: number): void {
-        this.relevanceThreshold = threshold;
-    }
-
-    async clearAllContextData(): Promise<void> {
+    dispose(): void {
         this.contexts.clear();
         this.contextWindows.clear();
-        this.userPreferences = {
-            languageUsage: new Map(),
-            recentFiles: []
-        };
-        await this.savePreferences();
     }
 }

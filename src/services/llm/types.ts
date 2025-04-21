@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
+import { Error } from './errors';
+import { LLMProvider } from '../../llm/llm-provider';
 
 /**
  * Represents the current state of an LLM connection
  */
-export type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'reconnecting' | 'error';
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
 
 /**
  * Configuration for connection retries
@@ -13,16 +15,17 @@ export interface RetryConfig {
     baseDelay: number;  // in milliseconds
     maxDelay: number;   // in milliseconds
     timeout: number;    // in milliseconds
+    backoffFactor: number;
+    currentAttempt: number;
 }
 
 /**
  * LLM connection status
  */
 export interface ConnectionStatus {
-    state: ConnectionState;
-    error?: Error;
-    reconnectAttempt?: number;
-    modelInfo?: ModelInfo;
+    isConnected: boolean;
+    isAvailable: boolean;
+    error: string;
 }
 
 /**
@@ -40,12 +43,11 @@ export interface ModelInfo {
  * Connection options for LLM
  */
 export interface ConnectionOptions {
-    endpoint: string;
+    endpoint?: string;
     model?: string;
+    healthCheckInterval?: number;
     timeout?: number;
     retryConfig?: RetryConfig;
-    authentication?: AuthConfig;
-    parameters?: { [key: string]: any };
 }
 
 /**
@@ -68,7 +70,8 @@ export enum ConnectionEvent {
     Reconnecting = 'reconnecting',
     Error = 'error',
     StateChanged = 'stateChanged',
-    ModelChanged = 'modelChanged'
+    ModelChanged = 'modelChanged',
+    HealthCheckFailed = 'healthCheckFailed'
 }
 
 /**
@@ -95,11 +98,12 @@ export interface HealthCheckResponse {
  */
 export enum LLMConnectionErrorCode {
     ConnectionFailed = 'CONNECTION_FAILED',
-    Timeout = 'TIMEOUT',
     InvalidEndpoint = 'INVALID_ENDPOINT',
-    AuthenticationFailed = 'AUTHENTICATION_FAILED',
     ModelNotFound = 'MODEL_NOT_FOUND',
-    InternalError = 'INTERNAL_ERROR'
+    HealthCheckFailed = 'HEALTH_CHECK_FAILED',
+    AuthenticationFailed = 'AUTHENTICATION_FAILED',
+    Timeout = 'TIMEOUT',
+    ProviderNotFound = 'PROVIDER_NOT_FOUND'
 }
 
 /**
@@ -108,8 +112,7 @@ export enum LLMConnectionErrorCode {
 export class LLMConnectionError extends Error {
     constructor(
         public readonly code: LLMConnectionErrorCode,
-        message: string,
-        public readonly cause?: Error
+        message: string
     ) {
         super(message);
         this.name = 'LLMConnectionError';
@@ -126,4 +129,70 @@ export interface LLMConnectionProvider {
     getModelInfo(): ModelInfo | undefined;
     onStateChanged(listener: (status: ConnectionStatus) => void): void;
     healthCheck(): Promise<HealthCheckResponse>;
+}
+
+/**
+ * Connection metrics for LLM
+ */
+export interface ConnectionMetrics {
+    totalRequests: number;
+    successfulRequests: number;
+    failedRequests: number;
+    averageResponseTime: number;
+    lastResponseTime: number;
+    uptime: number;
+    lastError?: Error;
+    lastErrorTime?: Date;
+}
+
+/**
+ * Provider descriptor for LLM
+ */
+export interface ProviderDescriptor {
+    name: string;
+    displayName: string;
+    description: string;
+    capabilities: string[];
+    defaultModel?: string;
+}
+
+/**
+ * LLM provider status
+ */
+export interface LLMProviderStatus {
+    isConnected: boolean;
+    isAvailable: boolean;
+    error: string;
+    metadata?: {
+        modelInfo?: ModelInfo;
+        [key: string]: unknown;
+    };
+}
+
+/**
+ * Retry options for connection retries
+ */
+export interface RetryOptions {
+    maxAttempts: number;
+    initialDelay: number;
+    maxDelay: number;
+}
+
+/**
+ * Connection state change event
+ */
+export interface ConnectionStateChangeEvent extends ConnectionEventData {
+    previousState: ConnectionState;
+    currentState: ConnectionState;
+    duration: number;
+}
+
+/**
+ * Connection error event
+ */
+export interface ConnectionErrorEvent {
+    error: Error;
+    retryCount: number;
+    timestamp: number;
+    isRetryable: boolean;
 }

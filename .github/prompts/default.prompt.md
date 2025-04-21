@@ -4,7 +4,9 @@
 
 # updating
 ## task list
-- review the todo.md and update the status of completed and in-progress tasks.
+- review the zzzbuild\todo.md and update the status of completed and in-progress tasks.
+- add proposals from zzzbuild\ideas.md as tasks to the zzzbuild\todo.md
+  - delete the proposals in zzzbuild\ideas.md if they are not relevant anymore
 - add an indicator as prefix if missing. it shall be like:
   - Status indicators:
     - ⏳ Pending
@@ -48,7 +50,7 @@
 
 # coding
 ## coding - normal coding by list
-Commence with the next most reasonable task in todo.md.
+Commence with the next most reasonable task in zzzbuild\todo.md.
 - Prefer tasks which already have been started.
 - add an indicator as prefix if missing. it shall be like:
   - Status indicators:
@@ -59,20 +61,20 @@ Commence with the next most reasonable task in todo.md.
     - 🚀 Scheduled
 - add an percentage estimation as suffix to indicate how much of the bullet point is completed. It shall be like " (99%)"
 - generate code
-- update todo.md after the task at hand has been finished.
+- update zzzbuild\todo.md after the task at hand has been finished.
 - Once a task has reached a status of 100%, move the bullet point from zzzbuild\todo.md to zzzbuild\finished.md
 
 # documentation
 ## verify correctness of task files
 - first run a full comparison of all completed tasks listed in zzzbuild\todo.md and zzzbuild\finished.md against the code in the workspace.
   - Make sure the status completed "[X]" reflects the state of the related code.
-  - add any completed task missing in todo.md and zzzbuild\finished.md to zzzbuild\finished.md
+  - add any completed task missing in zzzbuild\todo.md and zzzbuild\finished.md to zzzbuild\finished.md
 - move all finished items from zzzbuild\todo.md and zzzbuild\finished.md
-  - re-organize todo.md and zzzbuild\finished.md
-- re-organize todo.md
-  - compare todo.md against todo.md and zzzbuild\finished.md
-    - Delete all duplicate tasks in todo.md
-- re-organize todo.md
+  - re-organize zzzbuild\todo.md and zzzbuild\finished.md
+- re-organize zzzbuild\todo.md
+  - compare zzzbuild\todo.md against zzzbuild\todo.md and zzzbuild\finished.md
+    - Delete all duplicate tasks in zzzbuild\todo.md
+- re-organize zzzbuild\todo.md
 
 ## finished task files
 reorganize zzzbuild\finished.md

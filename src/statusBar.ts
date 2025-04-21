@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import { IStatusBarService } from './services/interfaces';
 
 export interface StatusBarState {
     mainText: string;
-    metricsScore?: number;
+    metricsScore?: number | undefined;
     isWorking: boolean;
-    workingMessage?: string;
+    workingMessage?: string | undefined;
     isVisible: boolean;
     isError: boolean;
 }
@@ -14,11 +15,11 @@ export interface WorkingAnimation extends vscode.Disposable {
     updateMessage(message: string): void;
 }
 
-export class StatusBarManager implements vscode.Disposable {
-    private readonly _context: vscode.ExtensionContext;
+export class StatusBarManager implements vscode.Disposable, IStatusBarService {
     private readonly _mainStatusBarItem: vscode.StatusBarItem;
     private readonly _metricsStatusBarItem: vscode.StatusBarItem;
     private readonly _configListener: vscode.Disposable;
+    private _workingAnimation?: NodeJS.Timer | undefined;
     
     private _state: StatusBarState = {
         mainText: '$(copilot) PPA',
@@ -26,12 +27,8 @@ export class StatusBarManager implements vscode.Disposable {
         isVisible: true,
         isError: false
     };
-    
-    private _workingAnimation?: NodeJS.Timer;
 
-    constructor(context: vscode.ExtensionContext) {
-        this._context = context;
-        
+    constructor(context: vscode.ExtensionContext) {        
         this._mainStatusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
             100
@@ -146,6 +143,20 @@ export class StatusBarManager implements vscode.Disposable {
         this._state.mainText = '$(copilot) PPA';
         this._mainStatusBarItem.backgroundColor = undefined;
         this.updateUI();
+    }
+
+    async show(): Promise<void> {
+        this._state.isVisible = true;
+        this.updateUI();
+    }
+
+    async hide(): Promise<void> {
+        this._state.isVisible = false;
+        this.updateUI();
+    }
+
+    update(message: string): void {
+        this.updateMainStatusBar(message);
     }
 
     private updateUI(): void {

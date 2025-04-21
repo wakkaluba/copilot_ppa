@@ -1,28 +1,64 @@
 import * as vscode from 'vscode';
-import { BasePerformanceAnalyzer } from './analyzers/baseAnalyzer';
-import { JavaScriptAnalyzer } from './analyzers/javascriptAnalyzer';
-import {
-    PerformanceAnalysisResult,
-    WorkspacePerformanceResult,
-    AnalyzerOptions,
-    LanguageMetricThresholds
-} from './types';
+import { WorkspacePerformanceResult, PerformanceAnalysisResult } from './types';
+import { PerformanceAnalyzerService } from '../performance/services/PerformanceAnalyzerService';
+import { PerformanceStatusService } from '../performance/services/PerformanceStatusService';
+import { PerformanceDiagnosticsService } from '../performance/services/PerformanceDiagnosticsService';
+import { PerformanceFileMonitorService } from '../performance/services/PerformanceFileMonitorService';
+import { PerformanceConfigService } from '../performance/services/PerformanceConfigService';
+import { PerformanceProfiler } from './performanceProfiler';
+import { BottleneckDetector } from './bottleneckDetector';
+import { EventEmitter } from 'events';
 
 export class PerformanceManager implements vscode.Disposable {
-    private analyzers: Map<string, BasePerformanceAnalyzer>;
-    private disposables: vscode.Disposable[] = [];
-    private analysisStatusBar: vscode.StatusBarItem;
-    private fileChangeThrottle: Map<string, NodeJS.Timeout> = new Map();
+    private static instance: PerformanceManager;
+    private readonly analyzerService: PerformanceAnalyzerService;
+    private readonly statusService: PerformanceStatusService;
+    private readonly diagnosticsService: PerformanceDiagnosticsService;
+    private readonly fileMonitorService: PerformanceFileMonitorService;
+    private readonly configService: PerformanceConfigService;
+    private readonly profiler: PerformanceProfiler;
+    private readonly bottleneckDetector: BottleneckDetector;
+    private readonly eventEmitter: EventEmitter;
 
-    constructor(private readonly extensionContext: vscode.ExtensionContext) {
-        this.analyzers = this.initializeAnalyzers();
-        this.analysisStatusBar = this.createStatusBar();
-        this.registerEventListeners();
+    private constructor(extensionContext: vscode.ExtensionContext) {
+        this.eventEmitter = new EventEmitter();
+        this.configService = new PerformanceConfigService();
+        this.analyzerService = new PerformanceAnalyzerService(this.configService);
+        this.statusService = new PerformanceStatusService();
+        this.diagnosticsService = new PerformanceDiagnosticsService();
+        this.fileMonitorService = new PerformanceFileMonitorService();
+        this.profiler = PerformanceProfiler.getInstance(extensionContext);
+        this.bottleneckDetector = BottleneckDetector.getInstance();
+        
+        this.setupEventListeners();
+        this.initializeServices();
     }
 
-    dispose() {
-        this.disposables.forEach(d => d.dispose());
-        this.analysisStatusBar.dispose();
+    public static getInstance(context?: vscode.ExtensionContext): PerformanceManager {
+        if (!PerformanceManager.instance) {
+            if (!context) {
+                throw new Error('Context required for PerformanceManager initialization');
+            }
+            PerformanceManager.instance = new PerformanceManager(context);
+        }
+        return PerformanceManager.instance;
+    }
+
+    private async initializeServices(): Promise<void> {
+        try {
+            await this.configService.initialize();
+            this.profiler.setEnabled(this.configService.isProfilingEnabled());
+            this.bottleneckDetector.setEnabled(this.configService.isBottleneckDetectionEnabled());
+        } catch (error) {
+            console.error('Failed to initialize performance services:', error);
+        }
+    }
+
+    public dispose(): void {
+        this.statusService.dispose();
+        this.diagnosticsService.dispose();
+        this.fileMonitorService.dispose();
+        this.eventEmitter.removeAllListeners();
     }
 
     public async analyzeWorkspace(): Promise<WorkspacePerformanceResult> {
@@ -30,62 +66,47 @@ export class PerformanceManager implements vscode.Disposable {
             throw new Error('No workspace folders found');
         }
 
-        const result: WorkspacePerformanceResult = {
-            fileResults: [],
-            summary: {
-                filesAnalyzed: 0,
-                totalIssues: 0,
-                criticalIssues: 0,
-                highIssues: 0,
-                mediumIssues: 0,
-                lowIssues: 0
-            }
-        };
-
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "Analyzing workspace performance",
-            cancellable: true
-        }, async (progress, token) => {
-            const files = await this.findAnalyzableFiles();
-            const totalFiles = files.length;
-            let processedFiles = 0;
-
-            for (const file of files) {
-                if (token.isCancellationRequested) {
-                    break;
-                }
-
-                try {
-                    const document = await vscode.workspace.openTextDocument(file);
-                    const analysisResult = await this.analyzeFile(document);
-                    if (analysisResult) {
-                        result.fileResults.push(analysisResult);
-                        this.updateSummary(result.summary, analysisResult);
-                    }
-                } catch (error) {
-                    console.error(`Error analyzing file ${file.fsPath}:`, error);
-                }
-
-                processedFiles++;
-                progress.report({
-                    message: `Analyzed ${processedFiles} of ${totalFiles} files`,
-                    increment: (100 / totalFiles)
-                });
-            }
-        });
-
-        return result;
+        const operationId = 'workspace-analysis';
+        this.profiler.startOperation(operationId);
+        
+        try {
+            return await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Analyzing workspace performance",
+                cancellable: true
+            }, async (progress, token) => {
+                const files = await this.fileMonitorService.findAnalyzableFiles();
+                const result = await this.analyzerService.analyzeWorkspace(files, progress, token);
+                this.eventEmitter.emit('workspaceAnalysisComplete', result);
+                return result;
+            });
+        } catch (error) {
+            console.error('Workspace analysis failed:', error);
+            throw error;
+        } finally {
+            this.profiler.endOperation(operationId);
+        }
     }
 
     public async analyzeFile(document: vscode.TextDocument): Promise<PerformanceAnalysisResult | null> {
-        const analyzer = this.getAnalyzerForFile(document);
-        if (!analyzer) {
-            return null;
-        }
+        const operationId = `file-analysis-${document.uri.fsPath}`;
+        this.profiler.startOperation(operationId);
 
-        const content = document.getText();
-        return (analyzer as JavaScriptAnalyzer).analyze(content, document.uri.fsPath);
+        try {
+            const result = await this.analyzerService.analyzeFile(document);
+            if (result) {
+                this.statusService.updateStatusBar(result);
+                this.diagnosticsService.updateDiagnostics(document, result);
+                this.bottleneckDetector.analyzeOperation(operationId);
+                this.eventEmitter.emit('fileAnalysisComplete', result);
+            }
+            return result;
+        } catch (error) {
+            console.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+            return null;
+        } finally {
+            this.profiler.endOperation(operationId);
+        }
     }
 
     public async analyzeCurrentFile(): Promise<PerformanceAnalysisResult | null> {
@@ -93,213 +114,59 @@ export class PerformanceManager implements vscode.Disposable {
         if (!editor) {
             return null;
         }
-
         return this.analyzeFile(editor.document);
     }
 
-    private initializeAnalyzers(): Map<string, BasePerformanceAnalyzer> {
-        const analyzers = new Map<string, BasePerformanceAnalyzer>();
-        const options: AnalyzerOptions = this.loadAnalyzerOptions();
+    public generatePerformanceReport(): void {
+        const operationStats = this.profiler.getStats('all');
+        const bottleneckAnalysis = this.bottleneckDetector.analyzeAll();
 
-        // JavaScript/TypeScript analyzer
-        const jsAnalyzer = new JavaScriptAnalyzer(options);
-        analyzers.set('javascript', jsAnalyzer);
-        analyzers.set('typescript', jsAnalyzer);
-        analyzers.set('javascriptreact', jsAnalyzer);
-        analyzers.set('typescriptreact', jsAnalyzer);
+        console.info('Performance Report:');
+        console.info(`Operations analyzed: ${operationStats?.length || 0}`);
+        console.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
+        console.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
 
-        // Add other language analyzers here as they're implemented
-        return analyzers;
+        this.eventEmitter.emit('performanceReport', { operationStats, bottleneckAnalysis });
     }
 
-    private loadAnalyzerOptions(): AnalyzerOptions {
-        const config = vscode.workspace.getConfiguration('copilot-ppa.performance');
-        const thresholds: LanguageMetricThresholds = {
-            javascript: {
-                maxComplexity: config.get('javascript.maxComplexity', 10),
-                maxLength: config.get('javascript.maxLength', 200),
-                maxParameters: config.get('javascript.maxParameters', 4),
-            },
-            typescript: {
-                maxComplexity: config.get('typescript.maxComplexity', 10),
-                maxLength: config.get('typescript.maxLength', 200),
-                maxParameters: config.get('typescript.maxParameters', 4),
-            }
-        };
-
-        return { thresholds };
-    }
-
-    private async findAnalyzableFiles(): Promise<vscode.Uri[]> {
-        const files: vscode.Uri[] = [];
-        for (const folder of vscode.workspace.workspaceFolders || []) {
-            const pattern = new vscode.RelativePattern(folder, '**/*.{js,ts,jsx,tsx}');
-            const foundFiles = await vscode.workspace.findFiles(pattern, '**/node_modules/**');
-            files.push(...foundFiles);
-        }
-        return files;
-    }
-
-    private getAnalyzerForFile(document: vscode.TextDocument): BasePerformanceAnalyzer | null {
-        const languageId = document.languageId;
-        return this.analyzers.get(languageId) || null;
-    }
-
-    private createStatusBar(): vscode.StatusBarItem {
-        const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        statusBar.text = "$(pulse) PPA";
-        statusBar.tooltip = "Performance Analysis";
-        statusBar.command = 'copilot-ppa.analyzeCurrentFile';
-        statusBar.show();
-        return statusBar;
-    }
-
-    private registerEventListeners(): void {
-        this.disposables.push(
-            vscode.workspace.onDidSaveTextDocument(this.onDocumentSaved.bind(this)),
-            vscode.window.onDidChangeActiveTextEditor(this.onActiveEditorChanged.bind(this))
-        );
-    }
-
-    private onDocumentSaved(document: vscode.TextDocument): void {
-        const existingTimeout = this.fileChangeThrottle.get(document.uri.toString());
-        if (existingTimeout) {
-            clearTimeout(existingTimeout);
-        }
-
-        const timeout = setTimeout(async () => {
-            const result = await this.analyzeFile(document);
-            if (result) {
-                this.updateStatusBar(result);
-            }
-            this.fileChangeThrottle.delete(document.uri.toString());
-        }, 1000);
-
-        this.fileChangeThrottle.set(document.uri.toString(), timeout);
-    }
-
-    private onActiveEditorChanged(editor: vscode.TextEditor | undefined): void {
-        if (editor) {
-            this.analyzeFile(editor.document).then(result => {
-                if (result) {
-                    this.updateStatusBar(result);
-                }
-            });
-        }
-    }
-
-    private updateStatusBar(result: PerformanceAnalysisResult): void {
-        const totalIssues = result.issues.length;
-        this.analysisStatusBar.text = `$(pulse) Issues: ${totalIssues}`;
-        this.analysisStatusBar.tooltip = `Performance Issues Found: ${totalIssues}`;
-    }
-
-    private updateSummary(summary: WorkspacePerformanceResult['summary'], result: PerformanceAnalysisResult): void {
-        summary.filesAnalyzed++;
-        summary.totalIssues += result.issues.length;
-        
-        result.issues.forEach(issue => {
-            switch (issue.severity) {
-                case 'critical':
-                    summary.criticalIssues++;
-                    break;
-                case 'high':
-                    summary.highIssues++;
-                    break;
-                case 'medium':
-                    summary.mediumIssues++;
-                    break;
-                case 'low':
-                    summary.lowIssues++;
-                    break;
+    private setupEventListeners(): void {
+        this.fileMonitorService.onDocumentSaved((document: vscode.TextDocument) => this.handleDocumentChange(document));
+        this.fileMonitorService.onActiveEditorChanged((editor: vscode.TextEditor | undefined) => {
+            if (editor) {
+                this.analyzeFile(editor.document);
             }
         });
-    }
 
-    private updateStatusBarVisibility(document: vscode.TextDocument): void {
-        if (this.getAnalyzerForFile(document)) {
-            this.analysisStatusBar.show();
-        } else {
-            this.analysisStatusBar.hide();
-        }
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('performance')) {
+                this.initializeServices();
+            }
+        });
     }
 
     private handleDocumentChange(document: vscode.TextDocument): void {
-        // Clear existing throttle timeout
-        const existing = this.fileChangeThrottle.get(document.uri.toString());
-        if (existing) {
-            clearTimeout(existing);
-        }
-
-        // Set new throttle timeout
-        const timeout = setTimeout(() => {
-            this.analyzeFile(document).then(result => {
-                if (result) {
-                    this.updateDiagnostics(document, result);
-                }
-            });
-            this.fileChangeThrottle.delete(document.uri.toString());
-        }, 1000);
-
-        this.fileChangeThrottle.set(document.uri.toString(), timeout);
-    }
-
-    private handleDocumentSave(document: vscode.TextDocument): void {
-        const analyzer = this.getAnalyzerForFile(document);
-        if (!analyzer) {
-            return;
-        }
-
-        this.analyzeFile(document).then(result => {
+        this.fileMonitorService.throttleDocumentChange(document, async () => {
+            const result = await this.analyzeFile(document);
             if (result) {
-                this.updateDiagnostics(document, result);
+                this.statusService.updateStatusBar(result);
+                this.diagnosticsService.updateDiagnostics(document, result);
             }
         });
     }
 
-    private updateDiagnostics(document: vscode.TextDocument, result: PerformanceAnalysisResult): void {
-        const diagnostics = vscode.languages.createDiagnosticCollection('performance');
-        const documentDiagnostics: vscode.Diagnostic[] = [];
-
-        for (const issue of result.issues) {
-            if (!issue.line) continue;
-
-            const range = new vscode.Range(
-                issue.line - 1,
-                issue.column || 0,
-                issue.line - 1,
-                (issue.column || 0) + 1
-            );
-
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                `${issue.title}: ${issue.description}`,
-                this.getSeverity(issue.severity)
-            );
-
-            diagnostic.source = 'Performance Analysis';
-            if (issue.code) {
-                diagnostic.code = issue.code;
-            }
-
-            documentDiagnostics.push(diagnostic);
-        }
-
-        diagnostics.set(document.uri, documentDiagnostics);
+    public getProfiler(): PerformanceProfiler {
+        return this.profiler;
     }
 
-    private getSeverity(severity: string): vscode.DiagnosticSeverity {
-        switch (severity) {
-            case 'critical':
-                return vscode.DiagnosticSeverity.Error;
-            case 'high':
-                return vscode.DiagnosticSeverity.Warning;
-            case 'medium':
-                return vscode.DiagnosticSeverity.Information;
-            case 'low':
-                return vscode.DiagnosticSeverity.Hint;
-            default:
-                return vscode.DiagnosticSeverity.Information;
-        }
+    public getBottleneckDetector(): BottleneckDetector {
+        return this.bottleneckDetector;
+    }
+
+    public on(event: string, listener: (...args: any[]) => void): void {
+        this.eventEmitter.on(event, listener);
+    }
+
+    public off(event: string, listener: (...args: any[]) => void): void {
+        this.eventEmitter.off(event, listener);
     }
 }

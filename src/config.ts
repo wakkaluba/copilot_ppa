@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { IConfigService } from './services/interfaces';
 
 export type LLMProvider = 'ollama' | 'lmstudio' | 'huggingface' | string;
 
@@ -23,6 +24,7 @@ export interface CopilotPPAConfig {
     analysisThreshold: number;
     integrationFeatures: IntegrationConfig;
     llm: LLMConfig;
+    defaultProvider: string;
 }
 
 const DEFAULT_CONFIG: CopilotPPAConfig = {
@@ -42,6 +44,7 @@ const DEFAULT_CONFIG: CopilotPPAConfig = {
         maxTokens: 2048,
         temperature: 0.7,
     },
+    defaultProvider: 'ollama',
 };
 
 export interface ConfigChangeEvent {
@@ -50,7 +53,7 @@ export interface ConfigChangeEvent {
     source: vscode.ConfigurationTarget;
 }
 
-export class ConfigManager implements vscode.Disposable {
+export class ConfigManager implements vscode.Disposable, IConfigService {
     private readonly _context: vscode.ExtensionContext;
     private readonly _configChangeEmitter = new vscode.EventEmitter<ConfigChangeEvent>();
     private _configChangeHandler?: vscode.Disposable;
@@ -103,6 +106,7 @@ export class ConfigManager implements vscode.Disposable {
                 maxTokens: config.get<number>('llm.maxTokens', DEFAULT_CONFIG.llm.maxTokens),
                 temperature: config.get<number>('llm.temperature', DEFAULT_CONFIG.llm.temperature),
             }),
+            defaultProvider: config.get<string>('defaultProvider', DEFAULT_CONFIG.defaultProvider),
         };
     }
 

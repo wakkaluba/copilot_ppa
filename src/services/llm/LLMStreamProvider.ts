@@ -6,6 +6,10 @@ import { EventEmitter } from 'events';
 import { LLMConnectionManager } from './LLMConnectionManager';
 import { ConnectionState } from '../../types/llm';
 import { LLMMessagePayload, LLMSessionConfig } from './LLMSessionManager';
+import { LLMStreamProcessor } from './services/LLMStreamProcessor';
+import { LLMChunkExtractor } from './services/LLMChunkExtractor';
+import { LLMStreamManager } from './services/LLMStreamManager';
+import { LLMStreamError } from './errors/LLMStreamError';
 
 /**
  * Chunk of text from a streaming LLM response
@@ -31,10 +35,10 @@ export interface LLMStreamEvents {
  * Provider for handling streaming LLM responses
  */
 export class LLMStreamProvider extends EventEmitter {
-    private connectionManager: LLMConnectionManager;
-    private controller: AbortController | null = null;
-    private streamEndpoint: string;
-    private accumulatedText = '';
+    private readonly streamProcessor: LLMStreamProcessor;
+    private readonly chunkExtractor: LLMChunkExtractor;
+    private readonly streamManager: LLMStreamManager;
+    private readonly connectionManager: LLMConnectionManager;
     
     /**
      * Creates a new LLM stream provider
@@ -43,7 +47,17 @@ export class LLMStreamProvider extends EventEmitter {
     constructor(streamEndpoint = 'http://localhost:11434/api/chat') {
         super();
         this.connectionManager = LLMConnectionManager.getInstance();
-        this.streamEndpoint = streamEndpoint;
+        this.streamProcessor = new LLMStreamProcessor();
+        this.chunkExtractor = new LLMChunkExtractor();
+        this.streamManager = new LLMStreamManager(streamEndpoint);
+
+        this.setupEventHandlers();
+    }
+
+    private setupEventHandlers(): void {
+        this.streamProcessor.on('data', chunk => this.emit('data', chunk));
+        this.streamProcessor.on('error', error => this.handleError(error));
+        this.streamProcessor.on('end', text => this.emit('end', text));
     }
     
     /**
@@ -57,210 +71,38 @@ export class LLMStreamProvider extends EventEmitter {
         payload: LLMMessagePayload,
         config?: Partial<LLMSessionConfig>
     ): Promise<void> {
-        // Ensure we're connected
-        if (this.connectionManager.connectionState !== ConnectionState.CONNECTED) {
-            const connected = await this.connectionManager.connectToLLM();
-            if (!connected) {
-                throw new Error('Failed to connect to LLM service');
-            }
-        }
-        
-        // Reset state
-        this.accumulatedText = '';
-        this.abort();
-        
-        // Create abort controller
-        this.controller = new AbortController();
-        
         try {
-            await this.handleStream(payload, config);
+            await this.ensureConnection();
+            this.streamManager.resetState();
+            
+            const response = await this.streamManager.startStream(payload, config);
+            await this.streamProcessor.processStream(response);
         } catch (error) {
-            this.handleError(error instanceof Error ? error : new Error(String(error)));
+            this.handleError(error instanceof Error ? error : new LLMStreamError(String(error)));
             throw error;
         }
     }
     
-    /**
-     * Handles the streaming request
-     */
-    private async handleStream(
-        payload: LLMMessagePayload,
-        config?: Partial<LLMSessionConfig>
-    ): Promise<void> {
-        if (!this.controller) {
-            throw new Error('No active controller');
-        }
-        
-        const requestBody = {
-            prompt: payload.prompt,
-            system: payload.system,
-            stream: true,
-            ...config,
-            ...payload.options
-        };
-        
-        const response = await fetch(this.streamEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody),
-            signal: this.controller.signal
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Stream request failed: ${response.status} ${response.statusText}`);
-        }
-        
-        if (!response.body) {
-            throw new Error('No response body received');
-        }
-        
-        // Process the stream
-        await this.processStream(response);
-    }
-    
-    /**
-     * Process the response stream
-     */
-    private async processStream(response: Response): Promise<void> {
-        // Get the reader from the stream
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder('utf-8');
-        
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) {
-                    // Stream complete
-                    this.emitEnd();
-                    break;
-                }
-                
-                if (value) {
-                    const text = decoder.decode(value, { stream: true });
-                    this.processStreamData(text);
-                }
-            }
-        } catch (error) {
-            if (this.controller?.signal.aborted) {
-                // Aborted by user, not an error
-                this.emitEnd();
-            } else {
-                this.handleError(error instanceof Error ? error : new Error(String(error)));
-            }
-        } finally {
-            reader.releaseLock();
-        }
-    }
-    
-    /**
-     * Process streaming data chunks
-     */
-    private processStreamData(data: string): void {
-        // Split by lines and process each chunk
-        const lines = data.split('\\n').filter(line => line.trim().length > 0);
-        
-        for (const line of lines) {
-            try {
-                // Some APIs prefix with "data: " (SSE format)
-                const jsonString = line.startsWith('data: ') ? line.slice(6) : line;
-                
-                // Try to parse as JSON
-                if (jsonString.trim() === '[DONE]') {
-                    this.emitEnd();
-                    continue;
-                }
-                
-                const json = JSON.parse(jsonString);
-                
-                // Extract text based on different LLM API formats
-                const text = this.extractTextFromChunk(json);
-                
-                if (text) {
-                    this.accumulatedText += text;
-                    
-                    const chunk: LLMStreamChunk = {
-                        text,
-                        done: false,
-                        id: json.id,
-                        model: json.model,
-                        finishReason: json.finish_reason ?? json.choices?.[0]?.finish_reason
-                    };
-                    
-                    this.emit('data', chunk);
-                }
-                
-                if (json.done || json.choices?.[0]?.finish_reason) {
-                    this.emitEnd();
-                }
-            } catch (e) {
-                // Not valid JSON, ignore or treat as raw text
-                if (line.trim()) {
-                    this.accumulatedText += line;
-                    this.emit('data', { text: line, done: false });
-                }
+    private async ensureConnection(): Promise<void> {
+        if (this.connectionManager.connectionState !== ConnectionState.CONNECTED) {
+            const connected = await this.connectionManager.connectToLLM();
+            if (!connected) {
+                throw new LLMStreamError('Failed to connect to LLM service');
             }
         }
     }
     
-    /**
-     * Extract text from various LLM API response formats
-     */
-    private extractTextFromChunk(json: any): string {
-        // Handle different API formats
-        if (json.content) {
-            return json.content;
-        } else if (json.choices && json.choices.length > 0) {
-            if (json.choices[0].delta && json.choices[0].delta.content) {
-                return json.choices[0].delta.content;
-            } else if (json.choices[0].text) {
-                return json.choices[0].text;
-            }
-        } else if (json.response) {
-            return json.response;
-        } else if (json.message) {
-            return json.message;
-        } else if (json.text) {
-            return json.text;
-        } else if (typeof json === 'string') {
-            return json;
-        }
-        return '';
-    }
-    
-    /**
-     * Emits the end event with accumulated text
-     */
-    private emitEnd(): void {
-        const finalText = this.accumulatedText;
-        this.emit('end', finalText);
-        
-        // Clean up
-        this.controller = null;
-        this.accumulatedText = '';
-    }
-    
-    /**
-     * Handle stream errors
-     */
     private handleError(error: Error): void {
         console.error('LLM stream error:', error);
         this.emit('error', error);
-        
-        // Clean up
-        this.controller = null;
+        this.streamManager.cleanup();
     }
     
     /**
      * Aborts the current stream if active
      */
     public abort(): void {
-        if (this.controller) {
-            this.controller.abort();
-            this.controller = null;
-        }
+        this.streamManager.abort();
     }
     
     /**

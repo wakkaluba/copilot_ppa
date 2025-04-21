@@ -1,87 +1,41 @@
 /**
- * Utility functions for LLM connection management
+ * Utilities for LLM connection management
  */
 import { LLMConnectionOptions } from '../../types/llm';
+import { LLMConnectionError } from './errors';
+import { ConnectionErrorCode } from './interfaces';
+import { RetryService } from './services/RetryService';
+import { ModelCapabilityService } from './services/ModelCapabilityService';
+import { ConnectionErrorService } from './services/ConnectionErrorService';
 
-/**
- * Calculates the retry delay with exponential backoff
- * 
- * @param retryCount Current retry attempt number
- * @param options Connection options
- * @returns Delay in milliseconds
- */
+const retryService = new RetryService();
+const modelCapabilityService = new ModelCapabilityService();
+const errorService = new ConnectionErrorService();
+
 export function calculateRetryDelay(retryCount: number, options: LLMConnectionOptions): number {
-    const { baseRetryDelay, maxRetryDelay } = options;
-    const delay = baseRetryDelay * Math.pow(2, retryCount);
-    return Math.min(delay, maxRetryDelay);
+    return retryService.calculateDelay(retryCount, options);
 }
 
-/**
- * Tests a connection to the LLM service
- * 
- * @param healthEndpoint URL to the health endpoint
- * @param timeout Connection timeout in ms
- * @returns Promise resolving to true if connection successful
- */
-export async function testConnection(healthEndpoint: string, timeout = 5000): Promise<boolean> {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
-        try {
-            const response = await fetch(healthEndpoint, { 
-                signal: controller.signal 
-            });
-            clearTimeout(timeoutId);
-            return response.ok;
-        } catch (e) {
-            clearTimeout(timeoutId);
-            throw e;
-        }
-    } catch (error) {
-        console.error('Connection test failed:', error);
-        return false;
-    }
-}
-
-/**
- * Creates a promise that resolves after the specified delay
- * 
- * @param ms Delay in milliseconds
- * @returns Promise that resolves after the delay
- */
 export function delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return retryService.delay(ms);
 }
 
-/**
- * Creates a promise that rejects after the specified timeout
- * 
- * @param ms Timeout in milliseconds
- * @param errorMessage Optional error message
- * @returns Promise that rejects after the timeout
- */
-export function createTimeout(ms: number, errorMessage = 'Operation timed out'): Promise<never> {
-    return new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(errorMessage)), ms);
-    });
+export async function testConnection(url: string, timeout: number): Promise<boolean> {
+    return retryService.testConnection(url, timeout);
 }
 
-/**
- * Executes a promise with a timeout
- * 
- * @param promise Promise to execute
- * @param timeoutMs Timeout in milliseconds
- * @param errorMessage Optional error message
- * @returns Promise that resolves with the result or rejects with timeout
- */
-export async function withTimeout<T>(
-    promise: Promise<T>, 
-    timeoutMs: number,
-    errorMessage = 'Operation timed out'
-): Promise<T> {
-    return Promise.race([
-        promise,
-        createTimeout(timeoutMs, errorMessage)
-    ]);
+export function parseModelCapabilities(modelData: any): string[] {
+    return modelCapabilityService.parseCapabilities(modelData);
+}
+
+export function formatErrorDetails(error: Error & { code?: string, response?: any }): string {
+    return errorService.formatDetails(error);
+}
+
+export function isRetryableError(error: Error & { code?: string }): boolean {
+    return errorService.isRetryable(error);
+}
+
+export function formatProviderError(error: unknown, providerName: string): LLMConnectionError {
+    return errorService.formatProviderError(error, providerName);
 }

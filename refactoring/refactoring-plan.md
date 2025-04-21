@@ -75,6 +75,8 @@ Supporting functionality and utilities:
 - [ ] `src/i18n/*.ts` - Internationalization
 - [ ] `src/commands/*.ts` - Command handlers
 - [ ] `src/providers/*.ts` - VS Code providers
+- [x] `src/services/codeQuality/*.ts` - Design improvement suggester refactored
+- [x] `src/documentationGenerators/*.ts` - README/Wiki generator refactored
 
 ## Progress Tracking
 

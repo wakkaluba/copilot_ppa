@@ -1,89 +1,92 @@
 import * as vscode from 'vscode';
+import { DisplaySettings } from '../types/display';
+import { ThemeManager } from './themeManager';
 
-export interface DisplaySettings {
-    fontSize: number;
-    messageSpacing: number;
-    codeBlockTheme: string;
-    userMessageColor: string;
-    agentMessageColor: string;
-    timestampDisplay: boolean;
-    compactMode: boolean;
-}
-
-export class DisplaySettingsService {
-    private static instance: DisplaySettingsService;
+export class DisplaySettingsService implements vscode.Disposable {
     private _onSettingsChanged = new vscode.EventEmitter<DisplaySettings>();
     readonly onSettingsChanged = this._onSettingsChanged.event;
 
-    private constructor() {
+    constructor(
+        private readonly themeManager: ThemeManager,
+        private readonly context: vscode.ExtensionContext
+    ) {
         // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('copilot-ppa.display')) {
                 this._onSettingsChanged.fire(this.getSettings());
             }
         });
-    }
 
-    public static getInstance(): DisplaySettingsService {
-        if (!DisplaySettingsService.instance) {
-            DisplaySettingsService.instance = new DisplaySettingsService();
-        }
-        return DisplaySettingsService.instance;
+        // Listen for theme changes
+        this.themeManager.onThemeChanged(() => {
+            this._onSettingsChanged.fire(this.getSettings());
+        });
     }
 
     public getSettings(): DisplaySettings {
-        const config = vscode.workspace.getConfiguration('copilot-ppa');
-        const displayConfig = config.get<any>('display') || {};
-        
+        const config = vscode.workspace.getConfiguration('copilot-ppa.display');
+        const theme = this.themeManager.getCurrentTheme();
+
         return {
-            fontSize: displayConfig.fontSize || 14,
-            messageSpacing: displayConfig.messageSpacing || 12,
-            codeBlockTheme: displayConfig.codeBlockTheme || 'default',
-            userMessageColor: displayConfig.userMessageColor || '#569cd6',
-            agentMessageColor: displayConfig.agentMessageColor || '#4ec9b0',
-            timestampDisplay: displayConfig.timestampDisplay !== false,
-            compactMode: !!displayConfig.compactMode
+            fontSize: config.get<number>('fontSize', 14),
+            fontFamily: config.get<string>('fontFamily', 'var(--vscode-editor-font-family)'),
+            lineHeight: config.get<number>('lineHeight', 1.5),
+            maxWidth: config.get<string>('maxWidth', '800px'),
+            padding: config.get<string>('padding', '1rem'),
+            theme: theme.type,
+            colors: {
+                background: theme.components.background,
+                foreground: theme.components.foreground,
+                primary: theme.components.primary,
+                secondary: theme.components.secondary,
+                accent: theme.components.accent,
+                error: theme.components.error
+            }
         };
     }
 
     public async updateSetting<K extends keyof DisplaySettings>(
-        setting: K, 
+        setting: K,
         value: DisplaySettings[K]
     ): Promise<void> {
-        const config = vscode.workspace.getConfiguration('copilot-ppa');
-        const displayConfig = config.get<any>('display') || {};
-        
-        displayConfig[setting] = value;
-        
-        await config.update('display', displayConfig, vscode.ConfigurationTarget.Global);
+        const config = vscode.workspace.getConfiguration('copilot-ppa.display');
+        await config.update(setting, value, vscode.ConfigurationTarget.Global);
         this._onSettingsChanged.fire(this.getSettings());
     }
 
     public applySettingsToElement(element: HTMLElement): void {
         const settings = this.getSettings();
-        
-        // Apply font size to the element
-        element.style.fontSize = `${settings.fontSize}px`;
-        
-        // Apply compact mode if enabled
-        if (settings.compactMode) {
-            element.classList.add('compact-mode');
-        } else {
-            element.classList.remove('compact-mode');
-        }
+        element.style.setProperty('--font-size', `${settings.fontSize}px`);
+        element.style.setProperty('--font-family', settings.fontFamily);
+        element.style.setProperty('--line-height', settings.lineHeight.toString());
+        element.style.setProperty('--max-width', settings.maxWidth);
+        element.style.setProperty('--padding', settings.padding);
+
+        Object.entries(settings.colors).forEach(([key, value]) => {
+            element.style.setProperty(`--color-${key}`, value);
+        });
     }
 
     public getCssVariables(): string {
         const settings = this.getSettings();
-        
-        return `
+        let css = `
             :root {
-                --agent-font-size: ${settings.fontSize}px;
-                --agent-message-spacing: ${settings.messageSpacing}px;
-                --agent-user-message-color: ${settings.userMessageColor};
-                --agent-assistant-message-color: ${settings.agentMessageColor};
-                --agent-code-theme: ${settings.codeBlockTheme};
-            }
+                --font-size: ${settings.fontSize}px;
+                --font-family: ${settings.fontFamily};
+                --line-height: ${settings.lineHeight};
+                --max-width: ${settings.maxWidth};
+                --padding: ${settings.padding};
         `;
+
+        Object.entries(settings.colors).forEach(([key, value]) => {
+            css += `\n                --color-${key}: ${value};`;
+        });
+
+        css += '\n            }';
+        return css;
+    }
+
+    public dispose(): void {
+        this._onSettingsChanged.dispose();
     }
 }

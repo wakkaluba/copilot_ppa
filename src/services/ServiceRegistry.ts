@@ -7,6 +7,8 @@ import { ContextManager } from './conversation/ContextManager';
 import { PromptManager } from './PromptManager';
 import { ThemeManager } from './themeManager';
 import { DisplaySettingsService } from './displaySettingsService';
+import { ConnectionStatusService } from '../status/connectionStatusService';
+import { LLMProviderManager } from '../llm/llmProviderManager';
 
 export interface IServiceRegistry {
     get<T>(serviceType: symbol): T;
@@ -18,6 +20,8 @@ export const Services = {
     LLMConnectionManager: Symbol('LLMConnectionManager'),
     LLMHostManager: Symbol('LLMHostManager'),
     LLMSessionManager: Symbol('LLMSessionManager'),
+    LLMProviderManager: Symbol('LLMProviderManager'),
+    ConnectionStatus: Symbol('ConnectionStatus'),
     ContextManager: Symbol('ContextManager'),
     PromptManager: Symbol('PromptManager'),
     ThemeManager: Symbol('ThemeManager'),
@@ -65,16 +69,26 @@ export function initializeServices(context: vscode.ExtensionContext): void {
     // Initialize core services
     const hostManager = new LLMHostManager();
     const connectionManager = new LLMConnectionManager();
+    const connectionStatus = new ConnectionStatusService(hostManager, connectionManager);
     const sessionManager = new LLMSessionManager(connectionManager, hostManager);
-    const promptManager = new PromptManager();
-    const contextManager = new ContextManager(context);
+    const promptManager = new PromptManager(context);
+    const contextManager = new ContextManager(context, promptManager);
     const themeManager = new ThemeManager(context);
-    const displaySettings = new DisplaySettingsService();
+    const displaySettings = new DisplaySettingsService(themeManager, context);
+    
+    // Initialize provider management
+    const providerManager = new LLMProviderManager(
+        connectionManager,
+        hostManager,
+        connectionStatus
+    );
 
-    // Register services
+    // Register all services
     registry.register(Services.LLMHostManager, hostManager);
     registry.register(Services.LLMConnectionManager, connectionManager);
     registry.register(Services.LLMSessionManager, sessionManager);
+    registry.register(Services.ConnectionStatus, connectionStatus);
+    registry.register(Services.LLMProviderManager, providerManager);
     registry.register(Services.ContextManager, contextManager);
     registry.register(Services.PromptManager, promptManager);
     registry.register(Services.ThemeManager, themeManager);
