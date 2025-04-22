@@ -14,15 +14,29 @@ class AsyncOptimizer {
     pendingBatches = new Map();
     throttleTimers = new Map();
     debounceTimers = new Map();
+    config;
+    stats;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
         this.profiler = performanceProfiler_1.PerformanceProfiler.getInstance();
+        this.stats = {
+            optimizedCount: 0,
+            avgResponseTime: 0,
+            successRate: 100,
+            batchesProcessed: 0
+        };
     }
     static getInstance() {
         if (!AsyncOptimizer.instance) {
             AsyncOptimizer.instance = new AsyncOptimizer();
         }
         return AsyncOptimizer.instance;
+    }
+    setConfig(config) {
+        this.config = config;
+    }
+    getStats() {
+        return { ...this.stats };
     }
     /**
      * Batch multiple operations into a single execution
@@ -185,6 +199,48 @@ class AsyncOptimizer {
             clearTimeout(timer);
         }
         this.debounceTimers.clear();
+    }
+    async optimizeOperation(operation) {
+        const startTime = Date.now();
+        try {
+            const result = await Promise.race([
+                operation(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), this.config.timeoutMs))
+            ]);
+            this.updateStats(startTime, true);
+            return result;
+        }
+        catch (error) {
+            this.updateStats(startTime, false);
+            throw error;
+        }
+    }
+    async optimizeBatch(operations) {
+        const results = [];
+        const batches = this.createBatches(operations);
+        for (const batch of batches) {
+            const batchResults = await Promise.all(batch.map(op => this.optimizeOperation(op)));
+            results.push(...batchResults);
+            this.stats.batchesProcessed++;
+        }
+        return results;
+    }
+    createBatches(operations) {
+        const batches = [];
+        for (let i = 0; i < operations.length; i += this.config.batchSize) {
+            batches.push(operations.slice(i, i + this.config.batchSize));
+        }
+        return batches;
+    }
+    updateStats(startTime, success) {
+        const duration = Date.now() - startTime;
+        this.stats.optimizedCount++;
+        this.stats.avgResponseTime = (this.stats.avgResponseTime * (this.stats.optimizedCount - 1) + duration) / this.stats.optimizedCount;
+        // Update success rate
+        const totalOps = this.stats.optimizedCount;
+        const successfulOps = Math.round(this.stats.successRate * (totalOps - 1) / 100);
+        const newSuccessfulOps = success ? successfulOps + 1 : successfulOps;
+        this.stats.successRate = (newSuccessfulOps / totalOps) * 100;
     }
 }
 exports.AsyncOptimizer = AsyncOptimizer;

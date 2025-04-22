@@ -33,162 +33,86 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionStatusService = exports.ConnectionState = void 0;
+exports.ConnectionStatusService = void 0;
 const vscode = __importStar(require("vscode"));
-var ConnectionState;
-(function (ConnectionState) {
-    ConnectionState["Disconnected"] = "disconnected";
-    ConnectionState["Connecting"] = "connecting";
-    ConnectionState["Connected"] = "connected";
-    ConnectionState["Error"] = "error";
-})(ConnectionState || (exports.ConnectionState = ConnectionState = {}));
-/**
- * Service to manage and share the LLM connection status across the extension
- */
-class ConnectionStatusService {
-    _statusBarItem;
-    _state = ConnectionState.Disconnected;
-    _stateChangeEmitter = new vscode.EventEmitter();
-    _activeModelName = '';
-    _providerName = '';
-    /**
-     * Event that fires when the connection state changes
-     */
-    onDidChangeState = this._stateChangeEmitter.event;
-    constructor() {
-        // Create status bar item
-        this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this._statusBarItem.command = 'localLlmAgent.openSidebar';
-        this._updateStatusBar();
-        this._statusBarItem.show();
+const events_1 = require("events");
+class ConnectionStatusService extends events_1.EventEmitter {
+    hostManager;
+    connectionManager;
+    _status = {
+        state: 'disconnected',
+        lastUpdate: new Date()
+    };
+    _onStatusChanged = new vscode.EventEmitter();
+    onStatusChanged = this._onStatusChanged.event;
+    constructor(hostManager, connectionManager) {
+        super();
+        this.hostManager = hostManager;
+        this.connectionManager = connectionManager;
+        this.setupEventListeners();
     }
-    /**
-     * Get the current connection state
-     */
-    get state() {
-        return this._state;
+    setupEventListeners() {
+        this.hostManager.on('stateChanged', (state) => {
+            this.updateFromHostState(state);
+        });
+        this.connectionManager.on('stateChanged', (state) => {
+            this.updateFromConnectionState(state);
+        });
+        this.connectionManager.on('error', (error) => {
+            this.setStatus('error', error.message, error);
+        });
     }
-    /**
-     * Get the active model name
-     */
-    get activeModelName() {
-        return this._activeModelName;
-    }
-    /**
-     * Get the provider name
-     */
-    get providerName() {
-        return this._providerName;
-    }
-    /**
-     * Set the connection state and notify listeners
-     */
-    setState(state, options) {
-        this._state = state;
-        if (options?.modelName !== undefined) {
-            this._activeModelName = options.modelName;
-        }
-        if (options?.providerName !== undefined) {
-            this._providerName = options.providerName;
-        }
-        this._updateStatusBar();
-        this._stateChangeEmitter.fire(this._state);
-    }
-    /**
-     * Update status bar item appearance based on current state
-     */
-    _updateStatusBar() {
-        const statusText = this._getStatusText();
-        const tooltip = this._getTooltipText();
-        const icon = this._getStatusIcon();
-        this._statusBarItem.text = `${icon} ${statusText}`;
-        this._statusBarItem.tooltip = tooltip;
-        // Apply color based on state
-        if (this._state === ConnectionState.Connected) {
-            this._statusBarItem.backgroundColor = undefined;
-            this._statusBarItem.color = new vscode.ThemeColor('testing.iconPassed');
-        }
-        else if (this._state === ConnectionState.Error) {
-            this._statusBarItem.backgroundColor = undefined;
-            this._statusBarItem.color = new vscode.ThemeColor('testing.iconFailed');
-        }
-        else {
-            this._statusBarItem.backgroundColor = undefined;
-            this._statusBarItem.color = undefined;
-        }
-    }
-    /**
-     * Get the appropriate icon for the current state
-     */
-    _getStatusIcon() {
-        switch (this._state) {
-            case ConnectionState.Connected:
-                return '$(plug)';
-            case ConnectionState.Connecting:
-                return '$(loading~spin)';
-            case ConnectionState.Error:
-                return '$(error)';
-            case ConnectionState.Disconnected:
-            default:
-                return '$(debug-disconnect)';
-        }
-    }
-    /**
-     * Get the status text to display
-     */
-    _getStatusText() {
-        switch (this._state) {
-            case ConnectionState.Connected:
-                if (this._activeModelName) {
-                    return `LLM: ${this._activeModelName}`;
+    updateFromHostState(hostState) {
+        switch (hostState) {
+            case 'RUNNING':
+                // Only update if we're not already connected
+                if (this._status.state !== 'connected') {
+                    this.setStatus('connecting', 'LLM host is running, establishing connection...');
                 }
-                return 'LLM: Connected';
-            case ConnectionState.Connecting:
-                return 'LLM: Connecting...';
-            case ConnectionState.Error:
-                return 'LLM: Error';
-            case ConnectionState.Disconnected:
-            default:
-                return 'LLM: Disconnected';
-        }
-    }
-    /**
-     * Get detailed tooltip text
-     */
-    _getTooltipText() {
-        let tooltip = `Local LLM Agent - ${this._state.charAt(0).toUpperCase() + this._state.slice(1)}`;
-        if (this._providerName) {
-            tooltip += `\nProvider: ${this._providerName}`;
-        }
-        if (this._activeModelName) {
-            tooltip += `\nModel: ${this._activeModelName}`;
-        }
-        tooltip += '\n\nClick to open agent sidebar';
-        return tooltip;
-    }
-    /**
-     * Show a notification for important status changes
-     */
-    showNotification(message, type = 'info') {
-        switch (type) {
-            case 'warning':
-                vscode.window.showWarningMessage(message);
                 break;
-            case 'error':
-                vscode.window.showErrorMessage(message);
+            case 'STOPPED':
+                this.setStatus('disconnected', 'LLM host is stopped');
                 break;
-            case 'info':
-            default:
-                vscode.window.showInformationMessage(message);
+            case 'ERROR':
+                this.setStatus('error', 'LLM host encountered an error');
                 break;
         }
     }
-    /**
-     * Dispose the service
-     */
+    updateFromConnectionState(connectionState) {
+        switch (connectionState) {
+            case 'CONNECTED':
+                this.setStatus('connected', 'Connected to LLM service');
+                break;
+            case 'CONNECTING':
+                this.setStatus('connecting', 'Establishing connection to LLM service...');
+                break;
+            case 'DISCONNECTED':
+                this.setStatus('disconnected', 'Disconnected from LLM service');
+                break;
+            case 'ERROR':
+                this.setStatus('error', 'Connection error');
+                break;
+        }
+    }
+    setStatus(state, message, error) {
+        this._status = {
+            state,
+            message,
+            error,
+            lastUpdate: new Date()
+        };
+        this._onStatusChanged.fire(state);
+        this.emit('statusChanged', this._status);
+    }
+    get status() {
+        return this._status.state;
+    }
+    getFullStatus() {
+        return { ...this._status };
+    }
     dispose() {
-        this._statusBarItem.dispose();
-        this._stateChangeEmitter.dispose();
+        this._onStatusChanged.dispose();
+        this.removeAllListeners();
     }
 }
 exports.ConnectionStatusService = ConnectionStatusService;

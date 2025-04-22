@@ -35,202 +35,70 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeExampleViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
+const CodeExampleWebviewService_1 = require("../services/codeExamples/CodeExampleWebviewService");
+const CodeAnalysisService_1 = require("../services/codeExamples/CodeAnalysisService");
+const WebviewHtmlService_1 = require("../services/webview/WebviewHtmlService");
 class CodeExampleViewProvider {
     _extensionUri;
     codeExampleService;
     static viewType = 'codeExamples.view';
     _view;
+    webviewService;
+    analysisService;
+    htmlService;
     constructor(_extensionUri, codeExampleService) {
         this._extensionUri = _extensionUri;
         this.codeExampleService = codeExampleService;
+        this.webviewService = new CodeExampleWebviewService_1.CodeExampleWebviewService();
+        this.analysisService = new CodeAnalysisService_1.CodeAnalysisService();
+        this.htmlService = new WebviewHtmlService_1.WebviewHtmlService(_extensionUri);
     }
     resolveWebviewView(webviewView, context, _token) {
         this._view = webviewView;
-        webviewView.webview.options = {
-            enableScripts: true,
-            localResourceRoots: [this._extensionUri]
-        };
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        // Handle messages from the webview
-        webviewView.webview.onDidReceiveMessage(async (data) => {
-            switch (data.type) {
-                case 'search':
-                    await this.searchCodeExamples(data.query, data.language);
-                    break;
-                case 'insert':
-                    this.insertCodeExample(data.code);
-                    break;
-                case 'copy':
-                    await vscode.env.clipboard.writeText(data.code);
-                    vscode.window.showInformationMessage('Code copied to clipboard');
-                    break;
-            }
-        });
+        this.webviewService.initialize(webviewView, this._extensionUri);
+        this.setupWebview();
     }
-    /**
-     * Search for code examples and update the webview
-     */
-    async searchCodeExamples(query, language) {
-        if (!this._view) {
+    setupWebview() {
+        if (!this._view)
             return;
+        this._view.webview.html = this.htmlService.generateCodeExampleHtml(this._view.webview);
+        this._view.webview.onDidReceiveMessage(this.handleWebviewMessage.bind(this));
+    }
+    async handleWebviewMessage(data) {
+        switch (data.type) {
+            case 'search':
+                await this.searchCodeExamples(data.query, data.language);
+                break;
+            case 'insert':
+                this.webviewService.insertCode(data.code);
+                break;
+            case 'copy':
+                await this.webviewService.copyToClipboard(data.code);
+                break;
         }
-        // Show loading state
-        this._view.webview.postMessage({ type: 'loading', loading: true });
+    }
+    async searchCodeExamples(query, language) {
+        if (!this._view)
+            return;
+        this.webviewService.setLoading(true);
         try {
-            // Get current editor to determine language if not provided
             const editor = vscode.window.activeTextEditor;
-            const editorLanguage = editor?.document.languageId;
-            // Use language from parameter, or from editor, or don't filter by language
-            const searchLanguage = language || editorLanguage;
-            // Get keywords from the current selection or document
-            const keywords = this.extractKeywords(editor);
-            // Search for examples
+            const searchLanguage = language || editor?.document.languageId;
+            const keywords = this.analysisService.extractKeywords(editor);
             const examples = await this.codeExampleService.searchExamples(query, {
                 language: searchLanguage,
                 maxResults: 10
             });
-            // Filter examples by relevance
             const filteredExamples = this.codeExampleService.filterExamplesByRelevance(examples, { language: searchLanguage || '', keywords });
-            // Update webview with results
-            this._view.webview.postMessage({
-                type: 'searchResults',
-                results: filteredExamples,
-                query: query,
-                language: searchLanguage
-            });
+            this.webviewService.updateSearchResults(filteredExamples, query, searchLanguage);
         }
         catch (error) {
-            // Show error in webview
-            this._view.webview.postMessage({
-                type: 'error',
-                message: `Error searching for code examples: ${error instanceof Error ? error.message : String(error)}`
-            });
+            this.webviewService.showError(error);
         }
         finally {
-            // Hide loading state
-            this._view.webview.postMessage({ type: 'loading', loading: false });
+            this.webviewService.setLoading(false);
         }
-    }
-    /**
-     * Insert code example at cursor position
-     */
-    insertCodeExample(code) {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            editor.edit(editBuilder => {
-                editBuilder.insert(editor.selection.active, code);
-            });
-        }
-    }
-    /**
-     * Extract keywords from the current document or selection
-     */
-    extractKeywords(editor) {
-        if (!editor) {
-            return [];
-        }
-        let text;
-        // Get text from selection or full document
-        if (!editor.selection.isEmpty) {
-            text = editor.document.getText(editor.selection);
-        }
-        else {
-            // Get text around cursor (50 lines before and after)
-            const cursorPos = editor.selection.active;
-            const startLine = Math.max(0, cursorPos.line - 50);
-            const endLine = Math.min(editor.document.lineCount - 1, cursorPos.line + 50);
-            const startPos = new vscode.Position(startLine, 0);
-            const endPos = new vscode.Position(endLine, editor.document.lineAt(endLine).text.length);
-            text = editor.document.getText(new vscode.Range(startPos, endPos));
-        }
-        // Extract potential keywords (variables, function names, etc.)
-        const identifierPattern = /\b[a-zA-Z][a-zA-Z0-9_]*\b/g;
-        const allMatches = [...text.matchAll(identifierPattern)].map(match => match[0]);
-        // Filter out common keywords and duplicates
-        const commonKeywords = [
-            'if', 'else', 'for', 'while', 'function', 'return', 'var', 'let', 'const',
-            'class', 'interface', 'import', 'export', 'from', 'as', 'public', 'private',
-            'protected', 'static', 'async', 'await', 'try', 'catch', 'throw', 'finally',
-            'new', 'this', 'super', 'extends', 'implements', 'package', 'true', 'false',
-            'null', 'undefined', 'void', 'delete'
-        ];
-        const uniqueKeywords = [...new Set(allMatches)].filter(keyword => !commonKeywords.includes(keyword) && keyword.length > 2);
-        return uniqueKeywords.slice(0, 20); // Limit to 20 keywords
-    }
-    /**
-     * Generate HTML for the webview
-     */
-    _getHtmlForWebview(webview) {
-        // Get styles
-        const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
-        const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
-        const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'codeExamples.css'));
-        // Get scripts
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'codeExamples.js'));
-        // Use a nonce to only allow specific scripts to be run
-        const nonce = getNonce();
-        return /* html */ `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="
-                    default-src 'none';
-                    style-src ${webview.cspSource} 'unsafe-inline';
-                    script-src 'nonce-${nonce}';
-                    img-src ${webview.cspSource} https:;
-                ">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${styleResetUri}" rel="stylesheet">
-                <link href="${styleVSCodeUri}" rel="stylesheet">
-                <link href="${styleMainUri}" rel="stylesheet">
-                <title>Code Examples</title>
-            </head>
-            <body>
-                <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Search for code examples...">
-                    <button id="search-button">Search</button>
-                </div>
-                <div class="language-filter">
-                    <select id="language-select">
-                        <option value="">All Languages</option>
-                        <option value="javascript">JavaScript</option>
-                        <option value="typescript">TypeScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="csharp">C#</option>
-                        <option value="cpp">C++</option>
-                        <option value="go">Go</option>
-                        <option value="ruby">Ruby</option>
-                        <option value="php">PHP</option>
-                        <option value="rust">Rust</option>
-                    </select>
-                </div>
-                <div class="loading-indicator hidden">
-                    <div class="spinner"></div>
-                    <span>Searching...</span>
-                </div>
-                <div class="results-container"></div>
-                <div class="empty-state">
-                    <p>Search for code examples to get started</p>
-                </div>
-                <div class="error-container hidden">
-                    <p class="error-message"></p>
-                </div>
-                
-                <script nonce="${nonce}" src="${scriptUri}"></script>
-            </body>
-            </html>
-        `;
     }
 }
 exports.CodeExampleViewProvider = CodeExampleViewProvider;
-function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-}
 //# sourceMappingURL=codeExampleView.js.map

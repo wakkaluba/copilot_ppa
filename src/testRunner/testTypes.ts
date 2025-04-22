@@ -31,4 +31,11 @@ export interface TestResult {
     duration: number;
     suites: TestSuite[];
     timestamp: Date;
+    success: boolean;
+    message?: string;
+    details?: string;
+    exitCode?: number;
+    stdout?: string;
+    stderr?: string;
+    performanceMetrics?: Record<string, number>;
 }

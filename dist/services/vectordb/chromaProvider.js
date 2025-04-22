@@ -35,233 +35,93 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChromaProvider = void 0;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
-const crypto = __importStar(require("crypto"));
-/**
- * Provider for Chroma vector database
- */
+const ChromaClientService_1 = require("./services/ChromaClientService");
+const ChromaEmbeddingService_1 = require("./services/ChromaEmbeddingService");
+const ChromaDocumentService_1 = require("./services/ChromaDocumentService");
 class ChromaProvider {
     name = 'Chroma';
-    _isAvailable = false;
-    _client = null;
-    _collection = null;
-    _embedder = null;
-    _storageDir;
+    clientService;
+    embeddingService;
+    documentService;
     constructor(context) {
-        // Store Chroma databases in the extension's global storage directory
-        this._storageDir = path.join(context.globalStorageUri.fsPath, 'chroma');
+        this.clientService = new ChromaClientService_1.ChromaClientService(context);
+        this.embeddingService = new ChromaEmbeddingService_1.ChromaEmbeddingService();
+        this.documentService = new ChromaDocumentService_1.ChromaDocumentService();
     }
     get isAvailable() {
-        return this._isAvailable;
+        return this.clientService.isAvailable;
     }
     async initialize(options) {
         try {
-            // Dynamic imports to avoid requiring these packages
-            // until they're actually needed
-            const { ChromaClient } = await Promise.resolve().then(() => __importStar(require('chromadb')));
-            const { PersistentClient } = await Promise.resolve().then(() => __importStar(require('chromadb')));
-            const { OpenAIEmbeddingFunction } = await Promise.resolve().then(() => __importStar(require('chromadb')));
-            // Create directory if it doesn't exist
-            const fs = require('fs');
-            if (!fs.existsSync(this._storageDir)) {
-                fs.mkdirSync(this._storageDir, { recursive: true });
-            }
-            // Initialize Chroma client
-            this._client = new PersistentClient({
-                path: this._storageDir
-            });
-            // Create or get collection
-            this._collection = await this._client.getOrCreateCollection({
-                name: 'code_documents',
-                metadata: {
-                    'description': 'VSCode extension code documents'
-                }
-            });
-            // Initialize embedding function using OpenAI
-            // Note: In a real implementation, we might want to use a local model
-            const apiKey = vscode.workspace.getConfiguration('copilotPPA').get('openaiApiKey');
-            if (apiKey) {
-                this._embedder = new OpenAIEmbeddingFunction({
-                    openai_api_key: apiKey,
-                    model_name: 'text-embedding-ada-002'
-                });
-            }
-            else {
-                // If no API key, we'll need to handle embedding differently
-                throw new Error('OpenAI API key is required for embeddings');
-            }
-            this._isAvailable = true;
+            await this.clientService.initialize();
+            await this.embeddingService.initialize();
+            this.documentService.setCollection(this.clientService.getCollection());
         }
         catch (error) {
             vscode.window.showErrorMessage(`Failed to initialize Chroma: ${error.message}`);
             console.error('Chroma initialization error:', error);
-            this._isAvailable = false;
             throw error;
         }
     }
     async addDocument(document) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        const id = document.id || this._generateId();
-        // Get embedding if not provided
         const embedding = document.embedding || await this.getEmbedding(document.content);
-        await this._collection.add({
-            ids: [id],
-            embeddings: [embedding],
-            metadatas: [document.metadata || {}],
-            documents: [document.content]
-        });
-        return id;
+        return this.documentService.addDocument({ ...document, embedding });
     }
     async addDocuments(documents) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        const ids = [];
-        const embeddings = [];
-        const metadatas = [];
-        const contents = [];
-        // Prepare document batches
-        for (const doc of documents) {
-            const id = doc.id || this._generateId();
-            ids.push(id);
-            // Get embedding if not provided
-            if (doc.embedding) {
-                embeddings.push(doc.embedding);
-            }
-            else {
-                const embedding = await this.getEmbedding(doc.content);
-                embeddings.push(embedding);
-            }
-            metadatas.push(doc.metadata || {});
-            contents.push(doc.content);
-        }
-        await this._collection.add({
-            ids: ids,
-            embeddings: embeddings,
-            metadatas: metadatas,
-            documents: contents
-        });
-        return ids;
+        const processedDocs = await Promise.all(documents.map(async (doc) => ({
+            ...doc,
+            embedding: doc.embedding || await this.getEmbedding(doc.content)
+        })));
+        return this.documentService.addDocuments(processedDocs);
     }
     async getDocument(id) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        const result = await this._collection.get({
-            ids: [id],
-            include: ['embeddings', 'metadatas', 'documents']
-        });
-        if (result.ids.length === 0) {
-            return null;
-        }
-        return {
-            id: result.ids[0],
-            content: result.documents[0],
-            metadata: result.metadatas[0],
-            embedding: result.embeddings[0]
-        };
+        return this.documentService.getDocument(id);
     }
     async updateDocument(id, document) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        const existing = await this.getDocument(id);
-        if (!existing) {
-            return false;
+        if (document.content && !document.embedding) {
+            document.embedding = await this.getEmbedding(document.content);
         }
-        // Delete the existing document
-        await this.deleteDocument(id);
-        // Add the updated document
-        const updated = {
-            id,
-            content: document.content || existing.content,
-            metadata: document.metadata || existing.metadata,
-            embedding: document.embedding || (document.content ? await this.getEmbedding(document.content) : existing.embedding)
-        };
-        await this.addDocument(updated);
-        return true;
+        return this.documentService.updateDocument(id, document);
     }
     async deleteDocument(id) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        try {
-            await this._collection.delete({
-                ids: [id]
-            });
-            return true;
-        }
-        catch (error) {
-            console.error('Error deleting document:', error);
-            return false;
-        }
+        return this.documentService.deleteDocument(id);
     }
     async deleteAll() {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
-        await this._collection.delete({});
+        await this.documentService.deleteAll();
     }
     async search(query, options) {
-        if (!this._isAvailable || !this._collection) {
+        if (!this.isAvailable) {
             throw new Error('Chroma is not initialized');
         }
         const queryEmbedding = Array.isArray(query)
             ? query
             : await this.getEmbedding(query);
-        const result = await this._collection.query({
-            queryEmbeddings: [queryEmbedding],
-            nResults: options?.limit || 10,
-            include: ['embeddings', 'metadatas', 'documents', 'distances'],
-            where: options?.filter
-        });
-        if (!result.ids[0] || result.ids[0].length === 0) {
-            return [];
-        }
-        const searchResults = [];
-        for (let i = 0; i < result.ids[0].length; i++) {
-            // Calculate score from distance (convert distance to similarity score)
-            const distance = result.distances[0][i];
-            const score = 1 / (1 + distance); // Convert distance to similarity score between 0 and 1
-            if (options?.minScore && score < options.minScore) {
-                continue;
-            }
-            searchResults.push({
-                document: {
-                    id: result.ids[0][i],
-                    content: result.documents[0][i],
-                    metadata: result.metadatas[0][i],
-                    embedding: result.embeddings[0][i]
-                },
-                score
-            });
-        }
-        return searchResults;
+        return this.documentService.search(queryEmbedding, options);
     }
     async getEmbedding(text) {
-        if (!this._embedder) {
-            throw new Error('Embedder is not initialized');
-        }
-        try {
-            return await this._embedder.generate(text);
-        }
-        catch (error) {
-            console.error('Error generating embedding:', error);
-            throw new Error(`Failed to generate embedding: ${error.message}`);
-        }
+        return this.embeddingService.generateEmbedding(text);
     }
     async close() {
-        if (this._client) {
-            await this._client.close();
-            this._client = null;
-            this._collection = null;
-            this._isAvailable = false;
-        }
-    }
-    _generateId() {
-        return crypto.randomUUID();
+        await this.clientService.close();
+        this.documentService.reset();
     }
 }
 exports.ChromaProvider = ChromaProvider;

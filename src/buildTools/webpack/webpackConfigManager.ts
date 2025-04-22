@@ -5,8 +5,9 @@ import {
     WebpackOptimizationService
 } from './services';
 import { ILogger } from '../../services/logging/ILogger';
+import { BuildToolConfigManager, ValidationResult } from '../types';
 
-export class WebpackConfigManager {
+export class WebpackConfigManager implements BuildToolConfigManager {
     constructor(
         private readonly configDetector: WebpackConfigDetector,
         private readonly configAnalyzer: WebpackConfigAnalyzer,
@@ -21,7 +22,7 @@ export class WebpackConfigManager {
      */
     public async detectConfigs(workspacePath: string): Promise<string[]> {
         try {
-            this.logger.debug(`Detecting webpack configs in ${workspacePath}`);
+            this.logger.debug(`Searching for webpack configs in ${workspacePath}`);
             return await this.configDetector.detectConfigs(workspacePath);
         } catch (error) {
             this.logger.error('Error detecting webpack configs:', error);
@@ -58,17 +59,28 @@ export class WebpackConfigManager {
     /**
      * Validates a webpack configuration file
      * @param configPath Path to the webpack config file
-     * @returns True if the configuration is valid
+     * @returns Validation results containing any errors or warnings
      */
-    public async validateConfig(configPath: string): Promise<boolean> {
+    public async validateConfig(configPath: string): Promise<ValidationResult> {
         try {
             this.logger.debug(`Validating webpack config at ${configPath}`);
-            const analysis = await this.configAnalyzer.analyze(configPath);
+            const analysis = await this.analyzeConfig(configPath);
             
-            // Basic validation - check if required fields are present
-            return analysis.entryPoints.length > 0 && 
-                   analysis.output.path.length > 0 &&
-                   analysis.output.filename.length > 0;
+            return {
+                isValid: analysis.errors.length === 0,
+                errors: analysis.errors.map(error => ({
+                    message: error.message,
+                    line: error.line,
+                    column: error.column,
+                    severity: 'error'
+                })),
+                warnings: analysis.warnings.map(warning => ({
+                    message: warning.message,
+                    line: warning.line,
+                    column: warning.column,
+                    severity: 'warning'
+                }))
+            };
         } catch (error) {
             this.logger.error('Error validating webpack config:', error);
             throw new Error(`Failed to validate webpack configuration: ${error instanceof Error ? error.message : String(error)}`);

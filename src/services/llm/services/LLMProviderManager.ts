@@ -1,446 +1,258 @@
 import { EventEmitter } from 'events';
 import {
     LLMProvider,
-    ProviderInfo,
-    ProviderEvent,
-    ProviderError,
-    ProviderState,
-    ProviderCapabilities,
-    ProviderMetrics,
     ProviderConfig,
-    ProviderHealthStatus,
-    ProviderConnectionState
+    ProviderEvent,
+    ProviderMetrics,
+    LLMResponse,
+    LLMMessage,
+    LLMRequestOptions,
+    LLMStreamEvent
 } from '../types';
-import { LLMProviderValidator } from '../validators/LLMProviderValidator';
-import { LLMProviderRegistry } from './LLMProviderRegistry';
-import { LLMProviderMetricsTracker } from '../metrics/LLMProviderMetricsTracker';
-import { ProviderConfigValidator } from '../validators/ProviderConfigValidator';
-import { ConnectionPoolManager } from '../connection/ConnectionPoolManager';
+import { ConnectionPoolManager } from './ConnectionPoolManager';
+import { ProviderFactory, ProviderType } from '../providers/ProviderFactory';
+import { ConfigurationError, ProviderError } from '../errors';
 
-/**
- * Manages LLM provider lifecycle, registration, and runtime state with comprehensive
- * metrics tracking, health monitoring, and connection pooling
- */
+interface ProviderMetricsData {
+    requestCount: number;
+    errorCount: number;
+    totalLatency: number;
+    lastUsed: number;
+}
+
 export class LLMProviderManager extends EventEmitter {
-    private readonly validator: LLMProviderValidator;
-    private readonly registry: LLMProviderRegistry;
-    private readonly metricsTracker: LLMProviderMetricsTracker;
-    private readonly configValidator: ProviderConfigValidator;
-    private readonly connectionPool: ConnectionPoolManager;
-    private readonly activeProviders = new Map<string, LLMProvider>();
-    private readonly providerStates = new Map<string, ProviderState>();
-    private readonly healthStatuses = new Map<string, ProviderHealthStatus>();
-    private readonly healthCheckIntervals = new Map<string, NodeJS.Timer>();
+    private static instance: LLMProviderManager;
+    private connectionPool: ConnectionPoolManager;
+    private metrics = new Map<string, ProviderMetricsData>();
+    private activeProviders = new Set<string>();
+    private defaultProviderId?: string;
 
-    constructor(
-        validator: LLMProviderValidator,
-        registry: LLMProviderRegistry,
-        metricsTracker: LLMProviderMetricsTracker,
-        configValidator: ProviderConfigValidator,
-        connectionPool: ConnectionPoolManager
-    ) {
+    private constructor() {
         super();
-        this.validator = validator;
-        this.registry = registry;
-        this.metricsTracker = metricsTracker;
-        this.configValidator = configValidator;
-        this.connectionPool = connectionPool;
-        this.setupEventListeners();
+        this.connectionPool = new ConnectionPoolManager();
     }
 
-    private setupEventListeners(): void {
-        this.registry.on(ProviderEvent.Registered, this.handleProviderRegistered.bind(this));
-        this.registry.on(ProviderEvent.Unregistered, this.handleProviderUnregistered.bind(this));
-        this.connectionPool.on('connectionStateChanged', this.handleConnectionStateChanged.bind(this));
-        this.metricsTracker.on('metricsUpdated', this.handleMetricsUpdated.bind(this));
+    public static getInstance(): LLMProviderManager {
+        if (!LLMProviderManager.instance) {
+            LLMProviderManager.instance = new LLMProviderManager();
+        }
+        return LLMProviderManager.instance;
     }
 
-    /**
-     * Register a new provider with comprehensive validation and initialization
-     */
-    public async registerProvider(
-        provider: LLMProvider,
+    public async initializeProvider(
+        type: ProviderType,
         config: ProviderConfig
+    ): Promise<string> {
+        const factory = ProviderFactory.getInstance();
+        
+        // Create initial provider instance to get ID
+        const provider = await factory.createProvider(type, config);
+        const providerId = provider.id;
+
+        // Initialize connection pool for this provider
+        await this.connectionPool.initializeProvider(providerId, config);
+        
+        // Initialize metrics
+        this.metrics.set(providerId, {
+            requestCount: 0,
+            errorCount: 0,
+            totalLatency: 0,
+            lastUsed: Date.now()
+        });
+
+        this.activeProviders.add(providerId);
+
+        // Set as default if none set
+        if (!this.defaultProviderId) {
+            this.defaultProviderId = providerId;
+        }
+
+        this.emit(ProviderEvent.Initialized, {
+            providerId,
+            timestamp: Date.now()
+        });
+
+        return providerId;
+    }
+
+    public async getProvider(providerId?: string): Promise<LLMProvider> {
+        const targetId = providerId || this.defaultProviderId;
+        if (!targetId) {
+            throw new ProviderError('No provider available', 'unknown');
+        }
+
+        if (!this.activeProviders.has(targetId)) {
+            throw new ProviderError('Provider not active', targetId);
+        }
+
+        return this.connectionPool.acquireConnection(targetId);
+    }
+
+    public async releaseProvider(
+        provider: LLMProvider
     ): Promise<void> {
-        try {
-            // Validate provider implementation
-            const validationResult = await this.validator.validateProvider(provider);
-            if (!validationResult.isValid) {
-                throw new ProviderError(
-                    'Provider validation failed',
-                    provider.id,
-                    validationResult.errors?.join(', ')
-                );
-            }
+        await this.connectionPool.releaseConnection(provider.id, provider);
+    }
 
-            // Validate provider configuration
-            const configValidation = await this.configValidator.validateConfig(config);
-            if (!configValidation.isValid) {
-                throw new ProviderError(
-                    'Provider configuration validation failed',
-                    provider.id,
-                    configValidation.errors?.join(', ')
-                );
-            }
-
-            // Initialize provider metrics tracking
-            await this.metricsTracker.initializeProvider(provider.id);
-
-            // Register with registry
-            await this.registry.registerProvider(provider, config);
-
-            // Initialize connection pool
-            await this.connectionPool.initializeProvider(provider.id, config);
-
-            this.emit(ProviderEvent.Registered, {
-                providerId: provider.id,
-                timestamp: Date.now(),
-                config: config
-            });
-
-        } catch (error) {
-            throw new ProviderError(
-                'Failed to register provider',
-                provider.id,
-                error instanceof Error ? error : undefined
+    public setDefaultProvider(providerId: string): void {
+        if (!this.activeProviders.has(providerId)) {
+            throw new ConfigurationError(
+                'Provider not active',
+                providerId,
+                'defaultProvider'
             );
+        }
+        this.defaultProviderId = providerId;
+    }
+
+    public getDefaultProviderId(): string | undefined {
+        return this.defaultProviderId;
+    }
+
+    public async generateCompletion(
+        prompt: string,
+        systemPrompt?: string,
+        options?: LLMRequestOptions & { providerId?: string }
+    ): Promise<LLMResponse> {
+        const provider = await this.getProvider(options?.providerId);
+        const start = Date.now();
+
+        try {
+            const response = await provider.generateCompletion(
+                options?.model || 'default',
+                prompt,
+                systemPrompt,
+                options
+            );
+
+            this.updateMetrics(provider.id, Date.now() - start);
+            return response;
+        } catch (error) {
+            this.updateMetrics(provider.id, Date.now() - start, true);
+            throw error;
+        } finally {
+            await this.releaseProvider(provider);
         }
     }
 
-    /**
-     * Initialize a provider with connection pooling and health monitoring
-     */
-    public async initializeProvider(providerId: string): Promise<void> {
-        const provider = await this.registry.getProvider(providerId);
-        if (!provider) {
+    public async generateChatCompletion(
+        messages: LLMMessage[],
+        options?: LLMRequestOptions & { providerId?: string }
+    ): Promise<LLMResponse> {
+        const provider = await this.getProvider(options?.providerId);
+        const start = Date.now();
+
+        try {
+            const response = await provider.generateChatCompletion(
+                options?.model || 'default',
+                messages,
+                options
+            );
+
+            this.updateMetrics(provider.id, Date.now() - start);
+            return response;
+        } catch (error) {
+            this.updateMetrics(provider.id, Date.now() - start, true);
+            throw error;
+        } finally {
+            await this.releaseProvider(provider);
+        }
+    }
+
+    public async streamCompletion(
+        prompt: string,
+        systemPrompt?: string,
+        options?: LLMRequestOptions & { providerId?: string },
+        callback?: (event: LLMStreamEvent) => void
+    ): Promise<void> {
+        const provider = await this.getProvider(options?.providerId);
+        const start = Date.now();
+
+        try {
+            await provider.streamCompletion(
+                options?.model || 'default',
+                prompt,
+                systemPrompt,
+                options,
+                callback
+            );
+
+            this.updateMetrics(provider.id, Date.now() - start);
+        } catch (error) {
+            this.updateMetrics(provider.id, Date.now() - start, true);
+            throw error;
+        } finally {
+            await this.releaseProvider(provider);
+        }
+    }
+
+    public async streamChatCompletion(
+        messages: LLMMessage[],
+        options?: LLMRequestOptions & { providerId?: string },
+        callback?: (event: LLMStreamEvent) => void
+    ): Promise<void> {
+        const provider = await this.getProvider(options?.providerId);
+        const start = Date.now();
+
+        try {
+            await provider.streamChatCompletion(
+                options?.model || 'default',
+                messages,
+                options,
+                callback
+            );
+
+            this.updateMetrics(provider.id, Date.now() - start);
+        } catch (error) {
+            this.updateMetrics(provider.id, Date.now() - start, true);
+            throw error;
+        } finally {
+            await this.releaseProvider(provider);
+        }
+    }
+
+    private updateMetrics(
+        providerId: string,
+        latency: number,
+        isError: boolean = false
+    ): void {
+        const metrics = this.metrics.get(providerId);
+        if (!metrics) return;
+
+        metrics.requestCount++;
+        metrics.totalLatency += latency;
+        if (isError) metrics.errorCount++;
+        metrics.lastUsed = Date.now();
+    }
+
+    public getMetrics(providerId: string): ProviderMetrics {
+        const metrics = this.metrics.get(providerId);
+        if (!metrics) {
             throw new ProviderError('Provider not found', providerId);
         }
 
-        try {
-            this.setProviderState(providerId, ProviderState.Initializing);
-
-            // Get provider configuration
-            const config = await this.registry.getProviderConfig(providerId);
-            
-            // Initialize provider
-            await provider.initialize(config);
-            
-            // Initialize connection pool
-            await this.connectionPool.initializeConnections(providerId, config);
-
-            // Start health monitoring
-            await this.startHealthMonitoring(providerId);
-            
-            this.activeProviders.set(providerId, provider);
-            this.setProviderState(providerId, ProviderState.Active);
-
-            this.emit(ProviderEvent.Initialized, {
-                providerId,
-                timestamp: Date.now(),
-                config: config
-            });
-
-        } catch (error) {
-            this.setProviderState(providerId, ProviderState.Error);
-            throw new ProviderError(
-                'Failed to initialize provider',
-                providerId,
-                error instanceof Error ? error : undefined
-            );
-        }
+        return {
+            requestCount: metrics.requestCount,
+            errorCount: metrics.errorCount,
+            averageLatency: metrics.requestCount > 0 
+                ? metrics.totalLatency / metrics.requestCount 
+                : 0,
+            successRate: metrics.requestCount > 0
+                ? (metrics.requestCount - metrics.errorCount) / metrics.requestCount
+                : 1,
+            lastUsed: metrics.lastUsed
+        };
     }
 
-    /**
-     * Start health monitoring for a provider
-     */
-    private async startHealthMonitoring(providerId: string): Promise<void> {
-        try {
-            // Initialize health status
-            this.healthStatuses.set(providerId, {
-                status: 'healthy',
-                lastChecked: Date.now(),
-                errorCount: 0,
-                lastError: null
-            });
-
-            // Start periodic health checks
-            setInterval(async () => {
-                try {
-                    await this.checkProviderHealth(providerId);
-                } catch (error) {
-                    console.error(`Health check failed for provider ${providerId}:`, error);
-                }
-            }, 30000); // Check every 30 seconds
-        } catch (error) {
-            console.error(`Failed to start health monitoring for provider ${providerId}:`, error);
-        }
+    public getActiveProviders(): string[] {
+        return Array.from(this.activeProviders);
     }
 
-    /**
-     * Check provider health status
-     */
-    private async checkProviderHealth(providerId: string): Promise<void> {
-        const provider = this.getProvider(providerId);
-        if (!provider) return;
-
-        try {
-            const health = this.healthStatuses.get(providerId) || {
-                status: 'unknown',
-                lastChecked: 0,
-                errorCount: 0,
-                lastError: null
-            };
-
-            // Check connection pool health
-            const poolHealth = await this.connectionPool.checkHealth(providerId);
-            
-            // Check provider responsiveness
-            const isResponsive = await provider.ping();
-
-            // Update health status
-            health.lastChecked = Date.now();
-            
-            if (!poolHealth.isHealthy || !isResponsive) {
-                health.status = 'unhealthy';
-                health.errorCount++;
-                this.emit(ProviderEvent.HealthChanged, {
-                    providerId,
-                    status: health.status,
-                    timestamp: Date.now()
-                });
-            } else {
-                health.status = 'healthy';
-                health.errorCount = 0;
-            }
-
-            this.healthStatuses.set(providerId, health);
-
-        } catch (error) {
-            const health = this.healthStatuses.get(providerId);
-            if (health) {
-                health.status = 'error';
-                health.errorCount++;
-                health.lastError = error instanceof Error ? error : new Error(String(error));
-                this.healthStatuses.set(providerId, health);
-            }
-        }
-    }
-
-    /**
-     * Get provider health status
-     */
-    public getProviderHealth(providerId: string): ProviderHealthStatus | undefined {
-        return this.healthStatuses.get(providerId);
-    }
-
-    /**
-     * Get an active provider
-     */
-    public getProvider(providerId: string): LLMProvider | undefined {
-        return this.activeProviders.get(providerId);
-    }
-
-    /**
-     * Check if a provider is active
-     */
-    public isProviderActive(providerId: string): boolean {
-        return this.getProviderState(providerId) === ProviderState.Active;
-    }
-
-    /**
-     * Get provider state
-     */
-    public getProviderState(providerId: string): ProviderState {
-        return this.providerStates.get(providerId) || ProviderState.Unknown;
-    }
-
-    /**
-     * Get provider information
-     */
-    public async getProviderInfo(providerId: string): Promise<ProviderInfo | null> {
-        return this.registry.getProviderInfo(providerId);
-    }
-
-    /**
-     * Get provider capabilities
-     */
-    public async getProviderCapabilities(
-        providerId: string
-    ): Promise<ProviderCapabilities | null> {
-        const provider = this.getProvider(providerId);
-        if (!provider) return null;
-
-        try {
-            return await provider.getCapabilities();
-        } catch (error) {
-            console.error(`Failed to get capabilities for provider ${providerId}:`, error);
-            return null;
-        }
-    }
-
-    /**
-     * Record provider metrics
-     */
-    public recordMetrics(
-        providerId: string,
-        metrics: Partial<ProviderMetrics>
-    ): void {
-        this.metricsTracker.recordSuccess(
-            providerId,
-            metrics.averageResponseTime || 0,
-            metrics.tokenUsage || 0
-        );
-    }
-
-    /**
-     * Get provider metrics
-     */
-    public getProviderMetrics(providerId: string): ProviderMetrics | undefined {
-        return this.metricsTracker.getMetrics(providerId);
-    }
-
-    /**
-     * Deactivate a provider with proper cleanup
-     */
-    public async deactivateProvider(providerId: string): Promise<void> {
-        const provider = this.activeProviders.get(providerId);
-        if (!provider) return;
-
-        try {
-            this.setProviderState(providerId, ProviderState.Deactivating);
-            
-            // Stop health monitoring
-            clearInterval(this.healthCheckIntervals.get(providerId));
-            this.healthCheckIntervals.delete(providerId);
-            
-            // Close connection pool
-            await this.connectionPool.closeConnections(providerId);
-            
-            // Cleanup provider
-            await provider.dispose();
-            
-            this.activeProviders.delete(providerId);
-            this.providerStates.delete(providerId);
-            this.healthStatuses.delete(providerId);
-            
-            this.setProviderState(providerId, ProviderState.Inactive);
-
-            this.emit(ProviderEvent.Deactivated, {
-                providerId,
-                timestamp: Date.now()
-            });
-
-        } catch (error) {
-            this.setProviderState(providerId, ProviderState.Error);
-            throw new ProviderError(
-                'Failed to deactivate provider',
-                providerId,
-                error instanceof Error ? error : undefined
-            );
-        }
-    }
-
-    /**
-     * Unregister a provider
-     */
-    public async unregisterProvider(providerId: string): Promise<void> {
-        try {
-            // Deactivate if active
-            if (this.isProviderActive(providerId)) {
-                await this.deactivateProvider(providerId);
-            }
-
-            // Remove from registry
-            await this.registry.unregisterProvider(providerId);
-
-            // Clean up state
-            this.providerStates.delete(providerId);
-
-            // Reset metrics
-            this.metricsTracker.resetMetrics(providerId);
-
-            this.emit(ProviderEvent.Unregistered, {
-                providerId,
-                timestamp: Date.now()
-            });
-
-        } catch (error) {
-            throw new ProviderError(
-                'Failed to unregister provider',
-                providerId,
-                error instanceof Error ? error : undefined
-            );
-        }
-    }
-
-    /**
-     * Set provider state
-     */
-    private setProviderState(providerId: string, state: ProviderState): void {
-        this.providerStates.set(providerId, state);
-        
-        this.emit(ProviderEvent.StateChanged, {
-            providerId,
-            state,
-            timestamp: Date.now()
-        });
-    }
-
-    private handleProviderRegistered(event: { providerId: string }): void {
-        this.setProviderState(event.providerId, ProviderState.Registered);
-    }
-
-    private handleProviderUnregistered(event: { providerId: string }): void {
-        this.setProviderState(event.providerId, ProviderState.Unregistered);
-    }
-
-    /**
-     * Handle connection state changes
-     */
-    private handleConnectionStateChanged(event: { 
-        providerId: string, 
-        state: ProviderConnectionState 
-    }): void {
-        this.emit(ProviderEvent.ConnectionStateChanged, {
-            providerId: event.providerId,
-            state: event.state,
-            timestamp: Date.now()
-        });
-    }
-
-    /**
-     * Handle metrics updates
-     */
-    private handleMetricsUpdated(event: { 
-        providerId: string, 
-        metrics: ProviderMetrics 
-    }): void {
-        this.emit(ProviderEvent.MetricsUpdated, {
-            providerId: event.providerId,
-            metrics: event.metrics,
-            timestamp: Date.now()
-        });
-    }
-
-    public dispose(): void {
-        // Deactivate all active providers
-        for (const providerId of this.activeProviders.keys()) {
-            this.deactivateProvider(providerId).catch(console.error);
-        }
-
-        // Clear all collections
+    public async dispose(): Promise<void> {
+        await this.connectionPool.dispose();
         this.activeProviders.clear();
-        this.providerStates.clear();
-        this.healthStatuses.clear();
-        this.healthCheckIntervals.forEach(clearInterval);
-        this.healthCheckIntervals.clear();
-
-        // Dispose dependencies
-        this.connectionPool.dispose();
-        this.metricsTracker.dispose();
-        this.registry.dispose();
-
-        // Remove all listeners
+        this.metrics.clear();
+        this.defaultProviderId = undefined;
         this.removeAllListeners();
     }
 }

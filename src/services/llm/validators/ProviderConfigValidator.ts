@@ -1,61 +1,72 @@
 import { ProviderConfig } from '../types';
-
-export interface ConfigValidationResult {
-    isValid: boolean;
-    errors?: string[];
-}
+import { ValidationResult } from './LLMProviderValidator';
 
 export class ProviderConfigValidator {
-    /**
-     * Validates provider configuration
-     */
-    public async validateConfig(config: ProviderConfig): Promise<ConfigValidationResult> {
+    async validateConfig(config: ProviderConfig): Promise<ValidationResult> {
         const errors: string[] = [];
-
-        // Validate baseUrl if provided
-        if (config.baseUrl) {
-            try {
-                new URL(config.baseUrl);
-            } catch {
-                errors.push('baseUrl must be a valid URL');
+        
+        // Validate required fields
+        if (!config.apiEndpoint) {
+            errors.push('Configuration must include apiEndpoint');
+        }
+        
+        // Validate connection settings
+        if (config.connection) {
+            if (typeof config.connection.timeout !== 'number' || config.connection.timeout <= 0) {
+                errors.push('Connection timeout must be a positive number');
+            }
+            if (config.connection.retries !== undefined) {
+                if (typeof config.connection.retries !== 'number' || config.connection.retries < 0) {
+                    errors.push('Connection retries must be a non-negative number');
+                }
+            }
+            if (config.connection.poolSize !== undefined) {
+                if (typeof config.connection.poolSize !== 'number' || config.connection.poolSize <= 0) {
+                    errors.push('Connection pool size must be a positive number');
+                }
             }
         }
-
-        // Validate maxTokens if provided
-        if (config.maxTokens !== undefined) {
-            if (!Number.isInteger(config.maxTokens) || config.maxTokens <= 0) {
-                errors.push('maxTokens must be a positive integer');
+        
+        // Validate model settings
+        if (config.model) {
+            if (!config.model.name) {
+                errors.push('Model configuration must include model name');
+            }
+            if (config.model.contextLength !== undefined) {
+                if (typeof config.model.contextLength !== 'number' || config.model.contextLength <= 0) {
+                    errors.push('Model context length must be a positive number');
+                }
             }
         }
-
-        // Validate temperature if provided
-        if (config.temperature !== undefined) {
-            if (typeof config.temperature !== 'number' || 
-                config.temperature < 0 || 
-                config.temperature > 1) {
-                errors.push('temperature must be a number between 0 and 1');
+        
+        // Validate request settings
+        if (config.requestDefaults) {
+            const validTemperatureRange = config.requestDefaults.temperature === undefined ||
+                (typeof config.requestDefaults.temperature === 'number' &&
+                 config.requestDefaults.temperature >= 0 &&
+                 config.requestDefaults.temperature <= 1);
+                 
+            if (!validTemperatureRange) {
+                errors.push('Temperature must be between 0 and 1');
+            }
+            
+            if (config.requestDefaults.maxTokens !== undefined) {
+                if (typeof config.requestDefaults.maxTokens !== 'number' || config.requestDefaults.maxTokens <= 0) {
+                    errors.push('Max tokens must be a positive number');
+                }
             }
         }
-
-        // Validate timeout if provided
-        if (config.timeout !== undefined) {
-            if (!Number.isInteger(config.timeout) || config.timeout < 0) {
-                errors.push('timeout must be a non-negative integer');
+        
+        // Validate health check settings
+        if (config.healthCheck) {
+            if (typeof config.healthCheck.interval !== 'number' || config.healthCheck.interval < 5000) {
+                errors.push('Health check interval must be at least 5000ms');
+            }
+            if (typeof config.healthCheck.timeout !== 'number' || config.healthCheck.timeout <= 0) {
+                errors.push('Health check timeout must be a positive number');
             }
         }
-
-        // Validate retry options if provided
-        if (config.retryOptions) {
-            if (!Number.isInteger(config.retryOptions.maxRetries) || 
-                config.retryOptions.maxRetries < 0) {
-                errors.push('retryOptions.maxRetries must be a non-negative integer');
-            }
-            if (!Number.isInteger(config.retryOptions.delayMs) || 
-                config.retryOptions.delayMs < 0) {
-                errors.push('retryOptions.delayMs must be a non-negative integer');
-            }
-        }
-
+        
         return {
             isValid: errors.length === 0,
             errors: errors.length > 0 ? errors : undefined

@@ -35,9 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigManager = void 0;
 const vscode = __importStar(require("vscode"));
-/**
- * Default configuration values
- */
 const DEFAULT_CONFIG = {
     enableTelemetry: true,
     debugLogging: false,
@@ -55,82 +52,124 @@ const DEFAULT_CONFIG = {
         maxTokens: 2048,
         temperature: 0.7,
     },
+    defaultProvider: 'ollama',
 };
-/**
- * Configuration manager for the extension
- * Handles reading and writing configuration values
- */
 class ConfigManager {
-    context;
-    configChangeHandler;
-    /**
-     * Creates a new configuration manager
-     * @param context The extension context
-     */
+    _context;
+    _configChangeEmitter = new vscode.EventEmitter();
+    _configChangeHandler;
+    _currentConfig;
+    onConfigChanged = this._configChangeEmitter.event;
     constructor(context) {
-        this.context = context;
+        this._context = context;
+        this._currentConfig = this.loadConfig();
         this.setupConfigChangeListener();
     }
-    /**
-     * Get the current configuration
-     * @returns The current configuration combined with defaults
-     */
-    getConfig() {
+    async initialize() {
+        await this.validateAndUpdateConfig();
+        await this.registerConfigurationDefaults();
+    }
+    loadConfig() {
         const config = vscode.workspace.getConfiguration('copilot-ppa');
+        return this.mergeWithDefaults(config);
+    }
+    mergeWithDefaults(config) {
         return {
             enableTelemetry: config.get('enableTelemetry', DEFAULT_CONFIG.enableTelemetry),
             debugLogging: config.get('debugLogging', DEFAULT_CONFIG.debugLogging),
             showStatusBar: config.get('showStatusBar', DEFAULT_CONFIG.showStatusBar),
-            analysisThreshold: config.get('analysisThreshold', DEFAULT_CONFIG.analysisThreshold),
+            analysisThreshold: this.validateAnalysisThreshold(config.get('analysisThreshold', DEFAULT_CONFIG.analysisThreshold)),
             integrationFeatures: {
                 copilotEnabled: config.get('integrationFeatures.copilotEnabled', DEFAULT_CONFIG.integrationFeatures.copilotEnabled),
                 vscodeProfileEnabled: config.get('integrationFeatures.vscodeProfileEnabled', DEFAULT_CONFIG.integrationFeatures.vscodeProfileEnabled),
                 perfDataCollection: config.get('integrationFeatures.perfDataCollection', DEFAULT_CONFIG.integrationFeatures.perfDataCollection),
             },
-            llm: {
+            llm: this.validateLLMConfig({
                 provider: config.get('llm.provider', DEFAULT_CONFIG.llm.provider),
                 modelId: config.get('llm.modelId', DEFAULT_CONFIG.llm.modelId),
                 endpoint: config.get('llm.endpoint', DEFAULT_CONFIG.llm.endpoint),
                 maxTokens: config.get('llm.maxTokens', DEFAULT_CONFIG.llm.maxTokens),
                 temperature: config.get('llm.temperature', DEFAULT_CONFIG.llm.temperature),
-            },
+            }),
+            defaultProvider: config.get('defaultProvider', DEFAULT_CONFIG.defaultProvider),
         };
     }
-    /**
-     * Update a configuration value
-     * @param section The configuration section path
-     * @param value The value to set
-     * @param configTarget The configuration target (global or workspace)
-     */
+    validateAnalysisThreshold(threshold) {
+        return Math.max(100, Math.min(threshold, 10000));
+    }
+    validateLLMConfig(config) {
+        return {
+            ...config,
+            maxTokens: Math.max(1, Math.min(config.maxTokens, 8192)),
+            temperature: Math.max(0, Math.min(config.temperature, 2)),
+            endpoint: this.validateEndpoint(config.endpoint),
+        };
+    }
+    validateEndpoint(endpoint) {
+        try {
+            new URL(endpoint);
+            return endpoint;
+        }
+        catch {
+            return DEFAULT_CONFIG.llm.endpoint;
+        }
+    }
+    async validateAndUpdateConfig() {
+        const config = this.getConfig();
+        // Update any invalid values with validated ones
+        if (config.analysisThreshold !== this._currentConfig.analysisThreshold) {
+            await this.updateConfig('analysisThreshold', this._currentConfig.analysisThreshold);
+        }
+        if (config.llm.maxTokens !== this._currentConfig.llm.maxTokens) {
+            await this.updateConfig('llm.maxTokens', this._currentConfig.llm.maxTokens);
+        }
+        if (config.llm.temperature !== this._currentConfig.llm.temperature) {
+            await this.updateConfig('llm.temperature', this._currentConfig.llm.temperature);
+        }
+        if (config.llm.endpoint !== this._currentConfig.llm.endpoint) {
+            await this.updateConfig('llm.endpoint', this._currentConfig.llm.endpoint);
+        }
+    }
+    setupConfigChangeListener() {
+        this._configChangeHandler = vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('copilot-ppa')) {
+                const oldConfig = this._currentConfig;
+                this._currentConfig = this.loadConfig();
+                // Emit specific changes
+                this.emitConfigChanges(oldConfig, this._currentConfig);
+            }
+        });
+        this._context.subscriptions.push(this._configChangeHandler);
+    }
+    emitConfigChanges(oldConfig, newConfig) {
+        // Compare and emit changes for each top-level property
+        for (const key in newConfig) {
+            const typedKey = key;
+            if (JSON.stringify(oldConfig[typedKey]) !== JSON.stringify(newConfig[typedKey])) {
+                this._configChangeEmitter.fire({
+                    key: typedKey,
+                    value: newConfig[typedKey],
+                    source: vscode.ConfigurationTarget.Global
+                });
+            }
+        }
+    }
+    getConfig() {
+        return { ...this._currentConfig };
+    }
     async updateConfig(section, value, configTarget = vscode.ConfigurationTarget.Global) {
         await vscode.workspace.getConfiguration('copilot-ppa').update(section, value, configTarget);
     }
-    /**
-     * Setup the configuration change listener
-     */
-    setupConfigChangeListener() {
-        this.configChangeHandler = vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('copilot-ppa')) {
-                // Emit an event or perform any necessary actions when config changes
-                console.log('Copilot PPA configuration changed');
-            }
-        });
-        this.context.subscriptions.push(this.configChangeHandler);
-    }
-    /**
-     * Register configuration schema contributions to override defaults when not specified by user
-     * Used for dynamic runtime configuration updates
-     */
-    registerConfigurationDefaults() {
-        vscode.workspace.getConfiguration('copilot-ppa').update('defaultProvider', DEFAULT_CONFIG.llm.provider, vscode.ConfigurationTarget.Global);
-    }
-    /**
-     * Dispose of any resources
-     */
-    dispose() {
-        if (this.configChangeHandler) {
-            this.configChangeHandler.dispose();
+    async registerConfigurationDefaults() {
+        const config = vscode.workspace.getConfiguration('copilot-ppa');
+        // Only set defaults if they haven't been set before
+        if (!config.has('defaultProvider')) {
+            await config.update('defaultProvider', DEFAULT_CONFIG.llm.provider, vscode.ConfigurationTarget.Global);
         }
+    }
+    dispose() {
+        this._configChangeHandler?.dispose();
+        this._configChangeEmitter.dispose();
     }
 }
 exports.ConfigManager = ConfigManager;

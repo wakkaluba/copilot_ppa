@@ -35,14 +35,21 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationExportCommand = void 0;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
 const conversationManager_1 = require("../services/conversationManager");
+const ConversationExportService_1 = require("../services/conversation/ConversationExportService");
+const FileDialogService_1 = require("../services/dialog/FileDialogService");
+const ConversationSelectionService_1 = require("../services/conversation/ConversationSelectionService");
 class ConversationExportCommand {
     static commandId = 'copilotPPA.exportConversation';
     static exportAllCommandId = 'copilotPPA.exportAllConversations';
-    conversationManager;
+    exportService;
+    fileDialogService;
+    selectionService;
     constructor(context) {
-        this.conversationManager = conversationManager_1.ConversationManager.getInstance(context);
+        const conversationManager = conversationManager_1.ConversationManager.getInstance(context);
+        this.exportService = new ConversationExportService_1.ConversationExportService(conversationManager);
+        this.fileDialogService = new FileDialogService_1.FileDialogService();
+        this.selectionService = new ConversationSelectionService_1.ConversationSelectionService(conversationManager);
     }
     register() {
         return [
@@ -56,23 +63,16 @@ class ConversationExportCommand {
     }
     async exportConversation(conversationId) {
         try {
-            // If no conversation ID is provided, let the user select one
             if (!conversationId) {
-                conversationId = await this.selectConversation();
-                if (!conversationId) {
-                    return; // User cancelled
-                }
+                conversationId = await this.selectionService.selectConversation('Select a conversation to export');
+                if (!conversationId)
+                    return;
             }
-            // Get save location from user
-            const filepath = await this.getSaveFilePath('conversation.json');
-            if (!filepath) {
-                return; // User cancelled
-            }
-            // Export the conversation
-            const success = await this.conversationManager.exportConversation(conversationId, filepath);
-            if (success) {
-                vscode.window.showInformationMessage(`Conversation exported to ${path.basename(filepath)}`);
-            }
+            const filepath = await this.fileDialogService.getSaveFilePath('conversation.json', ['json']);
+            if (!filepath)
+                return;
+            await this.exportService.exportConversation(conversationId, filepath);
+            vscode.window.showInformationMessage(`Conversation exported successfully`);
         }
         catch (error) {
             vscode.window.showErrorMessage(`Export failed: ${error.message}`);
@@ -80,60 +80,15 @@ class ConversationExportCommand {
     }
     async exportAllConversations() {
         try {
-            // Get save location from user
-            const filepath = await this.getSaveFilePath('all_conversations.json');
-            if (!filepath) {
-                return; // User cancelled
-            }
-            // Export all conversations
-            const success = await this.conversationManager.exportAllConversations(filepath);
-            if (success) {
-                vscode.window.showInformationMessage(`All conversations exported to ${path.basename(filepath)}`);
-            }
+            const filepath = await this.fileDialogService.getSaveFilePath('all_conversations.json', ['json']);
+            if (!filepath)
+                return;
+            await this.exportService.exportAllConversations(filepath);
+            vscode.window.showInformationMessage(`All conversations exported successfully`);
         }
         catch (error) {
             vscode.window.showErrorMessage(`Export failed: ${error.message}`);
         }
-    }
-    async selectConversation() {
-        // Get all conversations
-        const conversations = this.conversationManager.getAllConversations();
-        if (conversations.length === 0) {
-            vscode.window.showInformationMessage('No conversations to export');
-            return undefined;
-        }
-        // Create quick pick items
-        const items = conversations.map(conv => ({
-            label: conv.title,
-            description: `${conv.messages.length} messages · ${new Date(conv.updatedAt).toLocaleString()}`,
-            conversationId: conv.id
-        }));
-        // Show quick pick
-        const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Select a conversation to export',
-            matchOnDescription: true
-        });
-        return selected?.conversationId;
-    }
-    async getSaveFilePath(defaultName) {
-        const options = {
-            defaultUri: vscode.Uri.file(path.join(this.getDefaultSaveLocation(), defaultName)),
-            filters: {
-                'JSON Files': ['json'],
-                'All Files': ['*']
-            },
-            saveLabel: 'Export'
-        };
-        const uri = await vscode.window.showSaveDialog(options);
-        return uri?.fsPath;
-    }
-    getDefaultSaveLocation() {
-        // Try to get the first workspace folder, fall back to home directory
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-            return workspaceFolders[0].uri.fsPath;
-        }
-        return process.env.HOME || process.env.USERPROFILE || '';
     }
 }
 exports.ConversationExportCommand = ConversationExportCommand;

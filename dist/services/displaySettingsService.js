@@ -36,66 +36,78 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisplaySettingsService = void 0;
 const vscode = __importStar(require("vscode"));
 class DisplaySettingsService {
-    static instance;
+    themeManager;
+    context;
     _onSettingsChanged = new vscode.EventEmitter();
     onSettingsChanged = this._onSettingsChanged.event;
-    constructor() {
+    constructor(themeManager, context) {
+        this.themeManager = themeManager;
+        this.context = context;
         // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('copilot-ppa.display')) {
                 this._onSettingsChanged.fire(this.getSettings());
             }
         });
-    }
-    static getInstance() {
-        if (!DisplaySettingsService.instance) {
-            DisplaySettingsService.instance = new DisplaySettingsService();
-        }
-        return DisplaySettingsService.instance;
+        // Listen for theme changes
+        this.themeManager.onThemeChanged(() => {
+            this._onSettingsChanged.fire(this.getSettings());
+        });
     }
     getSettings() {
-        const config = vscode.workspace.getConfiguration('copilot-ppa');
-        const displayConfig = config.get('display') || {};
+        const config = vscode.workspace.getConfiguration('copilot-ppa.display');
+        const theme = this.themeManager.getCurrentTheme();
         return {
-            fontSize: displayConfig.fontSize || 14,
-            messageSpacing: displayConfig.messageSpacing || 12,
-            codeBlockTheme: displayConfig.codeBlockTheme || 'default',
-            userMessageColor: displayConfig.userMessageColor || '#569cd6',
-            agentMessageColor: displayConfig.agentMessageColor || '#4ec9b0',
-            timestampDisplay: displayConfig.timestampDisplay !== false,
-            compactMode: !!displayConfig.compactMode
+            fontSize: config.get('fontSize', 14),
+            fontFamily: config.get('fontFamily', 'var(--vscode-editor-font-family)'),
+            lineHeight: config.get('lineHeight', 1.5),
+            maxWidth: config.get('maxWidth', '800px'),
+            padding: config.get('padding', '1rem'),
+            theme: theme.type,
+            colors: {
+                background: theme.components.background,
+                foreground: theme.components.foreground,
+                primary: theme.components.primary,
+                secondary: theme.components.secondary,
+                accent: theme.components.accent,
+                error: theme.components.error
+            }
         };
     }
     async updateSetting(setting, value) {
-        const config = vscode.workspace.getConfiguration('copilot-ppa');
-        const displayConfig = config.get('display') || {};
-        displayConfig[setting] = value;
-        await config.update('display', displayConfig, vscode.ConfigurationTarget.Global);
+        const config = vscode.workspace.getConfiguration('copilot-ppa.display');
+        await config.update(setting, value, vscode.ConfigurationTarget.Global);
         this._onSettingsChanged.fire(this.getSettings());
     }
     applySettingsToElement(element) {
         const settings = this.getSettings();
-        // Apply font size to the element
-        element.style.fontSize = `${settings.fontSize}px`;
-        // Apply compact mode if enabled
-        if (settings.compactMode) {
-            element.classList.add('compact-mode');
-        }
-        else {
-            element.classList.remove('compact-mode');
-        }
+        element.style.setProperty('--font-size', `${settings.fontSize}px`);
+        element.style.setProperty('--font-family', settings.fontFamily);
+        element.style.setProperty('--line-height', settings.lineHeight.toString());
+        element.style.setProperty('--max-width', settings.maxWidth);
+        element.style.setProperty('--padding', settings.padding);
+        Object.entries(settings.colors).forEach(([key, value]) => {
+            element.style.setProperty(`--color-${key}`, value);
+        });
     }
     getCssVariables() {
         const settings = this.getSettings();
-        return `
+        let css = `
             :root {
-                --agent-font-size: ${settings.fontSize}px;
-                --agent-message-spacing: ${settings.messageSpacing}px;
-                --agent-user-message-color: ${settings.userMessageColor};
-                --agent-assistant-message-color: ${settings.agentMessageColor};
-                --agent-code-theme: ${settings.codeBlockTheme};
-            }
+                --font-size: ${settings.fontSize}px;
+                --font-family: ${settings.fontFamily};
+                --line-height: ${settings.lineHeight};
+                --max-width: ${settings.maxWidth};
+                --padding: ${settings.padding};
         `;
+        Object.entries(settings.colors).forEach(([key, value]) => {
+            css += `\n                --color-${key}: ${value};`;
+        });
+        css += '\n            }';
+        return css;
+    }
+    dispose() {
+        this._onSettingsChanged.dispose();
     }
 }
 exports.DisplaySettingsService = DisplaySettingsService;

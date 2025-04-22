@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import { Error } from './errors';
-import { LLMProvider } from '../../llm/llm-provider';
 
 /**
  * Represents the current state of an LLM connection
@@ -232,28 +231,188 @@ export interface ProviderHealth {
 
 export interface LLMProvider extends EventEmitter {
     id: string;
-    initialize(config: ProviderConfig): Promise<void>;
-    dispose(): Promise<void>;
-    ping(): Promise<boolean>;
+    name: string;
     getCapabilities(): Promise<ProviderCapabilities>;
+    isAvailable(): Promise<boolean>;
+    connect(): Promise<void>;
+    disconnect(): Promise<void>;
+    getStatus(): ProviderStatus;
+    getAvailableModels(): Promise<LLMModelInfo[]>;
+    getModelInfo(modelId: string): Promise<LLMModelInfo>;
+    generateCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: LLMRequestOptions
+    ): Promise<LLMResponse>;
+    generateChatCompletion(
+        model: string,
+        messages: LLMMessage[],
+        options?: LLMRequestOptions
+    ): Promise<LLMResponse>;
+    streamCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: LLMRequestOptions,
+        callback?: (event: LLMStreamEvent) => void
+    ): Promise<void>;
+    streamChatCompletion(
+        model: string,
+        messages: LLMMessage[],
+        options?: LLMRequestOptions,
+        callback?: (event: LLMStreamEvent) => void
+    ): Promise<void>;
+    healthCheck(): Promise<HealthCheckResult>;
+    dispose(): Promise<void>;
 }
 
-export interface ProviderInfo {
+export interface ProviderConfig {
+    apiEndpoint: string;
+    connection?: {
+        timeout: number;
+        retries?: number;
+        poolSize?: number;
+    };
+    model?: {
+        name: string;
+        contextLength?: number;
+    };
+    requestDefaults?: {
+        temperature?: number;
+        maxTokens?: number;
+        topP?: number;
+        frequencyPenalty?: number;
+        presencePenalty?: number;
+        stop?: string[];
+    };
+    healthCheck?: {
+        interval: number;
+        timeout: number;
+        healthyThreshold?: number;
+        unhealthyThreshold?: number;
+    };
+    auth?: {
+        type: 'none' | 'basic' | 'bearer' | 'api-key';
+        token?: string;
+        username?: string;
+        password?: string;
+        apiKey?: string;
+    };
+}
+
+export interface ProviderCapabilities {
+    supportsStreaming: boolean;
+    supportsCancellation: boolean;
+    supportsModelSwitch: boolean;
+    maxContextLength: number;
+    supportedModels: string[];
+    supportedFeatures?: string[];
+}
+
+export interface ProviderStatus {
+    isConnected: boolean;
+    isAvailable: boolean;
+    state: ProviderState;
+    error?: string;
+    lastError?: Error;
+    metadata?: Record<string, unknown>;
+}
+
+export interface ProviderMetrics {
+    requestCount: number;
+    successCount: number;
+    errorCount: number;
+    tokenUsage: number;
+    averageResponseTime: number;
+    requestTimes: Array<{
+        timestamp: number;
+        duration: number;
+    }>;
+    lastUpdated: number;
+    lastError?: Error;
+}
+
+export interface LLMModelInfo {
     id: string;
     name: string;
-    version: string;
-    capabilities: ProviderCapabilities;
+    provider: string;
+    contextLength: number;
+    parameters?: Record<string, unknown>;
+    version?: string;
+    capabilities?: string[];
+}
+
+export interface LLMMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
+export interface LLMResponse {
+    content: string;
+    usage?: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+    };
+}
+
+export interface LLMStreamEvent {
+    content: string;
+    isComplete: boolean;
+}
+
+export interface LLMRequestOptions {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stop?: string[];
+}
+
+export interface HealthCheckResult {
+    isHealthy: boolean;
+    latency: number;
+    timestamp: number;
+    details?: Record<string, unknown>;
+    error?: Error;
+}
+
+export enum ProviderState {
+    Unknown = 'unknown',
+    Registered = 'registered',
+    Initializing = 'initializing',
+    Active = 'active',
+    Error = 'error',
+    Deactivating = 'deactivating',
+    Inactive = 'inactive',
+    Unregistered = 'unregistered'
+}
+
+export enum ProviderConnectionState {
+    Available = 'available',
+    Active = 'active',
+    Error = 'error'
 }
 
 export enum ProviderEvent {
-    Registered = 'registered',
-    Unregistered = 'unregistered',
-    Initialized = 'initialized',
-    Deactivated = 'deactivated',
-    StateChanged = 'stateChanged',
-    HealthChanged = 'healthChanged',
-    MetricsUpdated = 'metricsUpdated',
-    ConnectionStateChanged = 'connectionStateChanged'
+    Registered = 'provider:registered',
+    Initialized = 'provider:initialized',
+    StateChanged = 'provider:stateChanged',
+    ConnectionStateChanged = 'provider:connectionStateChanged',
+    HealthStatusUpdated = 'provider:healthStatusUpdated',
+    MetricsUpdated = 'provider:metricsUpdated',
+    Deactivated = 'provider:deactivated',
+    Unregistered = 'provider:unregistered'
+}
+
+export interface ProviderHealthStatus {
+    isHealthy: boolean;
+    lastCheck: number;
+    consecutiveFailures?: number;
+    consecutiveSuccesses?: number;
+    details?: Record<string, unknown>;
 }
 
 export class ProviderError extends Error {
@@ -265,59 +424,4 @@ export class ProviderError extends Error {
         super(message);
         this.name = 'ProviderError';
     }
-}
-
-export enum ProviderState {
-    Unknown = 'unknown',
-    Registered = 'registered',
-    Unregistered = 'unregistered',
-    Initializing = 'initializing',
-    Active = 'active',
-    Inactive = 'inactive',
-    Deactivating = 'deactivating',
-    Error = 'error'
-}
-
-export interface ProviderCapabilities {
-    maxTokens: number;
-    supportedModels: string[];
-    supportsStreaming: boolean;
-    supportsCompletion: boolean;
-    supportsChatCompletion: boolean;
-}
-
-export interface ProviderMetrics {
-    requestCount: number;
-    successCount: number;
-    errorCount: number;
-    tokenUsage: number;
-    averageResponseTime: number;
-    lastError: Error | null;
-}
-
-export interface ProviderConfig {
-    apiKey?: string;
-    baseUrl?: string;
-    modelName?: string;
-    maxTokens?: number;
-    temperature?: number;
-    timeout?: number;
-    retryOptions?: {
-        maxRetries: number;
-        delayMs: number;
-    };
-}
-
-export interface ProviderHealthStatus {
-    status: 'healthy' | 'unhealthy' | 'error' | 'unknown';
-    lastChecked: number;
-    errorCount: number;
-    lastError: Error | null;
-}
-
-export enum ProviderConnectionState {
-    Connected = 'connected',
-    Disconnected = 'disconnected',
-    Connecting = 'connecting',
-    Error = 'error'
 }

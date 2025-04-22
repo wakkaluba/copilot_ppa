@@ -1,124 +1,77 @@
 import { EventEmitter } from 'events';
-import {
-    ProviderMetrics,
-    ProviderEvent,
-    ProviderError
-} from '../types';
+import { ProviderMetrics } from '../types';
 
 export class LLMProviderMetricsTracker extends EventEmitter {
-    private readonly metrics = new Map<string, ProviderMetrics>();
-    private readonly lastResponseTimes = new Map<string, number[]>();
-    private readonly maxResponseTimeHistory = 100;
-
-    /**
-     * Initialize metrics tracking for a provider
-     */
-    public async initializeProvider(providerId: string): Promise<void> {
-        if (this.metrics.has(providerId)) {
-            return;
-        }
-
+    private metrics = new Map<string, ProviderMetrics>();
+    private readonly metricsWindow = 1000 * 60 * 60; // 1 hour window
+    
+    async initializeProvider(providerId: string): Promise<void> {
         this.metrics.set(providerId, {
             requestCount: 0,
             successCount: 0,
             errorCount: 0,
             tokenUsage: 0,
             averageResponseTime: 0,
-            lastError: null
+            requestTimes: [],
+            lastUpdated: Date.now()
         });
-        
-        this.lastResponseTimes.set(providerId, []);
     }
-
-    /**
-     * Record a successful request
-     */
-    public recordSuccess(
-        providerId: string,
-        responseTimeMs: number,
-        tokenCount: number
-    ): void {
-        const metrics = this.getMetrics(providerId);
+    
+    recordSuccess(providerId: string, responseTime: number, tokens: number): void {
+        const metrics = this.metrics.get(providerId);
         if (!metrics) return;
-
+        
+        const now = Date.now();
+        
+        // Update request times, keeping only those within the window
+        metrics.requestTimes = [
+            ...metrics.requestTimes.filter(t => now - t.timestamp <= this.metricsWindow),
+            { timestamp: now, duration: responseTime }
+        ];
+        
+        // Calculate new average response time
+        metrics.averageResponseTime = metrics.requestTimes.reduce(
+            (sum, time) => sum + time.duration, 
+            0
+        ) / metrics.requestTimes.length;
+        
         metrics.requestCount++;
         metrics.successCount++;
-        metrics.tokenUsage += tokenCount;
-
-        this.updateResponseTime(providerId, responseTimeMs);
-        this.emitMetricsUpdate(providerId);
+        metrics.tokenUsage += tokens;
+        metrics.lastUpdated = now;
+        
+        this.emit('metricsUpdated', {
+            providerId,
+            metrics: { ...metrics }
+        });
     }
-
-    /**
-     * Record a failed request
-     */
-    public recordError(
-        providerId: string,
-        error: Error,
-        responseTimeMs?: number
-    ): void {
-        const metrics = this.getMetrics(providerId);
+    
+    recordError(providerId: string, error: Error): void {
+        const metrics = this.metrics.get(providerId);
         if (!metrics) return;
-
+        
         metrics.requestCount++;
         metrics.errorCount++;
+        metrics.lastUpdated = Date.now();
         metrics.lastError = error;
-
-        if (responseTimeMs !== undefined) {
-            this.updateResponseTime(providerId, responseTimeMs);
-        }
-
-        this.emitMetricsUpdate(providerId);
+        
+        this.emit('metricsUpdated', {
+            providerId,
+            metrics: { ...metrics }
+        });
     }
-
-    /**
-     * Get current metrics for a provider
-     */
-    public getMetrics(providerId: string): ProviderMetrics | undefined {
-        return this.metrics.get(providerId);
-    }
-
-    /**
-     * Reset metrics for a provider
-     */
-    public resetMetrics(providerId: string): void {
-        this.initializeProvider(providerId);
-    }
-
-    /**
-     * Update response time tracking
-     */
-    private updateResponseTime(providerId: string, responseTimeMs: number): void {
-        const times = this.lastResponseTimes.get(providerId);
-        if (!times) return;
-
-        times.push(responseTimeMs);
-        if (times.length > this.maxResponseTimeHistory) {
-            times.shift();
-        }
-
+    
+    getMetrics(providerId: string): ProviderMetrics | undefined {
         const metrics = this.metrics.get(providerId);
-        if (metrics) {
-            metrics.averageResponseTime = times.reduce((a, b) => a + b, 0) / times.length;
-        }
+        return metrics ? { ...metrics } : undefined;
     }
-
-    /**
-     * Emit metrics update event
-     */
-    private emitMetricsUpdate(providerId: string): void {
-        const metrics = this.metrics.get(providerId);
-        if (metrics) {
-            this.emit(ProviderEvent.MetricsUpdated, {
-                providerId,
-                metrics: { ...metrics }
-            });
-        }
+    
+    resetMetrics(providerId: string): void {
+        this.metrics.delete(providerId);
     }
-
-    public dispose(): void {
+    
+    dispose(): void {
         this.metrics.clear();
-        this.lastResponseTimes.clear();
         this.removeAllListeners();
     }
 }

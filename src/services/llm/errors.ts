@@ -93,3 +93,132 @@ export class RateLimitError extends LLMConnectionError {
         this.name = 'RateLimitError';
     }
 }
+
+export class Error {
+    constructor(message: string) {
+        this.message = message;
+        this.name = this.constructor.name;
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        }
+    }
+
+    public readonly message: string;
+    public readonly name: string;
+    public readonly stack?: string;
+}
+
+export class ProviderError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ProviderError';
+    }
+}
+
+export class ConnectionError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly code: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ConnectionError';
+    }
+}
+
+export class ModelError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly modelId: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ModelError';
+    }
+}
+
+export class ValidationError extends Error {
+    constructor(
+        message: string,
+        public readonly errors: string[],
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ValidationError';
+    }
+}
+
+export class ConfigurationError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly propertyPath: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ConfigurationError';
+    }
+}
+
+export class HealthCheckError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly checkResult: {
+            isHealthy: boolean;
+            latency: number;
+            timestamp: number;
+            error?: Error;
+        },
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'HealthCheckError';
+    }
+}
+
+export class RequestError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly requestId: string,
+        public readonly statusCode?: number,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'RequestError';
+    }
+}
+
+export class TokenError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly requestId: string,
+        public readonly tokenCount: number,
+        public readonly maxTokens: number,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'TokenError';
+    }
+}
+
+export class TimeoutError extends Error {
+    constructor(
+        message: string,
+        public readonly providerId: string,
+        public readonly operationType: string,
+        public readonly timeoutMs: number,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'TimeoutError';
+    }
+}

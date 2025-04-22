@@ -2,6 +2,9 @@
 ## general targets
 @workspace
 #codebase 
+Don't create too large files.
+ - rather create a new file for each new category/group
+ - A "killer suit/script" is not wanted.
 
 ## zzzbuild
 zzzbuild/ - folder for local build items like:

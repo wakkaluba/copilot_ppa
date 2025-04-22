@@ -33,91 +33,98 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KeybindingManager = void 0;
+exports.KeybindingManager = exports.KeybindingCategory = void 0;
 exports.initializeKeybindingManager = initializeKeybindingManager;
 exports.getKeybindingManager = getKeybindingManager;
 const vscode = __importStar(require("vscode"));
+/**
+ * Keybinding category for grouping shortcuts
+ */
+var KeybindingCategory;
+(function (KeybindingCategory) {
+    KeybindingCategory["Chat"] = "Chat Actions";
+    KeybindingCategory["Code"] = "Code Actions";
+    KeybindingCategory["Navigation"] = "Navigation";
+    KeybindingCategory["Other"] = "Other";
+})(KeybindingCategory || (exports.KeybindingCategory = KeybindingCategory = {}));
 /**
  * Manager for custom keybindings
  */
 class KeybindingManager {
     context;
     keybindings = new Map();
+    STORAGE_KEY = 'copilotPPA.customKeybindings';
     constructor(context) {
         this.context = context;
-        // Register default keybindings
         this.registerDefaultKeybindings();
-        // Load any custom keybindings
         this.loadCustomKeybindings();
     }
     /**
-     * Get all keybindings
+     * Get all registered keybindings
      */
     getKeybindings() {
         return Array.from(this.keybindings.values());
     }
     /**
-     * Get a keybinding by ID
+     * Get a specific keybinding by ID
      */
     getKeybinding(id) {
         return this.keybindings.get(id);
     }
     /**
-     * Update a keybinding
+     * Update a keybinding's key combination
      */
     updateKeybinding(id, keyShortcut) {
         const keybinding = this.keybindings.get(id);
         if (!keybinding) {
             return false;
         }
-        // Update the key
         keybinding.key = keyShortcut;
-        // Save changes
+        keybinding.isDefault = false;
         this.saveCustomKeybindings();
-        // Notify VS Code of change if it involves a registered command
-        if (keybinding.command.startsWith('copilotPPA.')) {
-            vscode.commands.executeCommand('setContext', `copilotPPA.keybinding.${id}`, keyShortcut);
+        if (this.isCustomCommand(keybinding.command)) {
+            this.updateVSCodeContext(id, keyShortcut);
         }
         return true;
     }
     /**
-     * Reset a keybinding to its default
+     * Reset a keybinding to its default value
      */
     resetKeybinding(id) {
         const keybinding = this.keybindings.get(id);
         if (!keybinding || keybinding.isDefault) {
             return false;
         }
-        // Find the default keybinding
         const defaultKeybinding = this.getDefaultKeybinding(id);
         if (!defaultKeybinding) {
             return false;
         }
-        // Reset to default
         keybinding.key = defaultKeybinding.key;
         keybinding.isDefault = true;
-        // Save changes
         this.saveCustomKeybindings();
-        // Notify VS Code of change
-        if (keybinding.command.startsWith('copilotPPA.')) {
-            vscode.commands.executeCommand('setContext', `copilotPPA.keybinding.${id}`, keybinding.key);
+        if (this.isCustomCommand(keybinding.command)) {
+            this.updateVSCodeContext(id, keybinding.key);
         }
         return true;
     }
     /**
-     * Reset all keybindings to defaults
+     * Reset all keybindings to their defaults
      */
     resetAllKeybindings() {
-        // Re-register default keybindings
         this.registerDefaultKeybindings();
-        // Clear any custom overrides
-        this.context.globalState.update('copilotPPA.customKeybindings', undefined);
-        // Notify of changes
+        this.context.globalState.update(this.STORAGE_KEY, undefined);
         vscode.commands.executeCommand('copilotPPA.keybindingsChanged');
     }
     /**
-     * Register default keybindings
+     * Get keybindings in VS Code's package.json format
      */
+    getVSCodeKeybindings() {
+        return this.getKeybindings().map(kb => ({
+            key: kb.key,
+            command: kb.command,
+            ...(kb.when ? { when: kb.when } : {})
+        }));
+    }
     registerDefaultKeybindings() {
         const defaults = [
             // Chat actions
@@ -127,6 +134,7 @@ class KeybindingManager {
                 command: 'copilotPPA.sendMessage',
                 key: 'Enter',
                 when: 'copilotPPA.chatInputFocused && !event.shiftKey',
+                category: KeybindingCategory.Chat,
                 isDefault: true
             },
             {
@@ -135,6 +143,7 @@ class KeybindingManager {
                 command: 'copilotPPA.newLine',
                 key: 'Shift+Enter',
                 when: 'copilotPPA.chatInputFocused',
+                category: KeybindingCategory.Chat,
                 isDefault: true
             },
             {
@@ -143,6 +152,7 @@ class KeybindingManager {
                 command: 'copilotPPA.clearChat',
                 key: 'Ctrl+L',
                 when: 'copilotPPA.chatViewFocused',
+                category: KeybindingCategory.Chat,
                 isDefault: true
             },
             // Code actions
@@ -152,6 +162,7 @@ class KeybindingManager {
                 command: 'copilotPPA.explainCode',
                 key: 'Ctrl+Shift+E',
                 when: 'editorHasSelection',
+                category: KeybindingCategory.Code,
                 isDefault: true
             },
             {
@@ -160,6 +171,7 @@ class KeybindingManager {
                 command: 'copilotPPA.refactorCode',
                 key: 'Ctrl+Shift+R',
                 when: 'editorHasSelection',
+                category: KeybindingCategory.Code,
                 isDefault: true
             },
             {
@@ -168,14 +180,16 @@ class KeybindingManager {
                 command: 'copilotPPA.documentCode',
                 key: 'Ctrl+Shift+D',
                 when: 'editorHasSelection',
+                category: KeybindingCategory.Code,
                 isDefault: true
             },
-            // Other actions
+            // Navigation actions
             {
                 id: 'focusChat',
                 description: 'Focus the chat input',
                 command: 'copilotPPA.focusChat',
                 key: 'Ctrl+Shift+Space',
+                category: KeybindingCategory.Navigation,
                 isDefault: true
             },
             {
@@ -183,90 +197,21 @@ class KeybindingManager {
                 description: 'Toggle the agent sidebar',
                 command: 'copilotPPA.toggleSidebar',
                 key: 'Ctrl+Shift+A',
+                category: KeybindingCategory.Navigation,
                 isDefault: true
             }
         ];
-        // Register each default keybinding
+        this.keybindings.clear();
         for (const keybinding of defaults) {
             this.keybindings.set(keybinding.id, keybinding);
         }
     }
-    /**
-     * Get the default keybinding for an ID
-     */
     getDefaultKeybinding(id) {
-        const defaults = [
-            {
-                id: 'sendMessage',
-                description: 'Send a message to the agent',
-                command: 'copilotPPA.sendMessage',
-                key: 'Enter',
-                when: 'copilotPPA.chatInputFocused && !event.shiftKey',
-                isDefault: true
-            },
-            {
-                id: 'newLine',
-                description: 'Insert a new line in the chat input',
-                command: 'copilotPPA.newLine',
-                key: 'Shift+Enter',
-                when: 'copilotPPA.chatInputFocused',
-                isDefault: true
-            },
-            {
-                id: 'clearChat',
-                description: 'Clear the chat',
-                command: 'copilotPPA.clearChat',
-                key: 'Ctrl+L',
-                when: 'copilotPPA.chatViewFocused',
-                isDefault: true
-            },
-            {
-                id: 'explainCode',
-                description: 'Explain selected code',
-                command: 'copilotPPA.explainCode',
-                key: 'Ctrl+Shift+E',
-                when: 'editorHasSelection',
-                isDefault: true
-            },
-            {
-                id: 'refactorCode',
-                description: 'Refactor selected code',
-                command: 'copilotPPA.refactorCode',
-                key: 'Ctrl+Shift+R',
-                when: 'editorHasSelection',
-                isDefault: true
-            },
-            {
-                id: 'documentCode',
-                description: 'Document selected code',
-                command: 'copilotPPA.documentCode',
-                key: 'Ctrl+Shift+D',
-                when: 'editorHasSelection',
-                isDefault: true
-            },
-            {
-                id: 'focusChat',
-                description: 'Focus the chat input',
-                command: 'copilotPPA.focusChat',
-                key: 'Ctrl+Shift+Space',
-                isDefault: true
-            },
-            {
-                id: 'toggleSidebar',
-                description: 'Toggle the agent sidebar',
-                command: 'copilotPPA.toggleSidebar',
-                key: 'Ctrl+Shift+A',
-                isDefault: true
-            }
-        ];
+        const defaults = Array.from(this.keybindings.values()).filter(kb => kb.isDefault);
         return defaults.find(kb => kb.id === id);
     }
-    /**
-     * Load custom keybindings from storage
-     */
     loadCustomKeybindings() {
-        const customKeybindings = this.context.globalState.get('copilotPPA.customKeybindings', {});
-        // Apply custom keybindings over defaults
+        const customKeybindings = this.context.globalState.get(this.STORAGE_KEY, {});
         for (const [id, key] of Object.entries(customKeybindings)) {
             const keybinding = this.keybindings.get(id);
             if (keybinding) {
@@ -275,28 +220,20 @@ class KeybindingManager {
             }
         }
     }
-    /**
-     * Save custom keybindings to storage
-     */
     saveCustomKeybindings() {
         const customKeybindings = {};
-        // Collect non-default keybindings
         for (const [id, keybinding] of this.keybindings.entries()) {
             if (!keybinding.isDefault) {
                 customKeybindings[id] = keybinding.key;
             }
         }
-        this.context.globalState.update('copilotPPA.customKeybindings', customKeybindings);
+        this.context.globalState.update(this.STORAGE_KEY, customKeybindings);
     }
-    /**
-     * Get keybindings in VS Code format for package.json
-     */
-    getVSCodeKeybindings() {
-        return this.getKeybindings().map(kb => ({
-            key: kb.key,
-            command: kb.command,
-            when: kb.when
-        }));
+    isCustomCommand(command) {
+        return command.startsWith('copilotPPA.');
+    }
+    updateVSCodeContext(id, key) {
+        vscode.commands.executeCommand('setContext', `copilotPPA.keybinding.${id}`, key);
     }
 }
 exports.KeybindingManager = KeybindingManager;

@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentSidebarProvider = void 0;
 const vscode = __importStar(require("vscode"));
-const connectionStatusService_1 = require("../status/connectionStatusService");
 /**
  * Provides the sidebar view for the Local LLM Agent
  */

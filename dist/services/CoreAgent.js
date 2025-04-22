@@ -69,6 +69,24 @@ class CoreAgent {
         // Process with LLM and return suggestions
         return prompt; // Placeholder
     }
+    async continueCodingIteration() {
+        try {
+            this.status = 'processing';
+            // Get the current conversation context
+            const context = await this.contextManager.buildContext('current', 'continue iteration');
+            // Generate continuation prompt
+            const prompt = this.promptManager.generatePrompt('continue-iteration', {
+                context: context.join('\n')
+            });
+            // Process the response
+            await this.handleResponse(prompt);
+            this.status = 'idle';
+        }
+        catch (error) {
+            this.status = 'error';
+            throw error;
+        }
+    }
     getStatus() {
         return this.status;
     }

@@ -1,24 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextManager = void 0;
+/**
+ * Manages conversation context and relevant file tracking
+ */
 class ContextManager {
-    static instance;
+    context;
+    promptManager;
     contexts = new Map();
     contextWindows = new Map();
     userPreferences;
     maxWindowSize = 10;
     relevanceThreshold = 0.5;
     storageKey = 'contextManager.preferences';
-    context;
-    constructor(context) {
+    constructor(context, promptManager) {
         this.context = context;
+        this.promptManager = promptManager;
         this.userPreferences = this.loadPreferences();
-    }
-    static getInstance(context) {
-        if (!ContextManager.instance && context) {
-            ContextManager.instance = new ContextManager(context);
-        }
-        return ContextManager.instance;
     }
     loadPreferences() {
         const stored = this.context.globalState.get(this.storageKey);
@@ -34,7 +32,7 @@ class ContextManager {
         const context = {
             conversationId,
             relevantFiles: [],
-            systemPrompt: this.getDefaultSystemPrompt()
+            systemPrompt: this.promptManager.getDefaultSystemPrompt()
         };
         this.contexts.set(conversationId, context);
         return context;
@@ -49,6 +47,31 @@ class ContextManager {
     updateContext(conversationId, updates) {
         const context = this.getContext(conversationId);
         Object.assign(context, updates);
+        this.contexts.set(conversationId, context);
+    }
+    async buildContext(input) {
+        const conversationId = crypto.randomUUID();
+        const context = this.createContext(conversationId);
+        // Find relevant files based on input
+        const relevantFiles = await this.findRelevantFiles(input);
+        context.relevantFiles = relevantFiles;
+        // Update system prompt based on context
+        context.systemPrompt = await this.buildContextualSystemPrompt(input, relevantFiles);
+        return context;
+    }
+    async findRelevantFiles(input) {
+        // Implementation details...
+        return [];
+    }
+    async buildContextualSystemPrompt(input, relevantFiles) {
+        return this.promptManager.buildContextualPrompt(input, relevantFiles);
+    }
+    updateUserPreferences(preferences) {
+        this.userPreferences = {
+            ...this.userPreferences,
+            ...preferences
+        };
+        this.savePreferences().catch(console.error);
     }
     async updateContextWindow(conversationId, message, relevance) {
         const window = this.contextWindows.get(conversationId) || {
@@ -130,62 +153,9 @@ class ContextManager {
             }
         }
     }
-    getDefaultSystemPrompt() {
-        return `You are a helpful VS Code extension assistant.
-You can help with coding tasks, explain code, and suggest improvements.
-You have access to the current file and workspace context.
-Always provide clear and concise responses.`;
-    }
-    async buildPrompt(conversationId, userInput) {
-        const context = this.getContext(conversationId);
-        let prompt = context.systemPrompt + '\n\n';
-        if (context.activeFile) {
-            prompt += `Current file: ${context.activeFile}\n`;
-        }
-        if (context.selectedCode) {
-            prompt += `Selected code:\n\`\`\`${context.codeLanguage || ''}\n${context.selectedCode}\n\`\`\`\n`;
-        }
-        // Add relevant context from window
-        const relevantContext = await this.getRelevantContext(conversationId, userInput);
-        for (const ctx of relevantContext) {
-            prompt += ctx + '\n';
-        }
-        // Add language and framework preferences if set
-        if (this.userPreferences.preferredLanguage) {
-            prompt += `Preferred programming language: ${this.userPreferences.preferredLanguage}\n`;
-        }
-        if (this.userPreferences.preferredFramework) {
-            prompt += `Preferred framework: ${this.userPreferences.preferredFramework}\n`;
-        }
-        prompt += `User: ${userInput}\nAssistant: `;
-        return prompt;
-    }
-    async getRelevantContext(conversationId, currentPrompt) {
-        const window = this.contextWindows.get(conversationId);
-        if (!window || window.relevance < this.relevanceThreshold) {
-            return [];
-        }
-        return this.filterByRelevance(window.messages, currentPrompt);
-    }
-    async filterByRelevance(messages, prompt) {
-        // Simple relevance filtering based on time for now
-        // TODO: Implement semantic similarity checking
-        return messages.slice(-5);
-    }
-    setMaxWindowSize(size) {
-        this.maxWindowSize = size;
-    }
-    setRelevanceThreshold(threshold) {
-        this.relevanceThreshold = threshold;
-    }
-    async clearAllContextData() {
+    dispose() {
         this.contexts.clear();
         this.contextWindows.clear();
-        this.userPreferences = {
-            languageUsage: new Map(),
-            recentFiles: []
-        };
-        await this.savePreferences();
     }
 }
 exports.ContextManager = ContextManager;

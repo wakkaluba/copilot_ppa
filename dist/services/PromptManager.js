@@ -2,94 +2,80 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptManager = void 0;
 class PromptManager {
-    static instance;
-    templates;
-    constructor() {
-        this.templates = new Map();
+    context;
+    templates = new Map();
+    defaultSystemPrompt = 'You are a helpful VS Code extension assistant that excels at understanding and working with code.';
+    constructor(context) {
+        this.context = context;
         this.initializeDefaultTemplates();
     }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new PromptManager();
-        }
-        return this.instance;
-    }
     initializeDefaultTemplates() {
-        this.addTemplate({
-            name: 'explain-code',
-            template: `Analyze and explain the following code:
-{{code}}
-
-Focus on:
-1. Main purpose
-2. Key functionality
-3. Important patterns or techniques used
-4. Potential improvements`,
-            description: 'Explains a code section in detail',
-            parameters: ['code']
+        this.templates.set('default', {
+            id: 'default',
+            name: 'Default System Prompt',
+            template: this.defaultSystemPrompt,
+            description: 'Basic system prompt for general assistance'
         });
-        this.addTemplate({
-            name: 'suggest-improvements',
-            template: `Review this code and suggest improvements:
-{{code}}
-
-Consider:
-- Code quality
-- Performance
-- Security
-- Best practices
-- Edge cases`,
-            description: 'Suggests code improvements',
-            parameters: ['code']
+        this.templates.set('code_review', {
+            id: 'code_review',
+            name: 'Code Review',
+            template: 'You are a senior software engineer conducting a thorough code review. Focus on:{context}',
+            description: 'Template for code review prompts'
         });
-        this.addTemplate({
-            name: 'implement-feature',
-            template: `Create an implementation for the following feature:
-Requirements:
-{{requirements}}
-
-Context:
-{{context}}
-
-Constraints:
-{{constraints}}`,
-            description: 'Generates code for a new feature',
-            parameters: ['requirements', 'context', 'constraints']
-        });
-        this.addTemplate({
-            name: 'debug-issue',
-            template: `Help debug this issue:
-Problem description:
-{{problem}}
-
-Code:
-{{code}}
-
-Error message:
-{{error}}`,
-            description: 'Assists with debugging',
-            parameters: ['problem', 'code', 'error']
+        this.templates.set('refactoring', {
+            id: 'refactoring',
+            name: 'Code Refactoring',
+            template: 'You are a software architect helping to refactor code. Consider these aspects:{context}',
+            description: 'Template for code refactoring guidance'
         });
     }
-    addTemplate(template) {
-        this.templates.set(template.name, template);
+    getTemplate(id) {
+        return this.templates.get(id);
     }
-    getTemplate(name) {
-        return this.templates.get(name);
-    }
-    listTemplates() {
+    getAllTemplates() {
         return Array.from(this.templates.values());
     }
-    generatePrompt(templateName, parameters) {
-        const template = this.templates.get(templateName);
-        if (!template) {
-            throw new Error(`Template '${templateName}' not found`);
+    registerTemplate(template) {
+        this.templates.set(template.id, template);
+    }
+    removeTemplate(id) {
+        return this.templates.delete(id);
+    }
+    getDefaultSystemPrompt() {
+        return this.defaultSystemPrompt;
+    }
+    async buildContextualPrompt(input, relevantFiles) {
+        let prompt = this.defaultSystemPrompt;
+        if (relevantFiles.length > 0) {
+            prompt += '\n\nRelevant files for context:';
+            for (const file of relevantFiles) {
+                prompt += `\n- ${file}`;
+            }
         }
-        let prompt = template.template;
-        for (const [key, value] of Object.entries(parameters)) {
-            prompt = prompt.replace(`{{${key}}}`, value);
+        // Add any customization based on input content
+        if (input.toLowerCase().includes('refactor')) {
+            const refactoringTemplate = this.getTemplate('refactoring');
+            if (refactoringTemplate) {
+                prompt += '\n\n' + refactoringTemplate.template.replace('{context}', '');
+            }
+        }
+        else if (input.toLowerCase().includes('review')) {
+            const reviewTemplate = this.getTemplate('code_review');
+            if (reviewTemplate) {
+                prompt += '\n\n' + reviewTemplate.template.replace('{context}', '');
+            }
         }
         return prompt;
+    }
+    customizePrompt(basePrompt, context) {
+        let prompt = basePrompt;
+        for (const [key, value] of Object.entries(context)) {
+            prompt = prompt.replace(`{${key}}`, value);
+        }
+        return prompt;
+    }
+    dispose() {
+        this.templates.clear();
     }
 }
 exports.PromptManager = PromptManager;

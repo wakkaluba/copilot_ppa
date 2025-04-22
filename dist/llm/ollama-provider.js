@@ -6,227 +6,232 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaProvider = void 0;
 const axios_1 = __importDefault(require("axios"));
 const config_1 = require("../config");
+const llm_provider_1 = require("./llm-provider");
 /**
  * Implementation of the LLMProvider interface for Ollama
  */
-class OllamaProvider {
+class OllamaProvider extends llm_provider_1.BaseLLMProvider {
     name = 'Ollama';
-    baseUrl;
+    client;
+    modelDetails = new Map();
     constructor(baseUrl = config_1.Config.ollamaApiUrl) {
-        this.baseUrl = baseUrl;
+        super();
+        this.client = axios_1.default.create({
+            baseURL: baseUrl,
+            timeout: 30000
+        });
     }
-    /**
-     * Check if Ollama is available
-     */
     async isAvailable() {
         try {
-            await axios_1.default.get(`${this.baseUrl}/tags`);
+            await this.client.get('/api/tags');
+            this.updateStatus({ isAvailable: true });
             return true;
         }
         catch (error) {
-            console.error('Ollama not available:', error);
+            this.updateStatus({
+                isAvailable: false,
+                error: 'Failed to connect to Ollama service'
+            });
             return false;
         }
     }
-    /**
-     * Get available models from Ollama
-     */
+    async connect() {
+        const available = await this.isAvailable();
+        if (!available) {
+            throw new llm_provider_1.LLMProviderError('CONNECTION_FAILED', 'Failed to connect to Ollama service');
+        }
+        this.updateStatus({ isConnected: true });
+    }
+    async disconnect() {
+        this.updateStatus({ isConnected: false });
+    }
     async getAvailableModels() {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/tags`);
-            if (response.data && response.data.models) {
-                return response.data.models.map((model) => model.name);
-            }
-            return [];
+            const response = await this.client.get('/api/tags');
+            const models = response.data.models || [];
+            return Promise.all(models.map(async (model) => {
+                const info = await this.getModelInfo(model.name);
+                return info;
+            }));
         }
         catch (error) {
-            console.error('Failed to get Ollama models:', error);
-            return [];
+            return this.handleError(error, 'FETCH_MODELS_FAILED');
         }
     }
-    /**
-     * Generate text completion using Ollama
-     */
+    async getModelInfo(modelId) {
+        try {
+            // Check cache first
+            if (this.modelDetails.has(modelId)) {
+                const cached = this.modelDetails.get(modelId);
+                return this.convertModelInfo(modelId, cached);
+            }
+            const response = await this.client.post('/api/show', { name: modelId });
+            const modelInfo = response.data;
+            // Cache the response
+            this.modelDetails.set(modelId, modelInfo);
+            return this.convertModelInfo(modelId, modelInfo);
+        }
+        catch (error) {
+            return this.handleError(error, 'FETCH_MODEL_INFO_FAILED');
+        }
+    }
     async generateCompletion(model, prompt, systemPrompt, options) {
-        const request = {
-            model,
-            prompt,
-            system: systemPrompt,
-            stream: false,
-            options: {
-                temperature: options?.temperature,
-                num_predict: options?.maxTokens
-            }
-        };
         try {
-            const response = await axios_1.default.post(`${this.baseUrl}/generate`, request);
-            const ollamaResponse = response.data;
-            return {
-                content: ollamaResponse.response,
-                usage: {
-                    promptTokens: ollamaResponse.prompt_eval_duration ? Math.round(ollamaResponse.prompt_eval_duration) : undefined,
-                    completionTokens: ollamaResponse.eval_count,
-                    totalTokens: ollamaResponse.total_duration ? Math.round(ollamaResponse.total_duration) : undefined
+            if (this.offlineMode) {
+                const cached = await this.useCachedResponse(prompt);
+                if (cached)
+                    return { content: cached };
+            }
+            const request = {
+                model,
+                prompt,
+                system: systemPrompt,
+                options: {
+                    temperature: options?.temperature,
+                    num_predict: options?.maxTokens,
+                    top_p: options?.topP,
+                    frequency_penalty: options?.frequencyPenalty,
+                    presence_penalty: options?.presencePenalty,
+                    stop: options?.stop
                 }
             };
+            const response = await this.client.post('/api/generate', request);
+            const result = {
+                content: response.data.response,
+                usage: {
+                    promptTokens: response.data.prompt_eval_count || 0,
+                    completionTokens: response.data.eval_count || 0,
+                    totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
+                }
+            };
+            if (this.offlineMode) {
+                await this.cacheResponse(prompt, result.content);
+            }
+            return result;
         }
         catch (error) {
-            console.error('Ollama completion error:', error);
-            throw new Error(`Failed to generate completion: ${error}`);
+            return this.handleError(error, 'GENERATE_FAILED');
         }
     }
-    /**
-     * Generate chat completion using Ollama
-     */
     async generateChatCompletion(model, messages, options) {
-        // Convert messages to Ollama format
-        const ollamaMessages = messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-        }));
-        const request = {
-            model,
-            messages: ollamaMessages,
-            stream: false,
-            options: {
-                temperature: options?.temperature,
-                num_predict: options?.maxTokens
-            }
-        };
         try {
-            const response = await axios_1.default.post(`${this.baseUrl}/chat`, request);
-            const ollamaResponse = response.data;
+            const request = {
+                model,
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                })),
+                options: {
+                    temperature: options?.temperature,
+                    num_predict: options?.maxTokens,
+                    top_p: options?.topP,
+                    frequency_penalty: options?.frequencyPenalty,
+                    presence_penalty: options?.presencePenalty,
+                    stop: options?.stop
+                }
+            };
+            const response = await this.client.post('/api/chat', request);
             return {
-                content: ollamaResponse.message?.content || ollamaResponse.response,
+                content: response.data.message.content,
                 usage: {
-                    totalTokens: ollamaResponse.total_duration ? Math.round(ollamaResponse.total_duration) : undefined
+                    promptTokens: response.data.prompt_eval_count || 0,
+                    completionTokens: response.data.eval_count || 0,
+                    totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
                 }
             };
         }
         catch (error) {
-            console.error('Ollama chat completion error:', error);
-            throw new Error(`Failed to generate chat completion: ${error}`);
+            return this.handleError(error, 'CHAT_FAILED');
         }
     }
-    /**
-     * Stream a text completion from Ollama
-     */
     async streamCompletion(model, prompt, systemPrompt, options, callback) {
-        const request = {
-            model,
-            prompt,
-            system: systemPrompt,
-            stream: true,
-            options: {
-                temperature: options?.temperature,
-                num_predict: options?.maxTokens
-            }
-        };
         try {
-            const response = await axios_1.default.post(`${this.baseUrl}/generate`, request, {
+            const request = {
+                model,
+                prompt,
+                system: systemPrompt,
+                stream: true,
+                options: {
+                    temperature: options?.temperature,
+                    num_predict: options?.maxTokens,
+                    top_p: options?.topP,
+                    frequency_penalty: options?.frequencyPenalty,
+                    presence_penalty: options?.presencePenalty,
+                    stop: options?.stop
+                }
+            };
+            const response = await this.client.post('/api/generate', request, {
                 responseType: 'stream'
             });
-            const stream = response.data;
-            let buffer = '';
-            stream.on('data', (chunk) => {
-                const chunkStr = chunk.toString();
-                buffer += chunkStr;
-                // Process complete JSON objects
-                let boundary = 0;
-                while (boundary !== -1) {
-                    boundary = buffer.indexOf('\n', boundary);
-                    if (boundary !== -1) {
-                        const jsonStr = buffer.substring(0, boundary).trim();
-                        buffer = buffer.substring(boundary + 1);
-                        boundary = 0;
-                        if (jsonStr) {
-                            try {
-                                const data = JSON.parse(jsonStr);
-                                if (callback) {
-                                    callback({
-                                        content: data.response,
-                                        done: data.done
-                                    });
-                                }
-                            }
-                            catch (e) {
-                                console.error('Failed to parse JSON:', e);
-                            }
-                        }
-                    }
+            for await (const chunk of response.data) {
+                const data = JSON.parse(chunk.toString());
+                if (callback) {
+                    callback({
+                        content: data.response,
+                        isComplete: data.done || false
+                    });
                 }
-            });
-            return new Promise((resolve, reject) => {
-                stream.on('end', () => resolve());
-                stream.on('error', (err) => reject(err));
-            });
+            }
         }
         catch (error) {
-            console.error('Ollama stream completion error:', error);
-            throw new Error(`Failed to stream completion: ${error}`);
+            this.handleError(error, 'STREAM_FAILED');
         }
     }
-    /**
-     * Stream a chat completion from Ollama
-     */
     async streamChatCompletion(model, messages, options, callback) {
-        // Convert messages to Ollama format
-        const ollamaMessages = messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-        }));
-        const request = {
-            model,
-            messages: ollamaMessages,
-            stream: true,
-            options: {
-                temperature: options?.temperature,
-                num_predict: options?.maxTokens
-            }
-        };
         try {
-            const response = await axios_1.default.post(`${this.baseUrl}/chat`, request, {
+            const request = {
+                model,
+                messages: messages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                })),
+                stream: true,
+                options: {
+                    temperature: options?.temperature,
+                    num_predict: options?.maxTokens,
+                    top_p: options?.topP,
+                    frequency_penalty: options?.frequencyPenalty,
+                    presence_penalty: options?.presencePenalty,
+                    stop: options?.stop
+                }
+            };
+            const response = await this.client.post('/api/chat', request, {
                 responseType: 'stream'
             });
-            const stream = response.data;
-            let buffer = '';
-            stream.on('data', (chunk) => {
-                const chunkStr = chunk.toString();
-                buffer += chunkStr;
-                // Process complete JSON objects
-                let boundary = 0;
-                while (boundary !== -1) {
-                    boundary = buffer.indexOf('\n', boundary);
-                    if (boundary !== -1) {
-                        const jsonStr = buffer.substring(0, boundary).trim();
-                        buffer = buffer.substring(boundary + 1);
-                        boundary = 0;
-                        if (jsonStr) {
-                            try {
-                                const data = JSON.parse(jsonStr);
-                                if (callback) {
-                                    callback({
-                                        content: data.message?.content || data.response,
-                                        done: data.done
-                                    });
-                                }
-                            }
-                            catch (e) {
-                                console.error('Failed to parse JSON:', e);
-                            }
-                        }
-                    }
+            for await (const chunk of response.data) {
+                const data = JSON.parse(chunk.toString());
+                if (callback) {
+                    callback({
+                        content: data.message?.content || '',
+                        isComplete: data.done || false
+                    });
                 }
-            });
-            return new Promise((resolve, reject) => {
-                stream.on('end', () => resolve());
-                stream.on('error', (err) => reject(err));
-            });
+            }
         }
         catch (error) {
-            console.error('Ollama stream chat completion error:', error);
-            throw new Error(`Failed to stream chat completion: ${error}`);
+            this.handleError(error, 'STREAM_CHAT_FAILED');
         }
+    }
+    convertModelInfo(modelId, info) {
+        return {
+            id: modelId,
+            name: info.name,
+            provider: 'ollama',
+            capabilities: info.details?.capabilities || [],
+            parameters: this.parseParameterSize(info.details?.parameter_size),
+            contextLength: 4096, // Default for most Ollama models
+            quantization: info.details?.quantization_level,
+            license: info.license
+        };
+    }
+    parseParameterSize(size) {
+        if (!size)
+            return undefined;
+        const match = size.match(/(\d+)([BM])/);
+        if (!match)
+            return undefined;
+        const [, num, unit] = match;
+        return unit === 'B' ? parseInt(num) : parseInt(num) / 1000;
     }
 }
 exports.OllamaProvider = OllamaProvider;

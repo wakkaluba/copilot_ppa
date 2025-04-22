@@ -7,12 +7,17 @@ import { ViteConfigAnalyzer, ViteConfigDetector, ViteOptimizationService } from 
 import { ConfigValidationError } from './errors/ConfigValidationError';
 
 export class ViteConfigManager {
-    constructor(
-        private readonly configDetector: ViteConfigDetector,
-        private readonly configAnalyzer: ViteConfigAnalyzer,
-        private readonly optimizationService: ViteOptimizationService,
-        private readonly logger: ILogger
-    ) {}
+    private readonly configDetector: ViteConfigDetector;
+    private readonly configAnalyzer: ViteConfigAnalyzer;
+    private readonly optimizationService: ViteOptimizationService;
+    private readonly logger: ILogger;
+
+    constructor(logger: ILogger) {
+        this.logger = logger;
+        this.configDetector = new ViteConfigDetector(logger);
+        this.configAnalyzer = new ViteConfigAnalyzer(logger);
+        this.optimizationService = new ViteOptimizationService(logger);
+    }
 
     /**
      * Detects Vite configuration files in the given directory
@@ -22,7 +27,7 @@ export class ViteConfigManager {
     public async detectConfigs(workspacePath: string): Promise<string[]> {
         try {
             this.logger.debug(`Detecting Vite configs in ${workspacePath}`);
-            return await this.configDetector.detectConfigs(workspacePath);
+            return await this.configDetector.detect(workspacePath);
         } catch (error) {
             this.logger.error('Error detecting Vite configs:', error);
             throw new Error(`Failed to detect Vite configurations: ${error instanceof Error ? error.message : String(error)}`);
@@ -31,8 +36,8 @@ export class ViteConfigManager {
 
     /**
      * Analyzes a Vite configuration file
-     * @param configPath Path to the Vite config file
-     * @returns Analysis results including build config, plugins, and optimization suggestions
+     * @throws {ConfigValidationError} If the config is invalid
+     * @throws {Error} If analysis fails
      */
     public async analyzeConfig(configPath: string): Promise<ViteConfigAnalysis> {
         try {
@@ -40,7 +45,6 @@ export class ViteConfigManager {
             const analysis = await this.configAnalyzer.analyze(configPath);
             const suggestions = await this.optimizationService.generateSuggestions(
                 analysis.content,
-                analysis.build,
                 analysis.plugins,
                 analysis.optimizationOptions
             );
@@ -50,9 +54,6 @@ export class ViteConfigManager {
                 optimizationSuggestions: suggestions
             };
         } catch (error) {
-            if (error instanceof ConfigValidationError) {
-                throw error;
-            }
             this.logger.error('Error analyzing Vite config:', error);
             throw new Error(`Failed to analyze Vite configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -60,25 +61,14 @@ export class ViteConfigManager {
 
     /**
      * Validates a Vite configuration file
-     * @param configPath Path to the Vite config file
-     * @returns True if the configuration is valid
+     * @throws {ConfigValidationError} If validation fails
      */
     public async validateConfig(configPath: string): Promise<boolean> {
         try {
             this.logger.debug(`Validating Vite config at ${configPath}`);
-            const analysis = await this.configAnalyzer.analyze(configPath);
-            
-            // Basic validation checks
-            if (!analysis.build) {
-                throw new ConfigValidationError('Missing build configuration', configPath, ['Build configuration is required']);
-            }
-
-            // Additional validation could be added here
-            return true;
+            const analysis = await this.analyzeConfig(configPath);
+            return analysis.isValid;
         } catch (error) {
-            if (error instanceof ConfigValidationError) {
-                throw error;
-            }
             this.logger.error('Error validating Vite config:', error);
             throw new Error(`Failed to validate Vite configuration: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -86,8 +76,8 @@ export class ViteConfigManager {
 
     /**
      * Generates optimization suggestions for a Vite configuration
-     * @param configPath Path to the Vite config file
-     * @returns Array of optimization suggestions
+     * @throws {ConfigValidationError} If the config is invalid
+     * @throws {Error} If generation fails
      */
     public async generateOptimizations(configPath: string): Promise<string[]> {
         try {
@@ -102,31 +92,18 @@ export class ViteConfigManager {
 
     /**
      * Gets the detected framework from a Vite configuration
-     * @param configPath Path to the Vite config file
-     * @returns The detected framework name or null if none detected
+     * @throws {ConfigValidationError} If the config is invalid
+     * @returns The detected framework or null if none detected
      */
     public async detectFramework(configPath: string): Promise<string | null> {
         try {
-            this.logger.debug(`Detecting framework for Vite config at ${configPath}`);
-            const analysis = await this.configAnalyzer.analyze(configPath);
+            this.logger.debug(`Detecting framework in ${configPath}`);
+            const content = await fs.promises.readFile(configPath, 'utf-8');
             
-            // Check plugins to detect framework
-            const frameworkPlugins = analysis.plugins.filter(plugin => 
-                plugin.name.toLowerCase().includes('react') ||
-                plugin.name.toLowerCase().includes('vue') ||
-                plugin.name.toLowerCase().includes('svelte') ||
-                plugin.name.toLowerCase().includes('solid')
-            );
-
-            if (frameworkPlugins.length > 0) {
-                const framework = frameworkPlugins[0].name.toLowerCase();
-                return framework.includes('react') ? 'React' :
-                       framework.includes('vue') ? 'Vue' :
-                       framework.includes('svelte') ? 'Svelte' :
-                       framework.includes('solid') ? 'Solid' :
-                       null;
-            }
-
+            if (content.includes('@vitejs/plugin-vue')) return 'vue';
+            if (content.includes('@vitejs/plugin-react')) return 'react';
+            if (content.includes('@sveltejs/vite-plugin')) return 'svelte';
+            
             return null;
         } catch (error) {
             this.logger.error('Error detecting framework:', error);

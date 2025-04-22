@@ -35,122 +35,155 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StatusBarManager = void 0;
 const vscode = __importStar(require("vscode"));
-/**
- * Manages status bar items for the extension
- */
 class StatusBarManager {
-    context;
-    mainStatusBarItem;
-    metricsStatusBarItem;
-    /**
-     * Creates a new status bar manager
-     * @param context The extension context
-     */
+    _mainStatusBarItem;
+    _metricsStatusBarItem;
+    _configListener;
+    _workingAnimation;
+    _state = {
+        mainText: '$(copilot) PPA',
+        isWorking: false,
+        isVisible: true,
+        isError: false
+    };
     constructor(context) {
-        this.context = context;
-        // Create the main status bar item
-        this.mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this.mainStatusBarItem.command = 'copilot-ppa.openMenu';
-        this.mainStatusBarItem.tooltip = 'Copilot PPA';
-        // Create the metrics status bar item
-        this.metricsStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
-        this.metricsStatusBarItem.command = 'copilot-ppa.showMetrics';
-        this.metricsStatusBarItem.tooltip = 'PPA Metrics';
-        // Add the status bar items to context subscriptions
-        context.subscriptions.push(this.mainStatusBarItem);
-        context.subscriptions.push(this.metricsStatusBarItem);
+        this._mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this._mainStatusBarItem.command = 'copilot-ppa.openMenu';
+        this._mainStatusBarItem.tooltip = 'Copilot PPA';
+        this._metricsStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+        this._metricsStatusBarItem.command = 'copilot-ppa.showMetrics';
+        this._metricsStatusBarItem.tooltip = 'PPA Metrics';
+        // Setup configuration change listener
+        this._configListener = vscode.workspace.onDidChangeConfiguration(this.handleConfigChange.bind(this));
+        context.subscriptions.push(this._mainStatusBarItem, this._metricsStatusBarItem, this._configListener);
     }
-    /**
-     * Initialize status bar items
-     */
-    initialize() {
-        this.updateMainStatusBar();
-        this.updateMetricsStatusBar();
-        // Show status bar items if enabled in settings
+    async initialize() {
+        try {
+            await this.loadInitialState();
+            this.updateUI();
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to initialize status bar: ${message}`);
+            this.setErrorState();
+        }
+    }
+    async loadInitialState() {
         const config = vscode.workspace.getConfiguration('copilot-ppa');
-        if (config.get('showStatusBar', true)) {
-            this.mainStatusBarItem.show();
-        }
-        // Add configuration change listener to show/hide status bar
-        this.context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('copilot-ppa.showStatusBar')) {
-                this.updateVisibility();
-            }
-        }));
+        this._state.isVisible = config.get('showStatusBar', true);
+        await this.updateUI();
     }
-    /**
-     * Update the main status bar item's text and visibility
-     * @param text Optional text to set (uses default if not provided)
-     */
+    async handleConfigChange(event) {
+        if (event.affectsConfiguration('copilot-ppa.showStatusBar')) {
+            const config = vscode.workspace.getConfiguration('copilot-ppa');
+            this._state.isVisible = config.get('showStatusBar', true);
+            await this.updateUI();
+        }
+    }
     updateMainStatusBar(text) {
-        this.mainStatusBarItem.text = text || '$(copilot) PPA';
+        if (text) {
+            this._state.mainText = text;
+        }
+        this.updateUI();
     }
-    /**
-     * Update the metrics status bar with performance information
-     * @param perfScore Optional performance score (0-100)
-     */
     updateMetricsStatusBar(perfScore) {
-        if (perfScore !== undefined) {
-            // Use different icons based on score
-            let icon = '$(check)';
-            if (perfScore < 50) {
-                icon = '$(warning)';
-            }
-            else if (perfScore < 80) {
-                icon = '$(info)';
-            }
-            this.metricsStatusBarItem.text = `${icon} ${perfScore}`;
-            this.metricsStatusBarItem.show();
-        }
-        else {
-            this.metricsStatusBarItem.hide();
-        }
+        this._state.metricsScore = perfScore;
+        this.updateUI();
     }
-    /**
-     * Shows the working animation in the status bar
-     * @param message Optional message to show while working
-     */
     showWorkingAnimation(message) {
-        const workingMessage = message || 'Analyzing...';
+        // Clear any existing animation
+        this.clearWorkingAnimation();
+        this._state.isWorking = true;
+        this._state.workingMessage = message || 'Analyzing...';
         let dots = '.';
         let count = 0;
-        const interval = setInterval(() => {
-            this.mainStatusBarItem.text = `$(sync~spin) ${workingMessage}${dots}`;
-            count++;
-            if (count % 3 === 0) {
-                dots = '.';
-            }
-            else {
-                dots += '.';
-            }
+        this._workingAnimation = setInterval(() => {
+            const text = `$(sync~spin) ${this._state.workingMessage}${dots}`;
+            this._mainStatusBarItem.text = text;
+            count = (count + 1) % 3;
+            dots = '.'.repeat(count + 1);
         }, 500);
-        return {
+        const animation = {
+            message: this._state.workingMessage,
+            updateMessage: (newMessage) => {
+                this._state.workingMessage = newMessage;
+            },
             dispose: () => {
-                clearInterval(interval);
-                this.updateMainStatusBar();
+                this.clearWorkingAnimation();
+                this._state.isWorking = false;
+                this._state.workingMessage = undefined;
+                this.updateUI();
             }
         };
+        return animation;
     }
-    /**
-     * Update the visibility of status bar items based on settings
-     */
-    updateVisibility() {
-        const config = vscode.workspace.getConfiguration('copilot-ppa');
-        const showStatusBar = config.get('showStatusBar', true);
-        if (showStatusBar) {
-            this.mainStatusBarItem.show();
-        }
-        else {
-            this.mainStatusBarItem.hide();
-            this.metricsStatusBarItem.hide();
+    clearWorkingAnimation() {
+        if (this._workingAnimation) {
+            clearInterval(this._workingAnimation);
+            this._workingAnimation = undefined;
         }
     }
-    /**
-     * Dispose of status bar resources
-     */
+    async setErrorState() {
+        this._state.isError = true;
+        this._state.mainText = '$(error) PPA Error';
+        this._mainStatusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        this.updateUI();
+    }
+    async clearErrorState() {
+        this._state.isError = false;
+        this._state.mainText = '$(copilot) PPA';
+        this._mainStatusBarItem.backgroundColor = undefined;
+        this.updateUI();
+    }
+    async show() {
+        this._state.isVisible = true;
+        this.updateUI();
+    }
+    async hide() {
+        this._state.isVisible = false;
+        this.updateUI();
+    }
+    update(message) {
+        this.updateMainStatusBar(message);
+    }
+    updateUI() {
+        try {
+            // Update main status bar
+            this._mainStatusBarItem.text = this._state.mainText;
+            // Update metrics status bar if score is available
+            if (this._state.metricsScore !== undefined) {
+                const icon = this.getMetricsIcon(this._state.metricsScore);
+                this._metricsStatusBarItem.text = `${icon} ${this._state.metricsScore}`;
+                this._metricsStatusBarItem.show();
+            }
+            else {
+                this._metricsStatusBarItem.hide();
+            }
+            // Update visibility
+            if (this._state.isVisible) {
+                this._mainStatusBarItem.show();
+            }
+            else {
+                this._mainStatusBarItem.hide();
+                this._metricsStatusBarItem.hide();
+            }
+        }
+        catch (error) {
+            console.error('Error updating status bar UI:', error);
+        }
+    }
+    getMetricsIcon(score) {
+        if (score < 50)
+            return '$(warning)';
+        if (score < 80)
+            return '$(info)';
+        return '$(check)';
+    }
     dispose() {
-        this.mainStatusBarItem.dispose();
-        this.metricsStatusBarItem.dispose();
+        this.clearWorkingAnimation();
+        this._mainStatusBarItem.dispose();
+        this._metricsStatusBarItem.dispose();
+        this._configListener.dispose();
     }
 }
 exports.StatusBarManager = StatusBarManager;

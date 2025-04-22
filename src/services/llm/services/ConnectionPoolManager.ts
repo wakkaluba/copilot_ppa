@@ -1,291 +1,266 @@
 import { EventEmitter } from 'events';
-import { ILLMConnectionProvider, ConnectionErrorCode } from '../interfaces';
-import { LLMConnectionError } from '../errors';
-import { ConnectionMetricsTracker } from '../ConnectionMetricsTracker';
-import { LLMRetryManagerService } from './LLMRetryManagerService';
+import {
+    LLMProvider,
+    ProviderConfig,
+    ProviderConnectionState,
+    ProviderEvent,
+    HealthCheckResult
+} from '../types';
+import { ConnectionError } from '../errors';
 
-interface PoolConfig {
-    maxSize: number;
-    minSize: number;
-    acquireTimeout: number;
-    idleTimeout: number;
-    maxWaitingClients: number;
+interface PooledConnection {
+    provider: LLMProvider;
+    lastUsed: number;
+    isInUse: boolean;
+    healthStatus: HealthCheckResult;
 }
 
-const DEFAULT_POOL_CONFIG: PoolConfig = {
-    maxSize: 5,
-    minSize: 1,
-    acquireTimeout: 30000,
-    idleTimeout: 60000,
-    maxWaitingClients: 10
-};
+interface PoolConfig {
+    minSize: number;
+    maxSize: number;
+    idleTimeoutMs: number;
+    acquireTimeoutMs: number;
+}
 
 export class ConnectionPoolManager extends EventEmitter {
-    private static instance: ConnectionPoolManager;
-    private readonly pool: Map<string, ILLMConnectionProvider[]> = new Map();
-    private readonly inUse: Map<string, Set<ILLMConnectionProvider>> = new Map();
-    private readonly waiting: Map<string, Array<{
-        resolve: (connection: ILLMConnectionProvider) => void;
-        reject: (error: Error) => void;
-        timeout: NodeJS.Timeout;
-    }>> = new Map();
-    private readonly metricsTracker: ConnectionMetricsTracker;
-    private readonly retryManager: LLMRetryManagerService;
-    private readonly config: PoolConfig;
-    private maintenanceInterval: NodeJS.Timeout | null = null;
-
-    private constructor(config: Partial<PoolConfig> = {}) {
+    private pools = new Map<string, Map<string, PooledConnection>>();
+    private poolConfigs = new Map<string, PoolConfig>();
+    private maintenanceTimer?: NodeJS.Timer;
+    
+    constructor() {
         super();
-        this.config = { ...DEFAULT_POOL_CONFIG, ...config };
-        this.metricsTracker = new ConnectionMetricsTracker();
-        this.retryManager = new LLMRetryManagerService();
-        this.startMaintenance();
+        this.startMaintenanceTimer();
     }
 
-    public static getInstance(config?: Partial<PoolConfig>): ConnectionPoolManager {
-        if (!this.instance) {
-            this.instance = new ConnectionPoolManager(config);
-        }
-        return this.instance;
+    private startMaintenanceTimer(): void {
+        this.maintenanceTimer = setInterval(() => {
+            this.performPoolMaintenance();
+        }, 60000); // Run maintenance every minute
     }
 
-    public async acquire(providerId: string): Promise<ILLMConnectionProvider> {
-        const available = this.pool.get(providerId) || [];
-        const inUse = this.getOrCreateInUseSet(providerId);
+    private async performPoolMaintenance(): Promise<void> {
+        const now = Date.now();
 
-        // Try to get a connection from the available pool
-        while (available.length > 0) {
-            const connection = available.pop()!;
-            try {
-                // Validate connection is still healthy
-                const health = await connection.healthCheck();
-                if (health.status === 'ok') {
-                    inUse.add(connection);
-                    this.metricsTracker.recordRequest();
-                    return connection;
+        for (const [providerId, pool] of this.pools) {
+            const config = this.poolConfigs.get(providerId);
+            if (!config) continue;
+
+            // Check idle connections
+            for (const [connectionId, connection] of pool) {
+                if (!connection.isInUse && 
+                    now - connection.lastUsed > config.idleTimeoutMs) {
+                    // Remove idle connection
+                    await this.removeConnection(providerId, connectionId);
                 }
-                // Connection is unhealthy, destroy it
-                await this.destroyConnection(connection);
-            } catch (error) {
-                await this.destroyConnection(connection);
+            }
+
+            // Ensure minimum pool size
+            const activeConnections = Array.from(pool.values())
+                .filter(conn => !conn.isInUse).length;
+                
+            if (activeConnections < config.minSize) {
+                try {
+                    await this.addConnection(providerId);
+                } catch (error) {
+                    console.error(
+                        `Failed to maintain minimum pool size for provider ${providerId}:`,
+                        error
+                    );
+                }
             }
         }
-
-        // Create new connection if pool isn't at max capacity
-        if (inUse.size < this.config.maxSize) {
-            try {
-                const connection = await this.createConnection(providerId);
-                inUse.add(connection);
-                this.metricsTracker.recordRequest();
-                return connection;
-            } catch (error) {
-                const retryResult = await this.retryManager.handleRetry(async () => {
-                    const conn = await this.createConnection(providerId);
-                    inUse.add(conn);
-                    return conn;
-                });
-
-                if (retryResult.success) {
-                    return retryResult.result!;
-                }
-                throw error;
-            }
-        }
-
-        // Wait for a connection if we're at capacity
-        return this.waitForConnection(providerId);
     }
 
-    public release(providerId: string, connection: ILLMConnectionProvider): void {
-        const inUse = this.inUse.get(providerId);
-        if (!inUse?.has(connection)) {
-            return;
+    public async initializeProvider(
+        providerId: string,
+        config: ProviderConfig
+    ): Promise<void> {
+        if (!this.pools.has(providerId)) {
+            this.pools.set(providerId, new Map());
         }
 
-        inUse.delete(connection);
-
-        // Check waiting clients first
-        const waiting = this.waiting.get(providerId) || [];
-        if (waiting.length > 0) {
-            const next = waiting.shift()!;
-            clearTimeout(next.timeout);
-            inUse.add(connection);
-            next.resolve(connection);
-            return;
-        }
-
-        // Add to available pool or destroy if above minSize
-        const available = this.getOrCreatePool(providerId);
-        if (available.length < this.config.minSize) {
-            available.push(connection);
-        } else {
-            this.destroyConnection(connection).catch(console.error);
-        }
-    }
-
-    public async clear(providerId: string): Promise<void> {
-        const available = this.pool.get(providerId) || [];
-        const inUse = this.inUse.get(providerId) || new Set();
-        const waiting = this.waiting.get(providerId) || [];
-
-        // Reject waiting clients
-        waiting.forEach(({ reject, timeout }) => {
-            clearTimeout(timeout);
-            reject(new LLMConnectionError(
-                ConnectionErrorCode.CONNECTION_FAILED,
-                'Pool cleared'
-            ));
+        this.poolConfigs.set(providerId, {
+            minSize: config.connection?.poolSize || 1,
+            maxSize: config.connection?.poolSize || 5,
+            idleTimeoutMs: 300000, // 5 minutes
+            acquireTimeoutMs: config.connection?.timeout || 30000
         });
-        this.waiting.delete(providerId);
 
-        // Destroy all connections
-        await Promise.all([
-            ...available.map(conn => this.destroyConnection(conn)),
-            ...[...inUse].map(conn => this.destroyConnection(conn))
-        ]);
-
-        this.pool.delete(providerId);
-        this.inUse.delete(providerId);
-        this.metricsTracker.reset(providerId);
-    }
-
-    public getStats(providerId: string) {
-        return {
-            available: this.pool.get(providerId)?.length || 0,
-            inUse: this.inUse.get(providerId)?.size || 0,
-            waiting: this.waiting.get(providerId)?.length || 0,
-            metrics: this.metricsTracker.getMetrics()
-        };
-    }
-
-    private getOrCreatePool(providerId: string): ILLMConnectionProvider[] {
-        if (!this.pool.has(providerId)) {
-            this.pool.set(providerId, []);
+        // Initialize minimum connections
+        const poolConfig = this.poolConfigs.get(providerId)!;
+        for (let i = 0; i < poolConfig.minSize; i++) {
+            await this.addConnection(providerId);
         }
-        return this.pool.get(providerId)!;
     }
 
-    private getOrCreateInUseSet(providerId: string): Set<ILLMConnectionProvider> {
-        if (!this.inUse.has(providerId)) {
-            this.inUse.set(providerId, new Set());
-        }
-        return this.inUse.get(providerId)!;
-    }
-
-    private async createConnection(providerId: string): Promise<ILLMConnectionProvider> {
-        try {
-            const provider = await import('../providers/' + providerId).then(m => new m.default());
-            await provider.initialize();
-            this.metricsTracker.recordConnectionCreated(providerId);
-            return provider;
-        } catch (error) {
-            this.metricsTracker.recordRequestFailure(
-                error instanceof Error ? error : new Error(String(error))
+    private async addConnection(providerId: string): Promise<string> {
+        const pool = this.pools.get(providerId);
+        const config = this.poolConfigs.get(providerId);
+        
+        if (!pool || !config) {
+            throw new ConnectionError(
+                'Provider not initialized',
+                providerId,
+                'NOT_INITIALIZED'
             );
-            throw new LLMConnectionError(
-                ConnectionErrorCode.CONNECTION_FAILED,
+        }
+
+        if (pool.size >= config.maxSize) {
+            throw new ConnectionError(
+                'Connection pool is full',
+                providerId,
+                'POOL_FULL'
+            );
+        }
+
+        // Create new connection ID
+        const connectionId = `${providerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        try {
+            // Get provider instance from factory/registry
+            const provider = await this.createProviderInstance(providerId);
+            
+            // Initialize connection
+            await provider.connect();
+
+            // Add to pool
+            pool.set(connectionId, {
+                provider,
+                lastUsed: Date.now(),
+                isInUse: false,
+                healthStatus: await provider.healthCheck()
+            });
+
+            return connectionId;
+        } catch (error) {
+            throw new ConnectionError(
                 'Failed to create connection',
+                providerId,
+                'CONNECTION_FAILED',
                 error instanceof Error ? error : undefined
             );
         }
     }
 
-    private async destroyConnection(connection: ILLMConnectionProvider): Promise<void> {
+    private async removeConnection(
+        providerId: string,
+        connectionId: string
+    ): Promise<void> {
+        const pool = this.pools.get(providerId);
+        if (!pool) return;
+
+        const connection = pool.get(connectionId);
+        if (!connection) return;
+
         try {
-            await connection.disconnect();
-        } catch (error) {
-            console.error('Error destroying connection:', error);
+            await connection.provider.dispose();
+        } finally {
+            pool.delete(connectionId);
         }
     }
 
-    private waitForConnection(providerId: string): Promise<ILLMConnectionProvider> {
-        const waiting = this.waiting.get(providerId) || [];
+    public async acquireConnection(providerId: string): Promise<LLMProvider> {
+        const pool = this.pools.get(providerId);
+        const config = this.poolConfigs.get(providerId);
         
-        if (waiting.length >= this.config.maxWaitingClients) {
-            throw new LLMConnectionError(
-                ConnectionErrorCode.CONNECTION_FAILED,
-                'Too many waiting clients'
+        if (!pool || !config) {
+            throw new ConnectionError(
+                'Provider not initialized',
+                providerId,
+                'NOT_INITIALIZED'
             );
         }
 
-        if (!this.waiting.has(providerId)) {
-            this.waiting.set(providerId, []);
+        // First, try to find an available healthy connection
+        for (const [connectionId, connection] of pool) {
+            if (!connection.isInUse && connection.healthStatus.isHealthy) {
+                connection.isInUse = true;
+                connection.lastUsed = Date.now();
+                return connection.provider;
+            }
         }
 
+        // If no available connections and below maxSize, create new one
+        if (pool.size < config.maxSize) {
+            const connectionId = await this.addConnection(providerId);
+            const connection = pool.get(connectionId)!;
+            connection.isInUse = true;
+            return connection.provider;
+        }
+
+        // Wait for a connection to become available
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-                const index = waiting.findIndex(w => w.timeout === timeout);
-                if (index !== -1) {
-                    waiting.splice(index, 1);
-                }
-                reject(new LLMConnectionError(
-                    ConnectionErrorCode.TIMEOUT,
-                    'Connection acquisition timeout'
+                reject(new ConnectionError(
+                    'Timeout waiting for available connection',
+                    providerId,
+                    'ACQUIRE_TIMEOUT'
                 ));
-            }, this.config.acquireTimeout);
+            }, config.acquireTimeoutMs);
 
-            waiting.push({ resolve, reject, timeout });
+            const checkForConnection = () => {
+                for (const [connectionId, connection] of pool) {
+                    if (!connection.isInUse && connection.healthStatus.isHealthy) {
+                        clearTimeout(timeout);
+                        connection.isInUse = true;
+                        connection.lastUsed = Date.now();
+                        resolve(connection.provider);
+                        return;
+                    }
+                }
+                setTimeout(checkForConnection, 100);
+            };
+
+            checkForConnection();
         });
     }
 
-    private startMaintenance(): void {
-        this.maintenanceInterval = setInterval(() => {
-            this.performMaintenance().catch(console.error);
-        }, this.config.idleTimeout);
-    }
+    public async releaseConnection(
+        providerId: string,
+        provider: LLMProvider
+    ): Promise<void> {
+        const pool = this.pools.get(providerId);
+        if (!pool) return;
 
-    private async performMaintenance(): Promise<void> {
-        const now = Date.now();
-
-        for (const [providerId, connections] of this.pool.entries()) {
-            const available = connections.slice();
-            const toRemove: ILLMConnectionProvider[] = [];
-
-            // Check each available connection
-            for (const connection of available) {
+        for (const [connectionId, connection] of pool) {
+            if (connection.provider === provider) {
+                connection.isInUse = false;
+                connection.lastUsed = Date.now();
+                
+                // Perform health check
                 try {
-                    const health = await connection.healthCheck();
-                    if (health.status !== 'ok') {
-                        toRemove.push(connection);
+                    connection.healthStatus = await provider.healthCheck();
+                    if (!connection.healthStatus.isHealthy) {
+                        await this.removeConnection(providerId, connectionId);
                     }
                 } catch (error) {
-                    toRemove.push(connection);
+                    await this.removeConnection(providerId, connectionId);
                 }
-            }
-
-            // Remove unhealthy connections
-            for (const connection of toRemove) {
-                const index = connections.indexOf(connection);
-                if (index !== -1) {
-                    connections.splice(index, 1);
-                    await this.destroyConnection(connection);
-                }
-            }
-
-            // Maintain minimum pool size
-            while (connections.length < this.config.minSize) {
-                try {
-                    const connection = await this.createConnection(providerId);
-                    connections.push(connection);
-                } catch (error) {
-                    console.error(`Failed to maintain minimum pool size for ${providerId}:`, error);
-                    break;
-                }
+                break;
             }
         }
+    }
+
+    private async createProviderInstance(providerId: string): Promise<LLMProvider> {
+        // This would typically use ProviderFactory to create instances
+        // For now, leaving as a stub that should be implemented
+        throw new Error('createProviderInstance must be implemented');
     }
 
     public dispose(): void {
-        if (this.maintenanceInterval) {
-            clearInterval(this.maintenanceInterval);
+        if (this.maintenanceTimer) {
+            clearInterval(this.maintenanceTimer);
         }
 
-        // Clear all pools
-        Promise.all(
-            Array.from(this.pool.keys()).map(id => this.clear(id))
-        ).catch(console.error);
-        
-        this.retryManager.dispose();
+        // Clean up all connections
+        for (const [providerId, pool] of this.pools) {
+            for (const [connectionId] of pool) {
+                this.removeConnection(providerId, connectionId).catch(console.error);
+            }
+        }
+
+        this.pools.clear();
+        this.poolConfigs.clear();
         this.removeAllListeners();
     }
 }

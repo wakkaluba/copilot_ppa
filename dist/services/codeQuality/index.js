@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodeQualityService = exports.DesignImprovementSuggester = exports.CodeReviewReport = exports.CodeReviewComment = exports.CodeReviewer = exports.BestPracticesChecker = exports.CodeOptimizer = exports.SecurityScanner = void 0;
+exports.CodeQualityService = exports.DesignImprovementSuggester = exports.CodeReviewReport = exports.CodeReviewComment = exports.CodeReviewer = exports.BestPracticesChecker = exports.OptimizationIssue = exports.CodeOptimizer = exports.SecurityScanner = void 0;
 const securityScanner_1 = require("./securityScanner");
 Object.defineProperty(exports, "SecurityScanner", { enumerable: true, get: function () { return securityScanner_1.SecurityScanner; } });
 const codeOptimizer_1 = require("./codeOptimizer");
 Object.defineProperty(exports, "CodeOptimizer", { enumerable: true, get: function () { return codeOptimizer_1.CodeOptimizer; } });
+Object.defineProperty(exports, "OptimizationIssue", { enumerable: true, get: function () { return codeOptimizer_1.OptimizationIssue; } });
 const bestPracticesChecker_1 = require("./bestPracticesChecker");
 Object.defineProperty(exports, "BestPracticesChecker", { enumerable: true, get: function () { return bestPracticesChecker_1.BestPracticesChecker; } });
 const codeReviewer_1 = require("./codeReviewer");

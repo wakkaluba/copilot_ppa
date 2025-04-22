@@ -35,329 +35,138 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaticAnalysisService = void 0;
 const vscode = __importStar(require("vscode"));
-const cp = __importStar(require("child_process"));
-const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const StaticAnalysisServiceImpl_1 = require("../../services/testRunner/services/StaticAnalysisServiceImpl");
 /**
  * Service for performing static code analysis
  */
 class StaticAnalysisService {
+    service;
+    logger;
     outputChannel;
-    constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('LLM Agent Static Analysis');
+    constructor(logger) {
+        this.logger = logger;
+        this.outputChannel = vscode.window.createOutputChannel('Static Analysis');
+        this.service = new StaticAnalysisServiceImpl_1.StaticAnalysisServiceImpl(this.logger, this.outputChannel);
     }
     /**
-     * Run static code analysis using ESLint
+     * Run ESLint analysis
      */
     async runESLint(options) {
-        return this.runAnalysis({
-            ...options,
-            tool: 'eslint'
-        });
+        try {
+            this.logger.debug('Running ESLint analysis');
+            return await this.service.runESLint(options);
+        }
+        catch (error) {
+            this.logger.error('ESLint analysis failed:', error);
+            return {
+                success: false,
+                message: `ESLint analysis failed: ${error instanceof Error ? error.message : String(error)}`,
+                suites: [],
+                totalTests: 0,
+                passed: 0,
+                failed: 1,
+                skipped: 0,
+                duration: 0,
+                timestamp: new Date()
+            };
+        }
     }
     /**
-     * Run static code analysis using Prettier
+     * Run Prettier analysis
      */
     async runPrettier(options) {
-        return this.runAnalysis({
-            ...options,
-            tool: 'prettier'
-        });
+        try {
+            this.logger.debug('Running Prettier analysis');
+            return await this.service.runPrettier(options);
+        }
+        catch (error) {
+            this.logger.error('Prettier analysis failed:', error);
+            return {
+                success: false,
+                message: `Prettier analysis failed: ${error instanceof Error ? error.message : String(error)}`,
+                suites: [],
+                totalTests: 0,
+                passed: 0,
+                failed: 1,
+                skipped: 0,
+                duration: 0,
+                timestamp: new Date()
+            };
+        }
     }
     /**
-     * Run static code analysis using a specified tool
+     * Run static analysis with specified tool
      */
     async runAnalysis(options) {
-        const workspacePath = options.path || vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        if (!workspacePath) {
-            return {
-                success: false,
-                message: 'No workspace folder found'
-            };
-        }
-        this.outputChannel.appendLine(`Running static analysis on ${workspacePath} using ${options.tool || 'auto-detected tool'}`);
-        this.outputChannel.show();
         try {
-            // Auto-detect tool if not specified
-            const tool = options.tool || await this.detectStaticAnalysisTool(workspacePath);
-            if (!tool) {
-                return {
-                    success: false,
-                    message: 'No static analysis tool detected'
-                };
+            this.validateOptions(options);
+            this.logger.info(`Running static analysis with ${options.tool || 'default'} tool`);
+            const result = await this.service.runAnalysis(options);
+            if (result.staticAnalysis?.issues?.length > 0) {
+                this.logIssues(result.staticAnalysis.issues);
             }
-            // Build the command based on the tool
-            let command = options.command;
-            if (!command) {
-                command = this.buildAnalysisCommand(tool, options);
-            }
-            this.outputChannel.appendLine(`Running command: ${command}`);
-            // Execute the command
-            const result = await this.executeCommand(command, workspacePath);
-            // Parse and process results
-            const processedResult = this.processAnalysisResult(tool, result);
-            this.outputChannel.appendLine(`Analysis completed. Found ${processedResult.issueCount || 0} issues.`);
-            return processedResult;
+            return result;
         }
         catch (error) {
-            const errorMsg = `Error running static code analysis: ${error instanceof Error ? error.message : String(error)}`;
-            this.outputChannel.appendLine(errorMsg);
+            this.logger.error('Static analysis failed:', error);
             return {
                 success: false,
-                message: errorMsg,
-                details: error instanceof Error ? error.stack : undefined
+                message: `Static analysis failed: ${error instanceof Error ? error.message : String(error)}`,
+                suites: [],
+                totalTests: 0,
+                passed: 0,
+                failed: 1,
+                skipped: 0,
+                duration: 0,
+                timestamp: new Date()
             };
         }
     }
     /**
-     * Execute a command and return the result
+     * Validate analysis options
      */
-    async executeCommand(command, cwd) {
-        return new Promise((resolve) => {
-            const process = cp.exec(command, { cwd });
-            let stdout = '';
-            let stderr = '';
-            process.stdout?.on('data', (data) => {
-                const output = data.toString();
-                stdout += output;
-                this.outputChannel.append(output);
-            });
-            process.stderr?.on('data', (data) => {
-                const output = data.toString();
-                stderr += output;
-                this.outputChannel.append(output);
-            });
-            process.on('close', (code) => {
-                const success = code === 0;
-                const result = {
-                    success,
-                    message: success ? 'Static analysis completed successfully' : 'Static analysis found issues',
-                    exitCode: code,
-                    stdout,
-                    stderr,
-                    staticAnalysis: {
-                        raw: stdout + stderr
-                    }
-                };
-                resolve(result);
-            });
-        });
+    validateOptions(options) {
+        if (options.tool && !this.isValidTool(options.tool)) {
+            throw new Error(`Unsupported analysis tool: ${options.tool}`);
+        }
+        if (options.path && !path.isAbsolute(options.path)) {
+            options.path = path.resolve(options.path);
+        }
+        if (options.configPath && !path.isAbsolute(options.configPath)) {
+            options.configPath = path.resolve(options.configPath);
+        }
     }
     /**
-     * Process the analysis result and extract useful information
+     * Check if tool is supported
      */
-    processAnalysisResult(tool, result) {
-        if (!result.staticAnalysis) {
-            result.staticAnalysis = { raw: result.stdout || '' };
-        }
-        const output = result.stdout || '';
-        const errorOutput = result.stderr || '';
-        // Count issues based on the tool's output format
-        let issueCount = 0;
-        let issues = [];
-        switch (tool) {
-            case 'eslint':
-                // Count problems in ESLint output
-                const problemMatches = output.match(/problems?/gi);
-                if (problemMatches) {
-                    issueCount = problemMatches.length;
-                }
-                // Parse ESLint output for issues
-                const eslintRegex = /(.+): line (\d+), col (\d+), (.+) - (.+)/g;
-                let match;
-                while ((match = eslintRegex.exec(output)) !== null) {
-                    issues.push({
-                        file: match[1],
-                        line: parseInt(match[2]),
-                        col: parseInt(match[3]),
-                        severity: match[4],
-                        message: match[5]
-                    });
-                }
-                break;
-            case 'prettier':
-                // Count files with formatting issues
-                const fileMatches = output.match(/would be reformatted/g);
-                if (fileMatches) {
-                    issueCount = fileMatches.length;
-                }
-                break;
-            case 'stylelint':
-                // Count CSS issues
-                const cssIssueMatches = output.match(/✖/g);
-                if (cssIssueMatches) {
-                    issueCount = cssIssueMatches.length;
-                }
-                break;
-            case 'sonarqube':
-                // Extract SonarQube issues from JSON output
-                try {
-                    if (output.includes('{') && output.includes('}')) {
-                        const jsonStr = output.substring(output.indexOf('{'), output.lastIndexOf('}') + 1);
-                        const jsonData = JSON.parse(jsonStr);
-                        if (jsonData.issues) {
-                            issueCount = jsonData.issues.length;
-                            issues = jsonData.issues.map((issue) => ({
-                                message: issue.message,
-                                file: issue.component,
-                                line: issue.line,
-                                severity: issue.severity
-                            }));
-                        }
-                    }
-                }
-                catch (e) {
-                    // JSON parsing failed
-                }
-                break;
-            default:
-                // General issue counting by looking for common patterns
-                const errorMatches = output.match(/error|warning|issue|problem/gi);
-                if (errorMatches) {
-                    issueCount = errorMatches.length;
-                }
-                break;
-        }
-        // Update the result with processed information
-        result.staticAnalysis.issueCount = issueCount;
-        result.staticAnalysis.issues = issues;
-        // For tools where no issues doesn't mean failure
-        if (tool === 'prettier' || tool === 'eslint') {
-            // For these tools, a non-zero exit code usually means issues were found, not that the tool failed
-            result.success = true;
-            result.message = issueCount > 0
-                ? `Found ${issueCount} issues that need to be fixed`
-                : 'No issues found';
-        }
-        return result;
+    isValidTool(tool) {
+        return ['eslint', 'tslint', 'prettier', 'stylelint', 'sonarqube', 'custom'].includes(tool);
     }
     /**
-     * Detect which static analysis tools are available in the project
+     * Log analysis issues
      */
-    async detectStaticAnalysisTool(workspacePath) {
-        // Check for common configuration files
-        if (this.hasFile(workspacePath, '.eslintrc') ||
-            this.hasFile(workspacePath, '.eslintrc.js') ||
-            this.hasFile(workspacePath, '.eslintrc.json')) {
-            return 'eslint';
-        }
-        if (this.hasFile(workspacePath, '.prettierrc') ||
-            this.hasFile(workspacePath, '.prettierrc.js') ||
-            this.hasFile(workspacePath, '.prettierrc.json')) {
-            return 'prettier';
-        }
-        if (this.hasFile(workspacePath, '.stylelintrc') ||
-            this.hasFile(workspacePath, '.stylelintrc.js') ||
-            this.hasFile(workspacePath, '.stylelintrc.json')) {
-            return 'stylelint';
-        }
-        if (this.hasFile(workspacePath, 'sonar-project.properties')) {
-            return 'sonarqube';
-        }
-        // Check package.json for dependencies
-        const packageJsonPath = path.join(workspacePath, 'package.json');
-        if (fs.existsSync(packageJsonPath)) {
-            try {
-                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-                const allDeps = {
-                    ...(packageJson.dependencies || {}),
-                    ...(packageJson.devDependencies || {})
-                };
-                if (allDeps.eslint) {
-                    return 'eslint';
-                }
-                if (allDeps.prettier) {
-                    return 'prettier';
-                }
-                if (allDeps.stylelint) {
-                    return 'stylelint';
-                }
-                if (allDeps.tslint) {
-                    return 'tslint';
-                }
+    logIssues(issues) {
+        this.outputChannel.appendLine('\n--- Static Analysis Issues ---\n');
+        for (const issue of issues) {
+            const location = `${issue.filePath}:${issue.line}${issue.column ? `:${issue.column}` : ''}`;
+            const severity = issue.severity.toUpperCase();
+            this.outputChannel.appendLine(`[${severity}] ${location} - ${issue.message}`);
+            if (issue.rule) {
+                this.outputChannel.appendLine(`  Rule: ${issue.rule}`);
             }
-            catch (error) {
-                // Ignore JSON parsing errors
+            if (issue.fix) {
+                this.outputChannel.appendLine(`  Suggestion: ${issue.fix}`);
             }
-        }
-        // If project has JS/TS files, default to ESLint
-        const hasJsFiles = await this.hasFilesWithExtension(workspacePath, ['.js', '.jsx', '.ts', '.tsx']);
-        if (hasJsFiles) {
-            return 'eslint';
-        }
-        // If project has CSS files, default to stylelint
-        const hasCssFiles = await this.hasFilesWithExtension(workspacePath, ['.css', '.scss', '.less']);
-        if (hasCssFiles) {
-            return 'stylelint';
-        }
-        return undefined;
-    }
-    /**
-     * Build the command to run the analysis tool
-     */
-    buildAnalysisCommand(tool, options) {
-        const fixFlag = options.autoFix ? ' --fix' : '';
-        const configFlag = options.configPath ? ` --config ${options.configPath}` : '';
-        // Build include/exclude patterns
-        let includePattern = '';
-        if (options.include && options.include.length > 0) {
-            includePattern = ' ' + options.include.join(' ');
-        }
-        let excludeFlag = '';
-        if (options.exclude && options.exclude.length > 0) {
-            excludeFlag = ' --ignore-pattern ' + options.exclude.join(' --ignore-pattern ');
-        }
-        switch (tool) {
-            case 'eslint':
-                return `npx eslint${fixFlag}${configFlag}${excludeFlag} .${includePattern}`;
-            case 'prettier':
-                return `npx prettier --check${fixFlag ? ' --write' : ''}${configFlag} .${includePattern}`;
-            case 'stylelint':
-                return `npx stylelint${fixFlag}${configFlag} "**/*.css"${includePattern}`;
-            case 'tslint':
-                return `npx tslint${fixFlag}${configFlag} -p tsconfig.json${includePattern}`;
-            case 'sonarqube':
-                return 'npx sonarqube-scanner';
-            default:
-                return options.command || 'npx eslint .';
+            this.outputChannel.appendLine('');
         }
     }
     /**
-     * Check if a file exists in the workspace
-     */
-    hasFile(workspacePath, fileName) {
-        // Check for exact file name
-        if (fs.existsSync(path.join(workspacePath, fileName))) {
-            return true;
-        }
-        // Check for files that start with the given name
-        try {
-            const files = fs.readdirSync(workspacePath);
-            return files.some(file => file.startsWith(fileName));
-        }
-        catch (error) {
-            return false;
-        }
-    }
-    /**
-     * Check if the workspace has files with specific extensions
-     */
-    async hasFilesWithExtension(workspacePath, extensions) {
-        // Use VS Code API to search for files with the given extensions
-        for (const ext of extensions) {
-            const pattern = new vscode.RelativePattern(workspacePath, `**/*${ext}`);
-            const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', 1);
-            if (files.length > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-    /**
-     * Clean up resources
+     * Dispose of resources
      */
     dispose() {
         this.outputChannel.dispose();
+        this.service.dispose();
     }
 }
 exports.StaticAnalysisService = StaticAnalysisService;

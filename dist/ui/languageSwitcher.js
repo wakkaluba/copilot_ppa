@@ -36,177 +36,45 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LanguageSwitcher = void 0;
 const vscode = __importStar(require("vscode"));
 const i18n_1 = require("../i18n");
-/**
- * UI component for switching between languages
- */
+const LanguageStatusBarService_1 = require("./services/LanguageStatusBarService");
+const LanguageSelectorService_1 = require("./services/LanguageSelectorService");
+const LanguageConfigurationService_1 = require("./services/LanguageConfigurationService");
 class LanguageSwitcher {
-    context;
-    statusBarItem;
+    statusBarService;
+    selectorService;
+    configService;
+    disposables = [];
     constructor(context) {
-        this.context = context;
-        // Create status bar item for quick language switching
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
-        this.statusBarItem.command = 'localLlmAgent.selectLanguage';
-        this.updateStatusBar();
-        this.statusBarItem.show();
-        // Register command for language selection
-        this.context.subscriptions.push(vscode.commands.registerCommand('localLlmAgent.selectLanguage', () => {
-            this.showLanguageSelector();
-        }));
-        // Listen for language changes
-        this.context.subscriptions.push(vscode.commands.executeCommand('localLlmAgent.languageChanged', () => {
+        this.statusBarService = new LanguageStatusBarService_1.LanguageStatusBarService();
+        this.selectorService = new LanguageSelectorService_1.LanguageSelectorService();
+        this.configService = new LanguageConfigurationService_1.LanguageConfigurationService();
+        this.initialize(context);
+    }
+    initialize(context) {
+        this.statusBarService.initialize();
+        this.registerCommands(context);
+        this.setupEventListeners(context);
+        this.disposables.push(this.statusBarService, this.selectorService, this.configService);
+    }
+    registerCommands(context) {
+        this.disposables.push(vscode.commands.registerCommand('localLlmAgent.selectLanguage', this.showLanguageSelector.bind(this)));
+    }
+    setupEventListeners(context) {
+        this.disposables.push(vscode.commands.executeCommand('localLlmAgent.languageChanged', () => {
             this.updateStatusBar();
         }));
-        // Add to disposables
-        this.context.subscriptions.push(this.statusBarItem);
+        context.subscriptions.push(...this.disposables);
     }
-    /**
-     * Update the status bar with current language
-     */
     updateStatusBar() {
         const currentLanguage = (0, i18n_1.getCurrentLanguage)();
-        this.statusBarItem.text = `$(globe) ${currentLanguage.toUpperCase()}`;
-        this.statusBarItem.tooltip = (0, i18n_1.localize)('language.select', 'Select Language');
+        this.statusBarService.updateDisplay(currentLanguage);
     }
-    /**
-     * Show the language selection quick pick
-     */
     async showLanguageSelector() {
-        const languages = [
-            {
-                label: (0, i18n_1.localize)('language.en', 'English'),
-                description: 'English',
-                language: i18n_1.SupportedLanguage.English
-            },
-            {
-                label: (0, i18n_1.localize)('language.de', 'German'),
-                description: 'Deutsch',
-                language: i18n_1.SupportedLanguage.German
-            },
-            {
-                label: (0, i18n_1.localize)('language.es', 'Spanish'),
-                description: 'Español',
-                language: i18n_1.SupportedLanguage.Spanish
-            },
-            {
-                label: (0, i18n_1.localize)('language.fr', 'French'),
-                description: 'Français',
-                language: i18n_1.SupportedLanguage.French
-            },
-            {
-                label: (0, i18n_1.localize)('language.zh', 'Chinese'),
-                description: '中文',
-                language: i18n_1.SupportedLanguage.Chinese
-            },
-            {
-                label: (0, i18n_1.localize)('language.ja', 'Japanese'),
-                description: '日本語',
-                language: i18n_1.SupportedLanguage.Japanese
-            },
-            {
-                label: (0, i18n_1.localize)('language.ru', 'Russian'),
-                description: 'Русский',
-                language: i18n_1.SupportedLanguage.Russian
-            },
-            {
-                label: (0, i18n_1.localize)('language.uk', 'Ukrainian'),
-                description: 'Українська',
-                language: i18n_1.SupportedLanguage.Ukrainian
-            },
-            {
-                label: (0, i18n_1.localize)('language.pl', 'Polish'),
-                description: 'Polski',
-                language: i18n_1.SupportedLanguage.Polish
-            },
-            {
-                label: (0, i18n_1.localize)('language.da', 'Danish'),
-                description: 'Dansk',
-                language: i18n_1.SupportedLanguage.Danish
-            },
-            {
-                label: (0, i18n_1.localize)('language.no', 'Norwegian'),
-                description: 'Norsk',
-                language: i18n_1.SupportedLanguage.Norwegian
-            },
-            {
-                label: (0, i18n_1.localize)('language.sv', 'Swedish'),
-                description: 'Svenska',
-                language: i18n_1.SupportedLanguage.Swedish
-            },
-            {
-                label: (0, i18n_1.localize)('language.pt', 'Portuguese'),
-                description: 'Português',
-                language: i18n_1.SupportedLanguage.Portuguese
-            },
-            {
-                label: (0, i18n_1.localize)('language.it', 'Italian'),
-                description: 'Italiano',
-                language: i18n_1.SupportedLanguage.Italian
-            },
-            {
-                label: (0, i18n_1.localize)('language.el', 'Greek'),
-                description: 'Ελληνικά',
-                language: i18n_1.SupportedLanguage.Greek
-            },
-            {
-                label: (0, i18n_1.localize)('language.ar', 'Arabic'),
-                description: 'العربية',
-                language: i18n_1.SupportedLanguage.Arabic
-            },
-            {
-                label: (0, i18n_1.localize)('language.he', 'Hebrew'),
-                description: 'עברית',
-                language: i18n_1.SupportedLanguage.Hebrew
-            },
-            {
-                label: (0, i18n_1.localize)('language.sa', 'Sanskrit'),
-                description: 'संस्कृत',
-                language: i18n_1.SupportedLanguage.Sanskrit
-            },
-            {
-                label: (0, i18n_1.localize)('language.cmn', 'Mandarin'),
-                description: '普通话',
-                language: i18n_1.SupportedLanguage.Mandarin
-            },
-            {
-                label: (0, i18n_1.localize)('language.tr', 'Turkish'),
-                description: 'Türkçe',
-                language: i18n_1.SupportedLanguage.Turkish
-            },
-            {
-                label: (0, i18n_1.localize)('language.cs', 'Czech'),
-                description: 'Čeština',
-                language: i18n_1.SupportedLanguage.Czech
-            },
-            {
-                label: (0, i18n_1.localize)('language.sk', 'Slovak'),
-                description: 'Slovenčina',
-                language: i18n_1.SupportedLanguage.Slovak
-            },
-            {
-                label: (0, i18n_1.localize)('language.hu', 'Hungarian'),
-                description: 'Magyar',
-                language: i18n_1.SupportedLanguage.Hungarian
-            },
-            {
-                label: (0, i18n_1.localize)('language.sr', 'Serbian'),
-                description: 'Српски',
-                language: i18n_1.SupportedLanguage.Serbian
-            },
-            {
-                label: (0, i18n_1.localize)('language.sq', 'Albanian'),
-                description: 'Shqip',
-                language: i18n_1.SupportedLanguage.Albanian
-            }
-        ];
+        const languages = this.selectorService.getSupportedLanguages();
         const currentLanguage = (0, i18n_1.getCurrentLanguage)();
-        const selected = await vscode.window.showQuickPick(languages, {
-            placeHolder: (0, i18n_1.localize)('language.select', 'Select Language'),
-            matchOnDescription: true
-        });
+        const selected = await this.selectorService.showLanguageQuickPick(languages);
         if (selected && selected.language !== currentLanguage) {
-            // Update language
-            await vscode.commands.executeCommand('localLlmAgent.setLanguage', selected.language);
+            await this.configService.updateLanguage(selected.language);
         }
     }
 }
