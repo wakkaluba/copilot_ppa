@@ -1,24 +1,22 @@
 import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { ILogger } from '../types';
-import { ModelPerformanceMetrics, SystemInfo } from '../types';
+import { Logger } from '../../utils/logger';
+import { ModelPerformanceMetrics } from '../types';
 
 interface MetricsSnapshot {
     timestamp: number;
     metrics: ModelPerformanceMetrics;
 }
 
-@injectable()
 export class ModelMetricsManager extends EventEmitter implements vscode.Disposable {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly metricsHistory = new Map<string, MetricsSnapshot[]>();
     private readonly retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
     private readonly samplingInterval = 60 * 1000; // 1 minute
+    private cleanupInterval: NodeJS.Timeout | null = null;
+    private readonly logger = new Logger();
 
-    constructor(
-        @inject(ILogger) private readonly logger: ILogger
-    ) {
+    constructor() {
         super();
         this.outputChannel = vscode.window.createOutputChannel('Model Metrics');
         this.startPeriodicCleanup();
@@ -39,14 +37,19 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
         return this.metricsHistory.get(modelId) || [];
     }
 
+    private getLatestSnapshot(history: MetricsSnapshot[]): MetricsSnapshot | undefined {
+        return history.length > 0 ? history[history.length - 1] : undefined;
+    }
+
     public getLatestMetrics(modelId: string): ModelPerformanceMetrics | undefined {
         const history = this.getMetricsHistory(modelId);
-        return history.length > 0 ? history[history.length - 1].metrics : undefined;
+        return this.getLatestSnapshot(history)?.metrics;
     }
 
     public getAggregateMetrics(modelId: string): ModelPerformanceMetrics | undefined {
         const history = this.getMetricsHistory(modelId);
-        if (history.length === 0) return undefined;
+        const latest = this.getLatestSnapshot(history);
+        if (!latest) return undefined;
 
         return {
             averageResponseTime: this.calculateAverageResponseTime(history),
@@ -54,7 +57,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
             errorRate: this.calculateAverageErrorRate(history),
             totalRequests: this.calculateTotalRequests(history),
             totalTokens: this.calculateTotalTokens(history),
-            lastUsed: new Date(history[history.length - 1].timestamp)
+            lastUsed: new Date(latest.timestamp)
         };
     }
 
@@ -145,7 +148,11 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     }
 
     private startPeriodicCleanup(): void {
-        setInterval(() => {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+        }
+        
+        this.cleanupInterval = setInterval(() => {
             try {
                 this.cleanupOldMetrics();
             } catch (error) {
@@ -188,13 +195,17 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     }
 
     private handleError(message: string, error: Error): void {
-        this.logger.error('[ModelMetricsManager]', message, error);
+        this.logger.error(`[ModelMetricsManager] ${message}: ${error.message}`);
         this.emit('error', error);
         this.outputChannel.appendLine(`\nError: ${message}`);
         this.outputChannel.appendLine(error.stack || error.message);
     }
 
     public dispose(): void {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
         this.outputChannel.dispose();
         this.removeAllListeners();
         this.metricsHistory.clear();

@@ -17,7 +17,7 @@ export class KeyboardShortcutsViewProvider implements vscode.WebviewViewProvider
         webviewView: vscode.WebviewView,
         _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken
-    ) {
+    ): void {
         this._view = webviewView;
 
         webviewView.webview.options = {
@@ -51,7 +51,7 @@ export class KeyboardShortcutsViewProvider implements vscode.WebviewViewProvider
     /**
      * Load and display keybindings in the webview
      */
-    private _loadKeybindings() {
+    private _loadKeybindings(): void {
         if (!this._view) {
             return;
         }
@@ -68,7 +68,7 @@ export class KeyboardShortcutsViewProvider implements vscode.WebviewViewProvider
     /**
      * Handle editing a keybinding
      */
-    private async _editKeybinding(id: string) {
+    private async _editKeybinding(id: string): Promise<void> {
         const keybindingManager = getKeybindingManager();
         const keybinding = keybindingManager.getKeybinding(id);
 
@@ -92,7 +92,7 @@ export class KeyboardShortcutsViewProvider implements vscode.WebviewViewProvider
     /**
      * Generate the webview HTML
      */
-    private _getHtmlForWebview(_webview: vscode.Webview) {
+    private _getHtmlForWebview(_webview: vscode.Webview): string {
         return `<!DOCTYPE html>
         <html lang="en">
         <head>

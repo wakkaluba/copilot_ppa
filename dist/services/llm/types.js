@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChatError = exports.ChatEvent = exports.ChatState = exports.ChatRole = exports.ProviderError = exports.ProviderEvent = exports.ProviderConnectionState = exports.ProviderState = exports.ProviderStatus = exports.LLMConnectionError = exports.LLMConnectionErrorCode = exports.ConnectionEvent = void 0;
+exports.ModelInitError = exports.ModelLoadError = exports.ModelEvents = exports.ChatError = exports.ChatEvent = exports.ChatState = exports.ChatRole = exports.ProviderError = exports.ProviderEvent = exports.ProviderConnectionState = exports.ProviderState = exports.ProviderStatus = exports.LLMConnectionError = exports.LLMConnectionErrorCode = exports.ConnectionEvent = void 0;
 const errors_1 = require("./errors");
 /**
  * LLM connection events
@@ -125,4 +125,36 @@ class ChatError extends errors_1.Error {
     }
 }
 exports.ChatError = ChatError;
+var ModelEvents;
+(function (ModelEvents) {
+    ModelEvents["Registered"] = "modelRegistered";
+    ModelEvents["Loading"] = "modelLoading";
+    ModelEvents["Loaded"] = "modelLoaded";
+    ModelEvents["LoadError"] = "modelLoadError";
+    ModelEvents["Unloading"] = "modelUnloading";
+    ModelEvents["Unloaded"] = "modelUnloaded";
+    ModelEvents["UnloadError"] = "modelUnloadError";
+    ModelEvents["Updated"] = "modelUpdated";
+    ModelEvents["StatsUpdated"] = "modelStatsUpdated";
+    ModelEvents["StatusChanged"] = "modelStatusChanged";
+    ModelEvents["Removed"] = "modelRemoved";
+})(ModelEvents || (exports.ModelEvents = ModelEvents = {}));
+class ModelLoadError extends errors_1.Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = 'ModelLoadError';
+    }
+}
+exports.ModelLoadError = ModelLoadError;
+class ModelInitError extends errors_1.Error {
+    cause;
+    constructor(message, cause) {
+        super(message);
+        this.cause = cause;
+        this.name = 'ModelInitializationError';
+    }
+}
+exports.ModelInitError = ModelInitError;
 //# sourceMappingURL=types.js.map

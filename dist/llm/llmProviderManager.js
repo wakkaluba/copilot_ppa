@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderManager = void 0;
 const events_1 = require("events");
+const llm_1 = require("../types/llm");
 const LLMConnectionManager_1 = require("../services/llm/LLMConnectionManager");
 const llm_provider_1 = require("./llm-provider");
 const multilingualPromptManager_1 = require("./multilingualPromptManager");
@@ -150,6 +151,20 @@ class LLMProviderManager extends events_1.EventEmitter {
             throw new llm_provider_1.LLMProviderError('NO_ACTIVE_PROVIDER', 'No LLM provider is currently connected');
         }
         return provider.getAvailableModels();
+    }
+    async continueIteration() {
+        if (!this.activeProvider) {
+            throw new llm_provider_1.LLMProviderError('NO_ACTIVE_PROVIDER', 'No active provider set');
+        }
+        const provider = this.getActiveProvider();
+        if (!provider) {
+            return false;
+        }
+        const currentState = await this.connectionManager.getCurrentState();
+        if (currentState !== llm_1.ConnectionState.CONNECTED) {
+            return this.connect();
+        }
+        return true;
     }
     handleConnectionStateChange(state) {
         this.emit('connectionStateChanged', state);

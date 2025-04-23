@@ -1,18 +1,22 @@
 import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../logging/ILogger';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'vscode';
 import { 
     LLMModelInfo, 
     ModelEvent,
     ModelValidationResult,
     ModelMetrics,
-    ModelConfig
+    ModelConfig,
+    HardwareSpecs,
+    ModelRecommendation
 } from './types';
 import { ModelDiscoveryService } from './services/ModelDiscoveryService';
 import { ModelMetricsService } from './services/ModelMetricsService';
 import { ModelValidationService } from './services/ModelValidationService';
 import { TelemetryService } from '../services/TelemetryService';
+
+export { LLMModelInfo, HardwareSpecs, ModelRecommendation };
 
 @injectable()
 export class ModelService extends EventEmitter {

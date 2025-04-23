@@ -1,31 +1,31 @@
-export interface ChatMessage {
+export interface IChatMessage {
     id?: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
 }
 
-export interface Conversation {
+export interface IConversation {
     id: string;
     title: string;
-    messages: ChatMessage[];
+    messages: IChatMessage[];
     created: number;
     updated: number;
 }
 
-export interface ConversationSearchResult {
-    conversation: Conversation;
-    matches: MessageMatch[];
+export interface IConversationSearchResult {
+    conversation: IConversation;
+    matches: IMessageMatch[];
     titleMatch?: boolean;
     score: number;
 }
 
-export interface MessageMatch {
-    message: ChatMessage;
+export interface IMessageMatch {
+    message: IChatMessage;
     matchPositions: [number, number][]; // Start and end positions of matches
 }
 
-export interface SearchOptions {
+export interface ISearchOptions {
     query: string;
     searchInTitles?: boolean;
     searchInContent?: boolean;

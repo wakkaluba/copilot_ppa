@@ -1,138 +1,197 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UISettingsPanel = void 0;
+const vscode = __importStar(require("vscode"));
+const UISettingsWebviewService_1 = require("./services/UISettingsWebviewService");
+const themeManager_1 = require("../services/ui/themeManager");
+const logger_1 = require("../utils/logger");
 class UISettingsPanel {
-    _panel;
-    _disposables = [];
-    constructor(panel) {
-        this._panel = panel;
-        // Set the webview's initial html content
-        this._panel.webview.html = this._getHtmlForWebview();
-        // Listen for when the panel is disposed
-        // This happens when the user closes the panel or when the panel is closed programmatically
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(message => {
-            switch (message.command) {
-                case 'selectTab':
-                    const tabToSelect = message.tab;
-                    if (tabToSelect) {
-                        // Handle selecting a tab
-                        const tabSelector = '.tab[data-tab="' + tabToSelect + '"]';
-                        const tabEl = document.querySelector(tabSelector);
-                        if (tabEl) {
-                            tabEl.click();
-                        }
-                    }
-                    break;
-            }
-        }, null, this._disposables);
+    context;
+    static instance;
+    logger;
+    webviewService;
+    panel;
+    disposables = [];
+    constructor(context) {
+        this.context = context;
+        this.logger = logger_1.Logger.getInstance();
+        this.webviewService = new UISettingsWebviewService_1.UISettingsWebviewService(themeManager_1.ThemeService.getInstance());
     }
-    /**
-     * Select a specific tab in the panel
-     */
-    selectTab(tabName) {
-        if (!this._panel.visible) {
-            return;
+    static getInstance(context) {
+        if (!UISettingsPanel.instance) {
+            UISettingsPanel.instance = new UISettingsPanel(context);
         }
-        this._panel.webview.postMessage({
-            command: 'selectTab',
-            tab: tabName
-        });
+        return UISettingsPanel.instance;
     }
-    _getHtmlForWebview() {
-        return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Settings</title>
-                <style>
-                    .tab-container {
-                        margin-bottom: 20px;
-                    }
-                    .tab {
-                        padding: 8px 16px;
-                        cursor: pointer;
-                        border: none;
-                        background: none;
-                        color: var(--vscode-foreground);
-                    }
-                    .tab.active {
-                        border-bottom: 2px solid var(--vscode-focusBorder);
-                    }
-                    .tab-content {
-                        display: none;
-                    }
-                    .tab-content.active {
-                        display: block;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="tab-container">
-                    <button class="tab active" data-tab="general">General</button>
-                    <button class="tab" data-tab="advanced">Advanced</button>
+    async show() {
+        try {
+            if (this.panel) {
+                this.panel.reveal();
+                return;
+            }
+            this.panel = vscode.window.createWebviewPanel('uiSettingsPanel', 'Settings', vscode.ViewColumn.One, {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+            });
+            const tabs = [
+                {
+                    id: 'general',
+                    label: 'General',
+                    content: this.getGeneralSettingsContent()
+                },
+                {
+                    id: 'advanced',
+                    label: 'Advanced',
+                    content: this.getAdvancedSettingsContent()
+                }
+            ];
+            this.panel.webview.html = this.webviewService.generateWebviewContent(tabs);
+            this.registerMessageHandlers();
+            this.panel.onDidDispose(() => {
+                this.panel = undefined;
+                this.dispose();
+            }, null, this.disposables);
+        }
+        catch (error) {
+            this.logger.error('Error showing UI settings panel', error);
+            throw error;
+        }
+    }
+    registerMessageHandlers() {
+        if (!this.panel)
+            return;
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            try {
+                switch (message.command) {
+                    case 'tabChanged':
+                        await this.handleTabChange(message.tab);
+                        break;
+                    case 'updateSetting':
+                        await this.handleSettingUpdate(message.key, message.value);
+                        break;
+                    default:
+                        this.logger.warn(`Unknown message command: ${message.command}`);
+                }
+            }
+            catch (error) {
+                this.logger.error('Error handling settings panel message', error);
+                this.showErrorMessage('Failed to process command');
+            }
+        }, undefined, this.disposables);
+    }
+    selectTab(tabName) {
+        if (!this.panel?.visible)
+            return;
+        try {
+            this.panel.webview.postMessage({
+                command: 'selectTab',
+                tab: tabName
+            });
+        }
+        catch (error) {
+            this.logger.error('Error selecting tab', error);
+            this.showErrorMessage('Failed to switch tab');
+        }
+    }
+    showErrorMessage(message) {
+        if (this.panel) {
+            this.panel.webview.postMessage({
+                command: 'showError',
+                message
+            });
+        }
+    }
+    getGeneralSettingsContent() {
+        return `
+            <div class="setting-group">
+                <h2>General Settings</h2>
+                <div class="setting-item">
+                    <label for="theme">Theme</label>
+                    <select id="theme">
+                        <option value="system">System Default</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
                 </div>
-                <div id="general" class="tab-content active">
-                    <h2>General Settings</h2>
-                    <!-- Add general settings content here -->
+                <div class="setting-item">
+                    <label for="language">Language</label>
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                    </select>
                 </div>
-                <div id="advanced" class="tab-content">
-                    <h2>Advanced Settings</h2>
-                    <!-- Add advanced settings content here -->
+            </div>
+        `;
+    }
+    getAdvancedSettingsContent() {
+        return `
+            <div class="setting-group">
+                <h2>Advanced Settings</h2>
+                <div class="setting-item">
+                    <label for="caching">Enable Caching</label>
+                    <input type="checkbox" id="caching" />
                 </div>
-
-                <script>
-                    (function() {
-                        const vscode = acquireVsCodeApi();
-                        const tabs = document.querySelectorAll('.tab');
-                        const tabContents = document.querySelectorAll('.tab-content');
-
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                // Remove active class from all tabs and contents
-                                tabs.forEach(t => t.classList.remove('active'));
-                                tabContents.forEach(c => c.classList.remove('active'));
-
-                                // Add active class to clicked tab and corresponding content
-                                tab.classList.add('active');
-                                const tabName = tab.getAttribute('data-tab');
-                                document.getElementById(tabName).classList.add('active');
-                            });
-                        });
-
-                        // Handle messages from the extension
-                        window.addEventListener('message', event => {
-                            const message = event.data;
-                            switch (message.command) {
-                                case 'selectTab':
-                                    const tabToSelect = message.tab;
-                                    if (tabToSelect) {
-                                        // Handle selecting a tab
-                                        const tabSelector = '.tab[data-tab="' + tabToSelect + '"]';
-                                        const tabEl = document.querySelector(tabSelector);
-                                        if (tabEl) {
-                                            tabEl.click();
-                                        }
-                                    }
-                                    break;
-                            }
-                        });
-                    }())
-                </script>
-            </body>
-            </html>`;
+                <div class="setting-item">
+                    <label for="logging">Logging Level</label>
+                    <select id="logging">
+                        <option value="error">Error</option>
+                        <option value="warn">Warning</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+    async handleTabChange(tab) {
+        // Implementation for tab change handling
+    }
+    async handleSettingUpdate(key, value) {
+        // Implementation for setting update handling
     }
     dispose() {
-        // Clean up our resources
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
-            }
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
         }
+        this.disposables.forEach(d => d.dispose());
+        this.disposables.length = 0;
+        UISettingsPanel.instance = undefined;
     }
 }
 exports.UISettingsPanel = UISettingsPanel;

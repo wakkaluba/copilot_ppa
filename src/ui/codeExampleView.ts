@@ -31,7 +31,9 @@ export class CodeExampleViewProvider implements vscode.WebviewViewProvider {
     }
 
     private setupWebview(): void {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         this._view.webview.html = this.htmlService.generateCodeExampleHtml(this._view.webview);
         this._view.webview.onDidReceiveMessage(this.handleWebviewMessage.bind(this));
@@ -52,7 +54,9 @@ export class CodeExampleViewProvider implements vscode.WebviewViewProvider {
     }
 
     public async searchCodeExamples(query: string, language?: string): Promise<void> {
-        if (!this._view) return;
+        if (!this._view) {
+            return;
+        }
 
         this.webviewService.setLoading(true);
 

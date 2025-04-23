@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { TerminalShellType, CommandHistoryEntry } from './types';
 import { InteractiveShell } from './interactiveShell';
 import { LLMProviderManager } from '../llm/providerManager';
+import * as fs from 'fs';
+import * as path from 'path';
+import { spawn } from 'child_process';
 
 /**
  * Provides AI-powered assistance for terminal commands
@@ -213,10 +216,6 @@ Ensure the command is:
         }
 
         try {
-            const { spawn } = require('child_process');
-            const fs = require('fs');
-            const path = require('path');
-            
             let contextInfo = '';
             
             // Check if it's a git repository
@@ -300,9 +299,6 @@ Ensure the command is:
      */
     private checkForFileTypes(directory: string, extensions: string[]): boolean {
         try {
-            const fs = require('fs');
-            const path = require('path');
-            
             // Get top-level files only (for performance)
             const files = fs.readdirSync(directory);
             
@@ -461,13 +457,13 @@ Format your response using these exact headings.
         };
         
         // Extract purpose (overall purpose section)
-        const purposeMatch = response.match(/(?:Overall purpose|Purpose)(?:[:\-])?\s*(.*?)(?=Component breakdown|$)/si);
+        const purposeMatch = response.match(/(?:Overall purpose|Purpose)(?:[:-])?\s*(.*?)(?=Component breakdown|$)/si);
         if (purposeMatch && purposeMatch[1]) {
             analysis.purpose = purposeMatch[1].trim();
         }
         
         // Extract component breakdown
-        const componentsMatch = response.match(/Component breakdown(?:[:\-])?\s*(.*?)(?=Potential risks|Risks|$)/si);
+        const componentsMatch = response.match(/Component breakdown(?:[:-])?\s*(.*?)(?=Potential risks|Risks|$)/si);
         if (componentsMatch && componentsMatch[1]) {
             // Split components by bullet points or numbered list
             const componentsText = componentsMatch[1].trim();
@@ -478,7 +474,7 @@ Format your response using these exact headings.
         }
         
         // Extract risks
-        const risksMatch = response.match(/(?:Potential risks|Risks)(?:[:\-])?\s*(.*?)(?=Performance|$)/si);
+        const risksMatch = response.match(/(?:Potential risks|Risks)(?:[:-])?\s*(.*?)(?=Performance|$)/si);
         if (risksMatch && risksMatch[1]) {
             // Split risks by bullet points or numbered list
             const risksText = risksMatch[1].trim();
@@ -489,13 +485,13 @@ Format your response using these exact headings.
         }
         
         // Extract performance considerations
-        const performanceMatch = response.match(/Performance(?:[:\-])?\s*(.*?)(?=Alternatives|$)/si);
+        const performanceMatch = response.match(/Performance(?:[:-])?\s*(.*?)(?=Alternatives|$)/si);
         if (performanceMatch && performanceMatch[1]) {
             analysis.performance = performanceMatch[1].trim();
         }
         
         // Extract alternatives
-        const alternativesMatch = response.match(/Alternatives(?:[:\-])?\s*(.*?)(?=$)/si);
+        const alternativesMatch = response.match(/Alternatives(?:[:-])?\s*(.*?)(?=$)/si);
         if (alternativesMatch && alternativesMatch[1]) {
             // Split alternatives by bullet points or numbered list
             const alternativesText = alternativesMatch[1].trim();

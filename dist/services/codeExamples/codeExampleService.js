@@ -1,123 +1,102 @@
 "use strict";
+var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+};
+var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeExampleService = void 0;
-const githubApiService_1 = require("./githubApiService");
-class CodeExampleService {
-    githubApiService;
-    constructor(context) {
-        this.githubApiService = new githubApiService_1.GitHubApiService(context);
-    }
-    /**
-     * Search for code examples based on the current context
-     * @param query Search query
-     * @param contextInfo Additional context information
-     * @returns Array of code examples
-     */
-    async searchExamples(query, contextInfo) {
-        try {
-            // Get raw examples from GitHub
-            const githubItems = await this.githubApiService.searchCodeExamples(query, contextInfo?.language, contextInfo?.maxResults || 5);
-            // Transform GitHub items to CodeExample format
-            const examples = [];
-            for (const item of githubItems) {
-                try {
-                    // Get file content
-                    const fileContent = await this.githubApiService.getFileContent(item.git_url);
-                    examples.push({
-                        title: item.path.split('/').pop() || '',
-                        description: `From repository: ${item.repository.full_name}`,
-                        language: item.repository.language || this.detectLanguageFromFilename(item.name),
-                        code: fileContent,
-                        source: {
-                            name: item.repository.full_name,
-                            url: item.html_url
-                        },
-                        stars: item.repository.stargazers_count
-                    });
-                }
-                catch (error) {
-                    console.error(`Error processing GitHub item ${item.html_url}:`, error);
-                    // Continue with next item
-                }
-            }
-            return examples;
+const vscode_1 = require("vscode");
+const inversify_1 = require("inversify");
+let CodeExampleService = (() => {
+    let _classDecorators = [(0, inversify_1.injectable)()];
+    let _classDescriptor;
+    let _classExtraInitializers = [];
+    let _classThis;
+    var CodeExampleService = class {
+        static { _classThis = this; }
+        static {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+            __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
+            CodeExampleService = _classThis = _classDescriptor.value;
+            if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+            __runInitializers(_classThis, _classExtraInitializers);
         }
-        catch (error) {
-            console.error('Error searching for code examples:', error);
-            throw new Error(`Failed to search for code examples: ${error instanceof Error ? error.message : String(error)}`);
+        githubApi;
+        searchIndex;
+        _onDidUpdateExamples = new vscode_1.EventEmitter();
+        disposables = [];
+        constructor(githubApi, searchIndex) {
+            this.githubApi = githubApi;
+            this.searchIndex = searchIndex;
+            this.disposables.push(this._onDidUpdateExamples);
         }
-    }
-    /**
-     * Filter examples by relevance based on current context
-     * @param examples Array of code examples
-     * @param context Current context
-     * @returns Filtered examples
-     */
-    filterExamplesByRelevance(examples, context) {
-        return examples
-            .filter(example => {
-            // Filter by language if specified
-            if (context.language && example.language) {
-                const exampleLang = example.language.toLowerCase();
-                const contextLang = context.language.toLowerCase();
-                // If languages don't match, lower relevance
-                if (exampleLang !== contextLang) {
-                    // Allow some exceptions (e.g. typescript/javascript)
-                    if (!(exampleLang === 'typescript' && contextLang === 'javascript') &&
-                        !(exampleLang === 'javascript' && contextLang === 'typescript')) {
-                        return false;
-                    }
-                }
+        async searchExamples(query, language) {
+            try {
+                const results = await this.searchIndex.search(query, language);
+                return this.processResults(results);
             }
-            return true;
-        })
-            .sort((a, b) => {
-            let scoreA = 0;
-            let scoreB = 0;
-            // Higher stars means better example
-            scoreA += (a.stars || 0) / 100;
-            scoreB += (b.stars || 0) / 100;
-            // Check how many keywords match in the code
-            for (const keyword of context.keywords) {
-                if (a.code.includes(keyword))
-                    scoreA += 1;
-                if (b.code.includes(keyword))
-                    scoreB += 1;
+            catch (error) {
+                this.handleError('Failed to search code examples', error);
+                return [];
             }
-            return scoreB - scoreA;
-        });
-    }
-    /**
-     * Detect programming language from filename
-     * @param filename Filename to analyze
-     * @returns Detected language or 'text'
-     */
-    detectLanguageFromFilename(filename) {
-        const extension = filename.split('.').pop()?.toLowerCase() || '';
-        const extensionMap = {
-            'js': 'javascript',
-            'ts': 'typescript',
-            'py': 'python',
-            'java': 'java',
-            'rb': 'ruby',
-            'php': 'php',
-            'cs': 'csharp',
-            'go': 'go',
-            'rs': 'rust',
-            'c': 'c',
-            'cpp': 'cpp',
-            'html': 'html',
-            'css': 'css',
-            'md': 'markdown',
-            'json': 'json',
-            'yml': 'yaml',
-            'yaml': 'yaml',
-            'sh': 'shell',
-            'bat': 'batch',
-            'ps1': 'powershell'
-        };
-        return extensionMap[extension] || 'text';
-    }
-}
+        }
+        async refreshExamples() {
+            try {
+                await this.searchIndex.rebuild();
+                this._onDidUpdateExamples.fire();
+            }
+            catch (error) {
+                this.handleError('Failed to refresh code examples', error);
+            }
+        }
+        processResults(results) {
+            return results.map(result => ({
+                id: result.id,
+                title: result.title,
+                code: result.content,
+                language: result.language,
+                source: result.source
+            }));
+        }
+        handleError(message, error) {
+            console.error(message, error);
+            // Add telemetry/logging here
+        }
+        dispose() {
+            this.disposables.forEach(d => d.dispose());
+        }
+    };
+    return CodeExampleService = _classThis;
+})();
 exports.CodeExampleService = CodeExampleService;
 //# sourceMappingURL=codeExampleService.js.map

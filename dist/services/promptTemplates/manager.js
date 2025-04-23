@@ -141,7 +141,7 @@ class PromptTemplateManager {
         const selectedText = editor.document.getText(selection);
         const language = editor.document.languageId;
         // Format the prompt with template variables
-        let formattedPrompt = template.content
+        const formattedPrompt = template.content
             .replace(/\{\{selection\}\}/g, selectedText)
             .replace(/\{\{language\}\}/g, language);
         // Additional variables could be added here
@@ -164,8 +164,8 @@ function initializePromptTemplateManager(context) {
     return promptTemplateManager;
 }
 /**
- * Get the prompt template manager instance
- */
+     * Get the prompt template manager instance
+     */
 function getPromptTemplateManager() {
     if (!promptTemplateManager) {
         throw new Error('Prompt Template Manager not initialized');

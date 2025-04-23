@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'vscode';
 import { LLMHostManager } from '../services/llm/LLMHostManager';
 import { LLMConnectionManager } from '../services/llm/LLMConnectionManager';
 
-export type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error';
+export enum ConnectionState {
+    Connected = 'connected',
+    Disconnected = 'disconnected',
+    Error = 'error'
+}
 
 export interface ConnectionStatus {
     state: ConnectionState;
@@ -14,7 +18,7 @@ export interface ConnectionStatus {
 
 export class ConnectionStatusService extends EventEmitter implements vscode.Disposable {
     private _status: ConnectionStatus = {
-        state: 'disconnected',
+        state: ConnectionState.Disconnected,
         lastUpdate: new Date()
     };
     private readonly _onStatusChanged = new vscode.EventEmitter<ConnectionState>();
@@ -38,7 +42,7 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
         });
 
         this.connectionManager.on('error', (error) => {
-            this.setStatus('error', error.message, error);
+            this.setStatus(ConnectionState.Error, error.message, error);
         });
     }
 
@@ -46,15 +50,15 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
         switch (hostState) {
             case 'RUNNING':
                 // Only update if we're not already connected
-                if (this._status.state !== 'connected') {
-                    this.setStatus('connecting', 'LLM host is running, establishing connection...');
+                if (this._status.state !== ConnectionState.Connected) {
+                    this.setStatus(ConnectionState.Disconnected, 'LLM host is running, establishing connection...');
                 }
                 break;
             case 'STOPPED':
-                this.setStatus('disconnected', 'LLM host is stopped');
+                this.setStatus(ConnectionState.Disconnected, 'LLM host is stopped');
                 break;
             case 'ERROR':
-                this.setStatus('error', 'LLM host encountered an error');
+                this.setStatus(ConnectionState.Error, 'LLM host encountered an error');
                 break;
         }
     }
@@ -62,16 +66,16 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
     private updateFromConnectionState(connectionState: string): void {
         switch (connectionState) {
             case 'CONNECTED':
-                this.setStatus('connected', 'Connected to LLM service');
+                this.setStatus(ConnectionState.Connected, 'Connected to LLM service');
                 break;
             case 'CONNECTING':
-                this.setStatus('connecting', 'Establishing connection to LLM service...');
+                this.setStatus(ConnectionState.Disconnected, 'Establishing connection to LLM service...');
                 break;
             case 'DISCONNECTED':
-                this.setStatus('disconnected', 'Disconnected from LLM service');
+                this.setStatus(ConnectionState.Disconnected, 'Disconnected from LLM service');
                 break;
             case 'ERROR':
-                this.setStatus('error', 'Connection error');
+                this.setStatus(ConnectionState.Error, 'Connection error');
                 break;
         }
     }

@@ -59,8 +59,9 @@ class CodeExampleViewProvider {
         this.setupWebview();
     }
     setupWebview() {
-        if (!this._view)
+        if (!this._view) {
             return;
+        }
         this._view.webview.html = this.htmlService.generateCodeExampleHtml(this._view.webview);
         this._view.webview.onDidReceiveMessage(this.handleWebviewMessage.bind(this));
     }
@@ -78,8 +79,9 @@ class CodeExampleViewProvider {
         }
     }
     async searchCodeExamples(query, language) {
-        if (!this._view)
+        if (!this._view) {
             return;
+        }
         this.webviewService.setLoading(true);
         try {
             const editor = vscode.window.activeTextEditor;

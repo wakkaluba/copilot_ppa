@@ -43,7 +43,9 @@ export class DependencyAnalysisCommand {
     private async handleAnalyzeDependencies(): Promise<void> {
         try {
             const workspaceRoot = this.getWorkspaceRoot();
-            if (!workspaceRoot) return;
+            if (!workspaceRoot) {
+                return;
+            }
 
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -78,7 +80,9 @@ export class DependencyAnalysisCommand {
     private async handleShowDependencyGraph(): Promise<void> {
         try {
             const workspaceRoot = this.getWorkspaceRoot();
-            if (!workspaceRoot) return;
+            if (!workspaceRoot) {
+                return;
+            }
 
             await this.graphProvider.show(workspaceRoot);
         } catch (error) {

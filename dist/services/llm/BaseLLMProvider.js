@@ -141,6 +141,39 @@ class BaseLLMProvider extends events_1.EventEmitter {
         }
         this.removeAllListeners();
     }
+    /**
+     * Perform model load
+     */
+    async performModelLoad(modelInfo) {
+        try {
+            await this.loadModel(modelInfo);
+            this.currentModel = modelInfo;
+            this.emit('modelLoaded', modelInfo);
+        }
+        catch (error) {
+            const formattedError = (0, connectionUtils_1.formatProviderError)(error, this.name);
+            this.handleError(formattedError);
+            throw formattedError;
+        }
+    }
+    /**
+     * Perform model unload
+     */
+    async performModelUnload() {
+        if (this.currentModel) {
+            try {
+                await this.performDisconnect();
+                const previousModel = this.currentModel;
+                this.currentModel = undefined;
+                this.emit('modelUnloaded', previousModel);
+            }
+            catch (error) {
+                const formattedError = (0, connectionUtils_1.formatProviderError)(error, this.name);
+                this.handleError(formattedError);
+                throw formattedError;
+            }
+        }
+    }
 }
 exports.BaseLLMProvider = BaseLLMProvider;
 //# sourceMappingURL=BaseLLMProvider.js.map

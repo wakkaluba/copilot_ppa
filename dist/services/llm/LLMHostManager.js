@@ -41,21 +41,23 @@ const LLMHostProcessService_1 = require("./services/LLMHostProcessService");
 const LLMHostHealthMonitorService_1 = require("./services/LLMHostHealthMonitorService");
 const LLMHostStateService_1 = require("./services/LLMHostStateService");
 const LLMHostErrorHandlerService_1 = require("./services/LLMHostErrorHandlerService");
+/**
+ * Manages LLM host processes and their lifecycle
+ */
 class LLMHostManager extends events_1.EventEmitter {
     static instance;
-    outputChannel;
     processService;
-    healthMonitorService;
+    healthMonitor;
     stateService;
-    errorHandlerService;
+    errorHandler;
     constructor() {
         super();
-        this.outputChannel = vscode.window.createOutputChannel('LLM Host');
-        this.processService = new LLMHostProcessService_1.LLMHostProcessService(this.outputChannel);
-        this.healthMonitorService = new LLMHostHealthMonitorService_1.LLMHostHealthMonitorService(this.outputChannel);
+        const outputChannel = vscode.window.createOutputChannel('LLM Host');
+        this.processService = new LLMHostProcessService_1.LLMHostProcessService(outputChannel);
+        this.healthMonitor = new LLMHostHealthMonitorService_1.LLMHostHealthMonitorService(outputChannel);
         this.stateService = new LLMHostStateService_1.LLMHostStateService();
-        this.errorHandlerService = new LLMHostErrorHandlerService_1.LLMHostErrorHandlerService(this.outputChannel);
-        this.setupEventListeners();
+        this.errorHandler = new LLMHostErrorHandlerService_1.LLMHostErrorHandlerService(outputChannel);
+        this.setupEventHandlers();
     }
     static getInstance() {
         if (!this.instance) {
@@ -66,6 +68,30 @@ class LLMHostManager extends events_1.EventEmitter {
     get state() {
         return this.stateService.getCurrentState();
     }
+    setupEventHandlers() {
+        // Process events
+        this.processService.on('process:started', info => {
+            this.healthMonitor.startMonitoring(info);
+            this.emit('hostStarted', info);
+        });
+        this.processService.on('process:stopped', info => {
+            this.healthMonitor.stopMonitoring(info.pid);
+            this.emit('hostStopped', info);
+        });
+        this.processService.on('process:error', (error, info) => {
+            this.errorHandler.handleProcessError(error, info);
+            this.emit('hostError', error);
+        });
+        // Health events
+        this.healthMonitor.on('health:warning', (msg, metrics) => {
+            this.errorHandler.handleHealthWarning(msg, metrics);
+            this.emit('healthWarning', msg);
+        });
+        this.healthMonitor.on('health:critical', (error, metrics) => {
+            this.errorHandler.handleHealthCritical(error, metrics);
+            this.emit('healthCritical', error);
+        });
+    }
     async startHost(config) {
         try {
             if (this.state === llm_1.HostState.RUNNING) {
@@ -73,11 +99,11 @@ class LLMHostManager extends events_1.EventEmitter {
             }
             this.stateService.updateState(llm_1.HostState.STARTING);
             const process = await this.processService.startProcess(config);
-            this.healthMonitorService.startMonitoring(process);
+            this.healthMonitor.startMonitoring(process);
             this.stateService.updateState(llm_1.HostState.RUNNING);
         }
         catch (error) {
-            this.errorHandlerService.handleError(error);
+            this.errorHandler.handleStartError(error);
             throw error;
         }
     }
@@ -86,15 +112,18 @@ class LLMHostManager extends events_1.EventEmitter {
             return;
         }
         try {
-            this.healthMonitorService.stopMonitoring();
+            this.healthMonitor.stopMonitoring();
             await this.processService.stopProcess();
             this.stateService.updateState(llm_1.HostState.STOPPED);
             this.emit('stopped');
         }
         catch (error) {
-            this.errorHandlerService.handleError(error);
+            this.errorHandler.handleStopError(error);
             throw error;
         }
+    }
+    isRunning() {
+        return this.state === llm_1.HostState.RUNNING && this.processService.hasProcess();
     }
     getProcessInfo() {
         if (this.state !== llm_1.HostState.RUNNING) {
@@ -102,33 +131,20 @@ class LLMHostManager extends events_1.EventEmitter {
         }
         return this.processService.getProcessInfo();
     }
-    isRunning() {
-        return this.state === llm_1.HostState.RUNNING && this.processService.hasProcess();
-    }
-    setupEventListeners() {
-        this.stateService.on('stateChanged', (event) => {
-            this.emit('stateChanged', event);
-        });
-        this.errorHandlerService.on('error', (error) => {
-            this.emit('error', error);
-        });
-        this.processService.on('processError', (error) => {
-            this.errorHandlerService.handleError(error);
-        });
-        this.processService.on('processExit', (code) => {
-            if (code !== 0) {
-                this.errorHandlerService.handleError(new Error(`Process exited with code ${code}`));
-            }
-            this.stateService.updateState(llm_1.HostState.STOPPED);
-        });
-        this.healthMonitorService.on('healthError', (error) => {
-            this.errorHandlerService.handleError(error);
-        });
+    async restartHost() {
+        try {
+            await this.stopHost();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await this.startHost();
+        }
+        catch (error) {
+            this.errorHandler.handleRestartError(error);
+            throw error;
+        }
     }
     dispose() {
         this.stopHost().catch(console.error);
-        this.outputChannel.dispose();
-        this.healthMonitorService.dispose();
+        this.healthMonitor.dispose();
         this.processService.dispose();
         this.removeAllListeners();
     }

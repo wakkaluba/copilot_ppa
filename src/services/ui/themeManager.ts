@@ -3,6 +3,9 @@ import { Theme, ThemeColors, FontSettings, UILayoutOptions, ThemeChangeEvent, UI
 import { defaultThemes } from './themes/defaults';
 import { CSSGenerator } from './themes/cssGenerator';
 import { inject, injectable } from 'inversify';
+import { EventEmitter } from 'vscode';
+
+export { Theme, ThemeColors, FontSettings, UILayoutOptions, ThemeChangeEvent, UIOptionsChangeEvent };
 
 /**
  * Manager for UI themes and customization

@@ -150,6 +150,17 @@ export interface ConnectionMetrics {
     estimatedCost: number;
 }
 
+export interface ConnectionMetrics {
+    successfulConnections: number;
+    failedConnections: number;
+    totalRequests: number;
+    averageResponseTime: number;
+    healthChecksPassed: number;
+    healthChecksFailed: number;
+    lastError?: Error;
+    lastHealthCheck?: Date;
+}
+
 /**
  * Provider descriptor for LLM
  */
@@ -342,10 +353,11 @@ export interface LLMModelInfo {
     id: string;
     name: string;
     provider: string;
-    contextLength: number;
-    parameters?: Record<string, unknown>;
     version?: string;
-    capabilities?: string[];
+    description?: string;
+    maxTokens?: number;
+    available?: boolean;
+    contextSize?: number;
 }
 
 export interface LLMMessage {
@@ -551,4 +563,69 @@ export class ChatError extends Error {
         super(message);
         this.name = 'ChatError';
     }
+}
+
+export enum ModelEvents {
+    Registered = 'modelRegistered',
+    Loading = 'modelLoading',
+    Loaded = 'modelLoaded',
+    LoadError = 'modelLoadError',
+    Unloading = 'modelUnloading',
+    Unloaded = 'modelUnloaded',
+    UnloadError = 'modelUnloadError',
+    Updated = 'modelUpdated',
+    StatsUpdated = 'modelStatsUpdated',
+    StatusChanged = 'modelStatusChanged',
+    Removed = 'modelRemoved'
+}
+
+export type ModelStatus = 'inactive' | 'loading' | 'active' | 'error' | 'unloading' | 'ready' | 'unloaded';
+
+export interface ModelStats {
+    totalRequests: number;
+    successfulRequests: number;
+    failedRequests: number;
+    averageResponseTime: number;
+    totalTokensUsed: number;
+    lastError: Error | null;
+}
+
+export interface ModelUpdate {
+    modelId: string;
+    oldInfo: LLMModelInfo;
+    newInfo: LLMModelInfo;
+    changes: Partial<LLMModelInfo>;
+    timestamp: number;
+}
+
+export interface ModelOperationResult {
+    success: boolean;
+    error?: Error;
+}
+
+export class ModelLoadError extends Error {
+    constructor(message: string, public cause?: Error) {
+        super(message);
+        this.name = 'ModelLoadError';
+    }
+}
+
+export class ModelInitError extends Error {
+    constructor(message: string, public cause?: Error) {
+        super(message);
+        this.name = 'ModelInitializationError';
+    }
+}
+
+export interface ModelLoadOptions {
+    timeout?: number;
+    retryCount?: number;
+    force?: boolean;
+}
+
+export interface ModelConfig {
+    maxTokens?: number;
+    temperature?: number;
+    contextSize?: number;
+    [key: string]: unknown;
 }

@@ -26,3 +26,6 @@ export interface StaticAnalysisResult {
     issueCount: number;
     issues: StaticAnalysisIssue[];
 }
+
+// Re-export everything for convenience
+export * from './StaticAnalysisTool';

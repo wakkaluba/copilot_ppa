@@ -67,17 +67,20 @@ class CopilotChatViewProvider {
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.command) {
-                case 'sendMessage':
+                case 'sendMessage': {
                     await this._handleSendMessage(message.text);
                     break;
-                case 'reconnect':
+                }
+                case 'reconnect': {
                     const reconnected = await this.copilotChatIntegration.initialize();
                     this._updateStatus(reconnected);
                     break;
-                case 'toggleIntegration':
+                }
+                case 'toggleIntegration': {
                     const isActive = this.copilotChatIntegration.toggleIntegration();
                     this._updateStatus(isActive);
                     break;
+                }
             }
         });
     }

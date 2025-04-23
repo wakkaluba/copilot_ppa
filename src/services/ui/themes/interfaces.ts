@@ -3,7 +3,7 @@ import { Event } from 'vscode';
 /**
  * Theme definition interface
  */
-export interface Theme {
+export interface ITheme {
     /**
      * Unique ID for the theme
      */
@@ -27,18 +27,18 @@ export interface Theme {
     /**
      * Color variables for the theme
      */
-    colors: ThemeColors;
+    colors: IThemeColors;
     
     /**
      * Font settings
      */
-    font: FontSettings;
+    font: IFontSettings;
 }
 
 /**
  * Theme colors definition
  */
-export interface ThemeColors {
+export interface IThemeColors {
     /**
      * Primary color for actions, buttons, etc.
      */
@@ -133,7 +133,7 @@ export interface ThemeColors {
 /**
  * Font settings for the UI
  */
-export interface FontSettings {
+export interface IFontSettings {
     /**
      * Font family
      */
@@ -168,7 +168,7 @@ export interface FontSettings {
 /**
  * UI layout options
  */
-export interface UILayoutOptions {
+export interface IUILayoutOptions {
     /**
      * Position of the chat input field
      */
@@ -203,28 +203,28 @@ export interface UILayoutOptions {
 /**
  * Theme change event
  */
-export interface ThemeChangeEvent {
-    theme: Theme;
-    previous?: Theme;
+export interface IThemeChangeEvent {
+    theme: ITheme;
+    previous?: ITheme;
 }
 
 /**
  * UI options change event
  */
-export interface UIOptionsChangeEvent {
-    options: UILayoutOptions;
-    previous?: UILayoutOptions;
+export interface IUIOptionsChangeEvent {
+    options: IUILayoutOptions;
+    previous?: IUILayoutOptions;
 }
 
 export interface IThemeService {
-    readonly onThemeChanged: Event<ThemeChangeEvent>;
-    readonly onUIOptionsChanged: Event<UIOptionsChangeEvent>;
-    getThemes(): Theme[];
-    getTheme(id: string): Theme | undefined;
-    getActiveTheme(): Theme;
+    readonly onThemeChanged: Event<IThemeChangeEvent>;
+    readonly onUIOptionsChanged: Event<IUIOptionsChangeEvent>;
+    getThemes(): ITheme[];
+    getTheme(id: string): ITheme | undefined;
+    getActiveTheme(): ITheme;
     setActiveTheme(id: string): boolean;
-    getUILayoutOptions(): UILayoutOptions;
-    updateUILayoutOptions(options: Partial<UILayoutOptions>): UILayoutOptions;
+    getUILayoutOptions(): IUILayoutOptions;
+    updateUILayoutOptions(options: Partial<IUILayoutOptions>): IUILayoutOptions;
     getThemeCSS(): string;
     getUILayoutCSS(): string;
 }

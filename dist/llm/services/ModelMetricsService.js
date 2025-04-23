@@ -2,81 +2,99 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelMetricsService = void 0;
 const events_1 = require("events");
-/**
- * Service for tracking model performance metrics
- */
+const logger_1 = require("../../utils/logger");
 class ModelMetricsService {
-    metrics = new Map();
-    eventEmitter = new events_1.EventEmitter();
-    /**
-     * Record metrics for a model invocation
-     */
-    recordMetrics(modelId, responseTime, tokens, error) {
-        let modelMetrics = this.metrics.get(modelId);
-        if (!modelMetrics) {
-            modelMetrics = {
-                averageResponseTime: 0,
-                tokenThroughput: 0,
+    collectionIntervalMs;
+    _metricsEmitter = new events_1.EventEmitter();
+    _metrics = new Map();
+    _logger;
+    _collectionInterval = null;
+    constructor(collectionIntervalMs = 5000) {
+        this.collectionIntervalMs = collectionIntervalMs;
+        this._logger = logger_1.Logger.for('ModelMetricsService');
+        this.startMetricsCollection();
+    }
+    async trackPerformance(modelId, metrics) {
+        try {
+            const currentMetrics = this._metrics.get(modelId) || this.createDefaultMetrics();
+            currentMetrics.performance = {
+                ...currentMetrics.performance,
+                ...metrics,
+                lastUpdated: new Date()
+            };
+            this._metrics.set(modelId, currentMetrics);
+            this._metricsEmitter.emit('performanceUpdate', { modelId, metrics });
+        }
+        catch (error) {
+            this._logger.error('Failed to track performance metrics', { modelId, error });
+            throw error;
+        }
+    }
+    async trackUsage(modelId, metrics) {
+        try {
+            const currentMetrics = this._metrics.get(modelId) || this.createDefaultMetrics();
+            currentMetrics.usage = {
+                ...currentMetrics.usage,
+                ...metrics,
+                lastUpdated: new Date()
+            };
+            this._metrics.set(modelId, currentMetrics);
+            this._metricsEmitter.emit('usageUpdate', { modelId, metrics });
+        }
+        catch (error) {
+            this._logger.error('Failed to track usage metrics', { modelId, error });
+            throw error;
+        }
+    }
+    onMetricsUpdated(listener) {
+        this._metricsEmitter.on('metricsUpdated', listener);
+        return {
+            dispose: () => this._metricsEmitter.removeListener('metricsUpdated', listener)
+        };
+    }
+    createDefaultMetrics() {
+        return {
+            performance: {
+                responseTime: 0,
+                throughput: 0,
                 errorRate: 0,
+                lastUpdated: new Date()
+            },
+            usage: {
                 totalRequests: 0,
                 totalTokens: 0,
-                lastUsed: new Date()
-            };
-            this.metrics.set(modelId, modelMetrics);
+                activeConnections: 0,
+                lastUpdated: new Date()
+            }
+        };
+    }
+    startMetricsCollection() {
+        if (this._collectionInterval)
+            return;
+        this._collectionInterval = setInterval(() => this.collectMetrics(), this.collectionIntervalMs);
+    }
+    async collectMetrics() {
+        try {
+            const timestamp = new Date();
+            for (const [modelId, metrics] of this._metrics.entries()) {
+                this._metricsEmitter.emit('metricsCollected', {
+                    modelId,
+                    metrics,
+                    timestamp
+                });
+            }
         }
-        // Update metrics
-        modelMetrics.totalRequests++;
-        modelMetrics.totalTokens += tokens;
-        const oldLastUsed = modelMetrics.lastUsed;
-        modelMetrics.lastUsed = new Date();
-        // Update moving averages
-        modelMetrics.averageResponseTime = this.calculateMovingAverage(modelMetrics.averageResponseTime, responseTime, modelMetrics.totalRequests);
-        const timespan = (modelMetrics.lastUsed.getTime() - oldLastUsed.getTime()) / 1000;
-        if (timespan > 0) {
-            modelMetrics.tokenThroughput = tokens / timespan;
+        catch (error) {
+            this._logger.error('Failed to collect metrics', { error });
         }
-        if (error) {
-            modelMetrics.errorRate = this.calculateMovingAverage(modelMetrics.errorRate, 1, modelMetrics.totalRequests);
-        }
-        this.eventEmitter.emit('metricsUpdated', modelId, modelMetrics);
-    }
-    /**
-     * Get metrics for a specific model
-     */
-    getMetrics(modelId) {
-        return this.metrics.get(modelId);
-    }
-    /**
-     * Get metrics for all models
-     */
-    getAllMetrics() {
-        return new Map(this.metrics);
-    }
-    /**
-     * Reset metrics for a model
-     */
-    resetMetrics(modelId) {
-        this.metrics.delete(modelId);
-        this.eventEmitter.emit('metricsReset', modelId);
-    }
-    /**
-     * Clear all metrics
-     */
-    clearAllMetrics() {
-        this.metrics.clear();
-        this.eventEmitter.emit('metricsCleared');
-    }
-    /**
-     * Subscribe to metrics updates
-     */
-    onMetricsUpdated(listener) {
-        this.eventEmitter.on('metricsUpdated', listener);
-    }
-    calculateMovingAverage(currentAvg, newValue, totalSamples) {
-        return ((currentAvg * (totalSamples - 1)) + newValue) / totalSamples;
     }
     dispose() {
-        this.eventEmitter.removeAllListeners();
+        if (this._collectionInterval) {
+            clearInterval(this._collectionInterval);
+            this._collectionInterval = null;
+        }
+        this._metricsEmitter.removeAllListeners();
+        this._metrics.clear();
     }
 }
 exports.ModelMetricsService = ModelMetricsService;

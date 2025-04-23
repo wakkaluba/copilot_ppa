@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AITerminalHelper = void 0;
 const vscode = __importStar(require("vscode"));
 const types_1 = require("./types");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const child_process_1 = require("child_process");
 /**
  * Provides AI-powered assistance for terminal commands
  */
@@ -216,9 +219,6 @@ Ensure the command is:
             return '';
         }
         try {
-            const { spawn } = require('child_process');
-            const fs = require('fs');
-            const path = require('path');
             let contextInfo = '';
             // Check if it's a git repository
             const isGitRepo = fs.existsSync(path.join(workspacePath, '.git'));
@@ -227,7 +227,7 @@ Ensure the command is:
                 // Get git status summary
                 try {
                     const gitStatus = await new Promise((resolve) => {
-                        const process = spawn('git', ['status', '--porcelain'], {
+                        const process = (0, child_process_1.spawn)('git', ['status', '--porcelain'], {
                             cwd: workspacePath
                         });
                         let output = '';
@@ -293,8 +293,6 @@ Ensure the command is:
      */
     checkForFileTypes(directory, extensions) {
         try {
-            const fs = require('fs');
-            const path = require('path');
             // Get top-level files only (for performance)
             const files = fs.readdirSync(directory);
             return files.some((file) => {
@@ -435,12 +433,12 @@ Format your response using these exact headings.
             alternatives: []
         };
         // Extract purpose (overall purpose section)
-        const purposeMatch = response.match(/(?:Overall purpose|Purpose)(?:[:\-])?\s*(.*?)(?=Component breakdown|$)/si);
+        const purposeMatch = response.match(/(?:Overall purpose|Purpose)(?:[:-])?\s*(.*?)(?=Component breakdown|$)/si);
         if (purposeMatch && purposeMatch[1]) {
             analysis.purpose = purposeMatch[1].trim();
         }
         // Extract component breakdown
-        const componentsMatch = response.match(/Component breakdown(?:[:\-])?\s*(.*?)(?=Potential risks|Risks|$)/si);
+        const componentsMatch = response.match(/Component breakdown(?:[:-])?\s*(.*?)(?=Potential risks|Risks|$)/si);
         if (componentsMatch && componentsMatch[1]) {
             // Split components by bullet points or numbered list
             const componentsText = componentsMatch[1].trim();
@@ -450,7 +448,7 @@ Format your response using these exact headings.
                 .filter(component => component.length > 0);
         }
         // Extract risks
-        const risksMatch = response.match(/(?:Potential risks|Risks)(?:[:\-])?\s*(.*?)(?=Performance|$)/si);
+        const risksMatch = response.match(/(?:Potential risks|Risks)(?:[:-])?\s*(.*?)(?=Performance|$)/si);
         if (risksMatch && risksMatch[1]) {
             // Split risks by bullet points or numbered list
             const risksText = risksMatch[1].trim();
@@ -460,12 +458,12 @@ Format your response using these exact headings.
                 .filter(risk => risk.length > 0);
         }
         // Extract performance considerations
-        const performanceMatch = response.match(/Performance(?:[:\-])?\s*(.*?)(?=Alternatives|$)/si);
+        const performanceMatch = response.match(/Performance(?:[:-])?\s*(.*?)(?=Alternatives|$)/si);
         if (performanceMatch && performanceMatch[1]) {
             analysis.performance = performanceMatch[1].trim();
         }
         // Extract alternatives
-        const alternativesMatch = response.match(/Alternatives(?:[:\-])?\s*(.*?)(?=$)/si);
+        const alternativesMatch = response.match(/Alternatives(?:[:-])?\s*(.*?)(?=$)/si);
         if (alternativesMatch && alternativesMatch[1]) {
             // Split alternatives by bullet points or numbered list
             const alternativesText = alternativesMatch[1].trim();

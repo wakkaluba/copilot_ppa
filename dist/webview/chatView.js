@@ -33,17 +33,24 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChatViewHandler = void 0;
+exports.UnifiedChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
-const types_1 = require("../services/llm/types");
-class ChatViewHandler {
+const logger_1 = require("../utils/logger");
+const themeManager_1 = require("../services/ui/themeManager");
+class UnifiedChatViewProvider {
     extensionUri;
     chatManager;
+    static viewType = 'copilotPPA.chatView';
     view;
     currentSession;
+    logger;
+    themeManager;
+    disposables = [];
     constructor(extensionUri, chatManager) {
         this.extensionUri = extensionUri;
         this.chatManager = chatManager;
+        this.logger = logger_1.Logger.getInstance();
+        this.themeManager = themeManager_1.ThemeManager.getInstance();
         this.setupEventListeners();
     }
     resolveWebviewView(webviewView, _context, _token) {
@@ -54,38 +61,37 @@ class ChatViewHandler {
         };
         this.initializeWebview();
         this.registerMessageHandlers();
+        // Clean up when view is disposed
+        webviewView.onDidDispose(() => {
+            this.dispose();
+        });
     }
     setupEventListeners() {
-        this.chatManager.on(types_1.ChatEvent.MessageHandled, () => this.updateMessages());
-        this.chatManager.on(types_1.ChatEvent.HistoryCleared, () => this.updateMessages());
-        this.chatManager.on(types_1.ChatEvent.Error, (event) => this.handleError(event));
+        this.disposables.push(this.chatManager.onMessageHandled(() => this.updateMessages()), this.chatManager.onHistoryCleared(() => this.updateMessages()), this.chatManager.onError((event) => this.handleError(event)), this.chatManager.onConnectionStatusChanged(() => this.updateConnectionStatus()), this.themeManager.onThemeChanged(() => this.updateTheme()));
     }
     async initializeWebview() {
-        if (!this.view)
+        if (!this.view) {
             return;
-        // Create initial session if needed
+        }
         if (!this.currentSession) {
             this.currentSession = await this.chatManager.createSession();
         }
-        // Set up the webview HTML
         this.view.webview.html = this.getWebviewContent();
-        // Send initial state
         this.updateMessages();
         this.updateConnectionStatus();
     }
     registerMessageHandlers() {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         this.view.webview.onDidReceiveMessage(async (message) => {
             try {
                 switch (message.type) {
                     case 'sendMessage':
-                        await this.chatManager.handleUserMessage(this.currentSession.id, message.content);
+                        await this.handleMessage(message.content);
                         break;
                     case 'clearChat':
-                        if (this.currentSession) {
-                            await this.chatManager.clearSessionHistory(this.currentSession.id);
-                        }
+                        await this.clearChat();
                         break;
                     case 'getMessages':
                         this.updateMessages();
@@ -94,8 +100,10 @@ class ChatViewHandler {
                         this.updateConnectionStatus();
                         break;
                     case 'copyToClipboard':
-                        await vscode.env.clipboard.writeText(message.text);
-                        vscode.window.showInformationMessage('Copied to clipboard');
+                        await this.copyToClipboard(message.text);
+                        break;
+                    case 'createSnippet':
+                        await this.createSnippet(message.code, message.language);
                         break;
                 }
             }
@@ -104,9 +112,29 @@ class ChatViewHandler {
             }
         });
     }
-    updateMessages() {
-        if (!this.view || !this.currentSession)
+    async handleMessage(content) {
+        if (!content.trim() || !this.currentSession) {
             return;
+        }
+        await this.chatManager.handleUserMessage(this.currentSession.id, content);
+    }
+    async clearChat() {
+        if (this.currentSession) {
+            await this.chatManager.clearSessionHistory(this.currentSession.id);
+        }
+    }
+    async copyToClipboard(text) {
+        await vscode.env.clipboard.writeText(text);
+        vscode.window.showInformationMessage('Copied to clipboard');
+    }
+    async createSnippet(code, language) {
+        // TODO: Implement snippet creation
+        this.logger.debug('Snippet creation requested', { code, language });
+    }
+    updateMessages() {
+        if (!this.view || !this.currentSession) {
+            return;
+        }
         const messages = this.chatManager.getSessionMessages(this.currentSession.id);
         this.view.webview.postMessage({
             type: 'updateMessages',
@@ -114,50 +142,89 @@ class ChatViewHandler {
         });
     }
     updateConnectionStatus() {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         const status = this.chatManager.getConnectionStatus();
         this.view.webview.postMessage({
             type: 'updateConnectionStatus',
             status
         });
     }
+    updateTheme() {
+        if (!this.view) {
+            return;
+        }
+        const theme = this.themeManager.getCurrentTheme();
+        this.view.webview.postMessage({
+            type: 'updateTheme',
+            theme
+        });
+    }
     handleError(event) {
         const errorMessage = event.error instanceof Error ?
             event.error.message :
             String(event.error);
+        this.logger.error('Chat error occurred', { error: errorMessage });
         vscode.window.showErrorMessage(`Chat Error: ${errorMessage}`);
+        if (this.view) {
+            this.view.webview.postMessage({
+                type: 'showError',
+                message: errorMessage
+            });
+        }
     }
     getWebviewContent() {
-        return `
-            <!DOCTYPE html>
+        const cssUri = this.getResourceUri('chat.css');
+        const jsUri = this.getResourceUri('chat.js');
+        const theme = this.themeManager.getCurrentTheme();
+        return `<!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.view.webview.cspSource}; script-src ${this.view.webview.cspSource};">
                 <title>Chat</title>
-                <link rel="stylesheet" href="${this.getResourceUri('chat.css')}">
+                <link rel="stylesheet" href="${cssUri}">
             </head>
-            <body>
+            <body class="theme-${theme}">
                 <div id="chat-container">
-                    <div id="messages"></div>
-                    <div id="input-container">
-                        <textarea id="message-input" placeholder="Type your message..."></textarea>
-                        <button id="send-button">Send</button>
+                    <div class="status-bar">
+                        <div class="connection-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Initializing...</span>
+                        </div>
+                    </div>
+
+                    <div id="messages" class="messages"></div>
+
+                    <div class="error-container" style="display: none;">
+                        <div class="error-message"></div>
+                    </div>
+
+                    <div class="input-container">
+                        <div class="toolbar">
+                            <button id="clear-chat">Clear Chat</button>
+                        </div>
+                        <div class="message-input">
+                            <textarea id="message-input" placeholder="Type your message..." rows="3"></textarea>
+                            <button id="send-button">Send</button>
+                        </div>
                     </div>
                 </div>
-                <script src="${this.getResourceUri('chat.js')}"></script>
+                <script src="${jsUri}"></script>
             </body>
-            </html>
-        `;
+            </html>`;
     }
     getResourceUri(fileName) {
         const filePath = vscode.Uri.joinPath(this.extensionUri, 'media', fileName);
         return this.view.webview.asWebviewUri(filePath).toString();
     }
     dispose() {
-        // Clean up any resources
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        this.currentSession = undefined;
     }
 }
-exports.ChatViewHandler = ChatViewHandler;
+exports.UnifiedChatViewProvider = UnifiedChatViewProvider;
 //# sourceMappingURL=chatView.js.map

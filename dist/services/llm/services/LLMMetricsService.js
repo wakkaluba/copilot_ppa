@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMMetricsService = void 0;
+const events_1 = require("events");
 /**
  * Service for tracking and managing LLM connection metrics
  */
-class LLMMetricsService {
+class LLMMetricsService extends events_1.EventEmitter {
     metrics = new Map();
     activeProvider = null;
     startTimes = new Map();
@@ -18,7 +19,14 @@ class LLMMetricsService {
                 lastResponseTime: 0,
                 uptime: 0,
                 lastError: undefined,
-                lastErrorTime: undefined
+                lastErrorTime: undefined,
+                totalTokens: 0,
+                errorRates: new Map(),
+                resourceUsage: {
+                    memory: 0,
+                    cpu: 0
+                },
+                estimatedCost: 0
             });
         }
     }
@@ -38,6 +46,22 @@ class LLMMetricsService {
         }
         metrics.lastResponseTime = responseTime;
         metrics.averageResponseTime = this.calculateNewAverage(metrics.averageResponseTime, responseTime, metrics.totalRequests);
+    }
+    recordRequestSuccess(providerId, responseTime, tokenCount) {
+        const metrics = this.getProviderMetrics(providerId);
+        metrics.totalRequests++;
+        metrics.successfulRequests++;
+        metrics.totalTokens += tokenCount;
+        metrics.lastResponseTime = responseTime;
+        metrics.averageResponseTime = this.calculateNewAverage(metrics.averageResponseTime, responseTime, metrics.successfulRequests);
+        metrics.estimatedCost += this.calculateCost(tokenCount);
+        this.updateResourceUsage(providerId);
+    }
+    recordRequestFailure(providerId, error) {
+        const metrics = this.getProviderMetrics(providerId);
+        metrics.totalRequests++;
+        const errorType = error.name;
+        metrics.errorRates.set(errorType, (metrics.errorRates.get(errorType) || 0) + 1);
     }
     recordError(providerName, error) {
         const metrics = this.getProviderMetrics(providerName);
@@ -69,6 +93,18 @@ class LLMMetricsService {
     calculateNewAverage(currentAvg, newValue, totalCount) {
         return (currentAvg * (totalCount - 1) + newValue) / totalCount;
     }
+    calculateCost(tokenCount) {
+        // Implement cost calculation based on provider pricing
+        return tokenCount * 0.0001; // Example rate
+    }
+    updateResourceUsage(providerId) {
+        const metrics = this.getProviderMetrics(providerId);
+        const usage = process.memoryUsage();
+        metrics.resourceUsage = {
+            memory: usage.heapUsed,
+            cpu: process.cpuUsage().user
+        };
+    }
     updateUptime(providerName) {
         const startTime = this.startTimes.get(providerName);
         if (startTime && this.activeProvider === providerName) {
@@ -85,7 +121,14 @@ class LLMMetricsService {
             lastResponseTime: 0,
             uptime: 0,
             lastError: undefined,
-            lastErrorTime: undefined
+            lastErrorTime: undefined,
+            totalTokens: 0,
+            errorRates: new Map(),
+            resourceUsage: {
+                memory: 0,
+                cpu: 0
+            },
+            estimatedCost: 0
         });
         this.startTimes.delete(providerName);
     }

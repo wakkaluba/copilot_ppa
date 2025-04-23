@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LLMConnectionManager } from '../llm/llmConnectionManager';
+import * as fs from 'fs';
+import { LLMConnectionManager } from '../llm/LLMConnectionManager';
 import { IWebviewMessage, WebviewMessageHandler } from '../types/webview';
 
 /**
@@ -159,7 +160,7 @@ export class AgentSidebarProvider implements vscode.WebviewViewProvider {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar.js'));
         const nonce = this.generateNonce();
 
-        let htmlContent = require('fs').readFileSync(htmlPath.fsPath, 'utf8');
+        const htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
         return htmlContent
             .replace('${webview.cspSource}', webview.cspSource)
             .replace('${styleUri}', styleUri.toString())

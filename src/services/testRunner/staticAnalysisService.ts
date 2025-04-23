@@ -2,9 +2,11 @@ import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../../logging/ILogger';
 import { IStaticAnalysisService } from './services/interfaces/IStaticAnalysisService';
-import { StaticAnalysisOptions, StaticAnalysisTool } from './services/StaticAnalysisTool';
+import { StaticAnalysisOptions, StaticAnalysisTool, StaticAnalysisIssue, StaticAnalysisResult } from './services/StaticAnalysisTool';
 import { TestResult } from './testRunnerTypes';
 import { StaticAnalysisExecutor } from './services/StaticAnalysisExecutor';
+
+export { StaticAnalysisOptions, StaticAnalysisTool, StaticAnalysisIssue, StaticAnalysisResult };
 
 @injectable()
 export class StaticAnalysisService implements IStaticAnalysisService {

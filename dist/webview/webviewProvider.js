@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebviewProvider = void 0;
-const themeManager_1 = require("../services/themeManager");
+const themeManager_1 = require("../services/ui/themeManager");
 const displaySettingsService_1 = require("../services/displaySettingsService");
 // Assuming this is an existing file, we'll add theme support to it
 class WebviewProvider {

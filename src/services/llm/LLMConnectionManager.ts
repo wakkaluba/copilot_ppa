@@ -6,26 +6,24 @@ import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
 import { 
     ConnectionState, 
-    LLMConnectionOptions, 
-    ConnectionStateChangeEvent,
-    ConnectionErrorEvent,
+    ConnectionOptions,
     ConnectionEvent,
-    HealthCheckResponse,
     ConnectionEventData,
-    ConnectionStatus,
-    ModelInfo,
     LLMConnectionError,
-    LLMConnectionErrorCode
+    LLMConnectionErrorCode,
+    HealthCheckResult,
+    LLMHealthStatus,
+    ConnectionMetrics
 } from './types';
-import { LLMProvider, LLMProviderStatus } from '../../llm/llm-provider';
+import { LLMProvider, LLMProviderStatus, LLMModelInfo } from '../../llm/llm-provider';
 import { LLMProviderRegistryService } from './services/LLMProviderRegistryService';
 import { LLMConnectionHandlerService } from './services/LLMConnectionHandlerService';
-import { LLMRetryManagerService } from './services/LLMRetryManagerService';
-import { LLMStatusReporterService } from './services/LLMStatusReporterService';
+import { RetryManagerService } from './services/LLMRetryManagerService';
+import { StatusReporterService } from './services/LLMStatusReporterService';
 import { LLMHealthMonitorService } from './services/LLMHealthMonitorService';
-import { LLMMetricsService } from './services/LLMMetricsService';
-import { LLMErrorHandlerService } from './services/LLMErrorHandlerService';
-import { LLMConnectionEventService } from './services/LLMConnectionEventService';
+import { MetricsService } from './services/LLMMetricsService';
+import { LLMErrorHandlerService as ErrorHandlerService } from './services/LLMErrorHandlerService';
+import { ConnectionEventService } from './services/LLMConnectionEventService';
 import { ConnectionMetricsTracker } from './ConnectionMetricsTracker';
 import { ConnectionPoolManager } from './services/ConnectionPoolManager';
 
@@ -37,36 +35,36 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
     private static instance: LLMConnectionManager;
     private readonly providerRegistry: LLMProviderRegistryService;
     private readonly connectionHandler: LLMConnectionHandlerService;
-    private readonly retryManager: LLMRetryManagerService;
-    private readonly statusReporter: LLMStatusReporterService;
+    private readonly retryManager: RetryManagerService;
+    private readonly statusReporter: StatusReporterService;
     private readonly healthMonitor: LLMHealthMonitorService;
-    private readonly metricsService: LLMMetricsService;
+    private readonly metricsService: MetricsService;
     private readonly errorHandler: LLMErrorHandlerService;
-    private readonly eventService: LLMConnectionEventService;
+    private readonly eventService: ConnectionEventService;
     private readonly metricsTracker: ConnectionMetricsTracker;
     private readonly connectionPool: ConnectionPoolManager;
     
     private healthCheckInterval: NodeJS.Timeout | null = null;
     private activeProvider: LLMProvider | null = null;
-    private connectionOptions: LLMConnectionOptions = {};
+    private connectionOptions: ConnectionOptions = {};
     private currentStatus: LLMProviderStatus = {
         isConnected: false,
         isAvailable: false,
         error: ''
     };
 
-    private constructor(options: Partial<LLMConnectionOptions> = {}) {
+    private constructor(options: Partial<ConnectionOptions> = {}) {
         super();
         this.providerRegistry = new LLMProviderRegistryService();
         this.connectionHandler = new LLMConnectionHandlerService(options);
-        this.retryManager = new LLMRetryManagerService(options);
-        this.statusReporter = new LLMStatusReporterService();
-        this.healthMonitor = new LLMHealthMonitorService();
-        this.metricsService = new LLMMetricsService();
-        this.errorHandler = new LLMErrorHandlerService();
-        this.eventService = new LLMConnectionEventService(this.metricsService);
+        this.retryManager = new RetryManagerService(options);
+        this.statusReporter = new StatusReporterService();
+        this.healthMonitor = new LLMHealthMonitorService(options);
+        this.metricsService = new MetricsService();
+        this.errorHandler = new ErrorHandlerService();
+        this.eventService = new ConnectionEventService(this.metricsService);
         this.metricsTracker = new ConnectionMetricsTracker();
-        this.connectionPool = ConnectionPoolManager.getInstance({
+        this.connectionPool = new ConnectionPoolManager({
             maxSize: options.maxConnections || 5,
             minSize: options.minConnections || 1,
             acquireTimeout: options.connectionTimeout || 30000
@@ -77,7 +75,7 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
         this.startHealthMonitoring();
     }
 
-    public static getInstance(options: Partial<LLMConnectionOptions> = {}): LLMConnectionManager {
+    public static getInstance(options: Partial<ConnectionOptions> = {}): LLMConnectionManager {
         if (!LLMConnectionManager.instance) {
             LLMConnectionManager.instance = new LLMConnectionManager(options);
         }
@@ -263,16 +261,53 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
         const eventData: ConnectionEventData = {
             state: currentState,
             timestamp: new Date(),
-            error: this.connectionHandler.lastError,
-            modelInfo: this.connectionHandler.activeProvider?.getModelInfo()
+            error: this.connectionHandler.lastError
         };
 
-        this.emit('stateChanged', eventData);
-        this.statusReporter.updateStatusBar(currentState, providerName);
+        if (this.connectionHandler.activeProvider) {
+            this.connectionHandler.activeProvider.getModelInfo().then(modelInfo => {
+                eventData.modelInfo = modelInfo;
+                this.emit('stateChanged', eventData);
+                this.statusReporter.updateStatusBar(currentState, providerName);
+            }).catch(error => {
+                console.error('Failed to get model info:', error);
+                this.emit('stateChanged', eventData);
+                this.statusReporter.updateStatusBar(currentState, providerName);
+            });
+        } else {
+            this.emit('stateChanged', eventData);
+            this.statusReporter.updateStatusBar(currentState, providerName);
+        }
     }
 
     public getCurrentState(): ConnectionState {
-        return this.eventService.getCurrentState();
+        return this.connectionHandler.currentState;
+    }
+
+    private async validateConnection(): Promise<boolean> {
+        if (!this.activeProvider) {
+            return false;
+        }
+
+        try {
+            const health = await this.healthMonitor.checkHealth(this.activeProvider);
+            if (health.status === 'error') {
+                await this.handleHealthCheckFailure({ error: new Error(health.message || 'Health check failed') });
+                return false;
+            }
+            return true;
+        } catch (error) {
+            await this.handleConnectionError(error);
+            return false;
+        }
+    }
+
+    public async ensureConnection(): Promise<boolean> {
+        const isValid = await this.validateConnection();
+        if (!isValid) {
+            return this.connectToLLM();
+        }
+        return true;
     }
 
     public getActiveProvider(): LLMProvider | null {

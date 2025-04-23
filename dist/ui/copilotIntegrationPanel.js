@@ -35,437 +35,115 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotIntegrationPanel = void 0;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
-const copilotApi_1 = require("../services/copilotApi");
+const CopilotWebviewContentService_1 = require("./services/CopilotWebviewContentService");
+const CopilotWebviewStateManager_1 = require("./services/CopilotWebviewStateManager");
+const CopilotConnectionManager_1 = require("./services/CopilotConnectionManager");
+const CopilotWebviewMessageHandler_1 = require("./services/CopilotWebviewMessageHandler");
 const logger_1 = require("../utils/logger");
+const themeManager_1 = require("../services/ui/themeManager");
 /**
- * Manages the UI component for Copilot integration
+ * Panel that provides a webview interface for Copilot and LLM interactions
  */
 class CopilotIntegrationPanel {
+    context;
     static instance;
     panel;
-    context;
-    copilotApiService;
-    logger;
-    isLocalLLMActive = true;
+    contentService;
+    stateManager;
+    connectionManager;
+    messageHandler;
     disposables = [];
+    logger;
     constructor(context) {
         this.context = context;
-        this.copilotApiService = copilotApi_1.CopilotApiService.getInstance();
-        this.logger = new logger_1.Logger();
+        this.logger = logger_1.Logger.getInstance();
+        this.contentService = new CopilotWebviewContentService_1.CopilotWebviewContentService(themeManager_1.ThemeService.getInstance());
+        this.stateManager = new CopilotWebviewStateManager_1.CopilotWebviewStateManager();
+        this.connectionManager = new CopilotConnectionManager_1.CopilotConnectionManager();
+        this.messageHandler = new CopilotWebviewMessageHandler_1.CopilotWebviewMessageHandler(this.stateManager, this.connectionManager, this.logger);
+        this.setupListeners();
     }
-    /**
-     * Get singleton instance of CopilotIntegrationPanel
-     */
     static getInstance(context) {
         if (!CopilotIntegrationPanel.instance) {
             CopilotIntegrationPanel.instance = new CopilotIntegrationPanel(context);
         }
         return CopilotIntegrationPanel.instance;
     }
-    /**
-     * Create and show the panel
-     */
+    setupListeners() {
+        this.disposables.push(vscode.window.onDidChangeActiveColorTheme(() => this.updateWebviewContent()), this.stateManager.onStateChanged(() => this.updateWebviewContent()), this.connectionManager.onConnectionChanged(() => this.updateWebviewContent()));
+    }
     async show() {
         try {
-            const columnToShowIn = vscode.window.activeTextEditor
-                ? vscode.window.activeTextEditor.viewColumn
-                : undefined;
             if (this.panel) {
-                this.panel.reveal(columnToShowIn);
+                this.panel.reveal();
                 return;
             }
-            // Create a new panel
-            this.panel = vscode.window.createWebviewPanel('copilotIntegration', 'Copilot Integration', columnToShowIn || vscode.ViewColumn.One, {
+            this.panel = vscode.window.createWebviewPanel('copilotIntegration', 'AI Assistant', vscode.ViewColumn.Two, {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                localResourceRoots: [
-                    vscode.Uri.file(path.join(this.context.extensionPath, 'media'))
-                ]
+                localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
             });
-            // Initialize Copilot API connection
-            const isConnected = await this.copilotApiService.initialize();
-            // Set initial HTML content
-            this.updateWebviewContent(isConnected);
-            // Handle messages from the webview
-            this.disposables.push(this.panel.webview.onDidReceiveMessage(async (message) => this.handleWebviewMessage(message, isConnected), undefined, this.context.subscriptions));
-            // Reset when the panel is disposed
-            this.disposables.push(this.panel.onDidDispose(() => this.dispose()));
+            await this.connectionManager.initialize();
+            this.registerWebviewHandlers();
+            this.updateWebviewContent();
+            this.panel.onDidDispose(() => {
+                this.panel = undefined;
+                this.dispose();
+            });
         }
         catch (error) {
             this.logger.error('Error showing Copilot integration panel', error);
-            throw error;
+            throw this.connectionManager.wrapError('Failed to show integration panel', error);
         }
     }
-    /**
-     * Handle messages received from the webview
-     */
-    async handleWebviewMessage(message, isConnected) {
-        try {
-            switch (message.command) {
-                case 'toggleLLMMode':
-                    this.isLocalLLMActive = !this.isLocalLLMActive;
-                    this.updateWebviewContent(isConnected);
-                    break;
-                case 'sendMessage':
-                    if (message.text) {
-                        await this.handleMessageSend(message.text);
-                    }
-                    break;
-                case 'reconnectCopilot':
-                    const reconnected = await this.copilotApiService.initialize();
-                    this.updateWebviewContent(reconnected);
-                    break;
-                default:
-                    this.logger.warn(`Unknown command received from webview: ${message.command}`);
+    registerWebviewHandlers() {
+        if (!this.panel) {
+            return;
+        }
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            try {
+                const response = await this.messageHandler.handleMessage(message);
+                if (response && this.panel) {
+                    this.panel.webview.postMessage(response);
+                }
             }
-        }
-        catch (error) {
-            this.logger.error('Error handling webview message', error);
-            this.showErrorInWebview(error);
-        }
+            catch (error) {
+                this.logger.error('Error handling webview message', error);
+                this.showErrorInWebview(error);
+            }
+        }, undefined, this.disposables);
     }
-    /**
-     * Update the webview content
-     */
-    updateWebviewContent(isCopilotConnected) {
+    updateWebviewContent() {
         if (!this.panel) {
             return;
         }
         try {
-            // Get paths for resources
-            const stylesPath = vscode.Uri.file(path.join(this.context.extensionPath, 'media', 'styles.css'));
-            const stylesUri = this.panel.webview.asWebviewUri(stylesPath);
-            // Create UI state objects
-            const toggleState = this.isLocalLLMActive
-                ? { label: 'Using Local LLM', class: 'local-llm-active' }
-                : { label: 'Using GitHub Copilot', class: 'copilot-active' };
-            const copilotStatus = isCopilotConnected
-                ? '<span class="status-connected">Copilot Connected</span>'
-                : '<span class="status-disconnected">Copilot Disconnected</span>';
-            this.panel.webview.html = this.generateWebviewHtml(stylesUri, toggleState, copilotStatus, isCopilotConnected);
+            const stylesUri = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'copilot-integration.css'));
+            this.panel.webview.html = this.contentService.generateWebviewContent(stylesUri, this.stateManager.getState(), this.connectionManager.isConnected(), this.panel.webview);
         }
         catch (error) {
             this.logger.error('Error updating webview content', error);
-            throw error;
-        }
-    }
-    /**
-     * Generate the HTML content for the webview
-     */
-    generateWebviewHtml(stylesUri, toggleState, copilotStatus, isCopilotConnected) {
-        return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel?.webview.cspSource}; script-src 'nonce-${this.getNonce()}';">
-                <title>Local LLM & Copilot Integration</title>
-                <link href="${stylesUri}" rel="stylesheet">
-                ${this.getWebviewStyles()}
-            </head>
-            <body>
-                ${this.getWebviewBody(toggleState, copilotStatus, isCopilotConnected)}
-                <script nonce="${this.getNonce()}">
-                    ${this.getWebviewScript()}
-                </script>
-            </body>
-            </html>`;
-    }
-    /**
-     * Handle sending a message through the appropriate API
-     */
-    async handleMessageSend(text) {
-        try {
-            let response;
-            if (this.isLocalLLMActive) {
-                // TODO: Implement local LLM service integration
-                response = "Local LLM integration not yet implemented";
-            }
-            else {
-                response = await this.copilotApiService.sendChatRequest(text);
-            }
-            this.sendResponseToWebview(response);
-        }
-        catch (error) {
-            this.logger.error('Error processing message', error);
             this.showErrorInWebview(error);
         }
     }
-    /**
-     * Send a response back to the webview
-     */
-    sendResponseToWebview(text) {
-        if (this.panel) {
-            this.panel.webview.postMessage({
-                command: 'addResponse',
-                text: text
-            });
-        }
-    }
-    /**
-     * Show an error message in the webview
-     */
     showErrorInWebview(error) {
         if (this.panel) {
             this.panel.webview.postMessage({
-                command: 'addResponse',
-                text: `Error: ${error instanceof Error ? error.message : String(error)}`
+                command: 'showError',
+                text: `Error: ${this.connectionManager.getErrorMessage(error)}`
             });
         }
     }
-    /**
-     * Generate a nonce for Content Security Policy
-     */
-    getNonce() {
-        let text = '';
-        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 32; i++) {
-            text += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return text;
-    }
-    /**
-     * Get the styles for the webview
-     */
-    getWebviewStyles() {
-        return `<style>
-            .container {
-                display: flex;
-                flex-direction: column;
-                height: 100vh;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            .header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-            }
-            .toggle-container {
-                display: flex;
-                align-items: center;
-            }
-            .toggle-switch {
-                position: relative;
-                display: inline-block;
-                width: 60px;
-                height: 34px;
-                margin: 0 10px;
-            }
-            .toggle-switch input {
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-            .slider {
-                position: absolute;
-                cursor: pointer;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: #ccc;
-                transition: .4s;
-                border-radius: 34px;
-            }
-            .slider:before {
-                position: absolute;
-                content: "";
-                height: 26px;
-                width: 26px;
-                left: 4px;
-                bottom: 4px;
-                background-color: white;
-                transition: .4s;
-                border-radius: 50%;
-            }
-            input:checked + .slider {
-                background-color: #2196F3;
-            }
-            input:checked + .slider:before {
-                transform: translateX(26px);
-            }
-            .status {
-                font-size: 14px;
-                margin-top: 5px;
-            }
-            .status-connected {
-                color: #4CAF50;
-            }
-            .status-disconnected {
-                color: #F44336;
-            }
-            .chat-container {
-                flex: 1;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                padding: 10px;
-                overflow-y: auto;
-                margin-bottom: 20px;
-            }
-            .input-container {
-                display: flex;
-            }
-            #messageInput {
-                flex: 1;
-                padding: 10px;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                margin-right: 10px;
-            }
-            button {
-                padding: 10px 15px;
-                background-color: #0078D4;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-            }
-            button:hover {
-                background-color: #005a9e;
-            }
-            .local-llm-active {
-                color: #4CAF50;
-            }
-            .copilot-active {
-                color: #9c27b0;
-            }
-            .message {
-                margin-bottom: 10px;
-                padding: 10px;
-                border-radius: 5px;
-            }
-            .user-message {
-                background-color: #E3F2FD;
-                align-self: flex-end;
-            }
-            .assistant-message {
-                background-color: #F5F5F5;
-                align-self: flex-start;
-            }
-            .reconnect-container {
-                margin-top: 10px;
-            }
-        </style>`;
-    }
-    /**
-     * Get the body HTML for the webview
-     */
-    getWebviewBody(toggleState, copilotStatus, showReconnect) {
-        return `<div class="container">
-            <div class="header">
-                <h2>AI Assistant</h2>
-                <div class="toggle-container">
-                    <span class="${toggleState.class}">${toggleState.label}</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" ${this.isLocalLLMActive ? '' : 'checked'} id="llmToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="status">
-                ${copilotStatus}
-                <div class="reconnect-container" style="display: ${showReconnect ? 'block' : 'none'}">
-                    <button id="reconnectButton">Reconnect to Copilot</button>
-                </div>
-            </div>
-            
-            <div class="chat-container" id="chatContainer">
-                <!-- Chat messages will be displayed here -->
-            </div>
-            
-            <div class="input-container">
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <button id="sendButton">Send</button>
-            </div>
-        </div>`;
-    }
-    /**
-     * Get the JavaScript for the webview
-     */
-    getWebviewScript() {
-        return `
-            const vscode = acquireVsCodeApi();
-            const chatContainer = document.getElementById('chatContainer');
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.getElementById('sendButton');
-            const llmToggle = document.getElementById('llmToggle');
-            const reconnectButton = document.getElementById('reconnectButton');
-            
-            // Send a message
-            function sendMessage() {
-                const text = messageInput.value.trim();
-                if (text) {
-                    // Add user message to chat
-                    addMessageToChat('user', text);
-                    
-                    // Send to extension
-                    vscode.postMessage({
-                        command: 'sendMessage',
-                        text: text
-                    });
-                    
-                    // Clear input
-                    messageInput.value = '';
-                }
-            }
-            
-            // Add a message to the chat display
-            function addMessageToChat(role, text) {
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                messageElement.classList.add(role === 'user' ? 'user-message' : 'assistant-message');
-                messageElement.textContent = text;
-                chatContainer.appendChild(messageElement);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-            
-            // Event listeners
-            sendButton.addEventListener('click', sendMessage);
-            
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-            
-            llmToggle.addEventListener('change', () => {
-                vscode.postMessage({
-                    command: 'toggleLLMMode'
-                });
-            });
-            
-            reconnectButton && reconnectButton.addEventListener('click', () => {
-                vscode.postMessage({
-                    command: 'reconnectCopilot'
-                });
-            });
-            
-            // Handle messages sent from the extension
-            window.addEventListener('message', event => {
-                const message = event.data;
-                switch (message.command) {
-                    case 'addResponse':
-                        addMessageToChat('assistant', message.text);
-                        break;
-                }
-            });
-        `;
-    }
-    /**
-     * Dispose of the panel and clean up resources
-     */
     dispose() {
         if (this.panel) {
             this.panel.dispose();
             this.panel = undefined;
         }
         this.disposables.forEach(d => d.dispose());
-        this.disposables = [];
+        this.disposables.length = 0;
+        this.stateManager.dispose();
+        this.connectionManager.dispose();
+        this.messageHandler.dispose();
         CopilotIntegrationPanel.instance = undefined;
     }
 }

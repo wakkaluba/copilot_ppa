@@ -33,14 +33,20 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionStatusService = void 0;
+exports.ConnectionStatusService = exports.ConnectionState = void 0;
 const vscode = __importStar(require("vscode"));
-const events_1 = require("events");
-class ConnectionStatusService extends events_1.EventEmitter {
+const vscode_1 = require("vscode");
+var ConnectionState;
+(function (ConnectionState) {
+    ConnectionState["Connected"] = "connected";
+    ConnectionState["Disconnected"] = "disconnected";
+    ConnectionState["Error"] = "error";
+})(ConnectionState || (exports.ConnectionState = ConnectionState = {}));
+class ConnectionStatusService extends vscode_1.EventEmitter {
     hostManager;
     connectionManager;
     _status = {
-        state: 'disconnected',
+        state: ConnectionState.Disconnected,
         lastUpdate: new Date()
     };
     _onStatusChanged = new vscode.EventEmitter();
@@ -59,38 +65,38 @@ class ConnectionStatusService extends events_1.EventEmitter {
             this.updateFromConnectionState(state);
         });
         this.connectionManager.on('error', (error) => {
-            this.setStatus('error', error.message, error);
+            this.setStatus(ConnectionState.Error, error.message, error);
         });
     }
     updateFromHostState(hostState) {
         switch (hostState) {
             case 'RUNNING':
                 // Only update if we're not already connected
-                if (this._status.state !== 'connected') {
-                    this.setStatus('connecting', 'LLM host is running, establishing connection...');
+                if (this._status.state !== ConnectionState.Connected) {
+                    this.setStatus(ConnectionState.Disconnected, 'LLM host is running, establishing connection...');
                 }
                 break;
             case 'STOPPED':
-                this.setStatus('disconnected', 'LLM host is stopped');
+                this.setStatus(ConnectionState.Disconnected, 'LLM host is stopped');
                 break;
             case 'ERROR':
-                this.setStatus('error', 'LLM host encountered an error');
+                this.setStatus(ConnectionState.Error, 'LLM host encountered an error');
                 break;
         }
     }
     updateFromConnectionState(connectionState) {
         switch (connectionState) {
             case 'CONNECTED':
-                this.setStatus('connected', 'Connected to LLM service');
+                this.setStatus(ConnectionState.Connected, 'Connected to LLM service');
                 break;
             case 'CONNECTING':
-                this.setStatus('connecting', 'Establishing connection to LLM service...');
+                this.setStatus(ConnectionState.Disconnected, 'Establishing connection to LLM service...');
                 break;
             case 'DISCONNECTED':
-                this.setStatus('disconnected', 'Disconnected from LLM service');
+                this.setStatus(ConnectionState.Disconnected, 'Disconnected from LLM service');
                 break;
             case 'ERROR':
-                this.setStatus('error', 'Connection error');
+                this.setStatus(ConnectionState.Error, 'Connection error');
                 break;
         }
     }

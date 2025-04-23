@@ -40,7 +40,10 @@ class EnhancedChatProvider {
     contextManager;
     llmProvider;
     view;
-    constructor(_context, contextManager, llmProvider) {
+    isStreaming = false;
+    offlineCache = new Map();
+    maxRetries = 3;
+    constructor(context, contextManager, llmProvider) {
         this.contextManager = contextManager;
         this.llmProvider = llmProvider;
     }
@@ -117,36 +120,102 @@ class EnhancedChatProvider {
         };
         this.contextManager.appendMessage(userMessage);
         this.sendMessagesToWebview();
-        await this.generateResponse(userMessage);
+        if (!this.llmProvider.isConnected()) {
+            await this.handleOfflineMode(userMessage);
+            return;
+        }
+        let retryCount = 0;
+        while (retryCount < this.maxRetries) {
+            try {
+                await this.generateStreamingResponse(userMessage);
+                break;
+            }
+            catch (error) {
+                retryCount++;
+                if (retryCount === this.maxRetries) {
+                    await this.handleError(error);
+                }
+                else {
+                    await this.waitBeforeRetry(retryCount);
+                }
+            }
+        }
     }
-    async generateResponse(userMessage) {
+    async generateStreamingResponse(userMessage) {
+        this.isStreaming = true;
+        this.updateStatus('Thinking...');
+        let currentResponse = '';
         try {
-            this.updateStatus('Thinking...');
             const context = this.contextManager.getContextString();
-            const response = await this.llmProvider.generateCompletion(userMessage.content, { context });
+            await this.llmProvider.streamCompletion(userMessage.content, { context }, (event) => {
+                currentResponse += event.content;
+                this.updateStreamingContent(currentResponse);
+            });
             const assistantMessage = {
                 id: (0, uuid_1.v4)(),
                 role: 'assistant',
-                content: response,
+                content: currentResponse,
                 timestamp: Date.now()
             };
             this.contextManager.appendMessage(assistantMessage);
             this.sendMessagesToWebview();
+        }
+        finally {
+            this.isStreaming = false;
             this.updateStatus('');
         }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const errorResponse = {
-                id: (0, uuid_1.v4)(),
-                role: 'system',
-                content: `Error: ${errorMessage}`,
-                timestamp: Date.now()
-            };
-            this.contextManager.appendMessage(errorResponse);
-            this.sendMessagesToWebview();
-            this.updateStatus('');
-            vscode.window.showErrorMessage(`LLM Error: ${errorMessage}`);
+    }
+    async handleOfflineMode(message) {
+        // Cache message for later sync
+        const conversationId = this.contextManager.getCurrentConversationId();
+        const cachedMessages = this.offlineCache.get(conversationId) || [];
+        cachedMessages.push(message);
+        this.offlineCache.set(conversationId, cachedMessages);
+        const offlineMessage = {
+            id: (0, uuid_1.v4)(),
+            role: 'system',
+            content: 'Currently offline. Message saved and will be processed when connection is restored.',
+            timestamp: Date.now()
+        };
+        this.contextManager.appendMessage(offlineMessage);
+        this.sendMessagesToWebview();
+    }
+    async handleError(error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorResponse = {
+            id: (0, uuid_1.v4)(),
+            role: 'system',
+            content: `Error: ${errorMessage}\nPlease try again or check your connection.`,
+            timestamp: Date.now()
+        };
+        this.contextManager.appendMessage(errorResponse);
+        this.sendMessagesToWebview();
+        this.updateStatus('');
+        vscode.window.showErrorMessage(`Chat Error: ${errorMessage}`);
+    }
+    async waitBeforeRetry(retryCount) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    updateStreamingContent(content) {
+        if (!this.view)
+            return;
+        this.view.webview.postMessage({
+            type: 'updateStreamingContent',
+            content
+        });
+    }
+    async syncOfflineMessages() {
+        if (!this.llmProvider.isConnected())
+            return;
+        const conversationId = this.contextManager.getCurrentConversationId();
+        const cachedMessages = this.offlineCache.get(conversationId) || [];
+        if (cachedMessages.length === 0)
+            return;
+        for (const message of cachedMessages) {
+            await this.generateStreamingResponse(message);
         }
+        this.offlineCache.delete(conversationId);
     }
     updateStatus(status) {
         if (!this.view)

@@ -122,7 +122,7 @@ export class PromptTemplateManager {
         const language = editor.document.languageId;
         
         // Format the prompt with template variables
-        let formattedPrompt = template.content
+        const formattedPrompt = template.content
             .replace(/\{\{selection\}\}/g, selectedText)
             .replace(/\{\{language\}\}/g, language);
         
@@ -150,8 +150,8 @@ export function initializePromptTemplateManager(context: vscode.ExtensionContext
 }
 
 /**
- * Get the prompt template manager instance
- */
+     * Get the prompt template manager instance
+     */
 export function getPromptTemplateManager(): PromptTemplateManager {
     if (!promptTemplateManager) {
         throw new Error('Prompt Template Manager not initialized');

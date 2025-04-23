@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentSidebarProvider = void 0;
 const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("fs"));
 /**
  * Provides the agent sidebar webview implementation
  */
@@ -175,7 +176,7 @@ class AgentSidebarProvider {
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'agent-sidebar.css'));
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar.js'));
         const nonce = this.generateNonce();
-        let htmlContent = require('fs').readFileSync(htmlPath.fsPath, 'utf8');
+        const htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
         return htmlContent
             .replace('${webview.cspSource}', webview.cspSource)
             .replace('${styleUri}', styleUri.toString())

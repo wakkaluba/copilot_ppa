@@ -10,19 +10,18 @@ export interface LLMPromptOptions {
 }
 
 export interface HardwareSpecs {
-    gpu: {
-        available: boolean;
-        name?: string;
-        vram?: number;
-        cudaSupport?: boolean;
+    cpu: {
+        cores: number;
+        model: string;
+        speed: number;
     };
     ram: {
         total: number;
         free: number;
     };
-    cpu: {
-        cores: number;
-        model?: string;
+    gpu?: {
+        name: string;
+        memory: number;
     };
 }
 
@@ -103,15 +102,11 @@ export interface ModelConfig {
 export interface LLMModelInfo {
     id: string;
     name: string;
-    provider: 'ollama' | 'lmstudio' | 'huggingface';
+    provider: string;
     description: string;
-    tags: string[];
-    size?: number;
-    parameters?: number;
-    quantization?: string;
-    contextLength?: number;
-    config: ModelConfig;
-    requirements: ModelRequirements;
+    tags?: string[];
+    contextSize?: number;
+    parameters?: Record<string, any>;
 }
 
 export enum ModelEvent {
@@ -153,3 +148,146 @@ export type ConfigValidationError = {
     field: keyof ModelConfig;
     message: string;
 };
+
+// Model version interfaces
+export interface ModelVersionMetadata {
+    /**
+     * Creation timestamp
+     */
+    createdAt?: string;
+    
+    /**
+     * Optional checksum for the model version
+     */
+    checksum?: string;
+    
+    /**
+     * Whether this version is a checkpoint
+     */
+    isCheckpoint?: boolean;
+    
+    /**
+     * For rollbacks, the version it was rolled back from
+     */
+    rolledBackFrom?: string;
+    
+    /**
+     * For checkpoints, the base version
+     */
+    checkpointBase?: string;
+    
+    /**
+     * Any additional metadata properties
+     */
+    [key: string]: any;
+}
+
+export interface ModelVersionHistoryEntry {
+    /**
+     * The action that occurred
+     */
+    action: 'create' | 'update' | 'rollback' | 'checkpoint' | 'tag' | string;
+    
+    /**
+     * If applicable, the version related to this action
+     */
+    fromVersion?: string;
+    
+    /**
+     * Timestamp of the action
+     */
+    timestamp: string;
+    
+    /**
+     * Any additional properties
+     */
+    [key: string]: any;
+}
+
+export interface ModelVersion {
+    /**
+     * The model identifier
+     */
+    modelId: string;
+    
+    /**
+     * The version string
+     */
+    version: string;
+    
+    /**
+     * Version metadata
+     */
+    metadata: ModelVersionMetadata;
+    
+    /**
+     * Checksum of the model version
+     */
+    checksum: string;
+    
+    /**
+     * Tags associated with this version
+     */
+    tags: string[];
+    
+    /**
+     * Version history
+     */
+    history?: ModelVersionHistoryEntry[];
+}
+
+export interface ModelVersionChangeEvent {
+    /**
+     * The type of change
+     */
+    type: 'created' | 'updated' | 'rollback' | 'tagged' | 'untagged' | string;
+    
+    /**
+     * The model identifier
+     */
+    modelId: string;
+    
+    /**
+     * The version affected
+     */
+    version: string;
+    
+    /**
+     * For rollbacks, the version it was rolled back from
+     */
+    fromVersion?: string;
+    
+    /**
+     * For tagging operations, the tag
+     */
+    tag?: string;
+    
+    /**
+     * Timestamp of the change
+     */
+    timestamp: string;
+    
+    /**
+     * Any additional properties
+     */
+    [key: string]: any;
+}
+
+export enum ModelStatus {
+    Available = 'available',
+    Loading = 'loading',
+    Error = 'error',
+    NotFound = 'not-found'
+}
+
+export interface ModelStats {
+    requestCount: number;
+    averageResponseTime: number;
+    errorCount: number;
+    lastError?: string;
+}
+
+export interface ModelInfo extends LLMModelInfo {
+    status: ModelStatus;
+    stats?: ModelStats;
+}

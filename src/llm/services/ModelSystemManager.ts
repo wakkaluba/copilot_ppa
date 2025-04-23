@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { ILogger } from '../types';
+import { ILogger } from '../../services/logging/ILogger';
 import { SystemMetrics, ProcessInfo, ResourceUsage } from '../types';
 import os from 'os';
 import { cpus, freemem, totalmem, loadavg } from 'os';

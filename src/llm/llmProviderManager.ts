@@ -244,6 +244,24 @@ export class LLMProviderManager extends EventEmitter implements vscode.Disposabl
         return provider.getAvailableModels();
     }
 
+    public async continueIteration(): Promise<boolean> {
+        if (!this.activeProvider) {
+            throw new LLMProviderError('NO_ACTIVE_PROVIDER', 'No active provider set');
+        }
+
+        const provider = this.getActiveProvider();
+        if (!provider) {
+            return false;
+        }
+
+        const currentState = await this.connectionManager.getCurrentState();
+        if (currentState !== ConnectionState.CONNECTED) {
+            return this.connect();
+        }
+
+        return true;
+    }
+
     private handleConnectionStateChange(state: ConnectionState): void {
         this.emit('connectionStateChanged', state);
     }

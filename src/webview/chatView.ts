@@ -53,7 +53,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async initializeWebview(): Promise<void> {
-        if (!this.view) return;
+        if (!this.view) {
+            return;
+        }
 
         if (!this.currentSession) {
             this.currentSession = await this.chatManager.createSession();
@@ -65,7 +67,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private registerMessageHandlers(): void {
-        if (!this.view) return;
+        if (!this.view) {
+            return;
+        }
 
         this.view.webview.onDidReceiveMessage(async (message) => {
             try {
@@ -101,7 +105,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleMessage(content: string): Promise<void> {
-        if (!content.trim() || !this.currentSession) return;
+        if (!content.trim() || !this.currentSession) {
+            return;
+        }
 
         await this.chatManager.handleUserMessage(
             this.currentSession.id,
@@ -126,7 +132,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private updateMessages(): void {
-        if (!this.view || !this.currentSession) return;
+        if (!this.view || !this.currentSession) {
+            return;
+        }
 
         const messages = this.chatManager.getSessionMessages(this.currentSession.id);
         this.view.webview.postMessage({
@@ -136,7 +144,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private updateConnectionStatus(): void {
-        if (!this.view) return;
+        if (!this.view) {
+            return;
+        }
 
         const status = this.chatManager.getConnectionStatus();
         this.view.webview.postMessage({
@@ -146,7 +156,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private updateTheme(): void {
-        if (!this.view) return;
+        if (!this.view) {
+            return;
+        }
 
         const theme = this.themeManager.getCurrentTheme();
         this.view.webview.postMessage({

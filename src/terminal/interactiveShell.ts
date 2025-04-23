@@ -240,7 +240,7 @@ export class InteractiveShell implements vscode.Disposable {
      */
     private stripAnsiCodes(text: string): string {
         // This regex pattern matches ANSI escape sequences
-        return text.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+        return text.replace(/\\u001B\[[0-9;]*[a-zA-Z]/g, '');
     }
 
     /**

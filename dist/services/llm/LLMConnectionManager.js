@@ -41,14 +41,14 @@ class LLMConnectionManager extends events_1.EventEmitter {
         super();
         this.providerRegistry = new LLMProviderRegistryService_1.LLMProviderRegistryService();
         this.connectionHandler = new LLMConnectionHandlerService_1.LLMConnectionHandlerService(options);
-        this.retryManager = new LLMRetryManagerService_1.LLMRetryManagerService(options);
-        this.statusReporter = new LLMStatusReporterService_1.LLMStatusReporterService();
-        this.healthMonitor = new LLMHealthMonitorService_1.LLMHealthMonitorService();
-        this.metricsService = new LLMMetricsService_1.LLMMetricsService();
+        this.retryManager = new LLMRetryManagerService_1.RetryManagerService(options);
+        this.statusReporter = new LLMStatusReporterService_1.StatusReporterService();
+        this.healthMonitor = new LLMHealthMonitorService_1.LLMHealthMonitorService(options);
+        this.metricsService = new LLMMetricsService_1.MetricsService();
         this.errorHandler = new LLMErrorHandlerService_1.LLMErrorHandlerService();
-        this.eventService = new LLMConnectionEventService_1.LLMConnectionEventService(this.metricsService);
+        this.eventService = new LLMConnectionEventService_1.ConnectionEventService(this.metricsService);
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
-        this.connectionPool = ConnectionPoolManager_1.ConnectionPoolManager.getInstance({
+        this.connectionPool = new ConnectionPoolManager_1.ConnectionPoolManager({
             maxSize: options.maxConnections || 5,
             minSize: options.minConnections || 1,
             acquireTimeout: options.connectionTimeout || 30000
@@ -209,14 +209,50 @@ class LLMConnectionManager extends events_1.EventEmitter {
         const eventData = {
             state: currentState,
             timestamp: new Date(),
-            error: this.connectionHandler.lastError,
-            modelInfo: this.connectionHandler.activeProvider?.getModelInfo()
+            error: this.connectionHandler.lastError
         };
-        this.emit('stateChanged', eventData);
-        this.statusReporter.updateStatusBar(currentState, providerName);
+        if (this.connectionHandler.activeProvider) {
+            this.connectionHandler.activeProvider.getModelInfo().then(modelInfo => {
+                eventData.modelInfo = modelInfo;
+                this.emit('stateChanged', eventData);
+                this.statusReporter.updateStatusBar(currentState, providerName);
+            }).catch(error => {
+                console.error('Failed to get model info:', error);
+                this.emit('stateChanged', eventData);
+                this.statusReporter.updateStatusBar(currentState, providerName);
+            });
+        }
+        else {
+            this.emit('stateChanged', eventData);
+            this.statusReporter.updateStatusBar(currentState, providerName);
+        }
     }
     getCurrentState() {
-        return this.eventService.getCurrentState();
+        return this.connectionHandler.currentState;
+    }
+    async validateConnection() {
+        if (!this.activeProvider) {
+            return false;
+        }
+        try {
+            const health = await this.healthMonitor.checkHealth(this.activeProvider);
+            if (health.status === 'error') {
+                await this.handleHealthCheckFailure({ error: new Error(health.message || 'Health check failed') });
+                return false;
+            }
+            return true;
+        }
+        catch (error) {
+            await this.handleConnectionError(error);
+            return false;
+        }
+    }
+    async ensureConnection() {
+        const isValid = await this.validateConnection();
+        if (!isValid) {
+            return this.connectToLLM();
+        }
+        return true;
     }
     getActiveProvider() {
         return this.activeProvider;

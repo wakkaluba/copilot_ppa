@@ -36,19 +36,17 @@ export class ConversationError extends Error {
     }
 }
 
-interface ConversationEvents {
+interface IConversationEvents {
     'conversation:created': (conversation: Conversation) => void;
     'conversation:updated': (conversation: Conversation) => void;
     'conversation:deleted': (id: string) => void;
     'message:added': (conversationId: string, message: ChatMessage) => void;
 }
 
-declare interface ConversationHistory {
-    on<U extends keyof ConversationEvents>(event: U, listener: ConversationEvents[U]): this;
-    emit<U extends keyof ConversationEvents>(event: U, ...args: Parameters<ConversationEvents[U]>): boolean;
-}
-
 export class ConversationHistory extends EventEmitter {
+    on<U extends keyof IConversationEvents>(event: U, listener: IConversationEvents[U]): this;
+    emit<U extends keyof IConversationEvents>(event: U, ...args: Parameters<IConversationEvents[U]>): boolean;
+    
     private static instance: ConversationHistory;
     private conversations: Map<string, Conversation> = new Map();
     private storageDir: string;

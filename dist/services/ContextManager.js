@@ -1,161 +1,151 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextManager = void 0;
+const vscode = __importStar(require("vscode"));
+const ConversationService_1 = require("./conversation/ConversationService");
+const FileStorageService_1 = require("./storage/FileStorageService");
+const WorkspaceStateService_1 = require("./workspace/WorkspaceStateService");
 /**
- * Manages conversation context and relevant file tracking
+ * Manages context across the application with proper state management and persistence
  */
 class ContextManager {
     context;
-    promptManager;
-    contexts = new Map();
-    contextWindows = new Map();
-    userPreferences;
-    maxWindowSize = 10;
-    relevanceThreshold = 0.5;
-    storageKey = 'contextManager.preferences';
-    constructor(context, promptManager) {
+    options;
+    static instance;
+    conversationService;
+    fileStorage;
+    workspaceState;
+    contextCache = new Map();
+    eventEmitter = new vscode.EventEmitter();
+    onDidChangeContext = this.eventEmitter.event;
+    constructor(context, options = {}) {
         this.context = context;
-        this.promptManager = promptManager;
-        this.userPreferences = this.loadPreferences();
+        this.options = options;
+        this.conversationService = new ConversationService_1.ConversationService(context);
+        this.fileStorage = new FileStorageService_1.FileStorageService(context);
+        this.workspaceState = new WorkspaceStateService_1.WorkspaceStateService(context);
+        this.setupEventHandlers();
     }
-    loadPreferences() {
-        const stored = this.context.globalState.get(this.storageKey);
-        return stored || {
-            languageUsage: new Map(),
-            recentFiles: []
-        };
-    }
-    async savePreferences() {
-        await this.context.globalState.update(this.storageKey, this.userPreferences);
-    }
-    createContext(conversationId) {
-        const context = {
-            conversationId,
-            relevantFiles: [],
-            systemPrompt: this.promptManager.getDefaultSystemPrompt()
-        };
-        this.contexts.set(conversationId, context);
-        return context;
-    }
-    getContext(conversationId) {
-        const context = this.contexts.get(conversationId);
-        if (!context) {
-            return this.createContext(conversationId);
+    static getInstance(context, options) {
+        if (!ContextManager.instance && context) {
+            ContextManager.instance = new ContextManager(context, options);
         }
-        return context;
+        return ContextManager.instance;
     }
-    updateContext(conversationId, updates) {
-        const context = this.getContext(conversationId);
-        Object.assign(context, updates);
-        this.contexts.set(conversationId, context);
+    setupEventHandlers() {
+        vscode.workspace.onDidChangeWorkspaceFolders(() => this.handleWorkspaceChange());
+        vscode.window.onDidChangeActiveTextEditor(() => this.handleActiveFileChange());
     }
-    async buildContext(input) {
-        const conversationId = crypto.randomUUID();
-        const context = this.createContext(conversationId);
-        // Find relevant files based on input
-        const relevantFiles = await this.findRelevantFiles(input);
-        context.relevantFiles = relevantFiles;
-        // Update system prompt based on context
-        context.systemPrompt = await this.buildContextualSystemPrompt(input, relevantFiles);
-        return context;
-    }
-    async findRelevantFiles(input) {
-        // Implementation details...
-        return [];
-    }
-    async buildContextualSystemPrompt(input, relevantFiles) {
-        return this.promptManager.buildContextualPrompt(input, relevantFiles);
-    }
-    updateUserPreferences(preferences) {
-        this.userPreferences = {
-            ...this.userPreferences,
-            ...preferences
-        };
-        this.savePreferences().catch(console.error);
-    }
-    async updateContextWindow(conversationId, message, relevance) {
-        const window = this.contextWindows.get(conversationId) || {
-            messages: [],
-            relevance: 0,
-            timestamp: Date.now()
-        };
-        window.messages.push(message);
-        if (window.messages.length > this.maxWindowSize) {
-            window.messages.shift();
+    async initialize() {
+        try {
+            await Promise.all([
+                this.conversationService.initialize(),
+                this.fileStorage.initialize(),
+                this.workspaceState.initialize()
+            ]);
+            await this.loadPersistedContext();
         }
-        window.relevance = (window.relevance + relevance) / 2;
-        window.timestamp = Date.now();
-        this.contextWindows.set(conversationId, window);
-        await this.pruneOldContexts();
-    }
-    setPreferredLanguage(language) {
-        this.userPreferences.preferredLanguage = language;
-        this.incrementLanguageUsage(language);
-        this.savePreferences();
-    }
-    getPreferredLanguage() {
-        return this.userPreferences.preferredLanguage;
-    }
-    incrementLanguageUsage(language) {
-        const count = this.userPreferences.languageUsage.get(language) || 0;
-        this.userPreferences.languageUsage.set(language, count + 1);
-        this.savePreferences();
-    }
-    getFrequentLanguages(limit = 3) {
-        return Array.from(this.userPreferences.languageUsage.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit)
-            .map(([language, count]) => ({ language, count }));
-    }
-    setPreferredFramework(framework) {
-        this.userPreferences.preferredFramework = framework;
-        this.savePreferences();
-    }
-    getPreferredFramework() {
-        return this.userPreferences.preferredFramework;
-    }
-    addRecentFile(filePath) {
-        const now = Date.now();
-        const existing = this.userPreferences.recentFiles.find(f => f.path === filePath);
-        if (existing) {
-            existing.lastUsed = now;
-            existing.useCount++;
+        catch (error) {
+            console.error('Failed to initialize ContextManager:', error);
+            throw new Error('Context initialization failed');
         }
-        else {
-            this.userPreferences.recentFiles.push({
-                path: filePath,
-                lastUsed: now,
-                useCount: 1
-            });
-        }
-        // Keep only most recent files
-        this.userPreferences.recentFiles = this.userPreferences.recentFiles
-            .sort((a, b) => b.lastUsed - a.lastUsed)
-            .slice(0, 50); // Keep last 50 files
-        this.savePreferences();
     }
-    getRecentFiles(limit = 10) {
-        return this.userPreferences.recentFiles
-            .sort((a, b) => b.lastUsed - a.lastUsed)
-            .slice(0, limit);
-    }
-    getMostUsedFiles(limit = 10) {
-        return this.userPreferences.recentFiles
-            .sort((a, b) => b.useCount - a.useCount)
-            .slice(0, limit);
-    }
-    async pruneOldContexts() {
-        const now = Date.now();
-        const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-        for (const [id, window] of this.contextWindows.entries()) {
-            if (now - window.timestamp > maxAge) {
-                this.contextWindows.delete(id);
+    async getContext(id) {
+        if (!this.contextCache.has(id)) {
+            const persisted = await this.fileStorage.loadContext(id);
+            if (persisted) {
+                this.contextCache.set(id, persisted);
             }
         }
+        return this.contextCache.get(id);
+    }
+    async updateContext(id, data) {
+        const existing = await this.getContext(id) || {};
+        const updated = { ...existing, ...data, updatedAt: Date.now() };
+        this.contextCache.set(id, updated);
+        await this.fileStorage.saveContext(id, updated);
+        this.eventEmitter.fire(updated);
+    }
+    async getWorkspaceContext(workspaceId) {
+        return this.workspaceState.getWorkspaceContext(workspaceId);
+    }
+    async updateWorkspaceContext(workspaceId, context) {
+        await this.workspaceState.updateWorkspaceContext(workspaceId, context);
+    }
+    async handleWorkspaceChange() {
+        const workspaces = vscode.workspace.workspaceFolders || [];
+        await Promise.all(workspaces.map(workspace => this.workspaceState.initializeWorkspace(workspace.uri.toString())));
+    }
+    async handleActiveFileChange() {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const fileContext = {
+                path: editor.document.uri.toString(),
+                language: editor.document.languageId,
+                lastAccessed: Date.now()
+            };
+            await this.workspaceState.updateActiveFile(fileContext);
+        }
+    }
+    async loadPersistedContext() {
+        const contexts = await this.fileStorage.loadAllContexts();
+        contexts.forEach(({ id, data }) => this.contextCache.set(id, data));
+    }
+    async getAllContextMetadata() {
+        return Array.from(this.contextCache.entries()).map(([id, data]) => ({
+            id,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            type: data.type
+        }));
+    }
+    async clearContext(id) {
+        this.contextCache.delete(id);
+        await this.fileStorage.deleteContext(id);
+    }
+    async clearAllContexts() {
+        this.contextCache.clear();
+        await this.fileStorage.clearAllContexts();
+        await this.workspaceState.clearAllWorkspaces();
     }
     dispose() {
-        this.contexts.clear();
-        this.contextWindows.clear();
+        this.eventEmitter.dispose();
+        this.conversationService.dispose();
+        this.fileStorage.dispose();
+        this.workspaceState.dispose();
     }
 }
 exports.ContextManager = ContextManager;

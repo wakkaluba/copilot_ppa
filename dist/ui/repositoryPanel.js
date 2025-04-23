@@ -35,113 +35,111 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryPanel = void 0;
 const vscode = __importStar(require("vscode"));
-const repositoryManagement_1 = require("../services/repositoryManagement");
-const RepositoryPanelUIService_1 = require("./services/RepositoryPanelUIService");
-const RepositoryPanelMessageService_1 = require("./services/RepositoryPanelMessageService");
-const RepositoryPanelStateService_1 = require("./services/RepositoryPanelStateService");
+const RepositoryWebviewService_1 = require("./services/RepositoryWebviewService");
+const themeManager_1 = require("../services/ui/themeManager");
+const logger_1 = require("../utils/logger");
 class RepositoryPanel {
+    context;
+    static instance;
     panel;
-    extensionUri;
-    static viewType = 'copilotPPA.repositoryPanel';
-    static currentPanel;
-    uiService;
-    messageService;
-    stateService;
+    webviewService;
+    disposables = [];
     logger;
-    _disposables = [];
-    static createOrShow(extensionUri) {
-        const column = vscode.window.activeTextEditor?.viewColumn || vscode.ViewColumn.One;
-        if (RepositoryPanel.currentPanel) {
-            RepositoryPanel.currentPanel.panel.reveal(column);
-            return RepositoryPanel.currentPanel;
+    constructor(context) {
+        this.context = context;
+        this.logger = logger_1.Logger.getInstance();
+        this.webviewService = new RepositoryWebviewService_1.RepositoryWebviewService(themeManager_1.ThemeService.getInstance());
+    }
+    static getInstance(context) {
+        if (!RepositoryPanel.instance) {
+            RepositoryPanel.instance = new RepositoryPanel(context);
         }
-        const panel = vscode.window.createWebviewPanel(RepositoryPanel.viewType, 'Repository Management', column, {
-            enableScripts: true,
-            retainContextWhenHidden: true,
-            localResourceRoots: [
-                vscode.Uri.joinPath(extensionUri, 'media'),
-                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'dist')
-            ]
-        });
-        RepositoryPanel.currentPanel = new RepositoryPanel(panel, extensionUri);
-        return RepositoryPanel.currentPanel;
+        return RepositoryPanel.instance;
     }
-    constructor(panel, extensionUri) {
-        this.panel = panel;
-        this.extensionUri = extensionUri;
-        this.logger = console;
-        this.uiService = new RepositoryPanelUIService_1.RepositoryPanelUIService(panel);
-        this.messageService = new RepositoryPanelMessageService_1.RepositoryPanelMessageService(panel.webview);
-        this.stateService = new RepositoryPanelStateService_1.RepositoryPanelStateService();
-        this.setupPanel();
-        this.setupEventListeners();
-        this.setupStateManagement();
-    }
-    setupPanel() {
+    async show() {
         try {
-            this.uiService.update(this.extensionUri);
+            if (this.panel) {
+                this.panel.reveal();
+                return;
+            }
+            this.panel = vscode.window.createWebviewPanel('repositoryPanel', 'Repository', vscode.ViewColumn.Three, {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+            });
+            this.updateWebviewContent();
+            this.registerMessageHandlers();
+            this.panel.onDidDispose(() => {
+                this.panel = undefined;
+                this.dispose();
+            }, null, this.disposables);
         }
         catch (error) {
-            this.handleError('Failed to setup panel', error);
+            this.logger.error('Error showing repository panel', error);
+            throw error;
         }
     }
-    setupEventListeners() {
-        this.panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this.panel.onDidChangeViewState(() => {
-            if (this.panel.visible) {
-                this.uiService.update(this.extensionUri);
-            }
-        }, null, this._disposables);
-        this.messageService.onCreateRepository(async (provider, name, description, isPrivate) => {
+    updateWebviewContent() {
+        if (!this.panel)
+            return;
+        try {
+            this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview);
+        }
+        catch (error) {
+            this.logger.error('Error updating repository panel content', error);
+            this.showErrorInWebview('Failed to update panel content');
+        }
+    }
+    registerMessageHandlers() {
+        if (!this.panel)
+            return;
+        this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
-                const repoUrl = await repositoryManagement_1.repositoryManager.createRepository(provider, name, description, isPrivate);
-                if (repoUrl) {
-                    this.stateService.setLastCreatedRepo(repoUrl);
-                    this.stateService.setLastProvider(provider);
-                    await this.messageService.postMessage({ command: 'repoCreated', url: repoUrl });
-                    await vscode.window.showInformationMessage(`Repository created: ${repoUrl}`);
+                switch (message.command) {
+                    case 'refreshRepository':
+                        await this.refreshRepository();
+                        break;
+                    case 'showBranches':
+                        await this.showBranches();
+                        break;
+                    case 'showCommits':
+                        await this.showCommits();
+                        break;
+                    default:
+                        this.logger.warn(`Unknown command received: ${message.command}`);
                 }
             }
             catch (error) {
-                this.handleError('Failed to create repository', error);
+                this.logger.error('Error handling repository panel message', error);
+                this.showErrorInWebview('Failed to process command');
             }
-        });
-        this.messageService.onToggleAccess((enabled) => {
-            try {
-                repositoryManagement_1.repositoryManager.setEnabled(enabled);
-                this.stateService.setAccessEnabled(enabled);
-                vscode.window.showInformationMessage(`Repository access ${enabled ? 'enabled' : 'disabled'}`);
-            }
-            catch (error) {
-                this.handleError('Failed to toggle repository access', error);
-            }
-        });
+        }, undefined, this.disposables);
     }
-    setupStateManagement() {
-        this.stateService.onStateChanged((state) => {
-            try {
-                this.messageService.postMessage({
-                    command: 'stateUpdated',
-                    state
-                });
-            }
-            catch (error) {
-                this.handleError('Failed to update state', error);
-            }
-        });
+    async refreshRepository() {
+        // Implementation details
     }
-    handleError(context, error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.error(`${context}: ${errorMessage}`);
-        this.stateService.setErrorMessage(errorMessage);
-        vscode.window.showErrorMessage(`${context}: ${errorMessage}`);
+    async showBranches() {
+        // Implementation details
+    }
+    async showCommits() {
+        // Implementation details
+    }
+    showErrorInWebview(message) {
+        if (this.panel) {
+            this.panel.webview.postMessage({
+                type: 'showError',
+                message
+            });
+        }
     }
     dispose() {
-        RepositoryPanel.currentPanel = undefined;
-        this.uiService.dispose();
-        this.messageService.dispose();
-        this.panel.dispose();
-        this._disposables.forEach(d => d.dispose());
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
+        }
+        this.disposables.forEach(d => d.dispose());
+        this.disposables.length = 0;
+        RepositoryPanel.instance = undefined;
     }
 }
 exports.RepositoryPanel = RepositoryPanel;
