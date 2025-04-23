@@ -9,7 +9,6 @@ const types_1 = require("../types");
 class LLMChatManager extends events_1.EventEmitter {
     executionService;
     historyService;
-    formatter;
     activeSessions = new Map();
     metrics = {
         totalSessions: 0,
@@ -18,11 +17,10 @@ class LLMChatManager extends events_1.EventEmitter {
         averageResponseTime: 0,
         errorRate: 0
     };
-    constructor(executionService, historyService, formatter) {
+    constructor(executionService, historyService) {
         super();
         this.executionService = executionService;
         this.historyService = historyService;
-        this.formatter = formatter;
         this.setupEventListeners();
     }
     setupEventListeners() {
@@ -65,7 +63,8 @@ class LLMChatManager extends events_1.EventEmitter {
             id: crypto.randomUUID(),
             role: options.role || types_1.ChatRole.User,
             content,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            metadata: {}
         };
         try {
             // Add message to session
@@ -80,14 +79,7 @@ class LLMChatManager extends events_1.EventEmitter {
             });
             // Get response if it's a user message
             if (message.role === types_1.ChatRole.User) {
-                const response = await this.getResponse(session, message, options);
-                session.messages.push(response);
-                session.metadata.lastMessage = response;
-                session.metadata.messageCount++;
-                this.metrics.totalMessages++;
-                // Update metrics
-                const responseTime = response.timestamp - message.timestamp;
-                this.updateResponseTimeMetrics(responseTime);
+                await this.sendRequest(session, content);
             }
             // Save history
             await this.historyService.saveMessage(sessionId, message);
@@ -98,39 +90,45 @@ class LLMChatManager extends events_1.EventEmitter {
             throw error;
         }
     }
-    /**
-     * Get chat response
-     */
-    async getResponse(session, message, options) {
-        const startTime = Date.now();
+    async sendRequest(session, content) {
         try {
-            // Format conversation context
-            const formattedContext = this.formatter.formatContext(session.messages, session.context);
-            // Execute request
-            const response = await this.executionService.execute(formattedContext, {
-                ...options,
-                sessionId: session.id,
-                messageId: message.id
-            });
-            // Format response
-            const formattedResponse = this.formatter.formatResponse(response);
-            return {
-                id: crypto.randomUUID(),
-                role: types_1.ChatRole.Assistant,
-                content: formattedResponse,
-                timestamp: Date.now(),
+            session.metadata['requestStartTime'] = Date.now();
+            const options = {
                 metadata: {
-                    responseTime: Date.now() - startTime,
-                    tokenCount: response.usage?.totalTokens
+                    chatSessionId: session.id
                 }
             };
+            const response = await this.executionService.execute(content, options);
+            await this.handleResponse(session, response);
         }
         catch (error) {
-            this.metrics.errorRate = (this.metrics.totalMessages > 0 ?
-                (session.metadata.errorCount || 0) / this.metrics.totalMessages :
-                0);
-            throw new types_1.ChatError('Failed to get response', session.id, error);
+            const chatError = error instanceof Error ?
+                new types_1.ChatError('Failed to get response', session.id, error) :
+                new types_1.ChatError('Failed to get response', session.id);
+            session.metadata['errorCount'] = (session.metadata['errorCount'] || 0) + 1;
+            session.metadata['lastError'] = chatError;
+            throw chatError;
         }
+    }
+    async handleResponse(session, response) {
+        const responseTime = Date.now() - session.metadata['requestStartTime'];
+        const message = {
+            id: crypto.randomUUID(),
+            role: types_1.ChatRole.Assistant,
+            content: response.content,
+            timestamp: Date.now(),
+            metadata: {
+                responseTime,
+                tokenCount: response.usage?.totalTokens ?? null
+            }
+        };
+        session.messages.push(message);
+        session.metadata.lastMessage = message;
+        session.metadata.messageCount++;
+        this.emit(types_1.ChatEvent.MessageHandled, {
+            sessionId: session.id,
+            message
+        });
     }
     /**
      * End a chat session
@@ -203,11 +201,6 @@ class LLMChatManager extends events_1.EventEmitter {
             timestamp: Date.now()
         });
     }
-    updateResponseTimeMetrics(responseTime) {
-        const totalResponses = this.metrics.totalMessages / 2; // Assuming each user message gets a response
-        this.metrics.averageResponseTime = ((this.metrics.averageResponseTime * (totalResponses - 1) + responseTime) /
-            totalResponses);
-    }
     dispose() {
         // End all active sessions
         for (const sessionId of this.activeSessions.keys()) {
@@ -215,6 +208,46 @@ class LLMChatManager extends events_1.EventEmitter {
         }
         this.activeSessions.clear();
         this.removeAllListeners();
+    }
+    /**
+     * Handle incoming user message
+     */
+    async handleUserMessage(sessionId, content) {
+        if (!content.trim()) {
+            return;
+        }
+        const message = await this.sendMessage(sessionId, content);
+        this.emit(types_1.ChatEvent.MessageHandled, {
+            sessionId,
+            messageId: message.id,
+            timestamp: Date.now()
+        });
+    }
+    /**
+     * Clear chat history for a session
+     */
+    async clearSessionHistory(sessionId) {
+        const session = this.activeSessions.get(sessionId);
+        if (!session) {
+            throw new types_1.ChatError('Session not found', sessionId);
+        }
+        session.messages = [];
+        session.metadata.messageCount = 0;
+        await this.historyService.saveSession(session);
+        this.emit(types_1.ChatEvent.HistoryCleared, {
+            sessionId,
+            timestamp: Date.now()
+        });
+    }
+    /**
+     * Get connection status
+     */
+    getConnectionStatus() {
+        const isConnected = this.executionService.isConnected();
+        return {
+            isConnected,
+            status: isConnected ? 'Connected' : 'Disconnected'
+        };
     }
 }
 exports.LLMChatManager = LLMChatManager;

@@ -251,13 +251,37 @@ export class LLMModelManager extends EventEmitter {
         info: ModelInfo,
         options: ModelLoadOptions
     ): Promise<void> {
-        // This would integrate with the provider's model loading mechanism
-        throw new Error('Not implemented');
+        // Get the provider for this model
+        const provider = await this.providerRegistry.getProvider(info.providerId);
+        if (!provider) {
+            throw new ModelLoadError(`Provider ${info.providerId} not found for model ${info.id}`);
+        }
+
+        // Initialize provider-specific resources
+        await provider.initializeModel(info, options);
+
+        // Verify the model is ready
+        const status = await provider.getModelStatus(info.id);
+        if (status !== 'ready') {
+            throw new ModelLoadError(`Model ${info.id} failed to initialize. Status: ${status}`);
+        }
     }
 
     private async performModelUnload(info: ModelInfo): Promise<void> {
-        // This would integrate with the provider's model unloading mechanism
-        throw new Error('Not implemented');
+        // Get the provider for this model
+        const provider = await this.providerRegistry.getProvider(info.providerId);
+        if (!provider) {
+            throw new Error(`Provider ${info.providerId} not found for model ${info.id}`);
+        }
+
+        // Clean up provider-specific resources
+        await provider.cleanupModel(info.id);
+
+        // Verify the model is properly unloaded
+        const status = await provider.getModelStatus(info.id);
+        if (status !== 'inactive') {
+            throw new Error(`Model ${info.id} failed to unload properly. Status: ${status}`);
+        }
     }
 
     private getInfoChanges(

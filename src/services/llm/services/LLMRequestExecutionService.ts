@@ -191,6 +191,13 @@ export class LLMRequestExecutionService extends EventEmitter {
         return this.requestQueue.length;
     }
 
+    /**
+     * Check if the service is connected and ready
+     */
+    public isConnected(): boolean {
+        return this.provider?.getStatus() === 'active';
+    }
+
     private wrapError(error: unknown): LLMRequestError {
         if (error instanceof Error) {
             return new LLMRequestError(error.message, error);

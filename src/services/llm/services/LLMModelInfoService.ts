@@ -20,6 +20,7 @@ export class LLMModelInfoService extends EventEmitter {
     private readonly cacheTTL: number;
     private updateInterval: NodeJS.Timer | null = null;
     private readonly updateFrequency = 300000; // 5 minutes
+    private discoveryService: ModelDiscoveryService | null = null;
 
     constructor(cacheTTL = DEFAULT_CACHE_TTL) {
         super();
@@ -218,8 +219,41 @@ export class LLMModelInfoService extends EventEmitter {
     private async performModelDiscovery(
         options: ModelDiscoveryOptions
     ): Promise<ModelInfo[]> {
-        // This would integrate with the provider's model discovery
-        throw new Error('Not implemented');
+        const discoveryService = await this.getModelDiscoveryService();
+        let models = discoveryService.getRegisteredModels();
+
+        if (options.compatibleOnly) {
+            models = await discoveryService.getCompatibleModels();
+        }
+
+        // Apply provider filter if specified
+        if (options.provider) {
+            models = models.filter(model => model.provider === options.provider);
+        }
+
+        // Apply type filter if specified
+        if (options.type) {
+            models = models.filter(model => model.type === options.type);
+        }
+
+        // Apply capability filter if specified
+        if (options.capabilities?.length) {
+            models = models.filter(model => 
+                options.capabilities!.every(cap => model.capabilities?.includes(cap))
+            );
+        }
+
+        return models;
+    }
+
+    private async getModelDiscoveryService(): Promise<ModelDiscoveryService> {
+        // This would typically be injected or retrieved from a service container
+        if (!this.discoveryService) {
+            const metricsService = new ModelMetricsService();
+            const validationService = new ModelValidationService();
+            this.discoveryService = new ModelDiscoveryService(metricsService, validationService);
+        }
+        return this.discoveryService;
     }
 
     private filterModels(

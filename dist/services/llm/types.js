@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProviderError = exports.ProviderEvent = exports.ProviderConnectionState = exports.ProviderState = exports.ProviderStatus = exports.LLMConnectionError = exports.LLMConnectionErrorCode = exports.ConnectionEvent = void 0;
+exports.ChatError = exports.ChatEvent = exports.ChatState = exports.ChatRole = exports.ProviderError = exports.ProviderEvent = exports.ProviderConnectionState = exports.ProviderState = exports.ProviderStatus = exports.LLMConnectionError = exports.LLMConnectionErrorCode = exports.ConnectionEvent = void 0;
 const errors_1 = require("./errors");
 /**
  * LLM connection events
@@ -90,4 +90,39 @@ class ProviderError extends errors_1.Error {
     }
 }
 exports.ProviderError = ProviderError;
+var ChatRole;
+(function (ChatRole) {
+    ChatRole["User"] = "user";
+    ChatRole["Assistant"] = "assistant";
+    ChatRole["System"] = "system";
+})(ChatRole || (exports.ChatRole = ChatRole = {}));
+var ChatState;
+(function (ChatState) {
+    ChatState["Active"] = "active";
+    ChatState["Ended"] = "ended";
+    ChatState["Error"] = "error";
+})(ChatState || (exports.ChatState = ChatState = {}));
+var ChatEvent;
+(function (ChatEvent) {
+    ChatEvent["MessageSent"] = "messageSent";
+    ChatEvent["MessageHandled"] = "messageHandled";
+    ChatEvent["SessionCreated"] = "sessionCreated";
+    ChatEvent["SessionEnded"] = "sessionEnded";
+    ChatEvent["SessionResumed"] = "sessionResumed";
+    ChatEvent["HistoryLoaded"] = "historyLoaded";
+    ChatEvent["HistorySaved"] = "historySaved";
+    ChatEvent["HistoryCleared"] = "historyCleared";
+    ChatEvent["Error"] = "error";
+})(ChatEvent || (exports.ChatEvent = ChatEvent = {}));
+class ChatError extends errors_1.Error {
+    sessionId;
+    cause;
+    constructor(message, sessionId, cause) {
+        super(message);
+        this.sessionId = sessionId;
+        this.cause = cause;
+        this.name = 'ChatError';
+    }
+}
+exports.ChatError = ChatError;
 //# sourceMappingURL=types.js.map

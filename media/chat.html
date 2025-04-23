@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="codicon.css">
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+    <div id="chat-container">
+        <div id="connection-status-bar" class="status-disconnected">
+            <span id="connection-indicator"></span>
+            <span id="connection-message">Not connected</span>
+        </div>
+        
+        <div id="status-bar"></div>
+        
+        <div id="messages-container"></div>
+        
+        <div id="input-container">
+            <div id="message-input-container">
+                <textarea id="message-input" 
+                    placeholder="Type a message..."
+                    rows="1"
+                    disabled></textarea>
+            </div>
+            <div id="button-container">
+                <button id="send-button" disabled title="Send message">
+                    <i class="codicon codicon-send"></i>
+                </button>
+                <button id="clear-button" title="Clear chat">
+                    <i class="codicon codicon-clear-all"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script src="chat.js"></script>
+</body>
+</html>

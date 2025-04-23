@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource};">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Agent</title>
+    <link href="${styleUri}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h3>Connection Status</h3>
+            <div id="status">
+                <span id="connectionState"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Model Selection</h3>
+            <select id="modelSelector" disabled>
+                <option value="">Loading models...</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <button id="connectButton" disabled>Connect</button>
+            <button id="disconnectButton" disabled>Disconnect</button>
+            <button id="refreshButton">Refresh Models</button>
+            <button id="settingsButton">Open Settings</button>
+        </div>
+    </div>
+
+    <script nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>

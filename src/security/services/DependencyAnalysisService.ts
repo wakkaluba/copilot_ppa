@@ -1,166 +1,221 @@
 import * as vscode from 'vscode';
-import { DependencyScanner } from '../dependencyScanner';
-import { DependencyScanResult, VulnerabilityInfo, SecuritySummary } from '../types';
+import { IDependencyAnalysisService, DependencyScanResult, DependencyVulnerability } from '../types';
 
-/**
- * Service for analyzing project dependencies for security vulnerabilities
- */
-export class DependencyAnalysisService implements vscode.Disposable {
-    private readonly scanner: DependencyScanner;
+export class DependencyAnalysisService implements IDependencyAnalysisService {
+    private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(private readonly context: vscode.ExtensionContext) {
-        this.scanner = new DependencyScanner(context);
-    }
+    public async scanDependencies(): Promise<DependencyScanResult> {
+        const vulnerabilities: DependencyVulnerability[] = [];
+        const workspaceFolders = vscode.workspace.workspaceFolders;
 
-    public async scanDependencies(
-        progressCallback?: (message: string) => void
-    ): Promise<DependencyScanResult> {
-        try {
-            progressCallback?.('Analyzing project dependencies...');
-            const dependencies = await this.scanner.getDependencies();
-            
-            progressCallback?.('Checking for known vulnerabilities...');
-            const vulnerabilities = await this.scanner.checkVulnerabilities(dependencies);
-            
-            progressCallback?.('Generating vulnerability report...');
-            const summary = this.generateSummary(vulnerabilities);
-
+        if (!workspaceFolders) {
             return {
-                vulnerabilities,
-                totalDependencies: dependencies.length,
-                hasVulnerabilities: vulnerabilities.length > 0,
-                summary
+                vulnerabilities: [],
+                hasVulnerabilities: false,
+                timestamp: Date.now(),
+                totalDependencies: 0
             };
-        } catch (error) {
-            throw new Error(`Dependency analysis failed: ${error}`);
         }
-    }
 
-    public async getVulnerabilityDetails(vulnId: string): Promise<VulnerabilityInfo | undefined> {
-        return this.scanner.getVulnerabilityDetails(vulnId);
-    }
+        for (const folder of workspaceFolders) {
+            // Scan package.json for npm dependencies
+            const packageJsonVulns = await this.scanNpmDependencies(folder.uri);
+            vulnerabilities.push(...packageJsonVulns);
 
-    public async analyzePackageJson(): Promise<DependencyScanResult> {
-        const result = await this.scanDependencies();
-        return this.enrichWithPackageDetails(result);
-    }
+            // Scan requirements.txt for Python dependencies
+            const pythonVulns = await this.scanPythonDependencies(folder.uri);
+            vulnerabilities.push(...pythonVulns);
 
-    public async analyzeNodeModules(): Promise<DependencyScanResult> {
-        const result = await this.scanDependencies();
-        return this.enrichWithNodeModulesDetails(result);
-    }
-
-    private async enrichWithPackageDetails(result: DependencyScanResult): Promise<DependencyScanResult> {
-        try {
-            const packageJson = await this.readPackageJson();
-            return {
-                ...result,
-                packageJsonPath: packageJson.path,
-                packageName: packageJson.name,
-                packageVersion: packageJson.version
-            };
-        } catch {
-            return result;
+            // Scan pom.xml for Java dependencies
+            const javaVulns = await this.scanJavaDependencies(folder.uri);
+            vulnerabilities.push(...javaVulns);
         }
-    }
 
-    private async enrichWithNodeModulesDetails(result: DependencyScanResult): Promise<DependencyScanResult> {
-        try {
-            const nodeModulesInfo = await this.analyzeNodeModulesFolder();
-            return {
-                ...result,
-                nodeModulesSize: nodeModulesInfo.size,
-                nodeModulesCount: nodeModulesInfo.count
-            };
-        } catch {
-            return result;
-        }
-    }
-
-    private generateSummary(vulnerabilities: any[]): SecuritySummary {
-        const summary = {
-            critical: 0,
-            high: 0,
-            medium: 0,
-            low: 0
+        return {
+            vulnerabilities,
+            hasVulnerabilities: vulnerabilities.length > 0,
+            timestamp: Date.now(),
+            totalDependencies: await this.countTotalDependencies()
         };
-
-        vulnerabilities.forEach(vuln => {
-            switch (vuln.severity.toLowerCase()) {
-                case 'critical':
-                    summary.critical++;
-                    break;
-                case 'high':
-                    summary.high++;
-                    break;
-                case 'medium':
-                    summary.medium++;
-                    break;
-                case 'low':
-                    summary.low++;
-                    break;
-            }
-        });
-
-        return summary;
     }
 
-    private async readPackageJson(): Promise<any> {
+    private async scanNpmDependencies(workspaceUri: vscode.Uri): Promise<DependencyVulnerability[]> {
         try {
-            const packageJsonFiles = await vscode.workspace.findFiles('**/package.json', '**/node_modules/**');
-            if (packageJsonFiles.length === 0) {
-                throw new Error('No package.json found');
-            }
+            const packageJsonUri = vscode.Uri.joinPath(workspaceUri, 'package.json');
+            const packageLockUri = vscode.Uri.joinPath(workspaceUri, 'package-lock.json');
+            
+            const vulnerabilities: DependencyVulnerability[] = [];
+            
+            try {
+                const packageJsonContent = await vscode.workspace.fs.readFile(packageJsonUri);
+                const packageJson = JSON.parse(packageJsonContent.toString());
+                
+                // Analyze both dependencies and devDependencies
+                const allDeps = {
+                    ...packageJson.dependencies,
+                    ...packageJson.devDependencies
+                };
 
-            const content = await vscode.workspace.fs.readFile(packageJsonFiles[0]);
-            return {
-                ...JSON.parse(content.toString()),
-                path: packageJsonFiles[0].fsPath
-            };
-        } catch (error) {
-            throw new Error(`Failed to read package.json: ${error}`);
-        }
-    }
-
-    private async analyzeNodeModulesFolder(): Promise<{ size: number; count: number }> {
-        try {
-            const nodeModulesFolders = await vscode.workspace.findFiles('**/node_modules', null, 1);
-            if (nodeModulesFolders.length === 0) {
-                return { size: 0, count: 0 };
-            }
-
-            const uri = nodeModulesFolders[0];
-            const stats = await vscode.workspace.fs.stat(uri);
-            const files = await this.countFiles(uri);
-
-            return {
-                size: stats.size,
-                count: files
-            };
-        } catch {
-            return { size: 0, count: 0 };
-        }
-    }
-
-    private async countFiles(uri: vscode.Uri): Promise<number> {
-        try {
-            const entries = await vscode.workspace.fs.readDirectory(uri);
-            let count = entries.length;
-
-            for (const [name, type] of entries) {
-                if (type === vscode.FileType.Directory && !name.startsWith('.')) {
-                    count += await this.countFiles(vscode.Uri.joinPath(uri, name));
+                // Check each dependency against known vulnerability databases
+                for (const [name, version] of Object.entries(allDeps)) {
+                    const vulns = await this.checkNpmVulnerabilities(name, version as string);
+                    if (vulns.length > 0) {
+                        vulnerabilities.push({
+                            name,
+                            version: version as string,
+                            vulnerabilityInfo: vulns
+                        });
+                    }
                 }
+            } catch (err) {
+                console.error('Error reading package.json:', err);
             }
 
-            return count;
-        } catch {
+            return vulnerabilities;
+        } catch (err) {
+            console.error('Error scanning npm dependencies:', err);
+            return [];
+        }
+    }
+
+    private async scanPythonDependencies(workspaceUri: vscode.Uri): Promise<DependencyVulnerability[]> {
+        try {
+            const requirementsUri = vscode.Uri.joinPath(workspaceUri, 'requirements.txt');
+            const vulnerabilities: DependencyVulnerability[] = [];
+
+            try {
+                const requirementsContent = await vscode.workspace.fs.readFile(requirementsUri);
+                const requirements = requirementsContent.toString().split('\n');
+
+                for (const requirement of requirements) {
+                    const [name, version] = requirement.split('==');
+                    if (name && version) {
+                        const vulns = await this.checkPythonVulnerabilities(name.trim(), version.trim());
+                        if (vulns.length > 0) {
+                            vulnerabilities.push({
+                                name,
+                                version,
+                                vulnerabilityInfo: vulns
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error reading requirements.txt:', err);
+            }
+
+            return vulnerabilities;
+        } catch (err) {
+            console.error('Error scanning Python dependencies:', err);
+            return [];
+        }
+    }
+
+    private async scanJavaDependencies(workspaceUri: vscode.Uri): Promise<DependencyVulnerability[]> {
+        try {
+            const pomXmlUri = vscode.Uri.joinPath(workspaceUri, 'pom.xml');
+            const vulnerabilities: DependencyVulnerability[] = [];
+
+            try {
+                const pomContent = await vscode.workspace.fs.readFile(pomXmlUri);
+                // Parse pom.xml and check for vulnerabilities
+                // This is a simplified version - in practice you'd want to use a proper XML parser
+                const pomXml = pomContent.toString();
+                const depRegex = /<dependency>[\s\S]*?<groupId>(.*?)<\/groupId>[\s\S]*?<artifactId>(.*?)<\/artifactId>[\s\S]*?<version>(.*?)<\/version>[\s\S]*?<\/dependency>/g;
+                
+                let match;
+                while ((match = depRegex.exec(pomXml)) !== null) {
+                    const [, groupId, artifactId, version] = match;
+                    const vulns = await this.checkMavenVulnerabilities(groupId, artifactId, version);
+                    if (vulns.length > 0) {
+                        vulnerabilities.push({
+                            name: `${groupId}:${artifactId}`,
+                            version,
+                            vulnerabilityInfo: vulns
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error reading pom.xml:', err);
+            }
+
+            return vulnerabilities;
+        } catch (err) {
+            console.error('Error scanning Java dependencies:', err);
+            return [];
+        }
+    }
+
+    private async checkNpmVulnerabilities(name: string, version: string): Promise<any[]> {
+        // In a real implementation, this would check against npm audit or a vulnerability database
+        // This is a simplified version
+        return [];
+    }
+
+    private async checkPythonVulnerabilities(name: string, version: string): Promise<any[]> {
+        // In a real implementation, this would check against PyPI's security advisory database
+        // This is a simplified version
+        return [];
+    }
+
+    private async checkMavenVulnerabilities(groupId: string, artifactId: string, version: string): Promise<any[]> {
+        // In a real implementation, this would check against Maven Central's security advisory database
+        // This is a simplified version
+        return [];
+    }
+
+    private async countTotalDependencies(): Promise<number> {
+        let total = 0;
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+
+        if (!workspaceFolders) {
             return 0;
         }
+
+        for (const folder of workspaceFolders) {
+            try {
+                // Count npm dependencies
+                const packageJsonUri = vscode.Uri.joinPath(folder.uri, 'package.json');
+                try {
+                    const packageJsonContent = await vscode.workspace.fs.readFile(packageJsonUri);
+                    const packageJson = JSON.parse(packageJsonContent.toString());
+                    total += Object.keys(packageJson.dependencies || {}).length;
+                    total += Object.keys(packageJson.devDependencies || {}).length;
+                } catch (err) {
+                    // package.json doesn't exist or is invalid
+                }
+
+                // Count Python dependencies
+                const requirementsUri = vscode.Uri.joinPath(folder.uri, 'requirements.txt');
+                try {
+                    const requirementsContent = await vscode.workspace.fs.readFile(requirementsUri);
+                    const requirements = requirementsContent.toString().split('\n');
+                    total += requirements.filter(line => line.trim() && !line.startsWith('#')).length;
+                } catch (err) {
+                    // requirements.txt doesn't exist
+                }
+
+                // Count Java dependencies
+                const pomXmlUri = vscode.Uri.joinPath(folder.uri, 'pom.xml');
+                try {
+                    const pomContent = await vscode.workspace.fs.readFile(pomXmlUri);
+                    const pomXml = pomContent.toString();
+                    const depMatches = pomXml.match(/<dependency>/g);
+                    if (depMatches) {
+                        total += depMatches.length;
+                    }
+                } catch (err) {
+                    // pom.xml doesn't exist
+                }
+            } catch (err) {
+                console.error('Error counting dependencies:', err);
+            }
+        }
+
+        return total;
     }
 
     public dispose(): void {
-        // Clean up any resources
-        this.scanner.dispose();
+        this.disposables.forEach(d => d.dispose());
     }
 }

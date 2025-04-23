@@ -1,149 +1,179 @@
 import * as vscode from 'vscode';
+import { UISettingsWebviewService, UISettingsTab } from './services/UISettingsWebviewService';
+import { ThemeService } from '../services/ui/themeManager';
+import { Logger } from '../utils/logger';
 
-export class UISettingsPanel {
-    private _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
+export class UISettingsPanel implements vscode.Disposable {
+    private static instance: UISettingsPanel;
+    private readonly logger: Logger;
+    private readonly webviewService: UISettingsWebviewService;
+    private panel?: vscode.WebviewPanel;
+    private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(panel: vscode.WebviewPanel) {
-        this._panel = panel;
-        
-        // Set the webview's initial html content
-        this._panel.webview.html = this._getHtmlForWebview();
-
-        // Listen for when the panel is disposed
-        // This happens when the user closes the panel or when the panel is closed programmatically
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'selectTab':
-                        const tabToSelect = message.tab;
-                        if (tabToSelect) {
-                            // Handle selecting a tab
-                            const tabSelector = '.tab[data-tab="' + tabToSelect + '"]';
-                            const tabEl = document.querySelector(tabSelector);
-                            if (tabEl) {
-                                tabEl.click();
-                            }
-                        }
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
+    private constructor(private readonly context: vscode.ExtensionContext) {
+        this.logger = Logger.getInstance();
+        this.webviewService = new UISettingsWebviewService(ThemeService.getInstance());
     }
 
-    /**
-     * Select a specific tab in the panel
-     */
-    public selectTab(tabName: string): void {
-        if (!this._panel.visible) {
-            return;
+    public static getInstance(context: vscode.ExtensionContext): UISettingsPanel {
+        if (!UISettingsPanel.instance) {
+            UISettingsPanel.instance = new UISettingsPanel(context);
         }
-        
-        this._panel.webview.postMessage({
-            command: 'selectTab',
-            tab: tabName
-        });
+        return UISettingsPanel.instance;
     }
 
-    private _getHtmlForWebview(): string {
-        return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Settings</title>
-                <style>
-                    .tab-container {
-                        margin-bottom: 20px;
-                    }
-                    .tab {
-                        padding: 8px 16px;
-                        cursor: pointer;
-                        border: none;
-                        background: none;
-                        color: var(--vscode-foreground);
-                    }
-                    .tab.active {
-                        border-bottom: 2px solid var(--vscode-focusBorder);
-                    }
-                    .tab-content {
-                        display: none;
-                    }
-                    .tab-content.active {
-                        display: block;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="tab-container">
-                    <button class="tab active" data-tab="general">General</button>
-                    <button class="tab" data-tab="advanced">Advanced</button>
-                </div>
-                <div id="general" class="tab-content active">
-                    <h2>General Settings</h2>
-                    <!-- Add general settings content here -->
-                </div>
-                <div id="advanced" class="tab-content">
-                    <h2>Advanced Settings</h2>
-                    <!-- Add advanced settings content here -->
-                </div>
-
-                <script>
-                    (function() {
-                        const vscode = acquireVsCodeApi();
-                        const tabs = document.querySelectorAll('.tab');
-                        const tabContents = document.querySelectorAll('.tab-content');
-
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                // Remove active class from all tabs and contents
-                                tabs.forEach(t => t.classList.remove('active'));
-                                tabContents.forEach(c => c.classList.remove('active'));
-
-                                // Add active class to clicked tab and corresponding content
-                                tab.classList.add('active');
-                                const tabName = tab.getAttribute('data-tab');
-                                document.getElementById(tabName).classList.add('active');
-                            });
-                        });
-
-                        // Handle messages from the extension
-                        window.addEventListener('message', event => {
-                            const message = event.data;
-                            switch (message.command) {
-                                case 'selectTab':
-                                    const tabToSelect = message.tab;
-                                    if (tabToSelect) {
-                                        // Handle selecting a tab
-                                        const tabSelector = '.tab[data-tab="' + tabToSelect + '"]';
-                                        const tabEl = document.querySelector(tabSelector);
-                                        if (tabEl) {
-                                            tabEl.click();
-                                        }
-                                    }
-                                    break;
-                            }
-                        });
-                    }())
-                </script>
-            </body>
-            </html>`;
-    }
-
-    public dispose() {
-        // Clean up our resources
-        this._panel.dispose();
-
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
+    public async show(): Promise<void> {
+        try {
+            if (this.panel) {
+                this.panel.reveal();
+                return;
             }
+
+            this.panel = vscode.window.createWebviewPanel(
+                'uiSettingsPanel',
+                'Settings',
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+                }
+            );
+
+            const tabs: UISettingsTab[] = [
+                {
+                    id: 'general',
+                    label: 'General',
+                    content: this.getGeneralSettingsContent()
+                },
+                {
+                    id: 'advanced',
+                    label: 'Advanced',
+                    content: this.getAdvancedSettingsContent()
+                }
+            ];
+
+            this.panel.webview.html = this.webviewService.generateWebviewContent(tabs);
+
+            this.registerMessageHandlers();
+
+            this.panel.onDidDispose(() => {
+                this.panel = undefined;
+                this.dispose();
+            }, null, this.disposables);
+
+        } catch (error) {
+            this.logger.error('Error showing UI settings panel', error);
+            throw error;
         }
+    }
+
+    private registerMessageHandlers(): void {
+        if (!this.panel) return;
+
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            try {
+                switch (message.command) {
+                    case 'tabChanged':
+                        await this.handleTabChange(message.tab);
+                        break;
+                    case 'updateSetting':
+                        await this.handleSettingUpdate(message.key, message.value);
+                        break;
+                    default:
+                        this.logger.warn(`Unknown message command: ${message.command}`);
+                }
+            } catch (error) {
+                this.logger.error('Error handling settings panel message', error);
+                this.showErrorMessage('Failed to process command');
+            }
+        }, undefined, this.disposables);
+    }
+
+    public selectTab(tabName: string): void {
+        if (!this.panel?.visible) return;
+
+        try {
+            this.panel.webview.postMessage({
+                command: 'selectTab',
+                tab: tabName
+            });
+        } catch (error) {
+            this.logger.error('Error selecting tab', error);
+            this.showErrorMessage('Failed to switch tab');
+        }
+    }
+
+    private showErrorMessage(message: string): void {
+        if (this.panel) {
+            this.panel.webview.postMessage({
+                command: 'showError',
+                message
+            });
+        }
+    }
+
+    private getGeneralSettingsContent(): string {
+        return `
+            <div class="setting-group">
+                <h2>General Settings</h2>
+                <div class="setting-item">
+                    <label for="theme">Theme</label>
+                    <select id="theme">
+                        <option value="system">System Default</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="language">Language</label>
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+
+    private getAdvancedSettingsContent(): string {
+        return `
+            <div class="setting-group">
+                <h2>Advanced Settings</h2>
+                <div class="setting-item">
+                    <label for="caching">Enable Caching</label>
+                    <input type="checkbox" id="caching" />
+                </div>
+                <div class="setting-item">
+                    <label for="logging">Logging Level</label>
+                    <select id="logging">
+                        <option value="error">Error</option>
+                        <option value="warn">Warning</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+
+    private async handleTabChange(tab: string): Promise<void> {
+        // Implementation for tab change handling
+    }
+
+    private async handleSettingUpdate(key: string, value: any): Promise<void> {
+        // Implementation for setting update handling
+    }
+
+    public dispose(): void {
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
+        }
+
+        this.disposables.forEach(d => d.dispose());
+        this.disposables.length = 0;
+        UISettingsPanel.instance = undefined;
     }
 }

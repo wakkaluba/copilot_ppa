@@ -141,8 +141,13 @@ export interface ConnectionMetrics {
     averageResponseTime: number;
     lastResponseTime: number;
     uptime: number;
-    lastError?: Error;
-    lastErrorTime?: Date;
+    totalTokens: number;
+    errorRates: Map<string, number>;
+    resourceUsage: {
+        memory: number;
+        cpu: number;
+    };
+    estimatedCost: number;
 }
 
 /**
@@ -355,6 +360,7 @@ export interface LLMResponse {
         completionTokens: number;
         totalTokens: number;
     };
+    metadata?: Record<string, any>;
 }
 
 export interface LLMStreamEvent {
@@ -365,10 +371,22 @@ export interface LLMStreamEvent {
 export interface LLMRequestOptions {
     temperature?: number;
     maxTokens?: number;
-    topP?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    stop?: string[];
+    stopSequences?: string[];
+    metadata?: Record<string, any>;
+}
+
+export interface LLMRequestMetadata {
+    requestStartTime?: number;
+    responseTime?: number;
+    tokenCount?: number | null;
+    [key: string]: any;
+}
+
+export interface LLMRequestOptions {
+    temperature?: number;
+    maxTokens?: number;
+    stopSequences?: string[];
+    metadata?: Record<string, any>;
 }
 
 export interface HealthCheckResult {
@@ -423,5 +441,114 @@ export class ProviderError extends Error {
     ) {
         super(message);
         this.name = 'ProviderError';
+    }
+}
+
+export enum ChatRole {
+    User = 'user',
+    Assistant = 'assistant',
+    System = 'system'
+}
+
+export enum ChatState {
+    Active = 'active',
+    Ended = 'ended',
+    Error = 'error'
+}
+
+export enum ChatEvent {
+    MessageSent = 'messageSent',
+    MessageHandled = 'messageHandled',
+    SessionCreated = 'sessionCreated',
+    SessionEnded = 'sessionEnded',
+    SessionResumed = 'sessionResumed',
+    HistoryLoaded = 'historyLoaded',
+    HistorySaved = 'historySaved',
+    HistoryCleared = 'historyCleared',
+    Error = 'error'
+}
+
+export interface ChatErrorEvent {
+    error: unknown;
+    sessionId?: string;
+}
+
+export interface ChatMessageMetadata {
+    [key: string]: any;
+    responseTime?: number;
+    tokenCount?: number | null;
+}
+
+export interface ChatMessage {
+    id: string;
+    role: ChatRole;
+    content: string;
+    timestamp: number;
+    metadata: ChatMessageMetadata;
+}
+
+export interface ChatSession {
+    id: string;
+    state: ChatState;
+    messages: ChatMessage[];
+    context: ChatContext;
+    metadata: {
+        createdAt: number;
+        endedAt?: number;
+        lastMessage: ChatMessage | null;
+        messageCount: number;
+        errorCount?: number;
+        lastError?: Error;
+        [key: string]: any;
+    };
+}
+
+export interface ChatContext {
+    systemPrompt?: string;
+    variables?: Record<string, string>;
+    [key: string]: any;
+}
+
+export interface ChatOptions {
+    context?: ChatContext;
+    metadata?: Record<string, any>;
+}
+
+export interface MessageOptions {
+    role?: ChatRole;
+    context?: ChatContext;
+    [key: string]: any;
+}
+
+export interface ChatMetrics {
+    totalSessions: number;
+    activeSessions: number;
+    totalMessages: number;
+    averageResponseTime: number;
+    errorRate: number;
+}
+
+export interface ChatHistoryOptions {
+    maxMessagesPerSession?: number;
+    pruneInterval?: number;
+    retentionPeriod?: number;
+}
+
+export interface ChatFormatOptions {
+    systemPromptPrefix?: string;
+    maxContextMessages?: number;
+    useMarkdown?: boolean;
+    preserveFormatting?: boolean;
+    [key: string]: any;
+}
+
+export class ChatError extends Error {
+    constructor(
+        message: string,
+        public readonly sessionId?: string,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'ChatError';
     }
 }

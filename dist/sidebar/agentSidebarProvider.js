@@ -36,229 +36,167 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentSidebarProvider = void 0;
 const vscode = __importStar(require("vscode"));
 /**
- * Provides the sidebar view for the Local LLM Agent
+ * Provides the agent sidebar webview implementation
  */
 class AgentSidebarProvider {
     _extensionUri;
-    _llmProviderManager;
-    static viewType = 'localLlmAgent.sidebarView';
+    _connectionManager;
+    static viewType = 'copilot-ppa.agentSidebar';
     _view;
+    _messageHandlers;
     _disposables = [];
-    _connectionStatusService;
-    constructor(_extensionUri, _llmProviderManager, connectionStatusService) {
+    constructor(_extensionUri, _connectionManager) {
         this._extensionUri = _extensionUri;
-        this._llmProviderManager = _llmProviderManager;
-        this._connectionStatusService = connectionStatusService;
-        // Listen for connection status changes
-        this._disposables.push(this._connectionStatusService.onDidChangeState(state => {
-            this._updateSidebarView();
-        }));
+        this._connectionManager = _connectionManager;
+        this._messageHandlers = new Map();
+        this.registerMessageHandlers();
+        this.listenToConnectionChanges();
     }
-    resolveWebviewView(webviewView, context, _token) {
+    /**
+     * Resolves the webview view
+     */
+    resolveWebviewView(webviewView, _context, _token) {
         this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this._extensionUri]
+            localResourceRoots: [
+                this._extensionUri
+            ]
         };
-        webviewView.webview.html = this._getWebviewContent(webviewView.webview);
-        // Handle messages from the webview
-        this._registerWebviewMessageHandlers(webviewView);
-        // Update the view when it becomes visible
-        if (webviewView.visible) {
-            this._updateSidebarView();
-        }
-        webviewView.onDidChangeVisibility(() => {
-            if (webviewView.visible) {
-                this._updateSidebarView();
-            }
-        });
+        webviewView.webview.html = this._getHtmlContent(webviewView.webview);
+        this.setupMessageListener(webviewView.webview);
+        this.updateConnectionState();
     }
     /**
-     * Registers message handlers for webview communication
+     * Sets up the message listener for webview communication
      */
-    _registerWebviewMessageHandlers(webviewView) {
-        this._disposables.push(webviewView.webview.onDidReceiveMessage(async (data) => {
-            switch (data.type) {
-                case 'selectModel':
-                    await this._selectModel(data.model);
-                    break;
-                case 'connectLlm':
-                    await this._connectToLlm();
-                    break;
-                case 'disconnectLlm':
-                    await this._disconnectFromLlm();
-                    break;
-                case 'refreshModels':
-                    await this._refreshModels();
-                    break;
-                case 'openSettings':
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'localLlmAgent');
-                    break;
+    setupMessageListener(webview) {
+        this._disposables.push(webview.onDidReceiveMessage(async (message) => {
+            const handler = this._messageHandlers.get(message.type);
+            if (handler) {
+                try {
+                    await handler(message.data);
+                }
+                catch (error) {
+                    console.error(`Error handling message ${message.type}:`, error);
+                    this.showError(`Failed to handle ${message.type}: ${error instanceof Error ? error.message : String(error)}`);
+                }
+            }
+            else {
+                console.warn(`No handler registered for message type: ${message.type}`);
             }
         }));
     }
     /**
-     * Handle model selection
+     * Registers all message handlers for webview communication
      */
-    async _selectModel(modelName) {
-        try {
-            await this._llmProviderManager.setActiveModel(modelName);
-            this._updateSidebarView();
-            vscode.window.showInformationMessage(`Model set to: ${modelName}`);
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to set model: ${errorMessage}`);
-        }
-    }
-    /**
-     * Handle connecting to LLM
-     */
-    async _connectToLlm() {
-        try {
-            this._view?.webview.postMessage({ type: 'updateStatus', status: 'Connecting...' });
-            await this._llmProviderManager.connect();
-            this._updateSidebarView();
-            vscode.window.showInformationMessage('Connected to LLM provider');
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to connect: ${errorMessage}`);
-            this._updateSidebarView();
-        }
-    }
-    /**
-     * Handle disconnecting from LLM
-     */
-    async _disconnectFromLlm() {
-        try {
-            await this._llmProviderManager.disconnect();
-            this._updateSidebarView();
-            vscode.window.showInformationMessage('Disconnected from LLM provider');
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to disconnect: ${errorMessage}`);
-        }
-    }
-    /**
-     * Handle refreshing model list
-     */
-    async _refreshModels() {
-        try {
-            this._view?.webview.postMessage({ type: 'updateStatus', status: 'Refreshing models...' });
-            await this._llmProviderManager.refreshModels();
-            this._updateSidebarView();
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Failed to refresh models: ${errorMessage}`);
-            this._updateSidebarView();
-        }
-    }
-    /**
-     * Update the sidebar view with current state
-     */
-    _updateSidebarView() {
-        if (!this._view) {
-            return;
-        }
-        const provider = this._llmProviderManager.getActiveProvider();
-        const connectionState = this._connectionStatusService.state;
-        const isConnected = connectionState === connectionStatusService_1.ConnectionState.Connected;
-        const activeModel = this._connectionStatusService.activeModelName || '';
-        const availableModels = this._llmProviderManager.getAvailableModels() || [];
-        const providerType = this._connectionStatusService.providerName || 'None';
-        this._view.webview.postMessage({
-            type: 'updateState',
-            state: {
-                isConnected,
-                connectionState: connectionState,
-                activeModel,
-                availableModels,
-                providerType
+    registerMessageHandlers() {
+        this._messageHandlers.set('connect', async () => {
+            try {
+                await this._connectionManager.connect();
+                this.updateConnectionState();
+            }
+            catch (error) {
+                this.showError(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
             }
         });
-        this._view.webview.postMessage({
-            type: 'updateStatus',
-            status: connectionState === connectionStatusService_1.ConnectionState.Connecting ? 'Connecting...' : ''
+        this._messageHandlers.set('disconnect', async () => {
+            try {
+                await this._connectionManager.disconnect();
+                this.updateConnectionState();
+            }
+            catch (error) {
+                this.showError(`Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        });
+        this._messageHandlers.set('refreshModels', async () => {
+            try {
+                const models = await this._connectionManager.getAvailableModels();
+                await this._view?.webview.postMessage({
+                    type: 'updateModels',
+                    data: models
+                });
+            }
+            catch (error) {
+                this.showError(`Failed to refresh models: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        });
+        this._messageHandlers.set('setModel', async (modelId) => {
+            try {
+                await this._connectionManager.setModel(modelId);
+                this.updateConnectionState();
+            }
+            catch (error) {
+                this.showError(`Failed to set model: ${error instanceof Error ? error.message : String(error)}`);
+            }
         });
     }
     /**
-     * Generates the HTML content for the webview
+     * Listens to connection state changes
      */
-    _getWebviewContent(webview) {
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar.js'));
-        const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar.css'));
-        const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css'));
-        return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${stylesUri}" rel="stylesheet">
-                <link href="${codiconsUri}" rel="stylesheet">
-                <title>Local LLM Agent</title>
-            </head>
-            <body>
-                <div id="sidebar-container">
-                    <div id="status-container">
-                        <h3>Local LLM Agent</h3>
-                        <div id="connection-status">
-                            <span id="status-indicator"></span>
-                            <span id="status-text">Disconnected</span>
-                        </div>
-                        <div id="status-message"></div>
-                    </div>
-                    
-                    <div id="model-section">
-                        <h4>LLM Model</h4>
-                        <div id="model-selector-container">
-                            <select id="model-selector" disabled>
-                                <option value="">Select a model</option>
-                            </select>
-                            <button id="refresh-models-button" title="Refresh models">
-                                <i class="codicon codicon-refresh"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="connection-section">
-                        <button id="connect-button" class="wide-button">
-                            <i class="codicon codicon-plug"></i> Connect
-                        </button>
-                        <button id="disconnect-button" class="wide-button hidden">
-                            <i class="codicon codicon-debug-disconnect"></i> Disconnect
-                        </button>
-                    </div>
-                    
-                    <div id="actions-section">
-                        <h4>Actions</h4>
-                        <button id="open-chat-button" class="wide-button">
-                            <i class="codicon codicon-comment"></i> Open Chat
-                        </button>
-                        <button id="settings-button" class="wide-button">
-                            <i class="codicon codicon-gear"></i> Settings
-                        </button>
-                    </div>
-                    
-                    <div id="info-section">
-                        <h4>Provider Information</h4>
-                        <div id="provider-details">
-                            <div><strong>Type:</strong> <span id="provider-type">None</span></div>
-                            <div><strong>Model:</strong> <span id="active-model">None</span></div>
-                        </div>
-                    </div>
-                </div>
-                <script src="${scriptUri}"></script>
-            </body>
-            </html>`;
+    listenToConnectionChanges() {
+        this._disposables.push(this._connectionManager.onConnectionStateChanged(() => {
+            this.updateConnectionState();
+        }));
     }
     /**
-     * Dispose of resources
+     * Updates the connection state in the webview
+     */
+    async updateConnectionState() {
+        if (!this._view)
+            return;
+        const state = this._connectionManager.getConnectionState();
+        const currentModel = this._connectionManager.getCurrentModel();
+        await this._view.webview.postMessage({
+            type: 'updateState',
+            data: {
+                connected: state.isConnected,
+                model: currentModel,
+                models: await this._connectionManager.getAvailableModels()
+            }
+        });
+    }
+    /**
+     * Shows an error message in the webview
+     */
+    async showError(message) {
+        if (!this._view)
+            return;
+        await this._view.webview.postMessage({
+            type: 'showError',
+            data: message
+        });
+    }
+    /**
+     * Gets the HTML content for the webview
+     */
+    _getHtmlContent(webview) {
+        const htmlPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'agent-sidebar.html');
+        const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'agent-sidebar.css'));
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar.js'));
+        const nonce = this.generateNonce();
+        let htmlContent = require('fs').readFileSync(htmlPath.fsPath, 'utf8');
+        return htmlContent
+            .replace('${webview.cspSource}', webview.cspSource)
+            .replace('${styleUri}', styleUri.toString())
+            .replace('${scriptUri}', scriptUri.toString())
+            .replace('${nonce}', nonce);
+    }
+    /**
+     * Generates a nonce for Content Security Policy
+     */
+    generateNonce() {
+        return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    /**
+     * Cleans up resources
      */
     dispose() {
         this._disposables.forEach(d => d.dispose());
+        this._messageHandlers.clear();
+        this._view = undefined;
     }
 }
 exports.AgentSidebarProvider = AgentSidebarProvider;

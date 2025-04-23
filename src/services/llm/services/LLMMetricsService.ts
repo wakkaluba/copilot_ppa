@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
 import { LLMProviderStatus, ConnectionMetrics } from '../types';
 
 /**
  * Service for tracking and managing LLM connection metrics
  */
-export class LLMMetricsService implements vscode.Disposable {
+export class LLMMetricsService extends EventEmitter implements vscode.Disposable {
     private metrics: Map<string, ConnectionMetrics> = new Map();
     private activeProvider: string | null = null;
     private startTimes: Map<string, number> = new Map();
@@ -19,7 +20,14 @@ export class LLMMetricsService implements vscode.Disposable {
                 lastResponseTime: 0,
                 uptime: 0,
                 lastError: undefined,
-                lastErrorTime: undefined
+                lastErrorTime: undefined,
+                totalTokens: 0,
+                errorRates: new Map(),
+                resourceUsage: {
+                    memory: 0,
+                    cpu: 0
+                },
+                estimatedCost: 0
             });
         }
     }
@@ -46,6 +54,28 @@ export class LLMMetricsService implements vscode.Disposable {
             responseTime,
             metrics.totalRequests
         );
+    }
+
+    public recordRequestSuccess(providerId: string, responseTime: number, tokenCount: number): void {
+        const metrics = this.getProviderMetrics(providerId);
+        metrics.totalRequests++;
+        metrics.successfulRequests++;
+        metrics.totalTokens += tokenCount;
+        metrics.lastResponseTime = responseTime;
+        metrics.averageResponseTime = this.calculateNewAverage(
+            metrics.averageResponseTime,
+            responseTime,
+            metrics.successfulRequests
+        );
+        metrics.estimatedCost += this.calculateCost(tokenCount);
+        this.updateResourceUsage(providerId);
+    }
+
+    public recordRequestFailure(providerId: string, error: Error): void {
+        const metrics = this.getProviderMetrics(providerId);
+        metrics.totalRequests++;
+        const errorType = error.name;
+        metrics.errorRates.set(errorType, (metrics.errorRates.get(errorType) || 0) + 1);
     }
 
     public recordError(providerName: string, error: Error): void {
@@ -88,6 +118,20 @@ export class LLMMetricsService implements vscode.Disposable {
         return (currentAvg * (totalCount - 1) + newValue) / totalCount;
     }
 
+    private calculateCost(tokenCount: number): number {
+        // Implement cost calculation based on provider pricing
+        return tokenCount * 0.0001; // Example rate
+    }
+
+    private updateResourceUsage(providerId: string): void {
+        const metrics = this.getProviderMetrics(providerId);
+        const usage = process.memoryUsage();
+        metrics.resourceUsage = {
+            memory: usage.heapUsed,
+            cpu: process.cpuUsage().user
+        };
+    }
+
     private updateUptime(providerName: string): void {
         const startTime = this.startTimes.get(providerName);
         if (startTime && this.activeProvider === providerName) {
@@ -105,7 +149,14 @@ export class LLMMetricsService implements vscode.Disposable {
             lastResponseTime: 0,
             uptime: 0,
             lastError: undefined,
-            lastErrorTime: undefined
+            lastErrorTime: undefined,
+            totalTokens: 0,
+            errorRates: new Map(),
+            resourceUsage: {
+                memory: 0,
+                cpu: 0
+            },
+            estimatedCost: 0
         });
         this.startTimes.delete(providerName);
     }

@@ -151,6 +151,12 @@ class LLMRequestExecutionService extends events_1.EventEmitter {
     getQueuedRequestCount() {
         return this.requestQueue.length;
     }
+    /**
+     * Check if the service is connected and ready
+     */
+    isConnected() {
+        return this.provider?.getStatus() === 'active';
+    }
     wrapError(error) {
         if (error instanceof Error) {
             return new types_1.LLMRequestError(error.message, error);

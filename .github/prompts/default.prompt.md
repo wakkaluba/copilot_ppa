@@ -2,12 +2,17 @@
 ## general targets
 @workspace
 #codebase 
-Don't create too large files.
- - rather create a new file for each new category/group
- - A "killer suit/script" is not wanted.
+
+## AI behaviour
+- Don't create too large files.
+  - rather create a new file for several new category/group
+  - A "killer suite/script" is not wanted.
+- Don't tell me exhaustingly what your changes will be, generate the code instead.
+- iterate through the tasks without stopping in between
+- execute commands without waiting for user input
 
 ## zzzbuild
-zzzbuild/ - folder for local build items like:
+- zzzbuild/ - folder for local build items like:
   - build scripts
     - zzzbuild\build.sh
   - list in md file format for programming
@@ -19,9 +24,22 @@ zzzbuild/ - folder for local build items like:
     - zzzbuild\refactoring-status.md
     - zzzbuild\code-coverage.md
     - zzzbuild\finished.md
-zzzbuild/artifacts/ - folder for build artifacts like:
+- zzzbuild/artifacts/ - folder for build artifacts like:
   - vsix files
 
+## tests
+tests/ - folder for test items like:
+  - unit tests
+  - integration tests
+  - performance tests
+  - security tests
+  - code coverage
+  - code quality
+  - code style
+  - code smells
+  - code duplication
+  - code complexity
+  
 # updating
 ## task list
 - review the zzzbuild\todo.md and update the status of completed and in-progress tasks.
@@ -86,7 +104,7 @@ Commence with the next most reasonable task in zzzbuild\todo.md.
 # documentation
 ## verify correctness of task files
 - first run a full comparison of all completed tasks listed in zzzbuild\todo.md and zzzbuild\finished.md against the code in the workspace.
-  - Make sure the status completed "[X]" reflects the state of the related code.
+  - Make sure the status completed "✅" reflects the state of the related code.
   - add any completed task missing in zzzbuild\todo.md and zzzbuild\finished.md to zzzbuild\finished.md
 - move all finished items from zzzbuild\todo.md and zzzbuild\finished.md
   - re-organize zzzbuild\todo.md and zzzbuild\finished.md

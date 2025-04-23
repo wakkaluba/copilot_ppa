@@ -1,125 +1,153 @@
 import * as vscode from 'vscode';
-import { CodeSecurityScanner } from '../codeScanner';
-import { DependencyScanner } from '../dependencyScanner';
-import { SecurityRecommendations } from '../securityRecommendations';
-import { SecurityAnalysisResult, SecuritySummary } from '../types';
+import { ISecurityAnalysisService, SecurityScanResult, SecurityIssue } from '../types';
+import { CodeSecurityScanner } from '../scanners/CodeSecurityScanner';
+import { EventEmitter } from 'events';
 
-export class SecurityAnalysisService {
-    constructor(
-        private codeScanner: CodeSecurityScanner,
-        private dependencyScanner: DependencyScanner,
-        private securityRecommendations: SecurityRecommendations
-    ) {}
+export interface ISecurityAnalysisService extends vscode.Disposable {
+    scanWorkspace(): Promise<SecurityScanResult>;
+    scanFile(document: vscode.TextDocument): Promise<SecurityIssue[]>;
+    getIssuesByType(issueId: string): Promise<SecurityIssue[]>;
+}
 
-    public async runFullAnalysis(
-        progressCallback?: (message: string, increment: number) => void
-    ): Promise<SecurityAnalysisResult> {
-        // Step 1: Scan workspace for code security issues
-        progressCallback?.("Scanning code for security issues...", 0);
-        const codeResult = await this.codeScanner.scanWorkspace(
-            message => progressCallback?.(message, 0)
+/**
+ * Service responsible for coordinating security analysis operations
+ */
+export class SecurityAnalysisService implements ISecurityAnalysisService {
+    private readonly scanner: CodeSecurityScanner;
+    private readonly disposables: vscode.Disposable[] = [];
+    private readonly _onAnalysisComplete = new EventEmitter<SecurityScanResult>();
+    private analysisTimeout: NodeJS.Timeout | undefined;
+    private diagnosticCollection: vscode.DiagnosticCollection;
+    private issueCache = new Map<string, SecurityIssue[]>();
+
+    constructor(scanner: CodeSecurityScanner) {
+        this.scanner = scanner;
+        this.diagnosticCollection = vscode.languages.createDiagnosticCollection('security');
+        this.disposables.push(
+            vscode.workspace.onDidChangeTextDocument(() => this.onDocumentChanged())
         );
-
-        // Step 2: Check dependencies for vulnerabilities
-        progressCallback?.("Checking dependencies for vulnerabilities...", 33);
-        const dependencyResult = await this.dependencyScanner.scanWorkspaceDependencies();
-
-        // Step 3: Generate security recommendations
-        progressCallback?.("Generating security recommendations...", 66);
-        const recommendationsResult = await this.securityRecommendations.generateRecommendations();
-
-        // Calculate final results
-        progressCallback?.("Calculating final results...", 90);
-        const overallRiskScore = this.calculateOverallRiskScore(
-            codeResult,
-            dependencyResult,
-            recommendationsResult
-        );
-
-        return {
-            codeResult,
-            dependencyResult,
-            recommendationsResult,
-            overallRiskScore,
-            overallRiskLevel: this.calculateOverallRiskLevel(overallRiskScore),
-            timestamp: Date.now()
-        };
     }
 
-    public async scanActiveFile(): Promise<SecurityAnalysisResult> {
-        const codeResult = await this.codeScanner.scanActiveFile();
-        const recommendationsResult = await this.securityRecommendations.generateRecommendations();
-        
-        return {
-            codeResult,
-            dependencyResult: {
-                vulnerabilities: [],
-                totalDependencies: 0,
-                hasVulnerabilities: false,
-                summary: this.getEmptySummary()
-            },
-            recommendationsResult,
-            overallRiskScore: this.calculateOverallRiskScore(
-                codeResult,
-                null,
-                recommendationsResult
-            ),
-            overallRiskLevel: 'medium',
-            timestamp: Date.now()
-        };
+    public readonly onAnalysisComplete = this._onAnalysisComplete.event;
+
+    public async scanWorkspace(
+        progressCallback?: (message: string) => void
+    ): Promise<SecurityScanResult> {
+        progressCallback?.("Analyzing workspace files...");
+        const result = await this.scanner.scanWorkspace(progressCallback);
+        this._onAnalysisComplete.emit(result);
+        return result;
     }
 
-    private calculateOverallRiskScore(
-        codeResult: any,
-        dependencyResult: any | null,
-        recommendationsResult: any
-    ): number {
-        const codeIssuesWeight = 0.4;
-        const dependencyVulnerabilitiesWeight = 0.3;
-        const recommendationsWeight = 0.3;
+    public async scanActiveFile(): Promise<SecurityScanResult> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return { issues: [], scannedFiles: 0, timestamp: Date.now() };
+        }
+        const result = await this.scanner.scanFile(editor.document.uri);
+        this._onAnalysisComplete.emit(result);
+        return result;
+    }
 
-        // Calculate code issues score
-        const codeFilesScanned = codeResult.scannedFiles || 1;
-        const codeIssuesScore = Math.min(100, (codeResult.issues.length / codeFilesScanned) * 100);
+    public async getIssuesByType(issueId: string): Promise<SecurityIssue[]> {
+        const result = await this.scanWorkspace();
+        return result.issues.filter(issue => issue.id === issueId);
+    }
 
-        // Calculate dependency score if available
-        let dependencyScore = 0;
-        if (dependencyResult) {
-            const totalDeps = dependencyResult.totalDependencies || 1;
-            dependencyScore = Math.min(100, (dependencyResult.vulnerabilities.length / totalDeps) * 200);
+    private async onDocumentChanged(): Promise<void> {
+        if (this.analysisTimeout) {
+            clearTimeout(this.analysisTimeout);
+        }
+        this.analysisTimeout = setTimeout(async () => {
+            await this.scanActiveFile();
+        }, 1000);
+    }
+
+    public async scanFile(document: vscode.TextDocument): Promise<SecurityIssue[]> {
+        const issues: SecurityIssue[] = [];
+        const text = document.getText();
+
+        // Scan based on file type
+        switch (document.languageId) {
+            case 'javascript':
+            case 'typescript':
+                this.checkJavaScriptSecurity(text, document, issues);
+                break;
+            case 'python':
+                this.checkPythonSecurity(text, document, issues);
+                break;
+            case 'java':
+                this.checkJavaSecurity(text, document, issues);
+                break;
         }
 
-        // Calculate recommendations score
-        const recSummary = recommendationsResult.analysisSummary;
-        const recommendationsScore = Math.min(100, (
-            (recSummary.critical * 10) +
-            (recSummary.high * 5) +
-            (recSummary.medium * 2) +
-            (recSummary.low * 0.5)
+        // Update diagnostics
+        this.updateDiagnostics(document, issues);
+        this.issueCache.set(document.uri.toString(), issues);
+
+        return issues;
+    }
+
+    private updateDiagnostics(document: vscode.TextDocument, issues: SecurityIssue[]): void {
+        const diagnostics = issues.map(issue => new vscode.Diagnostic(
+            new vscode.Range(
+                new vscode.Position(issue.location.line, issue.location.column),
+                new vscode.Position(issue.location.line, issue.location.column + 1)
+            ),
+            issue.description,
+            vscode.DiagnosticSeverity.Warning
         ));
-
-        // Calculate weighted risk score
-        const weightedRiskScore = (
-            (codeIssuesScore * codeIssuesWeight) +
-            (dependencyScore * (dependencyResult ? dependencyVulnerabilitiesWeight : 0)) +
-            (recommendationsScore * recommendationsWeight)
-        );
-
-        return Math.round(Math.min(100, weightedRiskScore));
+        
+        this.diagnosticCollection.set(document.uri, diagnostics);
     }
 
-    private calculateOverallRiskLevel(riskScore: number): 'low' | 'medium' | 'high' {
-        if (riskScore < 30) return 'low';
-        if (riskScore < 70) return 'medium';
-        return 'high';
+    private checkJavaScriptSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+        // Add JavaScript/TypeScript specific security checks
+        this.checkForEvalUse(text, document, issues);
+        this.checkForDangerousNodeModules(text, document, issues);
+        this.checkForXSSVulnerabilities(text, document, issues);
     }
 
-    private getEmptySummary(): SecuritySummary {
-        return {
-            critical: 0,
-            high: 0,
-            medium: 0,
-            low: 0
-        };
+    private checkPythonSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+        // Add Python specific security checks
+        this.checkForUnsafeDeserialization(text, document, issues);
+        this.checkForShellInjection(text, document, issues);
+        this.checkForSQLInjection(text, document, issues);
+    }
+
+    private checkJavaSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+        // Add Java specific security checks
+        this.checkForUnsafeReflection(text, document, issues);
+        this.checkForUnsafeDeserialization(text, document, issues);
+        this.checkForSQLInjection(text, document, issues);
+    }
+
+    private checkForEvalUse(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+        const evalRegex = /eval\s*\(/g;
+        let match;
+        while ((match = evalRegex.exec(text)) !== null) {
+            const position = document.positionAt(match.index);
+            issues.push({
+                id: 'SEC001',
+                name: 'Unsafe eval() usage',
+                description: 'Using eval() can be dangerous as it executes arbitrary JavaScript code',
+                severity: 'high',
+                location: {
+                    file: document.uri.fsPath,
+                    line: position.line,
+                    column: position.character
+                },
+                recommendation: 'Avoid using eval(). Consider safer alternatives like JSON.parse() for JSON data.'
+            });
+        }
+    }
+
+    public dispose(): void {
+        this.diagnosticCollection.dispose();
+        this.disposables.forEach(d => d.dispose());
+        if (this.analysisTimeout) {
+            clearTimeout(this.analysisTimeout);
+        }
+        this._onAnalysisComplete.removeAllListeners();
     }
 }

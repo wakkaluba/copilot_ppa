@@ -37,20 +37,53 @@ exports.EnhancedChatProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const uuid_1 = require("uuid");
 class EnhancedChatProvider {
-    context;
     contextManager;
     llmProvider;
     view;
-    constructor(context, contextManager, llmProvider) {
-        this.context = context;
+    constructor(_context, contextManager, llmProvider) {
         this.contextManager = contextManager;
         this.llmProvider = llmProvider;
     }
     setWebview(view) {
         this.view = view;
+        // Handle webview messages
+        this.view.webview.onDidReceiveMessage(async (message) => {
+            switch (message.type) {
+                case 'sendMessage':
+                    await this.handleUserMessage(message.message);
+                    break;
+                case 'clearChat':
+                    await this.clearHistory();
+                    break;
+                case 'getMessages':
+                    this.sendMessagesToWebview();
+                    break;
+                case 'getConnectionStatus':
+                    this.updateConnectionStatus();
+                    break;
+                case 'connectLlm':
+                    await this.llmProvider.connect();
+                    this.updateConnectionStatus();
+                    break;
+                case 'copyToClipboard':
+                    await vscode.env.clipboard.writeText(message.text);
+                    vscode.window.showInformationMessage('Copied to clipboard');
+                    break;
+                case 'createSnippet':
+                    await this.createCodeSnippet(message.code, message.language);
+                    break;
+            }
+        });
+        // Initial render
         this.renderChatInterface();
     }
     renderChatInterface() {
+        if (!this.view)
+            return;
+        this.sendMessagesToWebview();
+        this.updateConnectionStatus();
+    }
+    sendMessagesToWebview() {
         if (!this.view)
             return;
         const messages = this.contextManager.listMessages();
@@ -59,95 +92,92 @@ class EnhancedChatProvider {
             messages
         });
     }
-    async handleUserMessage(content) {
-        if (!content.trim()) {
+    updateConnectionStatus() {
+        if (!this.view)
             return;
-        }
-        // Create a user message
+        const isConnected = this.llmProvider.isConnected();
+        const status = {
+            state: isConnected ? 'connected' : 'disconnected',
+            message: isConnected ? 'Connected to LLM' : 'Not connected to LLM',
+            isInputDisabled: !isConnected
+        };
+        this.view.webview.postMessage({
+            type: 'updateConnectionStatus',
+            status
+        });
+    }
+    async handleUserMessage(content) {
+        if (!content.trim())
+            return;
         const userMessage = {
             id: (0, uuid_1.v4)(),
             role: 'user',
             content: content,
             timestamp: Date.now()
         };
-        // Add to context manager
         this.contextManager.appendMessage(userMessage);
-        // Send to view
-        this.addMessageToUI(userMessage);
-        // Generate a response
+        this.sendMessagesToWebview();
         await this.generateResponse(userMessage);
-        // Update suggestions based on new context
-        this.updateSuggestions();
     }
     async generateResponse(userMessage) {
         try {
-            // Show thinking state
             this.updateStatus('Thinking...');
-            // Get enhanced context
             const context = this.contextManager.getContextString();
-            // Generate response
             const response = await this.llmProvider.generateCompletion(userMessage.content, { context });
-            // Create assistant message
             const assistantMessage = {
                 id: (0, uuid_1.v4)(),
                 role: 'assistant',
                 content: response,
                 timestamp: Date.now()
             };
-            // Add to context and UI
             this.contextManager.appendMessage(assistantMessage);
-            this.addMessageToUI(assistantMessage);
-            // Clear status
+            this.sendMessagesToWebview();
             this.updateStatus('');
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorResponse = {
                 id: (0, uuid_1.v4)(),
-                role: 'assistant',
+                role: 'system',
                 content: `Error: ${errorMessage}`,
                 timestamp: Date.now()
             };
-            this.addMessageToUI(errorResponse);
+            this.contextManager.appendMessage(errorResponse);
+            this.sendMessagesToWebview();
             this.updateStatus('');
             vscode.window.showErrorMessage(`LLM Error: ${errorMessage}`);
         }
     }
-    addMessageToUI(message) {
-        if (this.view) {
-            this.view.webview.postMessage({
-                type: 'addMessage',
-                message
-            });
-        }
-    }
     updateStatus(status) {
-        if (this.view) {
-            this.view.webview.postMessage({
-                type: 'updateStatus',
-                status
-            });
-        }
+        if (!this.view)
+            return;
+        this.view.webview.postMessage({
+            type: 'updateStatus',
+            status
+        });
     }
-    updateSuggestions() {
-        if (this.view) {
-            const suggestions = this.contextManager.getSuggestions();
-            this.view.webview.postMessage({
-                type: 'updateSuggestions',
-                suggestions
+    async createCodeSnippet(code, language) {
+        try {
+            const snippet = new vscode.SnippetString(code);
+            const doc = await vscode.workspace.openTextDocument({
+                language: language || 'text',
+                content: ''
             });
+            const editor = await vscode.window.showTextDocument(doc);
+            await editor.insertSnippet(snippet);
+            vscode.window.showInformationMessage('Code snippet created');
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to create snippet: ${errorMessage}`);
         }
     }
     async clearHistory() {
         await this.contextManager.clear();
-        if (this.view) {
-            this.view.webview.postMessage({
-                type: 'clearMessages'
-            });
-        }
+        this.sendMessagesToWebview();
     }
     dispose() {
-        // Cleanup if needed
+        // Cleanup
     }
 }
 exports.EnhancedChatProvider = EnhancedChatProvider;

@@ -110,3 +110,16 @@ export type RiskLevel = 'high' | 'medium' | 'low';
  * Progress reporter function type
  */
 export type ProgressReporter = (message: string) => void;
+
+export interface ISecurityAnalysisService extends vscode.Disposable {
+    scanWorkspace(): Promise<SecurityScanResult>;
+    scanFile(document: vscode.TextDocument): Promise<SecurityIssue[]>;
+}
+
+export interface IDependencyAnalysisService extends vscode.Disposable {
+    scanDependencies(): Promise<DependencyScanResult>;
+}
+
+export interface IRecommendationService extends vscode.Disposable {
+    generate(): Promise<RecommendationResult>;
+}

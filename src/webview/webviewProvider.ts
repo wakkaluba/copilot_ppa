@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ThemeManager } from '../services/themeManager';
+import { ThemeManager } from '../services/ui/themeManager';
 import { DisplaySettingsService } from '../services/displaySettingsService';
 
 // Assuming this is an existing file, we'll add theme support to it

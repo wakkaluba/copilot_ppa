@@ -1,206 +1,142 @@
 import * as vscode from 'vscode';
-import { SecurityAnalysisResult, SecurityScanResult, DependencyScanResult, RecommendationsResult } from '../types';
+import { SecurityScanResult, DependencyScanResult, SecurityIssue, RecommendationResult } from '../types';
+import { SecurityReportHtmlProvider } from '../providers/SecurityReportHtmlProvider';
 
 /**
- * Service responsible for displaying security analysis reports and results
+ * Service for generating and displaying security reports
  */
 export class SecurityReportService implements vscode.Disposable {
-    private readonly disposables: vscode.Disposable[] = [];
-    private currentPanel: vscode.WebviewPanel | undefined;
+    private readonly reportProvider: SecurityReportHtmlProvider;
+    private lastReport: { uri: vscode.Uri; type: string } | undefined;
 
-    constructor(private readonly context: vscode.ExtensionContext) {}
+    constructor(private readonly context: vscode.ExtensionContext) {
+        this.reportProvider = new SecurityReportHtmlProvider(context);
+    }
 
+    /**
+     * Show a report of code security issues
+     */
     public async showCodeIssues(result: SecurityScanResult): Promise<void> {
-        this.createOrShowPanel('Security Issues', 'security-issues');
-        await this.updatePanelContent(this.getCodeIssuesContent(result));
+        const panel = this.createReportPanel('Code Security Issues');
+        await this.reportProvider.updateCodeReport(panel, result);
+        this.lastReport = { uri: panel.webview.html, type: 'code' };
     }
 
+    /**
+     * Show a dependency vulnerability report
+     */
     public async showDependencyReport(result: DependencyScanResult): Promise<void> {
-        this.createOrShowPanel('Dependency Report', 'dependency-report');
-        await this.updatePanelContent(this.getDependencyReportContent(result));
+        const panel = this.createReportPanel('Dependency Vulnerabilities');
+        await this.reportProvider.updateDependencyReport(panel, result);
+        this.lastReport = { uri: panel.webview.html, type: 'dependencies' };
     }
 
-    public async showRecommendations(result: RecommendationsResult): Promise<void> {
-        this.createOrShowPanel('Security Recommendations', 'security-recommendations');
-        await this.updatePanelContent(this.getRecommendationsContent(result));
+    /**
+     * Show a filtered list of security issues
+     */
+    public async showFilteredIssues(issues: SecurityIssue[], issueId: string): Promise<void> {
+        const panel = this.createReportPanel(`Security Issues - ${issueId}`);
+        await this.reportProvider.updateFilteredReport(panel, issues);
+        this.lastReport = { uri: panel.webview.html, type: 'filtered' };
     }
 
-    public async showFilteredIssues(result: SecurityScanResult, issueType: string): Promise<void> {
-        this.createOrShowPanel(`Security Issues - ${issueType}`, 'filtered-issues');
-        await this.updatePanelContent(this.getFilteredIssuesContent(result, issueType));
-    }
-
+    /**
+     * Show a complete security analysis report
+     */
     public async showFullReport(
         codeResult: SecurityScanResult,
-        depResult: DependencyScanResult,
-        recResult: RecommendationsResult
+        dependencyResult: DependencyScanResult,
+        recommendationsResult: RecommendationResult
     ): Promise<void> {
-        this.createOrShowPanel('Security Analysis Report', 'full-report');
-        await this.updatePanelContent(this.getFullReportContent(codeResult, depResult, recResult));
+        const panel = this.createReportPanel('Security Analysis Report');
+        await this.reportProvider.updateFullReport(panel, {
+            codeResult,
+            dependencyResult,
+            recommendationsResult,
+            timestamp: Date.now()
+        });
+        this.lastReport = { uri: panel.webview.html, type: 'full' };
     }
 
-    private createOrShowPanel(title: string, viewType: string): void {
-        if (this.currentPanel) {
-            this.currentPanel.reveal();
-            this.currentPanel.title = title;
-        } else {
-            this.currentPanel = vscode.window.createWebviewPanel(
-                viewType,
-                title,
-                vscode.ViewColumn.One,
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true
-                }
-            );
-
-            this.currentPanel.onDidDispose(
-                () => {
-                    this.currentPanel = undefined;
-                },
-                null,
-                this.disposables
-            );
-        }
-    }
-
-    private async updatePanelContent(content: string): Promise<void> {
-        if (this.currentPanel) {
-            this.currentPanel.webview.html = content;
-        }
-    }
-
-    private getCodeIssuesContent(result: SecurityScanResult): string {
-        return this.getHtmlTemplate('Code Security Issues', this.formatCodeIssues(result));
-    }
-
-    private getDependencyReportContent(result: DependencyScanResult): string {
-        return this.getHtmlTemplate('Dependency Vulnerabilities', this.formatDependencyReport(result));
-    }
-
-    private getRecommendationsContent(result: RecommendationsResult): string {
-        return this.getHtmlTemplate('Security Recommendations', this.formatRecommendations(result));
-    }
-
-    private getFilteredIssuesContent(result: SecurityScanResult, issueType: string): string {
-        return this.getHtmlTemplate(
-            `Security Issues - ${issueType}`,
-            this.formatFilteredIssues(result, issueType)
+    /**
+     * Create a new webview panel for displaying reports
+     */
+    private createReportPanel(title: string): vscode.WebviewPanel {
+        const panel = vscode.window.createWebviewPanel(
+            'securityReport',
+            title,
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                enableFindWidget: true
+            }
         );
+
+        // Handle messages from the webview
+        panel.webview.onDidReceiveMessage(async message => {
+            switch (message.command) {
+                case 'showIssue':
+                    await this.showIssueInEditor(message.issue);
+                    break;
+                case 'applyFix':
+                    await vscode.commands.executeCommand(
+                        'vscode-local-llm-agent.security.applyFix',
+                        message.issue
+                    );
+                    break;
+                case 'exportReport':
+                    await this.exportReport(message.format);
+                    break;
+            }
+        });
+
+        return panel;
     }
 
-    private getFullReportContent(
-        codeResult: SecurityScanResult,
-        depResult: DependencyScanResult,
-        recResult: RecommendationsResult
-    ): string {
-        const sections = [
-            { title: 'Code Security Issues', content: this.formatCodeIssues(codeResult) },
-            { title: 'Dependency Vulnerabilities', content: this.formatDependencyReport(depResult) },
-            { title: 'Security Recommendations', content: this.formatRecommendations(recResult) }
-        ];
+    /**
+     * Show a security issue in the editor
+     */
+    private async showIssueInEditor(issue: SecurityIssue): Promise<void> {
+        const document = await vscode.workspace.openTextDocument(issue.file);
+        const editor = await vscode.window.showTextDocument(document);
 
-        return this.getHtmlTemplate('Full Security Report', this.formatSections(sections));
+        // Highlight the relevant line
+        const range = document.lineAt(issue.line).range;
+        editor.selection = new vscode.Selection(range.start, range.end);
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
     }
 
-    private formatCodeIssues(result: SecurityScanResult): string {
-        // Format code issues into HTML
-        return `<div class="issues-section">
-            <h3>Found ${result.issues.length} issues in ${result.scannedFiles} files</h3>
-            ${result.issues.map(issue => `
-                <div class="issue ${issue.severity}">
-                    <h4>${issue.name}</h4>
-                    <p>${issue.description}</p>
-                    <p>Location: ${issue.filePath}:${issue.line || 'N/A'}</p>
-                    ${issue.codeSnippet ? `<pre><code>${issue.codeSnippet}</code></pre>` : ''}
-                    ${issue.recommendation ? `<p>Recommendation: ${issue.recommendation}</p>` : ''}
-                </div>
-            `).join('')}
-        </div>`;
-    }
+    /**
+     * Export the current report
+     */
+    private async exportReport(format: 'html' | 'pdf' | 'markdown'): Promise<void> {
+        if (!this.lastReport) return;
 
-    private formatDependencyReport(result: DependencyScanResult): string {
-        // Format dependency vulnerabilities into HTML
-        return `<div class="dependency-section">
-            <h3>Scanned ${result.totalDependencies} dependencies</h3>
-            ${result.vulnerabilities.map(vuln => `
-                <div class="vulnerability ${vuln.severity}">
-                    <h4>${vuln.name}</h4>
-                    <p>${vuln.description}</p>
-                    <p>Affected versions: ${vuln.affectedVersions}</p>
-                    <p>Fix version: ${vuln.fixedVersion || 'Not available'}</p>
-                </div>
-            `).join('')}
-        </div>`;
-    }
+        const filters = {
+            'HTML Files': ['html'],
+            'PDF Files': ['pdf'],
+            'Markdown Files': ['md']
+        }[`${format.toUpperCase()} Files`];
 
-    private formatRecommendations(result: RecommendationsResult): string {
-        // Format recommendations into HTML
-        return `<div class="recommendations-section">
-            <h3>Security Recommendations</h3>
-            ${result.recommendations.map(rec => `
-                <div class="recommendation ${rec.priority}">
-                    <h4>${rec.title}</h4>
-                    <p>${rec.description}</p>
-                    ${rec.implementation ? `<p>Implementation: ${rec.implementation}</p>` : ''}
-                </div>
-            `).join('')}
-        </div>`;
-    }
+        const uri = await vscode.window.showSaveDialog({
+            filters: { [format]: filters }
+        });
 
-    private formatFilteredIssues(result: SecurityScanResult, issueType: string): string {
-        const filteredIssues = result.issues.filter(issue => issue.id === issueType);
-        return this.formatCodeIssues({ ...result, issues: filteredIssues });
-    }
-
-    private formatSections(sections: { title: string; content: string }[]): string {
-        return sections.map(section => `
-            <section class="report-section">
-                <h2>${section.title}</h2>
-                ${section.content}
-            </section>
-        `).join('<hr>');
-    }
-
-    private getHtmlTemplate(title: string, content: string): string {
-        return `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${title}</title>
-                <style>
-                    body { font-family: var(--vscode-font-family); }
-                    .issue, .vulnerability, .recommendation {
-                        margin: 1em 0;
-                        padding: 1em;
-                        border-radius: 4px;
-                    }
-                    .critical { background-color: var(--vscode-errorForeground); }
-                    .high { background-color: var(--vscode-editorError-foreground); }
-                    .medium { background-color: var(--vscode-editorWarning-foreground); }
-                    .low { background-color: var(--vscode-editorInfo-foreground); }
-                    pre code {
-                        display: block;
-                        padding: 1em;
-                        background: var(--vscode-editor-background);
-                    }
-                    hr { margin: 2em 0; }
-                </style>
-            </head>
-            <body>
-                <h1>${title}</h1>
-                ${content}
-            </body>
-            </html>
-        `;
+        if (uri) {
+            try {
+                await vscode.workspace.fs.writeFile(
+                    uri,
+                    Buffer.from(await this.reportProvider.exportReport(this.lastReport.type, format))
+                );
+                vscode.window.showInformationMessage(`Report exported successfully to ${uri.fsPath}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to export report: ${error}`);
+            }
+        }
     }
 
     public dispose(): void {
-        if (this.currentPanel) {
-            this.currentPanel.dispose();
-        }
-        this.disposables.forEach(d => d.dispose());
+        this.reportProvider.dispose();
     }
 }

@@ -1,146 +1,177 @@
 import * as vscode from 'vscode';
-import { SecurityAnalysisService } from './services/SecurityAnalysisService';
-import { DependencyAnalysisService } from './services/DependencyAnalysisService';
-import { RecommendationService } from './services/RecommendationService';
-import { SecurityReportService } from './services/SecurityReportService';
-import { SecurityCommandService } from './services/SecurityCommandService';
+import { SecurityWebviewService } from '../services/security/SecurityWebviewService';
+import { SecurityScanService } from '../services/security/SecurityScanService';
+import { Logger } from '../utils/logger';
+import { SecurityScanResult } from '../types/security';
 
-/**
- * Main security manager class that coordinates security features through specialized services
- */
-export class SecurityManager {
+export class SecurityManager implements vscode.Disposable {
+    private static instance: SecurityManager;
+    private panel?: vscode.WebviewPanel;
+    private readonly logger: Logger;
+    private readonly webviewService: SecurityWebviewService;
+    private readonly scanService: SecurityScanService;
     private readonly statusBarItem: vscode.StatusBarItem;
     private readonly disposables: vscode.Disposable[] = [];
+    private lastResult?: SecurityScanResult;
 
-    constructor(
-        private readonly context: vscode.ExtensionContext,
-        private readonly analysisSvc: SecurityAnalysisService,
-        private readonly dependencySvc: DependencyAnalysisService,
-        private readonly recommendationSvc: RecommendationService,
-        private readonly reportSvc: SecurityReportService,
-        private readonly commandSvc: SecurityCommandService
-    ) {
+    private constructor(private readonly context: vscode.ExtensionContext) {
+        this.logger = Logger.getInstance();
+        this.webviewService = new SecurityWebviewService();
+        this.scanService = new SecurityScanService(context);
+
         // Initialize status bar
-        this.statusBarItem = vscode.window.createStatusBarItem(
-            vscode.StatusBarAlignment.Right,
-            100
-        );
-        this.initializeStatusBar();
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.statusBarItem.text = '$(shield) Security';
+        this.statusBarItem.tooltip = 'Run security analysis';
+        this.statusBarItem.command = 'copilot-ppa.security.showPanel';
+        this.statusBarItem.show();
+        this.disposables.push(this.statusBarItem);
+
         this.registerCommands();
     }
 
-    private initializeStatusBar(): void {
-        this.statusBarItem.text = '$(shield) Security';
-        this.statusBarItem.tooltip = 'Run security analysis';
-        this.statusBarItem.command = 'vscode-local-llm-agent.security.runFullAnalysis';
-        this.statusBarItem.show();
-        this.disposables.push(this.statusBarItem);
+    public static getInstance(context: vscode.ExtensionContext): SecurityManager {
+        if (!SecurityManager.instance) {
+            SecurityManager.instance = new SecurityManager(context);
+        }
+        return SecurityManager.instance;
     }
 
     private registerCommands(): void {
         this.disposables.push(
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.security.scanActiveFile',
-                () => this.scanActiveFile()
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.security.scanWorkspace',
-                () => this.scanWorkspace()
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.security.runFullAnalysis',
-                () => this.runFullSecurityAnalysis()
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.security.checkDependencies',
-                () => this.checkDependencies()
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.security.generateRecommendations',
-                () => this.generateSecurityRecommendations()
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.securityIssues.showAll',
-                (issueId: string) => this.showSecurityIssuesByType(issueId)
-            )
+            vscode.commands.registerCommand('copilot-ppa.security.showPanel', () => {
+                this.show();
+            }),
+            vscode.commands.registerCommand('copilot-ppa.security.runScan', async () => {
+                await this.runScan();
+            }),
+            vscode.commands.registerCommand('copilot-ppa.security.showIssueDetails', (issueId: string) => {
+                this.showIssueDetails(issueId);
+            })
         );
     }
 
-    private async scanActiveFile(): Promise<void> {
+    public async show(): Promise<void> {
         try {
-            const result = await this.analysisSvc.scanActiveFile();
-            await this.reportSvc.showCodeIssues(result);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error scanning active file: ${error}`);
-        }
-    }
-
-    private async scanWorkspace(): Promise<void> {
-        try {
-            const result = await this.analysisSvc.scanWorkspace();
-            await this.reportSvc.showCodeIssues(result);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error scanning workspace: ${error}`);
-        }
-    }
-
-    private async checkDependencies(): Promise<void> {
-        try {
-            const result = await this.dependencySvc.scanDependencies();
-            await this.reportSvc.showDependencyReport(result);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error checking dependencies: ${error}`);
-        }
-    }
-
-    private async generateSecurityRecommendations(): Promise<void> {
-        try {
-            const result = await this.recommendationSvc.generate();
-            await this.reportSvc.showRecommendations(result);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error generating recommendations: ${error}`);
-        }
-    }
-
-    private async runFullSecurityAnalysis(): Promise<void> {
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "Running full security analysis",
-            cancellable: true
-        }, async (progress) => {
-            try {
-                progress.report({ message: "Scanning code...", increment: 0 });
-                const codeResult = await this.analysisSvc.scanWorkspace();
-
-                progress.report({ message: "Checking dependencies...", increment: 33 });
-                const depResult = await this.dependencySvc.scanDependencies();
-
-                progress.report({ message: "Generating recommendations...", increment: 66 });
-                const recResult = await this.recommendationSvc.generate();
-
-                progress.report({ message: "Preparing report...", increment: 90 });
-                await this.reportSvc.showFullReport(codeResult, depResult, recResult);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Error during security analysis: ${error}`);
+            if (this.panel) {
+                this.panel.reveal();
+                return;
             }
-        });
+
+            this.panel = vscode.window.createWebviewPanel(
+                'securityPanel',
+                'Security Analysis',
+                vscode.ViewColumn.Two,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [
+                        vscode.Uri.joinPath(this.context.extensionUri, 'media')
+                    ]
+                }
+            );
+
+            this.panel.webview.html = this.webviewService.generateWebviewContent(
+                this.panel.webview,
+                this.lastResult
+            );
+
+            this.registerWebviewMessageHandlers();
+
+            this.panel.onDidDispose(() => {
+                this.panel = undefined;
+                this.dispose();
+            }, null, this.disposables);
+
+            if (!this.lastResult) {
+                await this.runScan();
+            }
+
+        } catch (error) {
+            this.logger.error('Error showing security panel', error);
+            throw error;
+        }
     }
 
-    private async showSecurityIssuesByType(issueId: string): Promise<void> {
+    private registerWebviewMessageHandlers(): void {
+        if (!this.panel) return;
+
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            try {
+                switch (message.command) {
+                    case 'refresh':
+                        await this.runScan();
+                        break;
+                    case 'showDetails':
+                        await this.showIssueDetails(message.issueId);
+                        break;
+                    default:
+                        this.logger.warn(`Unknown command received: ${message.command}`);
+                }
+            } catch (error) {
+                this.logger.error('Error handling security panel message', error);
+                this.showErrorMessage('Failed to process command');
+            }
+        }, undefined, this.disposables);
+    }
+
+    private async runScan(): Promise<void> {
+        if (!this.panel) return;
+
         try {
-            const result = await this.analysisSvc.getIssuesByType(issueId);
-            await this.reportSvc.showFilteredIssues(result, issueId);
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Running security analysis...',
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0 });
+                this.lastResult = await this.scanService.runFullScan();
+                progress.report({ increment: 100 });
+
+                this.updateWebviewContent();
+            });
         } catch (error) {
-            vscode.window.showErrorMessage(`Error showing security issues: ${error}`);
+            this.logger.error('Error running security scan', error);
+            this.showErrorMessage('Failed to complete security scan');
+        }
+    }
+
+    private updateWebviewContent(): void {
+        if (!this.panel) return;
+
+        try {
+            this.panel.webview.html = this.webviewService.generateWebviewContent(
+                this.panel.webview,
+                this.lastResult
+            );
+        } catch (error) {
+            this.logger.error('Error updating security panel content', error);
+            this.showErrorMessage('Failed to update panel content');
+        }
+    }
+
+    private async showIssueDetails(issueId: string): Promise<void> {
+        // Implementation for showing detailed issue information
+    }
+
+    private showErrorMessage(message: string): void {
+        if (this.panel) {
+            this.panel.webview.postMessage({
+                command: 'showError',
+                message
+            });
         }
     }
 
     public dispose(): void {
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
+        }
+
+        this.scanService.dispose();
         this.disposables.forEach(d => d.dispose());
-        this.analysisSvc.dispose();
-        this.dependencySvc.dispose();
-        this.recommendationSvc.dispose();
-        this.reportSvc.dispose();
-        this.commandSvc.dispose();
+        this.disposables.length = 0;
+        SecurityManager.instance = undefined;
     }
 }

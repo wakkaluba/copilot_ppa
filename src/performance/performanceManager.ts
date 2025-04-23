@@ -41,7 +41,10 @@ export class PerformanceManager implements vscode.Disposable {
         this.asyncOptimizer = AsyncOptimizer.getInstance();
         
         this.setupEventListeners();
-        this.initializeServices();
+        this.initializeServices().catch(error => {
+            console.error('Failed to initialize performance services:', error);
+            vscode.window.showErrorMessage('Failed to initialize performance services');
+        });
     }
 
     public static getInstance(context?: vscode.ExtensionContext): PerformanceManager {
@@ -64,18 +67,12 @@ export class PerformanceManager implements vscode.Disposable {
             this.cachingService.setMaxCacheSize(cachingOptions.maxSize);
             
             this.asyncOptimizer.setConfig(this.configService.getAsyncOptions());
+            
+            this.eventEmitter.emit('servicesInitialized');
         } catch (error) {
             console.error('Failed to initialize performance services:', error);
+            throw error;
         }
-    }
-
-    public dispose(): void {
-        this.statusService.dispose();
-        this.diagnosticsService.dispose();
-        this.fileMonitorService.dispose();
-        this.cachingService.dispose();
-        this.asyncOptimizer.dispose();
-        this.eventEmitter.removeAllListeners();
     }
 
     /**
@@ -98,11 +95,19 @@ export class PerformanceManager implements vscode.Disposable {
             }, async (progress, token) => {
                 const files = await this.fileMonitorService.findAnalyzableFiles();
                 const result = await this.analyzerService.analyzeWorkspace(files, progress, token);
+                
+                if (token.isCancellationRequested) {
+                    throw new Error('Analysis cancelled by user');
+                }
+
                 this.eventEmitter.emit('workspaceAnalysisComplete', result);
+                await this.updateWorkspaceMetrics(result);
                 return result;
             });
         } catch (error) {
             console.error('Workspace analysis failed:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Workspace analysis failed: ${message}`);
             throw error;
         } finally {
             this.profiler.endOperation(operationId);
@@ -124,10 +129,13 @@ export class PerformanceManager implements vscode.Disposable {
                 this.diagnosticsService.updateDiagnostics(document, result);
                 this.bottleneckDetector.analyzeOperation(operationId);
                 this.eventEmitter.emit('fileAnalysisComplete', result);
+                await this.updateFileMetrics(document.uri, result);
             }
             return result;
         } catch (error) {
             console.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`File analysis failed: ${message}`);
             return null;
         } finally {
             this.profiler.endOperation(operationId);
@@ -176,13 +184,17 @@ export class PerformanceManager implements vscode.Disposable {
         
         this.fileMonitorService.onActiveEditorChanged((editor: vscode.TextEditor | undefined) => {
             if (editor) {
-                this.analyzeFile(editor.document);
+                this.analyzeFile(editor.document).catch(error => {
+                    console.error('Failed to analyze active editor:', error);
+                });
             }
         });
 
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('performance')) {
-                this.initializeServices();
+                this.initializeServices().catch(error => {
+                    console.error('Failed to reinitialize services:', error);
+                });
             }
         });
     }
@@ -193,8 +205,62 @@ export class PerformanceManager implements vscode.Disposable {
             if (result) {
                 this.statusService.updateStatusBar(result);
                 this.diagnosticsService.updateDiagnostics(document, result);
+                await this.updateFileMetrics(document.uri, result);
             }
         });
+    }
+
+    private async updateWorkspaceMetrics(result: WorkspacePerformanceResult): Promise<void> {
+        try {
+            const operationId = 'workspace-analysis';
+            const stats = this.profiler.getStats(operationId);
+            if (stats) {
+                stats.metadata = {
+                    filesAnalyzed: result.summary.filesAnalyzed,
+                    totalIssues: result.summary.totalIssues,
+                    criticalIssues: result.summary.criticalIssues,
+                    highIssues: result.summary.highIssues
+                };
+            }
+
+            // Update bottleneck tracking
+            for (const fileResult of result.fileResults) {
+                const fileStats = this.profiler.getStats(`file-analysis-${fileResult.filePath}`);
+                this.bottleneckDetector.analyzeOperation(`file-${fileResult.filePath}`, {
+                    stats: fileStats,
+                    issues: fileResult.issues.length,
+                    metrics: fileResult.metrics
+                });
+            }
+
+            this.eventEmitter.emit('workspaceMetricsUpdated', result.summary);
+        } catch (error) {
+            console.error('Failed to update workspace metrics:', error);
+        }
+    }
+
+    private async updateFileMetrics(uri: vscode.Uri, result: PerformanceAnalysisResult): Promise<void> {
+        try {
+            const operationId = `file-analysis-${uri.fsPath}`;
+            const stats = this.profiler.getStats(operationId);
+            if (stats) {
+                stats.metadata = {
+                    issues: result.issues.length,
+                    ...result.metrics
+                };
+            }
+
+            // Update bottleneck tracking
+            this.bottleneckDetector.analyzeOperation(`file-${uri.fsPath}`, {
+                stats: this.profiler.getStats(operationId),
+                issues: result.issues.length,
+                metrics: result.metrics
+            });
+
+            this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: result.metrics });
+        } catch (error) {
+            console.error(`Failed to update metrics for ${uri.fsPath}:`, error);
+        }
     }
 
     public getProfiler(): PerformanceProfiler {
@@ -219,5 +285,14 @@ export class PerformanceManager implements vscode.Disposable {
 
     public off(event: string, listener: (...args: any[]) => void): void {
         this.eventEmitter.off(event, listener);
+    }
+
+    public dispose(): void {
+        this.statusService.dispose();
+        this.diagnosticsService.dispose();
+        this.fileMonitorService.dispose();
+        this.cachingService.dispose();
+        this.asyncOptimizer.dispose();
+        this.eventEmitter.removeAllListeners();
     }
 }

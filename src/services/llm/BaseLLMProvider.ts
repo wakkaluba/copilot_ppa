@@ -183,4 +183,37 @@ export abstract class BaseLLMProvider extends EventEmitter implements ILLMConnec
         }
         this.removeAllListeners();
     }
+
+    /**
+     * Perform model load
+     */
+    protected async performModelLoad(modelInfo: ModelInfo): Promise<void> {
+        try {
+            await this.loadModel(modelInfo);
+            this.currentModel = modelInfo;
+            this.emit('modelLoaded', modelInfo);
+        } catch (error) {
+            const formattedError = formatProviderError(error, this.name);
+            this.handleError(formattedError);
+            throw formattedError;
+        }
+    }
+
+    /**
+     * Perform model unload
+     */
+    protected async performModelUnload(): Promise<void> {
+        if (this.currentModel) {
+            try {
+                await this.performDisconnect();
+                const previousModel = this.currentModel;
+                this.currentModel = undefined;
+                this.emit('modelUnloaded', previousModel);
+            } catch (error) {
+                const formattedError = formatProviderError(error, this.name);
+                this.handleError(formattedError);
+                throw formattedError;
+            }
+        }
+    }
 }

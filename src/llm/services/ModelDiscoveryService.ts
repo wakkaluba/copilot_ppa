@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { LLMModelInfo } from '../llm-provider';
 import { ModelMetricsService } from '../services/ModelMetricsService';
 import { ModelValidationService } from '../services/ModelValidationService';
+import { SystemInfoService, SystemInfo } from '../services/SystemInfoService';
+import { LLMProvider } from '../llm-provider';
+import { StatusService } from '../../services/statusService';
 
 /**
  * Service for discovering and managing LLM models
@@ -10,10 +13,12 @@ export class ModelDiscoveryService implements vscode.Disposable {
     private readonly outputChannel: vscode.OutputChannel;
     private readonly modelRegistry = new Map<string, LLMModelInfo>();
     private readonly eventEmitter = new vscode.EventEmitter<void>();
+    private readonly modelProviders: LLMProvider[] = [];
 
     constructor(
         private readonly metricsService: ModelMetricsService,
-        private readonly validationService: ModelValidationService
+        private readonly validationService: ModelValidationService,
+        private readonly systemService: SystemInfoService
     ) {
         this.outputChannel = vscode.window.createOutputChannel('LLM Models');
     }
@@ -29,7 +34,11 @@ export class ModelDiscoveryService implements vscode.Disposable {
             const validation = await this.validationService.validateModel(model);
             if (!validation.isValid) {
                 this.outputChannel.appendLine(`Model ${model.id} failed validation: ${validation.issues.join(', ')}`);
-                this.metricsService.recordMetrics(model.id, Date.now() - startTime, 0, true);
+                this.metricsService.recordMetrics({
+                    id: model.id,
+                    duration: Date.now() - startTime,
+                    success: false
+                });
                 return;
             }
 
@@ -38,10 +47,18 @@ export class ModelDiscoveryService implements vscode.Disposable {
             this.outputChannel.appendLine(`Registered model ${model.id}`);
             
             // Record successful registration
-            this.metricsService.recordMetrics(model.id, Date.now() - startTime, 0);
+            this.metricsService.recordMetrics({
+                id: model.id,
+                duration: Date.now() - startTime,
+                success: true
+            });
         } catch (error) {
             this.outputChannel.appendLine(`Error registering model ${model.id}: ${error}`);
-            this.metricsService.recordMetrics(model.id, 0, 0, true);
+            this.metricsService.recordMetrics({
+                id: model.id,
+                duration: 0,
+                success: false
+            });
             throw error;
         }
     }
@@ -96,8 +113,74 @@ export class ModelDiscoveryService implements vscode.Disposable {
         return compatibleModels;
     }
 
+    /**
+     * Perform model discovery across all providers
+     */
+    public async performModelDiscovery(): Promise<LLMModelInfo[]> {
+        const discoveredModels: LLMModelInfo[] = [];
+        
+        try {
+            // Get system capabilities
+            const sysInfo = await this.getSystemCapabilities();
+            
+            // Discover models from each provider
+            for (const provider of this.modelProviders) {
+                const modelIds = await provider.getAvailableModels();
+                
+                for (const modelId of modelIds) {
+                    const modelInfo = await provider.getModelInfo(modelId);
+                    
+                    // Validate model against system requirements
+                    const validation = await this.validationService.validateModel(modelInfo, {
+                        minMemoryGB: Math.ceil(sysInfo.totalMemoryGB * 0.7), // 70% of system RAM
+                        recommendedMemoryGB: Math.ceil(sysInfo.totalMemoryGB * 0.8),
+                        minDiskSpaceGB: sysInfo.freeDiskSpaceGB,
+                        cudaSupport: sysInfo.cudaAvailable,
+                        minCudaVersion: sysInfo.cudaVersion,
+                        minCPUCores: sysInfo.cpuCores
+                    });
+
+                    if (validation.isValid) {
+                        // Register valid model
+                        await this.registerModel(modelInfo);
+                        discoveredModels.push(modelInfo);
+                        
+                        // Initialize model metrics
+                        this.metricsService.recordMetrics({
+                            id: modelInfo.id,
+                            duration: 0,
+                            success: true
+                        });
+                    } else {
+                        this.outputChannel.appendLine(`Skipping incompatible model ${modelInfo.id}: ${validation.issues.join(', ')}`);
+                    }
+                }
+            }
+        } catch (error) {
+            this.outputChannel.appendLine(`Error during model discovery: ${error}`);
+            throw new Error(`Model discovery failed: ${error}`);
+        }
+
+        return discoveredModels;
+    }
+
+    /**
+     * Add a model provider
+     */
+    public addProvider(provider: LLMProvider): void {
+        this.modelProviders.push(provider);
+    }
+
+    /**
+     * Get system capabilities for model validation
+     */
+    private async getSystemCapabilities(): Promise<SystemInfo> {
+        return this.systemService.getSystemInfo();
+    }
+
     public dispose(): void {
         this.outputChannel.dispose();
         this.eventEmitter.dispose();
+        this.modelRegistry.clear();
     }
 }

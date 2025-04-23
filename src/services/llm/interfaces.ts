@@ -65,9 +65,21 @@ export interface ModelInfo {
  */
 export interface ConnectionStatus {
     state: ConnectionState;
+    message?: string;
     error?: Error;
-    modelInfo?: ModelInfo;
+    lastUpdate: Date;
+    modelStatus?: ModelLoadStatus;
     metadata?: Record<string, unknown>;
+}
+
+/**
+ * Model load status
+ */
+export interface ModelLoadStatus {
+    isLoaded: boolean;
+    progress?: number;
+    stage?: string;
+    error?: Error;
 }
 
 /**
