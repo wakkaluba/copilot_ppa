@@ -1,185 +1,97 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
+import { inject, injectable } from 'inversify';
+import { ILogger } from '../../logging/ILogger';
+import { IStaticAnalysisService } from './services/interfaces/IStaticAnalysisService';
+import { StaticAnalysisOptions, StaticAnalysisTool } from './services/StaticAnalysisTool';
 import { TestResult } from './testRunnerTypes';
-import { StaticAnalysisServiceImpl } from '../../services/testRunner/services/StaticAnalysisServiceImpl';
-import { ILogger } from '../logging/ILogger';
+import { StaticAnalysisExecutor } from './services/StaticAnalysisExecutor';
 
-/**
- * Supported static code analysis tools
- */
-export type StaticAnalysisTool = 'eslint' | 'tslint' | 'prettier' | 'stylelint' | 'sonarqube' | 'custom';
-
-/**
- * Options for static code analysis
- */
-export interface StaticAnalysisOptions {
-    /** Path to analyze */
-    path?: string;
-    /** Specific tool to use */
-    tool?: StaticAnalysisTool;
-    /** Custom command to run */
-    command?: string;
-    /** Fix issues automatically if possible */
-    autoFix?: boolean;
-    /** Paths to exclude from analysis */
-    exclude?: string[];
-    /** Only analyze specific files */
-    include?: string[];
-    /** Configuration file path */
-    configPath?: string;
-}
-
-/**
- * Interface for static analysis results
- */
-export interface StaticAnalysisResult {
-    /** Analysis issues found */
-    issues: StaticAnalysisIssue[];
-    /** Total count of issues */
-    issueCount: number;
-    /** Tool-specific details */
-    toolDetails?: Record<string, unknown>;
-}
-
-/**
- * Interface for a static analysis issue
- */
-export interface StaticAnalysisIssue {
-    /** Issue message */
-    message: string;
-    /** File path where issue was found */
-    filePath: string;
-    /** Line number where issue was found */
-    line: number;
-    /** Column number where issue was found */
-    column?: number;
-    /** Issue severity */
-    severity: 'error' | 'warning' | 'info';
-    /** Rule or check that found the issue */
-    rule?: string;
-    /** Suggested fix if available */
-    fix?: string;
-}
-
-/**
- * Service for performing static code analysis
- */
-export class StaticAnalysisService implements vscode.Disposable {
-    private readonly service: StaticAnalysisServiceImpl;
-    private readonly logger: ILogger;
+@injectable()
+export class StaticAnalysisService implements IStaticAnalysisService {
+    private readonly executor: StaticAnalysisExecutor;
     private readonly outputChannel: vscode.OutputChannel;
 
-    constructor(logger: ILogger) {
-        this.logger = logger;
+    constructor(
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(StaticAnalysisExecutor) executor: StaticAnalysisExecutor
+    ) {
+        this.executor = executor;
         this.outputChannel = vscode.window.createOutputChannel('Static Analysis');
-        this.service = new StaticAnalysisServiceImpl(this.logger, this.outputChannel);
     }
 
-    /**
-     * Run ESLint analysis
-     */
     public async runESLint(options: StaticAnalysisOptions): Promise<TestResult> {
-        try {
-            this.logger.debug('Running ESLint analysis');
-            return await this.service.runESLint(options);
-        } catch (error) {
-            this.logger.error('ESLint analysis failed:', error);
-            return {
-                success: false,
-                message: `ESLint analysis failed: ${error instanceof Error ? error.message : String(error)}`,
-                suites: [],
-                totalTests: 0,
-                passed: 0,
-                failed: 1,
-                skipped: 0,
-                duration: 0,
-                timestamp: new Date()
-            };
-        }
+        return this.runAnalysis({ ...options, tool: 'eslint' });
     }
 
-    /**
-     * Run Prettier analysis
-     */
     public async runPrettier(options: StaticAnalysisOptions): Promise<TestResult> {
-        try {
-            this.logger.debug('Running Prettier analysis');
-            return await this.service.runPrettier(options);
-        } catch (error) {
-            this.logger.error('Prettier analysis failed:', error);
-            return {
-                success: false,
-                message: `Prettier analysis failed: ${error instanceof Error ? error.message : String(error)}`,
-                suites: [],
-                totalTests: 0,
-                passed: 0,
-                failed: 1,
-                skipped: 0,
-                duration: 0,
-                timestamp: new Date()
-            };
-        }
+        return this.runAnalysis({ ...options, tool: 'prettier' });
     }
 
-    /**
-     * Run static analysis with specified tool
-     */
     public async runAnalysis(options: StaticAnalysisOptions): Promise<TestResult> {
         try {
             this.validateOptions(options);
             this.logger.info(`Running static analysis with ${options.tool || 'default'} tool`);
+
+            const analysis = await this.executor.execute(options);
             
-            const result = await this.service.runAnalysis(options);
-            
-            if (result.staticAnalysis?.issues?.length > 0) {
-                this.logIssues(result.staticAnalysis.issues);
+            if (analysis.issues.length > 0) {
+                this.logIssues(analysis.issues);
             }
-            
-            return result;
-        } catch (error) {
-            this.logger.error('Static analysis failed:', error);
+
             return {
-                success: false,
-                message: `Static analysis failed: ${error instanceof Error ? error.message : String(error)}`,
-                suites: [],
-                totalTests: 0,
+                success: analysis.issues.length === 0,
+                message: `Found ${analysis.issues.length} issues`,
+                suites: [{
+                    id: options.tool || 'static-analysis',
+                    name: 'Static Analysis',
+                    tests: analysis.issues.map(issue => ({
+                        id: `${issue.filePath}:${issue.line}`,
+                        name: `${issue.message} (${issue.filePath}:${issue.line})`,
+                        status: 'failed' as const,
+                        duration: 0,
+                        error: issue.message
+                    })),
+                    suites: []
+                }],
+                totalTests: analysis.issues.length,
                 passed: 0,
-                failed: 1,
+                failed: analysis.issues.length,
                 skipped: 0,
                 duration: 0,
-                timestamp: new Date()
+                timestamp: new Date(),
+                staticAnalysis: analysis
             };
+        } catch (error) {
+            this.logger.error('Static analysis failed:', error);
+            return this.createErrorResult(error);
         }
     }
 
-    /**
-     * Validate analysis options
-     */
+    private createErrorResult(error: unknown): TestResult {
+        return {
+            success: false,
+            message: `Static analysis failed: ${error instanceof Error ? error.message : String(error)}`,
+            suites: [],
+            totalTests: 0,
+            passed: 0,
+            failed: 1,
+            skipped: 0,
+            duration: 0,
+            timestamp: new Date()
+        };
+    }
+
     private validateOptions(options: StaticAnalysisOptions): void {
         if (options.tool && !this.isValidTool(options.tool)) {
             throw new Error(`Unsupported analysis tool: ${options.tool}`);
         }
-
-        if (options.path && !path.isAbsolute(options.path)) {
-            options.path = path.resolve(options.path);
-        }
-
-        if (options.configPath && !path.isAbsolute(options.configPath)) {
-            options.configPath = path.resolve(options.configPath);
-        }
     }
 
-    /**
-     * Check if tool is supported
-     */
     private isValidTool(tool: string): tool is StaticAnalysisTool {
         return ['eslint', 'tslint', 'prettier', 'stylelint', 'sonarqube', 'custom'].includes(tool);
     }
 
-    /**
-     * Log analysis issues
-     */
-    private logIssues(issues: StaticAnalysisIssue[]): void {
+    private logIssues(issues: StaticAnalysisResult['issues']): void {
         this.outputChannel.appendLine('\n--- Static Analysis Issues ---\n');
         
         for (const issue of issues) {
@@ -187,8 +99,8 @@ export class StaticAnalysisService implements vscode.Disposable {
             const severity = issue.severity.toUpperCase();
             this.outputChannel.appendLine(`[${severity}] ${location} - ${issue.message}`);
             
-            if (issue.rule) {
-                this.outputChannel.appendLine(`  Rule: ${issue.rule}`);
+            if (issue.ruleId) {
+                this.outputChannel.appendLine(`  Rule: ${issue.ruleId}`);
             }
             
             if (issue.fix) {
@@ -199,11 +111,7 @@ export class StaticAnalysisService implements vscode.Disposable {
         }
     }
 
-    /**
-     * Dispose of resources
-     */
     public dispose(): void {
         this.outputChannel.dispose();
-        this.service.dispose();
     }
 }

@@ -1,82 +1,57 @@
 import * as vscode from 'vscode';
+import { inject, injectable } from 'inversify';
 import { TerminalManager } from './terminalManager';
+import { ILogger } from '../logging/ILogger';
 import { TerminalShellType, CommandHistoryEntry, CommandGenerationResult, CommandAnalysis } from './types';
+import { ShellConfigurationService } from './services/ShellConfigurationService';
+import { CommandExecutionService } from './services/CommandExecutionService';
+import { OutputProcessingService } from './services/OutputProcessingService';
 
-/**
- * Provides interactive terminal capabilities with enhanced features
- */
-export class InteractiveShell {
-    private terminalManager: TerminalManager;
-    private commandHistory: CommandHistoryEntry[] = [];
-    private outputChannel: vscode.OutputChannel;
-    private maxHistorySize: number = 100; // Maximum number of commands to remember
-    private aiHelper: any; // Replace with the correct type if known
+@injectable()
+export class InteractiveShell implements vscode.Disposable {
+    private readonly commandHistory: CommandHistoryEntry[] = [];
+    private readonly outputChannel: vscode.OutputChannel;
 
-    constructor(terminalManager: TerminalManager) {
-        this.terminalManager = terminalManager;
+    constructor(
+        @inject(TerminalManager) private readonly terminalManager: TerminalManager,
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(ShellConfigurationService) private readonly shellConfig: ShellConfigurationService,
+        @inject(CommandExecutionService) private readonly commandExecutor: CommandExecutionService,
+        @inject(OutputProcessingService) private readonly outputProcessor: OutputProcessingService
+    ) {
         this.outputChannel = vscode.window.createOutputChannel('Terminal Output');
     }
 
-    /**
-     * Executes a command and captures the output
-     * @param command Command to execute
-     * @param shellType Shell type to use
-     * @param showOutput Whether to show output in an output channel
-     * @returns Promise that resolves with the command output
-     */
-    public async executeCommand(
-        command: string, 
+    async executeCommand(
+        command: string,
         shellType: TerminalShellType = TerminalShellType.VSCodeDefault,
         showOutput: boolean = true
     ): Promise<string> {
+        this.logger.debug(`Executing command: ${command} (shell: ${shellType})`);
+        
         try {
-            // Record command in history
+            // Create history entry
             const historyEntry: CommandHistoryEntry = {
                 command,
                 timestamp: new Date(),
                 shellType
             };
+
+            // Execute command
+            const output = await this.commandExecutor.executeWithOutput(command, shellType);
             
-            // Execute command and capture output
-            const output = await this.terminalManager.executeCommandWithOutput(command, shellType);
-            
-            // Add result to history
-            historyEntry.result = {
-                stdout: output,
-                stderr: '',
-                exitCode: 0,
-                success: true
-            };
-            
+            // Update history
+            historyEntry.result = output;
             this.addToCommandHistory(historyEntry);
-            
-            // Display output if requested
+
+            // Show output if requested
             if (showOutput) {
-                this.showCommandOutput(command, output);
+                this.showCommandOutput(command, output.stdout);
             }
-            
-            return output;
+
+            return output.stdout;
         } catch (error) {
-            // Record error in history
-            const historyEntry: CommandHistoryEntry = {
-                command,
-                timestamp: new Date(),
-                shellType,
-                result: {
-                    stdout: '',
-                    stderr: error instanceof Error ? error.message : String(error),
-                    exitCode: 1,
-                    success: false
-                }
-            };
-            
-            this.addToCommandHistory(historyEntry);
-            
-            // Display error if requested
-            if (showOutput) {
-                this.showCommandError(command, error);
-            }
-            
+            this.handleCommandError(command, error);
             throw error;
         }
     }
@@ -353,8 +328,27 @@ export class InteractiveShell {
         }
     }
 
-    getAIHelper() {
-        return this.aiHelper; // Assuming 'aiHelper' is a property of the class
+    private handleCommandError(command: string, error: unknown): void {
+        this.logger.error(`Command failed: ${command}`, error);
+        
+        const historyEntry: CommandHistoryEntry = {
+            command,
+            timestamp: new Date(),
+            shellType: TerminalShellType.VSCodeDefault,
+            result: {
+                stdout: '',
+                stderr: error instanceof Error ? error.message : String(error),
+                exitCode: 1,
+                success: false
+            }
+        };
+        
+        this.addToCommandHistory(historyEntry);
+        this.showCommandError(command, error);
+    }
+
+    public dispose(): void {
+        this.outputChannel.dispose();
     }
 }
 

@@ -35,12 +35,11 @@ export interface ILLMModelService extends vscode.Disposable {
  * Model requirements specification
  */
 export interface ModelRequirements {
-    minMemoryGB: number;
-    recommendedMemoryGB: number;
-    minDiskSpaceGB: number;
-    cudaSupport: boolean;
-    minCudaVersion?: string;
-    minCPUCores: number;
+    minRAM: number;
+    minVRAM?: number;
+    minCPUCores?: number;
+    cudaRequired?: boolean;
+    diskSpace?: number;
 }
 
 /**
@@ -49,6 +48,8 @@ export interface ModelRequirements {
 export interface ModelValidationResult {
     isValid: boolean;
     issues: string[];
+    warnings: string[];
+    systemInfo: SystemInfo;
     requirements: ModelRequirements;
 }
 
@@ -90,10 +91,65 @@ export interface ModelServiceEvents {
  * Model configuration options
  */
 export interface ModelConfig {
+    maxTokens: number;
+    temperature: number;
+    topP: number;
+    presencePenalty: number;
+    frequencyPenalty: number;
+    stopSequences: string[];
+    [key: string]: any;
+}
+
+export interface LLMModelInfo {
     id: string;
     name: string;
-    provider: string;
-    enabled: boolean;
-    priority?: number;
-    options?: Record<string, unknown>;
+    provider: 'ollama' | 'lmstudio' | 'huggingface';
+    description: string;
+    tags: string[];
+    size?: number;
+    parameters?: number;
+    quantization?: string;
+    contextLength?: number;
+    config: ModelConfig;
+    requirements: ModelRequirements;
 }
+
+export enum ModelEvent {
+    ModelRegistered = 'modelRegistered',
+    ModelRemoved = 'modelRemoved',
+    ModelUpdated = 'modelUpdated',
+    ActiveModelChanged = 'activeModelChanged',
+    MetricsUpdated = 'metricsUpdated',
+    ValidationUpdated = 'validationUpdated'
+}
+
+export type ModelLifecycleState = 
+    | 'initial' 
+    | 'loading'
+    | 'ready'
+    | 'error'
+    | 'unloading'
+    | 'unloaded';
+
+export interface StateTransition {
+    from: ModelLifecycleState;
+    to: ModelLifecycleState;
+    timestamp: number;
+}
+
+export interface ModelStateSnapshot {
+    modelId: string;
+    state: ModelLifecycleState;
+    timestamp: number;
+    transitions: StateTransition[];
+}
+
+export type ConfigUpdateEvent = {
+    modelId: string;
+    config: ModelConfig;
+};
+
+export type ConfigValidationError = {
+    field: keyof ModelConfig;
+    message: string;
+};

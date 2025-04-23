@@ -1,58 +1,107 @@
 import * as vscode from 'vscode';
-
-export interface ModelMetrics {
-    id: string;
-    duration: number;
-    success: boolean;
-}
+import { EventEmitter } from 'events';
+import { Logger } from '../../utils/logger';
+import { IModelMetrics, MetricEvent, PerformanceMetrics, UsageMetrics } from '../types';
 
 export class ModelMetricsService implements vscode.Disposable {
-    private metrics = new Map<string, ModelMetrics[]>();
-    private readonly outputChannel: vscode.OutputChannel;
+    private readonly _metricsEmitter = new EventEmitter();
+    private readonly _metrics = new Map<string, IModelMetrics>();
+    private readonly _logger: Logger;
+    private _collectionInterval: NodeJS.Timer | null = null;
 
-    constructor() {
-        this.outputChannel = vscode.window.createOutputChannel('Model Metrics');
+    constructor(private readonly collectionIntervalMs: number = 5000) {
+        this._logger = Logger.for('ModelMetricsService');
+        this.startMetricsCollection();
     }
 
-    public recordMetrics(metric: ModelMetrics): void {
-        const modelMetrics = this.metrics.get(metric.id) || [];
-        modelMetrics.push(metric);
-        this.metrics.set(metric.id, modelMetrics);
-        
-        // Log metric for debugging
-        this.outputChannel.appendLine(`[${new Date().toISOString()}] Model ${metric.id}: duration=${metric.duration}ms, success=${metric.success}`);
-    }
-
-    public getMetrics(modelId: string): ModelMetrics[] {
-        return this.metrics.get(modelId) || [];
-    }
-
-    public getAverageSuccessRate(modelId: string): number {
-        const modelMetrics = this.metrics.get(modelId);
-        if (!modelMetrics || modelMetrics.length === 0) {
-            return 0;
+    public async trackPerformance(modelId: string, metrics: PerformanceMetrics): Promise<void> {
+        try {
+            const currentMetrics = this._metrics.get(modelId) || this.createDefaultMetrics();
+            currentMetrics.performance = {
+                ...currentMetrics.performance,
+                ...metrics,
+                lastUpdated: new Date()
+            };
+            
+            this._metrics.set(modelId, currentMetrics);
+            this._metricsEmitter.emit('performanceUpdate', { modelId, metrics });
+        } catch (error) {
+            this._logger.error('Failed to track performance metrics', { modelId, error });
+            throw error;
         }
-
-        const successCount = modelMetrics.filter(m => m.success).length;
-        return successCount / modelMetrics.length;
     }
 
-    public getAverageResponseTime(modelId: string): number {
-        const modelMetrics = this.metrics.get(modelId);
-        if (!modelMetrics || modelMetrics.length === 0) {
-            return 0;
+    public async trackUsage(modelId: string, metrics: UsageMetrics): Promise<void> {
+        try {
+            const currentMetrics = this._metrics.get(modelId) || this.createDefaultMetrics();
+            currentMetrics.usage = {
+                ...currentMetrics.usage,
+                ...metrics,
+                lastUpdated: new Date()
+            };
+            
+            this._metrics.set(modelId, currentMetrics);
+            this._metricsEmitter.emit('usageUpdate', { modelId, metrics });
+        } catch (error) {
+            this._logger.error('Failed to track usage metrics', { modelId, error });
+            throw error;
         }
-
-        const totalDuration = modelMetrics.reduce((sum, m) => sum + m.duration, 0);
-        return totalDuration / modelMetrics.length;
     }
 
-    public clearMetrics(modelId: string): void {
-        this.metrics.delete(modelId);
+    public onMetricsUpdated(listener: (event: MetricEvent) => void): vscode.Disposable {
+        this._metricsEmitter.on('metricsUpdated', listener);
+        return {
+            dispose: () => this._metricsEmitter.removeListener('metricsUpdated', listener)
+        };
+    }
+
+    private createDefaultMetrics(): IModelMetrics {
+        return {
+            performance: {
+                responseTime: 0,
+                throughput: 0,
+                errorRate: 0,
+                lastUpdated: new Date()
+            },
+            usage: {
+                totalRequests: 0,
+                totalTokens: 0,
+                activeConnections: 0,
+                lastUpdated: new Date()
+            }
+        };
+    }
+
+    private startMetricsCollection(): void {
+        if (this._collectionInterval) return;
+
+        this._collectionInterval = setInterval(
+            () => this.collectMetrics(),
+            this.collectionIntervalMs
+        );
+    }
+
+    private async collectMetrics(): Promise<void> {
+        try {
+            const timestamp = new Date();
+            for (const [modelId, metrics] of this._metrics.entries()) {
+                this._metricsEmitter.emit('metricsCollected', {
+                    modelId,
+                    metrics,
+                    timestamp
+                });
+            }
+        } catch (error) {
+            this._logger.error('Failed to collect metrics', { error });
+        }
     }
 
     public dispose(): void {
-        this.outputChannel.dispose();
-        this.metrics.clear();
+        if (this._collectionInterval) {
+            clearInterval(this._collectionInterval);
+            this._collectionInterval = null;
+        }
+        this._metricsEmitter.removeAllListeners();
+        this._metrics.clear();
     }
 }

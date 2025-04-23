@@ -1,22 +1,19 @@
 import * as vscode from 'vscode';
-import {
-    Theme,
-    ThemeColors,
-    FontSettings,
-    UILayoutOptions,
-    ThemeChangeEvent,
-    UIOptionsChangeEvent
-} from './themes/interfaces';
+import { Theme, ThemeColors, FontSettings, UILayoutOptions, ThemeChangeEvent, UIOptionsChangeEvent, IThemeService } from './themes/interfaces';
 import { defaultThemes } from './themes/defaults';
+import { CSSGenerator } from './themes/cssGenerator';
+import { inject, injectable } from 'inversify';
 
 /**
  * Manager for UI themes and customization
  */
-export class ThemeManager implements vscode.Disposable {
+@injectable()
+export class ThemeManager implements IThemeService {
     private static instance: ThemeManager;
     private readonly themes: Map<string, Theme> = new Map();
     private activeThemeId: string;
     private customSettings: UILayoutOptions;
+    private readonly disposables: vscode.Disposable[] = [];
 
     private readonly _onThemeChanged = new vscode.EventEmitter<ThemeChangeEvent>();
     private readonly _onUIOptionsChanged = new vscode.EventEmitter<UIOptionsChangeEvent>();
@@ -24,7 +21,10 @@ export class ThemeManager implements vscode.Disposable {
     public readonly onThemeChanged = this._onThemeChanged.event;
     public readonly onUIOptionsChanged = this._onUIOptionsChanged.event;
 
-    private constructor(private readonly context: vscode.ExtensionContext) {
+    constructor(
+        @inject('ExtensionContext') private readonly context: vscode.ExtensionContext,
+        @inject('ThemeStorage') private readonly storage: IThemeStorage
+    ) {
         // Initialize with default themes
         this.registerDefaultThemes();
         
@@ -194,77 +194,15 @@ export class ThemeManager implements vscode.Disposable {
     }
 
     public getThemeCSS(): string {
-        const theme = this.getActiveTheme();
-        return this.generateThemeCSS(theme);
+        return CSSGenerator.generateThemeCSS(this.getActiveTheme());
     }
     
     public getUILayoutCSS(): string {
-        return this.generateLayoutCSS(this.customSettings);
-    }
-    
-    private generateThemeCSS(theme: Theme): string {
-        return `
-            :root {
-                --copilot-primary: ${theme.colors.primary};
-                --copilot-secondary: ${theme.colors.secondary};
-                --copilot-background: ${theme.colors.background};
-                --copilot-foreground: ${theme.colors.foreground};
-                --copilot-agent-message-bg: ${theme.colors.agentMessageBackground};
-                --copilot-agent-message-fg: ${theme.colors.agentMessageForeground};
-                --copilot-user-message-bg: ${theme.colors.userMessageBackground};
-                --copilot-user-message-fg: ${theme.colors.userMessageForeground};
-                --copilot-system-message: ${theme.colors.systemMessage};
-                --copilot-error: ${theme.colors.error};
-                --copilot-success: ${theme.colors.success};
-                --copilot-border: ${theme.colors.border};
-                --copilot-button-bg: ${theme.colors.buttonBackground};
-                --copilot-button-fg: ${theme.colors.buttonForeground};
-                --copilot-button-hover-bg: ${theme.colors.buttonHoverBackground};
-                --copilot-input-bg: ${theme.colors.inputBackground};
-                --copilot-input-fg: ${theme.colors.inputForeground};
-                --copilot-input-border: ${theme.colors.inputBorder};
-                
-                --copilot-font-family: ${theme.font.family};
-                --copilot-font-size: ${theme.font.sizeInPixels}px;
-                --copilot-line-height: ${theme.font.lineHeight};
-                --copilot-font-weight: ${theme.font.weight};
-                --copilot-heading-weight: ${theme.font.headingWeight};
-            }
-        `;
-    }
-    
-    private generateLayoutCSS(options: UILayoutOptions): string {
-        return `
-            .copilot-container {
-                flex-direction: ${options.chatInputPosition === 'top' ? 'column-reverse' : 'column'};
-            }
-            
-            .copilot-message {
-                padding: ${options.compactMode ? '6px 8px' : '12px 16px'};
-                margin: ${options.compactMode ? '4px 0' : '8px 0'};
-            }
-            
-            .copilot-timestamp {
-                display: ${options.showTimestamps ? 'block' : 'none'};
-            }
-            
-            .copilot-avatar {
-                display: ${options.showAvatars ? 'flex' : 'none'};
-            }
-            
-            .copilot-code-block {
-                max-height: ${options.expandCodeBlocks ? 'none' : '200px'};
-            }
-            
-            .copilot-chat-content {
-                white-space: ${options.wordWrap ? 'pre-wrap' : 'pre'};
-            }
-        `;
+        return CSSGenerator.generateLayoutCSS(this.customSettings);
     }
 
     public dispose(): void {
-        this._onThemeChanged.dispose();
-        this._onUIOptionsChanged.dispose();
+        this.disposables.forEach(d => d.dispose());
     }
 }
 

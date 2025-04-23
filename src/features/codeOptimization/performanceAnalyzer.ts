@@ -1,83 +1,149 @@
 import * as vscode from 'vscode';
-import { PerformanceAnalysisService } from '../../services/performance/PerformanceAnalysisService';
-import { LLMService } from '../../services/llm/llmService';
-import { PerformanceIssue } from '../../types/performance';
-import { PerformanceDiagnosticsService } from './services/PerformanceDiagnosticsService';
+import { inject, injectable } from 'inversify';
+import { ILogger } from '../../logging/ILogger';
+import { PerformanceMetricsService } from './services/PerformanceMetricsService';
+import { PerformanceIssueService } from './services/PerformanceIssueService';
+import { PerformanceReportService } from './services/PerformanceReportService';
 import { PerformanceProgressService } from './services/PerformanceProgressService';
-import { PerformanceResultsService } from './services/PerformanceResultsService';
+import { PerformanceConfig, PerformanceIssue, PerformanceReport } from './types';
+import { EventEmitter } from 'events';
 
-export class PerformanceAnalyzer {
-    private readonly analysisService: PerformanceAnalysisService;
-    private readonly diagnosticsService: PerformanceDiagnosticsService;
-    private readonly progressService: PerformanceProgressService;
-    private readonly resultsService: PerformanceResultsService;
+@injectable()
+export class PerformanceAnalyzer extends EventEmitter {
+    private static instance: PerformanceAnalyzer;
+    private config: PerformanceConfig;
     
-    constructor(context: vscode.ExtensionContext, llmService: LLMService) {
-        this.analysisService = new PerformanceAnalysisService(llmService);
-        this.diagnosticsService = new PerformanceDiagnosticsService();
-        this.progressService = new PerformanceProgressService();
-        this.resultsService = new PerformanceResultsService();
-        
-        this.registerCommands(context);
+    constructor(
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(PerformanceMetricsService) private readonly metricsService: PerformanceMetricsService,
+        @inject(PerformanceIssueService) private readonly issueService: PerformanceIssueService,
+        @inject(PerformanceReportService) private readonly reportService: PerformanceReportService,
+        @inject(PerformanceProgressService) private readonly progressService: PerformanceProgressService
+    ) {
+        super();
+        this.setupEventListeners();
+        this.loadConfiguration();
     }
 
-    private registerCommands(context: vscode.ExtensionContext): void {
-        context.subscriptions.push(
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.analyzePerformance',
-                this.analyzeCurrentFile.bind(this)
-            ),
-            vscode.commands.registerCommand(
-                'vscode-local-llm-agent.analyzeWorkspacePerformance',
-                this.analyzeWorkspace.bind(this)
-            ),
-            this.diagnosticsService.getDiagnosticCollection()
-        );
+    public static getInstance(
+        logger: ILogger,
+        metricsService: PerformanceMetricsService,
+        issueService: PerformanceIssueService,
+        reportService: PerformanceReportService,
+        progressService: PerformanceProgressService
+    ): PerformanceAnalyzer {
+        if (!PerformanceAnalyzer.instance) {
+            PerformanceAnalyzer.instance = new PerformanceAnalyzer(
+                logger,
+                metricsService,
+                issueService,
+                reportService,
+                progressService
+            );
+        }
+        return PerformanceAnalyzer.instance;
+    }
+
+    private setupEventListeners(): void {
+        this.metricsService.on('error', this.handleError.bind(this));
+        this.issueService.on('error', this.handleError.bind(this));
+        this.reportService.on('error', this.handleError.bind(this));
+    }
+
+    private loadConfiguration(): void {
+        try {
+            const config = vscode.workspace.getConfiguration('copilot-ppa.performance');
+            this.config = {
+                enableDeepAnalysis: config.get<boolean>('enableDeepAnalysis', false),
+                analysisTimeout: config.get<number>('analysisTimeout', 30000),
+                maxIssues: config.get<number>('maxIssues', 100),
+                severityThreshold: config.get<string>('severityThreshold', 'medium'),
+                excludePatterns: config.get<string[]>('excludePatterns', [])
+            };
+        } catch (error) {
+            this.handleError(new Error(`Failed to load configuration: ${error instanceof Error ? error.message : String(error)}`));
+        }
     }
 
     public async analyzeCurrentFile(): Promise<PerformanceIssue[]> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showWarningMessage('No active file to analyze');
-            return [];
+            throw new Error('No active editor found');
         }
-        
+
         return this.analyzeFile(editor.document.uri);
     }
 
     public async analyzeFile(fileUri: vscode.Uri): Promise<PerformanceIssue[]> {
-        const document = await vscode.workspace.openTextDocument(fileUri);
-        this.diagnosticsService.clearDiagnostics(fileUri);
-
         try {
             return await this.progressService.withProgress(
-                `Analyzing performance for ${document.fileName}`,
-                async (progress, token) => {
-                    const results = await this.analysisService.analyzeFile(document, progress, token);
-                    if (results.length > 0) {
-                        this.diagnosticsService.addDiagnostics(fileUri, results, document);
-                        this.resultsService.displayResults(results);
+                `Analyzing performance for ${fileUri.fsPath}`,
+                async (progress) => {
+                    const document = await vscode.workspace.openTextDocument(fileUri);
+                    const metrics = await this.metricsService.analyzeFile(document, progress);
+                    const issues = await this.issueService.detectIssues(document, metrics);
+                    
+                    if (issues.length > 0) {
+                        await this.reportService.generateReport(fileUri, issues, metrics);
                     }
-                    return results;
+
+                    this.emit('analysisComplete', { fileUri, issues, metrics });
+                    return issues;
                 }
             );
         } catch (error) {
-            vscode.window.showErrorMessage(`Error analyzing file: ${error}`);
+            this.handleError(new Error(`Error analyzing file ${fileUri.fsPath}: ${error instanceof Error ? error.message : String(error)}`));
             return [];
         }
     }
 
     public async analyzeWorkspace(): Promise<void> {
         if (!vscode.workspace.workspaceFolders) {
-            vscode.window.showWarningMessage('No workspace folder open');
-            return;
+            throw new Error('No workspace folder open');
         }
 
-        await this.progressService.withProgress(
-            'Analyzing workspace performance',
-            async (progress, token) => {
-                await this.analysisService.analyzeWorkspace(progress, token);
-            }
-        );
+        try {
+            await this.progressService.withProgress(
+                'Analyzing workspace performance',
+                async (progress) => {
+                    const files = await vscode.workspace.findFiles(
+                        '**/*.{js,ts,jsx,tsx}',
+                        `{${this.config.excludePatterns.join(',')}}`
+                    );
+
+                    let processedFiles = 0;
+                    const totalFiles = files.length;
+                    const allIssues: PerformanceIssue[] = [];
+
+                    for (const file of files) {
+                        progress.report({
+                            message: `Analyzed ${processedFiles} of ${totalFiles} files`,
+                            increment: (100 / totalFiles)
+                        });
+
+                        const issues = await this.analyzeFile(file);
+                        allIssues.push(...issues);
+                        processedFiles++;
+                    }
+
+                    const report = await this.reportService.generateWorkspaceReport(allIssues);
+                    this.emit('workspaceAnalysisComplete', report);
+                }
+            );
+        } catch (error) {
+            this.handleError(new Error(`Error analyzing workspace: ${error instanceof Error ? error.message : String(error)}`));
+        }
+    }
+
+    private handleError(error: Error): void {
+        this.logger.error('[PerformanceAnalyzer]', error);
+        this.emit('error', error);
+    }
+
+    public dispose(): void {
+        this.metricsService.dispose();
+        this.issueService.dispose();
+        this.reportService.dispose();
+        this.removeAllListeners();
     }
 }

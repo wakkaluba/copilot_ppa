@@ -1,364 +1,130 @@
+import * as vscode from 'vscode';
+import { inject, injectable } from 'inversify';
+import { ILogger } from '../../../logging/ILogger';
 import { EventEmitter } from 'events';
-import {
-    ModelInfo,
-    ModelEvent,
-    ModelUpdateEvent,
-    ModelInfoCache,
-    ModelDiscoveryOptions,
-    ModelFilterOptions,
-    ModelSortOptions,
-    ModelQueryResult
-} from '../types';
+import { LLMModelInfo, ModelEvent } from '../types';
+import { LLMCacheManager } from '../LLMCacheManager';
+import { LLMModelValidator } from './LLMModelValidator';
 
-const DEFAULT_CACHE_TTL = 3600000; // 1 hour
-
-/**
- * Service for managing model information, discovery, and caching
- */
+@injectable()
 export class LLMModelInfoService extends EventEmitter {
-    private readonly modelCache = new Map<string, ModelInfoCache>();
-    private readonly cacheTTL: number;
-    private updateInterval: NodeJS.Timer | null = null;
-    private readonly updateFrequency = 300000; // 5 minutes
-    private discoveryService: ModelDiscoveryService | null = null;
+    private readonly modelCache = new Map<string, LLMModelInfo>();
+    private readonly cacheManager: LLMCacheManager;
+    private readonly validator: LLMModelValidator;
 
-    constructor(cacheTTL = DEFAULT_CACHE_TTL) {
+    constructor(
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(LLMCacheManager) cacheManager: LLMCacheManager,
+        @inject(LLMModelValidator) validator: LLMModelValidator
+    ) {
         super();
-        this.cacheTTL = cacheTTL;
-        this.startPeriodicUpdates();
+        this.cacheManager = cacheManager;
+        this.validator = validator;
+        this.setupEventListeners();
     }
 
-    /**
-     * Get model information
-     */
-    public async getModelInfo(
-        modelId: string,
-        forceRefresh = false
-    ): Promise<ModelInfo | null> {
-        const cached = this.modelCache.get(modelId);
-        
-        if (!forceRefresh && cached && !this.isCacheExpired(cached)) {
-            return cached.info;
-        }
+    private setupEventListeners(): void {
+        this.cacheManager.on('modelInfoCached', this.handleCacheUpdate.bind(this));
+        this.validator.on('validationComplete', this.handleValidationComplete.bind(this));
+    }
 
+    public async getModelInfo(modelId: string, force: boolean = false): Promise<LLMModelInfo> {
         try {
-            const info = await this.fetchModelInfo(modelId);
-            if (info) {
-                this.updateCache(modelId, info);
+            // Check memory cache first
+            if (!force && this.modelCache.has(modelId)) {
+                return { ...this.modelCache.get(modelId)! };
             }
-            return info;
+
+            // Check persistent cache
+            const cached = await this.cacheManager.getModelInfo(modelId);
+            if (!force && cached) {
+                this.modelCache.set(modelId, cached);
+                return { ...cached };
+            }
+
+            // Load from provider
+            const info = await this.loadModelInfo(modelId);
+            await this.validateAndCache(info);
+            return { ...info };
+
         } catch (error) {
-            if (cached) {
-                // Return stale cache on error
-                return cached.info;
-            }
+            this.handleError(new Error(`Failed to get model info for ${modelId}: ${error instanceof Error ? error.message : String(error)}`));
             throw error;
         }
     }
 
-    /**
-     * Discover available models
-     */
-    public async discoverModels(
-        options: ModelDiscoveryOptions = {}
-    ): Promise<ModelInfo[]> {
+    private async loadModelInfo(modelId: string): Promise<LLMModelInfo> {
         try {
-            const models = await this.performModelDiscovery(options);
-            
-            // Update cache with discovered models
-            for (const model of models) {
-                this.updateCache(model.id, model);
+            // This would integrate with the model provider to get fresh info
+            throw new Error('Method not implemented');
+        } catch (error) {
+            this.handleError(new Error(`Failed to load model info for ${modelId}: ${error instanceof Error ? error.message : String(error)}`));
+            throw error;
+        }
+    }
+
+    public async updateModelInfo(modelId: string, info: Partial<LLMModelInfo>): Promise<void> {
+        try {
+            const existing = await this.getModelInfo(modelId);
+            const updated = { ...existing, ...info };
+            await this.validateAndCache(updated);
+            this.emit(ModelEvent.ModelUpdated, modelId);
+        } catch (error) {
+            this.handleError(new Error(`Failed to update model info for ${modelId}: ${error instanceof Error ? error.message : String(error)}`));
+            throw error;
+        }
+    }
+
+    private async validateAndCache(info: LLMModelInfo): Promise<void> {
+        try {
+            const validationResult = await this.validator.validateModel(info);
+            if (!validationResult.isValid) {
+                throw new Error(`Invalid model info: ${validationResult.issues.join(', ')}`);
             }
 
-            this.emit(ModelEvent.ModelsDiscovered, {
-                count: models.length,
-                timestamp: Date.now()
+            this.modelCache.set(info.id, info);
+            await this.cacheManager.cacheModelInfo(info.id, info);
+            
+            this.emit(ModelEvent.ModelInfoUpdated, {
+                modelId: info.id,
+                info
             });
-
-            return models;
         } catch (error) {
-            console.error('Model discovery failed:', error);
-            // Return cached models on error
-            return Array.from(this.modelCache.values())
-                .filter(cached => !this.isCacheExpired(cached))
-                .map(cached => cached.info);
+            this.handleError(new Error(`Validation failed for model ${info.id}: ${error instanceof Error ? error.message : String(error)}`));
+            throw error;
         }
     }
 
-    /**
-     * Query models with filtering and sorting
-     */
-    public async queryModels(
-        filter?: ModelFilterOptions,
-        sort?: ModelSortOptions
-    ): Promise<ModelQueryResult> {
-        let models = Array.from(this.modelCache.values())
-            .filter(cached => !this.isCacheExpired(cached))
-            .map(cached => cached.info);
-
-        // Apply filters
-        if (filter) {
-            models = this.filterModels(models, filter);
-        }
-
-        // Apply sorting
-        if (sort) {
-            models = this.sortModels(models, sort);
-        }
-
-        return {
-            models,
-            total: models.length,
-            timestamp: Date.now()
-        };
+    public async getAvailableModels(): Promise<LLMModelInfo[]> {
+        return Array.from(this.modelCache.values()).map(info => ({ ...info }));
     }
 
-    /**
-     * Update model information
-     */
-    public async updateModelInfo(
-        modelId: string,
-        updates: Partial<ModelInfo>
-    ): Promise<void> {
-        const current = await this.getModelInfo(modelId);
-        if (!current) {
-            throw new Error(`Model ${modelId} not found`);
-        }
-
-        const updated = { ...current, ...updates };
-        this.updateCache(modelId, updated);
-
-        const event: ModelUpdateEvent = {
-            modelId,
-            oldInfo: current,
-            newInfo: updated,
-            changes: this.getInfoChanges(current, updated)
-        };
-
-        this.emit(ModelEvent.Updated, event);
-    }
-
-    /**
-     * Clear model cache
-     */
     public clearCache(modelId?: string): void {
         if (modelId) {
             this.modelCache.delete(modelId);
+            this.cacheManager.clearModelInfo(modelId);
         } else {
             this.modelCache.clear();
+            this.cacheManager.clearAllModelInfo();
         }
+        this.emit('cacheCleared', modelId);
     }
 
-    /**
-     * Get cache statistics
-     */
-    public getCacheStats(): Record<string, unknown> {
-        const now = Date.now();
-        const stats = {
-            totalEntries: this.modelCache.size,
-            validEntries: 0,
-            expiredEntries: 0,
-            averageAge: 0
-        };
-
-        let totalAge = 0;
-        for (const cached of this.modelCache.values()) {
-            const age = now - cached.timestamp;
-            totalAge += age;
-            
-            if (this.isCacheExpired(cached)) {
-                stats.expiredEntries++;
-            } else {
-                stats.validEntries++;
-            }
-        }
-
-        if (stats.totalEntries > 0) {
-            stats.averageAge = totalAge / stats.totalEntries;
-        }
-
-        return stats;
+    private handleCacheUpdate(event: { modelId: string; info: LLMModelInfo }): void {
+        this.modelCache.set(event.modelId, event.info);
+        this.emit(ModelEvent.ModelInfoUpdated, event);
     }
 
-    private startPeriodicUpdates(): void {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-
-        this.updateInterval = setInterval(async () => {
-            try {
-                const expiredModels = Array.from(this.modelCache.entries())
-                    .filter(([_, cached]) => this.isCacheExpired(cached))
-                    .map(([id]) => id);
-
-                for (const modelId of expiredModels) {
-                    await this.getModelInfo(modelId, true);
-                }
-            } catch (error) {
-                console.error('Periodic update failed:', error);
-            }
-        }, this.updateFrequency);
+    private handleValidationComplete(event: { modelId: string; result: any }): void {
+        this.emit(ModelEvent.ValidationComplete, event);
     }
 
-    private isCacheExpired(cached: ModelInfoCache): boolean {
-        return Date.now() - cached.timestamp > this.cacheTTL;
-    }
-
-    private updateCache(modelId: string, info: ModelInfo): void {
-        this.modelCache.set(modelId, {
-            info,
-            timestamp: Date.now()
-        });
-    }
-
-    private async fetchModelInfo(modelId: string): Promise<ModelInfo | null> {
-        // This would integrate with the provider's model info retrieval
-        throw new Error('Not implemented');
-    }
-
-    private async performModelDiscovery(
-        options: ModelDiscoveryOptions
-    ): Promise<ModelInfo[]> {
-        const discoveryService = await this.getModelDiscoveryService();
-        let models = discoveryService.getRegisteredModels();
-
-        if (options.compatibleOnly) {
-            models = await discoveryService.getCompatibleModels();
-        }
-
-        // Apply provider filter if specified
-        if (options.provider) {
-            models = models.filter(model => model.provider === options.provider);
-        }
-
-        // Apply type filter if specified
-        if (options.type) {
-            models = models.filter(model => model.type === options.type);
-        }
-
-        // Apply capability filter if specified
-        if (options.capabilities?.length) {
-            models = models.filter(model => 
-                options.capabilities!.every(cap => model.capabilities?.includes(cap))
-            );
-        }
-
-        return models;
-    }
-
-    private async getModelDiscoveryService(): Promise<ModelDiscoveryService> {
-        // This would typically be injected or retrieved from a service container
-        if (!this.discoveryService) {
-            const metricsService = new ModelMetricsService();
-            const validationService = new ModelValidationService();
-            this.discoveryService = new ModelDiscoveryService(metricsService, validationService);
-        }
-        return this.discoveryService;
-    }
-
-    private filterModels(
-        models: ModelInfo[],
-        filter: ModelFilterOptions
-    ): ModelInfo[] {
-        return models.filter(model => {
-            if (filter.provider && model.provider !== filter.provider) {
-                return false;
-            }
-            if (filter.type && model.type !== filter.type) {
-                return false;
-            }
-            if (filter.minVersion && !this.checkVersion(model.version, filter.minVersion)) {
-                return false;
-            }
-            if (filter.capabilities) {
-                const hasCapabilities = filter.capabilities.every(
-                    cap => model.capabilities.includes(cap)
-                );
-                if (!hasCapabilities) {
-                    return false;
-                }
-            }
-            if (filter.formats) {
-                const hasFormats = filter.formats.every(
-                    format => model.supportedFormats?.includes(format)
-                );
-                if (!hasFormats) {
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-
-    private sortModels(
-        models: ModelInfo[],
-        sort: ModelSortOptions
-    ): ModelInfo[] {
-        return [...models].sort((a, b) => {
-            for (const { field, direction } of sort.criteria) {
-                const multiplier = direction === 'desc' ? -1 : 1;
-                
-                switch (field) {
-                    case 'name':
-                        return multiplier * a.name.localeCompare(b.name);
-                    case 'version':
-                        return multiplier * this.compareVersions(a.version, b.version);
-                    case 'provider':
-                        return multiplier * a.provider.localeCompare(b.provider);
-                    default:
-                        return 0;
-                }
-            }
-            return 0;
-        });
-    }
-
-    private compareVersions(a: string | undefined, b: string | undefined): number {
-        if (!a && !b) return 0;
-        if (!a) return -1;
-        if (!b) return 1;
-
-        const [majorA, minorA = 0] = a.split('.').map(Number);
-        const [majorB, minorB = 0] = b.split('.').map(Number);
-
-        if (majorA !== majorB) {
-            return majorA - majorB;
-        }
-        return minorA - minorB;
-    }
-
-    private checkVersion(actual: string | undefined, required: string): boolean {
-        if (!actual) return false;
-
-        const [actualMajor, actualMinor = 0] = actual.split('.').map(Number);
-        const [requiredMajor, requiredMinor = 0] = required.split('.').map(Number);
-
-        if (actualMajor !== requiredMajor) {
-            return actualMajor > requiredMajor;
-        }
-        return actualMinor >= requiredMinor;
-    }
-
-    private getInfoChanges(
-        oldInfo: ModelInfo,
-        newInfo: ModelInfo
-    ): Partial<ModelInfo> {
-        const changes: Partial<ModelInfo> = {};
-        
-        for (const key of Object.keys(oldInfo) as Array<keyof ModelInfo>) {
-            if (oldInfo[key] !== newInfo[key]) {
-                changes[key] = newInfo[key];
-            }
-        }
-        
-        return changes;
+    private handleError(error: Error): void {
+        this.logger.error('[LLMModelInfoService]', error);
+        this.emit('error', error);
     }
 
     public dispose(): void {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-        }
         this.modelCache.clear();
         this.removeAllListeners();
     }

@@ -1,3 +1,5 @@
+import { Event } from 'vscode';
+
 /**
  * Theme definition interface
  */
@@ -212,4 +214,17 @@ export interface ThemeChangeEvent {
 export interface UIOptionsChangeEvent {
     options: UILayoutOptions;
     previous?: UILayoutOptions;
+}
+
+export interface IThemeService {
+    readonly onThemeChanged: Event<ThemeChangeEvent>;
+    readonly onUIOptionsChanged: Event<UIOptionsChangeEvent>;
+    getThemes(): Theme[];
+    getTheme(id: string): Theme | undefined;
+    getActiveTheme(): Theme;
+    setActiveTheme(id: string): boolean;
+    getUILayoutOptions(): UILayoutOptions;
+    updateUILayoutOptions(options: Partial<UILayoutOptions>): UILayoutOptions;
+    getThemeCSS(): string;
+    getUILayoutCSS(): string;
 }

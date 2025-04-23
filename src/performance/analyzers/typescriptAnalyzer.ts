@@ -1,100 +1,48 @@
+import { inject, injectable } from 'inversify';
 import { BasePerformanceAnalyzer } from './baseAnalyzer';
-import { PerformanceAnalysisResult, PerformanceIssue, AnalyzerOptions } from '../types';
+import { PerformanceAnalysisResult, AnalyzerOptions } from '../types';
+import { ILogger } from '../../logging/ILogger';
+import { TypeScriptPatternAnalyzer } from './services/TypeScriptPatternAnalyzer';
+import { TypeScriptMetricsCalculator } from './services/TypeScriptMetricsCalculator';
 
+@injectable()
 export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
-    protected options: AnalyzerOptions;
-
-    constructor(options?: AnalyzerOptions) {
+    constructor(
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(TypeScriptPatternAnalyzer) private readonly patternAnalyzer: TypeScriptPatternAnalyzer,
+        @inject(TypeScriptMetricsCalculator) private readonly metricsCalculator: TypeScriptMetricsCalculator,
+        options?: AnalyzerOptions
+    ) {
         super(options);
-        this.options = options || {};
     }
 
     public analyze(fileContent: string, filePath: string): PerformanceAnalysisResult {
-        const result = this.createBaseResult(fileContent, filePath);
-        const lines = fileContent.split('\n');
+        try {
+            const result = this.createBaseResult(fileContent, filePath);
+            const lines = fileContent.split('\n');
 
-        // Calculate TypeScript-specific metrics
-        const methodLength = this.calculateAverageMethodLength(fileContent);
-        const complexity = this.analyzeComplexity(fileContent, lines);
-        const nesting = this.analyzeNesting(fileContent);
+            // Analyze patterns and add issues
+            result.issues.push(
+                ...this.patternAnalyzer.analyzeTypeScriptPatterns(fileContent, lines),
+                ...this.analyzeArrayOperations(fileContent, lines),
+                ...this.analyzeAsyncPatterns(fileContent, lines),
+                ...this.analyzeMemoryUsage(fileContent, lines),
+                ...this.analyzeDOMOperations(fileContent, lines),
+                ...this.analyzeEventHandlers(fileContent, lines),
+                ...this.analyzeCommonAntiPatterns(fileContent, lines)
+            );
 
-        // Add TypeScript-specific issues
-        result.issues.push(...this.analyzeTypeScriptAntipatterns(fileContent, lines));
-        result.issues.push(...this.analyzeResourceUsage(fileContent, lines));
-        result.issues.push(...this.analyzeCommonAntiPatterns(fileContent, lines));
+            // Calculate and merge metrics
+            result.metrics = {
+                ...result.metrics,
+                ...this.metricsCalculator.calculateMetrics(fileContent)
+            };
 
-        result.metrics = {
-            ...result.metrics,
-            averageMethodLength: methodLength,
-            cyclomaticComplexity: complexity,
-            maxNestingDepth: nesting
-        };
-
-        return result;
-    }
-
-    protected calculateAverageMethodLength(content: string): number {
-        const methodRegex = /(?:function\s+\w+|[\w.]+\s*=\s*function|\([^)]*\)\s*=>)\s*{[^}]*}/g;
-        const methods = content.match(methodRegex) || [];
-        
-        if (methods.length === 0) return 0;
-
-        const totalLines = methods.reduce((sum, method) => 
-            sum + method.split('\n').length, 0);
-        
-        return Math.round(totalLines / methods.length);
-    }
-
-    private analyzeTypeScriptAntipatterns(fileContent: string, lines: string[]): PerformanceIssue[] {
-        const issues: PerformanceIssue[] = [];
-
-        // Check for any type usage
-        const anyTypeRegex = /: any(?!\[\])/g;
-        let match;
-        while ((match = anyTypeRegex.exec(fileContent)) !== null) {
-            const lineIndex = this.findLineNumber(fileContent, match.index);
-            issues.push({
-                title: 'Unspecified Type Usage',
-                description: 'Using "any" type bypasses TypeScript type checking',
-                severity: 'medium',
-                line: lineIndex + 1,
-                code: this.extractCodeSnippet(lines, lineIndex, 2),
-                solution: 'Define proper interface or type',
-                solutionCode: '// Instead of:\nfunction process(data: any) {}\n\n// Use:\ninterface Data {\n    id: string;\n    value: number;\n}\nfunction process(data: Data) {}'
-            });
+            return result;
+        } catch (error) {
+            this.logger.error('Error analyzing TypeScript file:', error);
+            return this.createErrorResult(fileContent, filePath, error);
         }
-
-        // Check for type assertion abuse
-        const typeAssertionRegex = /as\s+[A-Z]\w+/g;
-        while ((match = typeAssertionRegex.exec(fileContent)) !== null) {
-            const lineIndex = this.findLineNumber(fileContent, match.index);
-            issues.push({
-                title: 'Type Assertion Usage',
-                description: 'Frequent type assertions may indicate design issues',
-                severity: 'low',
-                line: lineIndex + 1,
-                code: this.extractCodeSnippet(lines, lineIndex, 2),
-                solution: 'Use type guards or proper type definitions',
-                solutionCode: '// Instead of:\nconst value = input as MyType;\n\n// Use:\nif (isMyType(input)) {\n    const value = input; // automatically typed\n}'
-            });
-        }
-
-        // Check for non-null assertion operator
-        const nonNullRegex = /!\./g;
-        while ((match = nonNullRegex.exec(fileContent)) !== null) {
-            const lineIndex = this.findLineNumber(fileContent, match.index);
-            issues.push({
-                title: 'Non-null Assertion Usage',
-                description: 'Non-null assertions (!.) can lead to runtime errors',
-                severity: 'medium',
-                line: lineIndex + 1,
-                code: this.extractCodeSnippet(lines, lineIndex, 2),
-                solution: 'Use proper null checking or optional chaining',
-                solutionCode: '// Instead of:\nconst value = obj!.prop;\n\n// Use:\nconst value = obj?.prop ?? defaultValue;'
-            });
-        }
-
-        return issues;
     }
 
     private analyzeArrayOperations(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {

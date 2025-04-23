@@ -7,7 +7,7 @@ export class CSSGenerator {
     /**
      * Generate CSS variables for a theme
      */
-    generateThemeCSS(theme: Theme): string {
+    static generateThemeCSS(theme: Theme): string {
         return `
             :root {
                 --copilot-primary: ${theme.colors.primary};
@@ -43,7 +43,7 @@ export class CSSGenerator {
     /**
      * Generate CSS based on UI layout options
      */
-    generateLayoutCSS(options: UILayoutOptions): string {
+    static generateLayoutCSS(options: UILayoutOptions): string {
         return `
             .copilot-container {
                 flex-direction: ${options.chatInputPosition === 'top' ? 'column-reverse' : 'column'};
