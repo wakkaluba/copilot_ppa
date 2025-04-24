@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { ILogger } from '../types';
+import { ILogger } from '../../common/logging';
 import { ModelLifecycleState, ModelStateSnapshot, StateTransition } from '../types';
+import { IPersistenceService } from '../interfaces/IPersistenceService';
 
 @injectable()
 export class ModelStateManager extends EventEmitter implements vscode.Disposable {
@@ -13,7 +14,8 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
     private readonly storageKey = 'model-states';
 
     constructor(
-        @inject(ILogger) private readonly logger: ILogger
+        @inject(ILogger) private readonly logger: ILogger,
+        @inject(IPersistenceService) private readonly persistence: IPersistenceService
     ) {
         super();
         this.outputChannel = vscode.window.createOutputChannel('Model State');
@@ -54,6 +56,41 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
         };
     }
 
+    private emitStateChange(modelId: string, state: ModelLifecycleState): void {
+        this.emit('stateChanged', { modelId, state });
+    }
+
+    private async persistStates(): Promise<void> {
+        try {
+            const stateData = Array.from(this.stateMap.entries()).map(([id, state]) => ({
+                modelId: id,
+                state,
+                history: this.getStateHistory(id)
+            }));
+
+            await this.persistence.saveData(this.storageKey, stateData);
+        } catch (error) {
+            this.handleError('Failed to persist states', error as Error);
+        }
+    }
+
+    private async loadPersistedStates(): Promise<void> {
+        try {
+            const stateData = await this.persistence.loadData<any[]>(this.storageKey) || [];
+            
+            for (const data of stateData) {
+                if (data.modelId && data.state) {
+                    this.stateMap.set(data.modelId, data.state);
+                    if (data.history) {
+                        this.stateHistory.set(data.modelId, data.history);
+                    }
+                }
+            }
+        } catch (error) {
+            this.handleError('Failed to load persisted states', error as Error);
+        }
+    }
+
     private trackStateTransition(
         modelId: string, 
         oldState: ModelLifecycleState | undefined, 
@@ -73,45 +110,6 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
         }
 
         this.stateHistory.set(modelId, history);
-    }
-
-    private emitStateChange(modelId: string, state: ModelLifecycleState): void {
-        this.emit('stateChanged', { modelId, state });
-    }
-
-    private async persistStates(): Promise<void> {
-        try {
-            const stateData = Array.from(this.stateMap.entries()).map(([id, state]) => ({
-                modelId: id,
-                state,
-                history: this.getStateHistory(id)
-            }));
-
-            await vscode.workspace.getConfiguration().update(
-                this.storageKey,
-                stateData,
-                vscode.ConfigurationTarget.Global
-            );
-        } catch (error) {
-            this.handleError('Failed to persist states', error as Error);
-        }
-    }
-
-    private async loadPersistedStates(): Promise<void> {
-        try {
-            const stateData = vscode.workspace.getConfiguration().get<any[]>(this.storageKey) || [];
-            
-            for (const data of stateData) {
-                if (data.modelId && data.state) {
-                    this.stateMap.set(data.modelId, data.state);
-                    if (data.history) {
-                        this.stateHistory.set(data.modelId, data.history);
-                    }
-                }
-            }
-        } catch (error) {
-            this.handleError('Failed to load persisted states', error as Error);
-        }
     }
 
     private logStateChange(

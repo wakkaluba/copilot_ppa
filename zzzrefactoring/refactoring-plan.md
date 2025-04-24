@@ -85,6 +85,11 @@ Supporting functionality and utilities:
 | 2025-04-19 | Setup | refactoring-plan.md | Created initial refactoring plan |
 | 2025-04-19 | Performance | performanceAnalyzer.ts | Split into multiple focused modules with proper interfaces |
 | 2025-04-19 | LLM | LLMConnectionManager.ts and related | Refactored into a modular system with improved error handling, state management, and stream processing |
+| 2025-05-01 | LLM | ModelLoadBalancer.ts | Implemented load balancing system with health monitoring and metrics |
+| 2025-05-05 | LLM | ModelRateLimiter.ts | Implemented rate limiting system with quota management |
+| 2025-05-06 | LLM | ModelCacheManagerV2.ts | Implemented multi-level caching system with metrics |
+| 2025-05-07 | LLM | ModelHealthMonitorV2.ts | Implemented comprehensive health monitoring system |
+| 2025-05-08 | LLM | ModelResourceMonitorV2.ts | Implemented comprehensive resource monitoring system |
 
 ## Current Focus
 

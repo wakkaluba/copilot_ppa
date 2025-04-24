@@ -37,6 +37,35 @@
 - zzzbuild/artifacts/ - folder for build artifacts like:
   - vsix files
 
+## zzzrefactoring
+- zzzrefactoring/ - folder for refactoring items like:
+  - refactoring scripts
+    - zzzrefactoring\refactoring.sh
+  - list in md file format for refactoring
+    - zzzrefactoring\refactoring.md
+    - zzzrefactoring\refactoring-progress.md
+    - zzzrefactoring\refactoring-plan.md
+    - zzzrefactoring\refactoring-status.md
+
+## tests
+- test/ - folder for test items like:
+  - unit tests
+  - integration tests
+  - performance tests
+  - security tests
+  - code coverage
+  - code quality
+  - code style
+  - code smells
+
+## documentation
+- zzzdocs/ - folder for documentation items like:
+  - documentation files
+
+## zzzscripts
+- zzzscripts/ - folder for scripts items like:
+  - scripts files
+
 ## default behaviour
 - check if the zzzbuild/ideas.md file has new content and incorporate it to the todo.md
   - delete ideas from zzzbuild\ideas.md if they are not relevant anymore

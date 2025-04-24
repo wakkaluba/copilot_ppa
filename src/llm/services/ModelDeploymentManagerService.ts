@@ -1,12 +1,9 @@
 import * as vscode from 'vscode';
-import { EventEmitter } from 'events';
 import { Logger } from '../../utils/logger';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ModelDeploymentService } from './ModelDeploymentService';
 import { ModelVersioningService } from './ModelVersioningService';
 import { ModelSystemManager } from './ModelSystemManager';
-import { ModelRegistryService } from './ModelRegistryService';
 
 /**
  * Interface for deployment metadata
@@ -299,10 +296,8 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
     private readonly _deploymentEvents: IDeploymentEvent[] = [];
     private readonly _environmentEvents: IEnvironmentEvent[] = [];
     private readonly _disposables: vscode.Disposable[] = [];
-    private readonly _deploymentService: ModelDeploymentService;
     private readonly _versioningService: ModelVersioningService;
     private readonly _systemManager: ModelSystemManager;
-    private readonly _registryService: ModelRegistryService;
     private _monitoringInterval: NodeJS.Timeout | undefined;
 
     /**
@@ -318,23 +313,17 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
     /**
      * Create a new ModelDeploymentManagerService
      * @param context The extension context
-     * @param deploymentService The deployment service
      * @param versioningService The versioning service
      * @param systemManager The system manager
-     * @param registryService The registry service
      */
     constructor(
         private readonly context: vscode.ExtensionContext,
-        deploymentService: ModelDeploymentService,
         versioningService: ModelVersioningService,
-        systemManager: ModelSystemManager,
-        registryService: ModelRegistryService
+        systemManager: ModelSystemManager
     ) {
         this._logger = new Logger();
-        this._deploymentService = deploymentService;
         this._versioningService = versioningService;
         this._systemManager = systemManager;
-        this._registryService = registryService;
         
         this._disposables.push(this._deploymentEmitter);
         this._disposables.push(this._environmentEmitter);
@@ -677,7 +666,6 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             };
             
             // Update the metrics
-            const systemMetrics = await this._systemManager.getSystemMetrics();
             const now = new Date();
             const lastActive = new Date(existingMetrics.lastActive);
             const uptimeIncrease = (now.getTime() - lastActive.getTime()) / 1000; // in seconds

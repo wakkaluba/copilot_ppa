@@ -53,10 +53,8 @@ class ModelDeploymentManagerService {
     _deploymentEvents = [];
     _environmentEvents = [];
     _disposables = [];
-    _deploymentService;
     _versioningService;
     _systemManager;
-    _registryService;
     _monitoringInterval;
     /**
      * Event that fires when a deployment status changes
@@ -69,18 +67,14 @@ class ModelDeploymentManagerService {
     /**
      * Create a new ModelDeploymentManagerService
      * @param context The extension context
-     * @param deploymentService The deployment service
      * @param versioningService The versioning service
      * @param systemManager The system manager
-     * @param registryService The registry service
      */
-    constructor(context, deploymentService, versioningService, systemManager, registryService) {
+    constructor(context, versioningService, systemManager) {
         this.context = context;
         this._logger = new logger_1.Logger();
-        this._deploymentService = deploymentService;
         this._versioningService = versioningService;
         this._systemManager = systemManager;
-        this._registryService = registryService;
         this._disposables.push(this._deploymentEmitter);
         this._disposables.push(this._environmentEmitter);
         // Set up storage paths
@@ -384,7 +378,6 @@ class ModelDeploymentManagerService {
                 }
             };
             // Update the metrics
-            const systemMetrics = await this._systemManager.getSystemMetrics();
             const now = new Date();
             const lastActive = new Date(existingMetrics.lastActive);
             const uptimeIncrease = (now.getTime() - lastActive.getTime()) / 1000; // in seconds
