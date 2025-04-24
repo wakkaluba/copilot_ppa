@@ -1778,7 +1778,7 @@
     "test:all": "node tests/run-all-tests.js",
     "lint:fix": "eslint src/**/*.ts --fix",
     "test:interfaces": "jest --testMatch='**/tests/unit/interfaces/**/*.test.ts'",
-"test:watch": "jest --watch",
+    "test:watch": "jest --watch",
     "test:coverage-report": "jest --coverage && http-server coverage/lcov-report -o",
     "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
     "test:detect-leaks": "jest --detectOpenHandles",

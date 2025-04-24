@@ -1,6 +1,4 @@
-import * as vscode from 'vscode';
 import { Logger } from '../../utils/logger';
-import { ThemeService } from '../../services/ui/themeManager';
 
 export interface UISettingsTab {
     id: string;
@@ -11,8 +9,8 @@ export interface UISettingsTab {
 export class UISettingsWebviewService {
     private readonly logger: Logger;
 
-    constructor(private readonly themeService: ThemeService) {
-        this.logger = Logger.getInstance();
+    constructor() {
+        this.logger = new Logger();
     }
 
     public generateWebviewContent(tabs: UISettingsTab[]): string {
@@ -130,7 +128,7 @@ export class UISettingsWebviewService {
                                 case 'selectTab':
                                     const tabToSelect = message.tab;
                                     if (tabToSelect) {
-                                        const tabEl = document.querySelector(`.tab[data-tab="${tabToSelect}"]`);
+                                        const tabEl = document.querySelector(\`.tab[data-tab="\${tabToSelect}"]\`);
                                         if (tabEl) {
                                             tabEl.click();
                                         }

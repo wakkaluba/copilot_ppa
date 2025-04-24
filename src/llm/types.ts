@@ -22,6 +22,9 @@ export interface HardwareSpecs {
     gpu?: {
         name: string;
         memory: number;
+        available?: boolean;
+        vram?: number;
+        cudaSupport?: boolean;
     };
 }
 
