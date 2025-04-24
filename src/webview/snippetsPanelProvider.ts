@@ -12,13 +12,13 @@ export class SnippetsPanelProvider {
         this.snippetManager = SnippetManager.getInstance(context);
     }
     
-    public dispose() {
+    public dispose(): void {
         this.panel?.dispose();
         this.disposables.forEach(d => d.dispose());
         this.disposables = [];
     }
     
-    public open() {
+    public open(): void {
         if (this.panel) {
             this.panel.reveal();
             return;
@@ -89,7 +89,7 @@ export class SnippetsPanelProvider {
         );
     }
     
-    private updateWebviewContent() {
+    private updateWebviewContent(): void {
         if (!this.panel) {
             return;
         }
@@ -98,7 +98,7 @@ export class SnippetsPanelProvider {
         this.panel.webview.html = this.getWebviewContent(snippets);
     }
     
-    private async handleCreateSnippet(title: string, content: string, tags: string[]) {
+    private async handleCreateSnippet(title: string, content: string, tags: string[]): Promise<void> {
         try {
             await this.snippetManager.createSnippetFromContent(title, content, tags);
             vscode.window.showInformationMessage(`Snippet "${title}" created successfully`);
@@ -107,7 +107,7 @@ export class SnippetsPanelProvider {
         }
     }
     
-    private async handleUpdateSnippet(id: string, updates: Partial<ConversationSnippet>) {
+    private async handleUpdateSnippet(id: string, updates: Partial<ConversationSnippet>): Promise<void> {
         try {
             const updated = await this.snippetManager.updateSnippet(id, updates);
             if (updated) {
@@ -120,7 +120,7 @@ export class SnippetsPanelProvider {
         }
     }
     
-    private async handleDeleteSnippet(id: string) {
+    private async handleDeleteSnippet(id: string): Promise<void> {
         try {
             const deleted = await this.snippetManager.deleteSnippet(id);
             if (deleted) {
@@ -133,7 +133,7 @@ export class SnippetsPanelProvider {
         }
     }
     
-    private async handleCopySnippet(id: string) {
+    private async handleCopySnippet(id: string): Promise<void> {
         const snippet = this.snippetManager.getSnippet(id);
         if (snippet) {
             await vscode.env.clipboard.writeText(snippet.content);
@@ -143,7 +143,7 @@ export class SnippetsPanelProvider {
         }
     }
     
-    private async handleOpenSource(id: string) {
+    private async handleOpenSource(id: string): Promise<void> {
         const snippet = this.snippetManager.getSnippet(id);
         if (snippet && snippet.sourceConversationId) {
             await vscode.commands.executeCommand(

@@ -162,7 +162,7 @@ export class UISettingsPanel implements vscode.Disposable {
         // Implementation for tab change handling
     }
 
-    private async handleSettingUpdate(key: string, value: any): Promise<void> {
+    private async handleSettingUpdate(key: string, value: string | boolean | number): Promise<void> {
         // Implementation for setting update handling
     }
 

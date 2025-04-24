@@ -16,11 +16,11 @@ export enum LogLevel {
 /**
  * Log entry interface
  */
-export interface LogEntry {
+export interface ILogEntry {
     timestamp: string;
     level: LogLevel;
     message: string;
-    details?: any;
+    details?: unknown;
 }
 
 /**
@@ -31,7 +31,7 @@ export class Logger {
     private _logLevel: LogLevel;
     private _logToFile: boolean;
     private _logFilePath: string;
-    private _logEntries: LogEntry[] = [];
+    private _logEntries: ILogEntry[] = [];
     private _maxInMemoryLogs: number;
     
     constructor() {
@@ -75,28 +75,28 @@ export class Logger {
     /**
      * Log a debug message
      */
-    public debug(message: string, details?: any): void {
+    public debug(message: string, details?: unknown): void {
         this.log(LogLevel.DEBUG, message, details);
     }
     
     /**
      * Log an info message
      */
-    public info(message: string, details?: any): void {
+    public info(message: string, details?: unknown): void {
         this.log(LogLevel.INFO, message, details);
     }
     
     /**
      * Log a warning message
      */
-    public warn(message: string, details?: any): void {
+    public warn(message: string, details?: unknown): void {
         this.log(LogLevel.WARN, message, details);
     }
     
     /**
      * Log an error message
      */
-    public error(message: string, details?: any): void {
+    public error(message: string, details?: unknown): void {
         this.log(LogLevel.ERROR, message, details);
     }
     
@@ -138,7 +138,7 @@ export class Logger {
     /**
      * Get all log entries
      */
-    public getLogEntries(): LogEntry[] {
+    public getLogEntries(): ILogEntry[] {
         return [...this._logEntries];
     }
     
@@ -188,7 +188,7 @@ export class Logger {
     /**
      * Internal log method
      */
-    private log(level: LogLevel, message: string, details?: any): void {
+    private log(level: LogLevel, message: string, details?: unknown): void {
         // Only log if level is greater than or equal to configured level
         if (level < this._logLevel) {
             return;
@@ -222,7 +222,7 @@ export class Logger {
         this._outputChannel.appendLine(formattedMessage);
         
         // Create log entry
-        const logEntry: LogEntry = {
+        const logEntry: ILogEntry = {
             timestamp,
             level,
             message,

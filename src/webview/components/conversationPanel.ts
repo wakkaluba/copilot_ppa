@@ -1,10 +1,26 @@
+// Import required modules and interfaces
 import { Conversation } from '../../models/conversation';
 import { escapeHtml } from '../../utils/htmlEscaper';
+
+// Define the chat message interface here to avoid circular imports
+export interface IChatMessage {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp: number | string;
+    id?: string;
+    [key: string]: unknown;
+}
+
+// Import renderer function
 import { renderMessages } from './messageRenderer';
 
-// We'll add a new button to each message for creating snippets
-
-export function renderMessage(message: any, index: number): string {
+/**
+ * Renders a single message as HTML
+ * @param message The chat message to render
+ * @param index Index of the message in the conversation
+ * @returns HTML string representation of the message
+ */
+export function renderMessage(message: IChatMessage, index: number): string {
     const role = message.role === 'user' ? 'user' : 
                 message.role === 'assistant' ? 'assistant' : 'system';
     const timestamp = new Date(message.timestamp).toLocaleString();
@@ -28,6 +44,11 @@ export function renderMessage(message: any, index: number): string {
     `;
 }
 
+/**
+ * Generates the HTML for the conversation panel
+ * @param conversation The conversation data to render
+ * @returns HTML string for the conversation panel
+ */
 export function getConversationPanelHtml(conversation: Conversation): string {
     return `
     <div class="conversation-panel">
@@ -50,6 +71,10 @@ export function getConversationPanelHtml(conversation: Conversation): string {
     `;
 }
 
+/**
+ * Gets the JavaScript code for the conversation panel
+ * @returns JavaScript as a string
+ */
 export function getConversationPanelScript(): string {
     return `
     // ...existing code...
@@ -165,6 +190,10 @@ export function getConversationPanelScript(): string {
     `;
 }
 
+/**
+ * Gets the CSS styles for the conversation panel
+ * @returns CSS as a string
+ */
 export function getConversationPanelStyles(): string {
     return `
     // ...existing code...
@@ -217,4 +246,36 @@ export function getConversationPanelStyles(): string {
     
     // ...existing code...
     `;
+}
+
+/**
+ * Format message content by handling code blocks and escaping HTML
+ * @param content Raw message content
+ * @returns Formatted HTML content
+ */
+function formatMessageContent(content: string): string {
+    if (!content) {
+        return '';
+    }
+    
+    // Replace code blocks with properly formatted HTML
+    let formattedContent = content.replace(/```([\w]*)([\s\S]*?)```/g, (_match, language, code) => {
+        return `<pre class="code-block${language ? ' language-' + language : ''}"><code>${escapeHtml(code.trim())}</code></pre>`;
+    });
+    
+    // Handle inline code
+    formattedContent = formattedContent.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // Handle paragraphs - replace double newlines with paragraph breaks
+    formattedContent = formattedContent.replace(/\n\n/g, '</p><p>');
+    
+    // Handle single newlines
+    formattedContent = formattedContent.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraphs if not already
+    if (!formattedContent.startsWith('<p>')) {
+        formattedContent = `<p>${formattedContent}</p>`;
+    }
+    
+    return formattedContent;
 }

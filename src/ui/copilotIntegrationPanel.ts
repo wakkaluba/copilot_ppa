@@ -5,17 +5,7 @@ import { CopilotConnectionManager } from './services/CopilotConnectionManager';
 import { CopilotWebviewMessageHandler } from './services/CopilotWebviewMessageHandler';
 import { Logger } from '../utils/logger';
 import { ThemeService } from '../services/ui/themeManager';
-
-export interface WebviewMessage {
-    command: 'toggleLLMMode' | 'sendMessage' | 'reconnectCopilot';
-    text?: string;
-}
-
-export interface WebviewState {
-    isLocalLLMActive: boolean;
-    isCopilotConnected: boolean;
-    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
-}
+import { IWebviewMessage, IWebviewState } from './types';
 
 /**
  * Panel that provides a webview interface for Copilot and LLM interactions
@@ -93,10 +83,12 @@ export class CopilotIntegrationPanel implements vscode.Disposable {
     }
 
     private registerWebviewHandlers(): void {
-        if (!this.panel) return;
+        if (!this.panel) {
+            return;
+        }
 
         this.panel.webview.onDidReceiveMessage(
-            async (message: WebviewMessage) => {
+            async (message: IWebviewMessage) => {
                 try {
                     const response = await this.messageHandler.handleMessage(message);
                     if (response && this.panel) {
@@ -113,7 +105,9 @@ export class CopilotIntegrationPanel implements vscode.Disposable {
     }
 
     private updateWebviewContent(): void {
-        if (!this.panel) return;
+        if (!this.panel) {
+            return;
+        }
 
         try {
             const stylesUri = this.panel.webview.asWebviewUri(

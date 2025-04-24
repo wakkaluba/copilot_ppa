@@ -8,3 +8,7 @@
   - use the history to generate new code
   - use the history to generate new documentation
   - use the history to generate new tests
+
+# error handling for html output
+copilot seem to have memory issues after a while.
+  - add a button to clear the memory of copilot "changed" file list not only remove the file entries.

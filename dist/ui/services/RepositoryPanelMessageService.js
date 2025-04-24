@@ -38,7 +38,7 @@ class RepositoryPanelMessageService {
     }
     onToggleAccess(callback) {
         const listeners = this._listeners.get('toggleAccess') || new Set();
-        listeners.add(async (data) => {
+        listeners.add((data) => {
             try {
                 callback(data.enabled);
             }

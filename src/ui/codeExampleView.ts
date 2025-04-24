@@ -4,6 +4,16 @@ import { CodeExampleWebviewService } from '../services/codeExamples/CodeExampleW
 import { CodeAnalysisService } from '../services/codeExamples/CodeAnalysisService';
 import { WebviewHtmlService } from '../services/webview/WebviewHtmlService';
 
+/**
+ * Define interface for webview message payloads
+ */
+interface IWebviewMessageData {
+    type: 'search' | 'insert' | 'copy';
+    query?: string;
+    language?: string;
+    code?: string;
+}
+
 export class CodeExampleViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'codeExamples.view';
     private _view?: vscode.WebviewView;
@@ -39,7 +49,7 @@ export class CodeExampleViewProvider implements vscode.WebviewViewProvider {
         this._view.webview.onDidReceiveMessage(this.handleWebviewMessage.bind(this));
     }
 
-    private async handleWebviewMessage(data: any): Promise<void> {
+    private async handleWebviewMessage(data: IWebviewMessageData): Promise<void> {
         switch (data.type) {
             case 'search':
                 await this.searchCodeExamples(data.query, data.language);

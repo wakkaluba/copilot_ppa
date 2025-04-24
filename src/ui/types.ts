@@ -1,9 +1,9 @@
-export interface WebviewState {
+export interface IWebviewState {
     isLocalLLMActive: boolean;
     isCopilotConnected: boolean;
 }
 
-export interface WebviewMessage {
+export interface IWebviewMessage {
     command: 'toggleLLMMode' | 'sendMessage' | 'reconnectCopilot';
     text?: string;
 }

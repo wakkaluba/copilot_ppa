@@ -11,7 +11,7 @@ export class LLMStatusBar {
         this.statusBarItem.show();
     }
 
-    public updateStatus(connected: boolean, modelName?: string) {
+    public updateStatus(connected: boolean, modelName?: string): void {
         if (connected) {
             this.statusBarItem.text = `$(check) LLM: ${modelName || 'Connected'}`;
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.successBackground');
@@ -22,7 +22,7 @@ export class LLMStatusBar {
         this.statusBarItem.tooltip = `LLM Connection Status${modelName ? ': ' + modelName : ''}`;
     }
 
-    public dispose() {
+    public dispose(): void {
         this.statusBarItem.dispose();
     }
 }

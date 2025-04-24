@@ -6,22 +6,22 @@ import * as path from 'path';
 /**
  * Checks if a value is null or undefined
  */
-export function isNullOrUndefined(value: any): boolean {
+export function isNullOrUndefined(value: unknown): boolean {
   return value === null || value === undefined;
 }
 
 /**
  * Safely gets a nested property from an object without throwing errors
  */
-export function getNestedProperty(obj: any, path: string, defaultValue: any = undefined): any {
+export function getNestedProperty(obj: Record<string, unknown>, path: string, defaultValue: unknown = undefined): unknown {
   const keys = path.split('.');
-  let current = obj;
+  let current: unknown = obj;
   
   for (const key of keys) {
     if (isNullOrUndefined(current) || typeof current !== 'object') {
       return defaultValue;
     }
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
   
   return isNullOrUndefined(current) ? defaultValue : current;
@@ -30,9 +30,9 @@ export function getNestedProperty(obj: any, path: string, defaultValue: any = un
 /**
  * Safely parse JSON without throwing errors
  */
-export function safeJsonParse(text: string, defaultValue: any = {}): any {
+export function safeJsonParse<T = Record<string, unknown>>(text: string, defaultValue: T = {} as T): T {
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as T;
   } catch (error) {
     return defaultValue;
   }
@@ -186,7 +186,7 @@ export function isValidUrl(url: string): boolean {
 /**
  * Parse error objects into string messages
  */
-export function parseError(error: any): string {
+export function parseError(error: unknown): string {
   if (!error) {
     return 'Unknown error';
   }

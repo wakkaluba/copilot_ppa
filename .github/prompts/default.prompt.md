@@ -1,7 +1,5 @@
 # setup
 ## general targets
-@workspace
-#codebase 
 
 ## AI behaviour
 - Don't create too large files.
@@ -26,6 +24,14 @@
     - zzzbuild\finished.md
 - zzzbuild/artifacts/ - folder for build artifacts like:
   - vsix files
+
+## default behaviour
+- check if the zzzbuild/ideas.md file has new content and incorporate it to the todo.md
+  - delete ideas from zzzbuild\ideas.md if they are not relevant anymore
+- use at each prompt the following: 
+  - @workspace
+  - #codebase
+  - #prompt:default.prompt.md
 
 ## tests
 tests/ - folder for test items like:

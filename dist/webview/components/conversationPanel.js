@@ -5,8 +5,14 @@ exports.getConversationPanelHtml = getConversationPanelHtml;
 exports.getConversationPanelScript = getConversationPanelScript;
 exports.getConversationPanelStyles = getConversationPanelStyles;
 const htmlEscaper_1 = require("../../utils/htmlEscaper");
+// Import renderer function
 const messageRenderer_1 = require("./messageRenderer");
-// We'll add a new button to each message for creating snippets
+/**
+ * Renders a single message as HTML
+ * @param message The chat message to render
+ * @param index Index of the message in the conversation
+ * @returns HTML string representation of the message
+ */
 function renderMessage(message, index) {
     const role = message.role === 'user' ? 'user' :
         message.role === 'assistant' ? 'assistant' : 'system';
@@ -29,6 +35,11 @@ function renderMessage(message, index) {
     </div>
     `;
 }
+/**
+ * Generates the HTML for the conversation panel
+ * @param conversation The conversation data to render
+ * @returns HTML string for the conversation panel
+ */
 function getConversationPanelHtml(conversation) {
     return `
     <div class="conversation-panel">
@@ -50,6 +61,10 @@ function getConversationPanelHtml(conversation) {
     </div>
     `;
 }
+/**
+ * Gets the JavaScript code for the conversation panel
+ * @returns JavaScript as a string
+ */
 function getConversationPanelScript() {
     return `
     // ...existing code...
@@ -164,6 +179,10 @@ function getConversationPanelScript() {
     // ...existing code...
     `;
 }
+/**
+ * Gets the CSS styles for the conversation panel
+ * @returns CSS as a string
+ */
 function getConversationPanelStyles() {
     return `
     // ...existing code...
@@ -216,5 +235,30 @@ function getConversationPanelStyles() {
     
     // ...existing code...
     `;
+}
+/**
+ * Format message content by handling code blocks and escaping HTML
+ * @param content Raw message content
+ * @returns Formatted HTML content
+ */
+function formatMessageContent(content) {
+    if (!content) {
+        return '';
+    }
+    // Replace code blocks with properly formatted HTML
+    let formattedContent = content.replace(/```([\w]*)([\s\S]*?)```/g, (_match, language, code) => {
+        return `<pre class="code-block${language ? ' language-' + language : ''}"><code>${(0, htmlEscaper_1.escapeHtml)(code.trim())}</code></pre>`;
+    });
+    // Handle inline code
+    formattedContent = formattedContent.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Handle paragraphs - replace double newlines with paragraph breaks
+    formattedContent = formattedContent.replace(/\n\n/g, '</p><p>');
+    // Handle single newlines
+    formattedContent = formattedContent.replace(/\n/g, '<br>');
+    // Wrap in paragraphs if not already
+    if (!formattedContent.startsWith('<p>')) {
+        formattedContent = `<p>${formattedContent}</p>`;
+    }
+    return formattedContent;
 }
 //# sourceMappingURL=conversationPanel.js.map
