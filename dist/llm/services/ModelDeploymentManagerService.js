@@ -474,7 +474,7 @@ class ModelDeploymentManagerService {
             this.startDeploymentProcess(deployment.id).catch(err => {
                 this._logger.error(`Failed to start deployment process for ${deployment.id}`, err);
                 this.updateDeploymentStatus(deployment.id, 'failed', {
-                    error: err.message || String(err)
+                    error: err instanceof Error ? err.message : String(err)
                 });
             });
             return deployment;
@@ -507,7 +507,7 @@ class ModelDeploymentManagerService {
         catch (err) {
             this._logger.error(`Failed to process deployment ${deploymentId}`, err);
             await this.updateDeploymentStatus(deploymentId, 'failed', {
-                error: err.message || String(err)
+                error: err instanceof Error ? err.message : String(err)
             });
             throw err;
         }
@@ -550,7 +550,7 @@ class ModelDeploymentManagerService {
                 this.updateDeploymentProcess(deploymentId, originalDeployment.version).catch(err => {
                     this._logger.error(`Failed to update deployment ${deploymentId}`, err);
                     this.updateDeploymentStatus(deploymentId, 'failed', {
-                        error: err.message || String(err)
+                        error: err instanceof Error ? err.message : String(err)
                     });
                 });
             }

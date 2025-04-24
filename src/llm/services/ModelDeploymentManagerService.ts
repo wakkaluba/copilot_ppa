@@ -778,7 +778,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             this.startDeploymentProcess(deployment.id).catch(err => {
                 this._logger.error(`Failed to start deployment process for ${deployment.id}`, err);
                 this.updateDeploymentStatus(deployment.id, 'failed', {
-                    error: err.message || String(err)
+                    error: err instanceof Error ? err.message : String(err)
                 });
             });
             
@@ -815,7 +815,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
         } catch (err) {
             this._logger.error(`Failed to process deployment ${deploymentId}`, err);
             await this.updateDeploymentStatus(deploymentId, 'failed', {
-                error: err.message || String(err)
+                error: err instanceof Error ? err.message : String(err)
             });
             throw err;
         }
@@ -869,7 +869,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
                 this.updateDeploymentProcess(deploymentId, originalDeployment.version).catch(err => {
                     this._logger.error(`Failed to update deployment ${deploymentId}`, err);
                     this.updateDeploymentStatus(deploymentId, 'failed', {
-                        error: err.message || String(err)
+                        error: err instanceof Error ? err.message : String(err)
                     });
                 });
             }

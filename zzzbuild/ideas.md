@@ -13,3 +13,9 @@
 copilot seem to have memory issues after a while.
   - if possible add a button to clear the memory of copilot "changed" file list not only remove the file entries.
   - if possible add a button to restart copilot.
+
+# access to 3rd party extensions and VSCode API
+  - make the extensions available and accessible to PPA copilot to use them.
+  - enable PPA copilot to alter configurations in VSCode and extensions
+  - enable PPA copilot installation of extensions if needed or useful/meaningful
+  - enable PPA copilot to use VSCode API
