@@ -83,8 +83,9 @@ class AsyncOptimizer {
      */
     async processBatch(batchId, processFn) {
         const batch = this.pendingBatches.get(batchId);
-        if (!batch)
+        if (!batch) {
             return;
+        }
         this.pendingBatches.delete(batchId);
         try {
             this.profiler.startOperation(`batch.${batchId}`);

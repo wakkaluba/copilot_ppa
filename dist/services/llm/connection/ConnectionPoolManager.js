@@ -15,8 +15,9 @@ class ConnectionPoolManager extends events_1.EventEmitter {
     startHealthCheck(providerId) {
         const interval = setInterval(async () => {
             const pool = this.pools.get(providerId);
-            if (!pool)
+            if (!pool) {
                 return;
+            }
             const health = await pool.checkHealth();
             this.emit('healthCheck', {
                 providerId,
@@ -41,8 +42,9 @@ class ConnectionPoolManager extends events_1.EventEmitter {
     }
     async releaseConnection(providerId, connection) {
         const pool = this.pools.get(providerId);
-        if (!pool)
+        if (!pool) {
             return;
+        }
         await pool.release(connection);
         this.emit('connectionStateChanged', {
             providerId,
@@ -52,8 +54,9 @@ class ConnectionPoolManager extends events_1.EventEmitter {
     }
     async disposeProvider(providerId) {
         const pool = this.pools.get(providerId);
-        if (!pool)
+        if (!pool) {
             return;
+        }
         // Clear health check interval
         const healthCheck = this.healthChecks.get(providerId);
         if (healthCheck) {

@@ -91,8 +91,9 @@ class ApiDocumentationGenerator {
      */
     async generateApiDocForFile() {
         const fileUri = await this.fileService.pickActiveFile();
-        if (!fileUri)
+        if (!fileUri) {
             return;
+        }
         const format = await this.fileService.chooseFormat();
         const code = await this.fileService.readFileContent(fileUri);
         const prompt = this.promptBuilder.buildFilePrompt(code, fileUri.fsPath, format);

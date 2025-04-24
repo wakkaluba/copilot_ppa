@@ -24,8 +24,9 @@ class ServiceContainer {
         return ServiceContainer.instance;
     }
     async initializeServices() {
-        if (this.initialized)
+        if (this.initialized) {
             return;
+        }
         this.logging.log('Initializing core services');
         // Initialize core services
         const config = new config_1.ConfigManager(this.context);

@@ -69,8 +69,9 @@ class ModelMetricsService {
         };
     }
     startMetricsCollection() {
-        if (this._collectionInterval)
+        if (this._collectionInterval) {
             return;
+        }
         this._collectionInterval = setInterval(() => this.collectMetrics(), this.collectionIntervalMs);
     }
     async collectMetrics() {

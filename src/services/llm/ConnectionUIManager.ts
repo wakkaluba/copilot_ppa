@@ -31,7 +31,7 @@ export class ConnectionUIManager implements vscode.Disposable {
     }
 
     private subscribeToEvents(): void {
-        if (!this.connectionManager) return;
+        if (!this.connectionManager) {return;}
 
         this.connectionManager.on('stateChanged', status => {
             this.updateUI(status);
@@ -67,7 +67,7 @@ export class ConnectionUIManager implements vscode.Disposable {
     }
 
     private async handleToggleConnection(): Promise<void> {
-        if (!this.connectionManager) return;
+        if (!this.connectionManager) {return;}
 
         try {
             const status = this.connectionManager.getStatus();
@@ -82,7 +82,7 @@ export class ConnectionUIManager implements vscode.Disposable {
     }
 
     private async handleConfigure(): Promise<void> {
-        if (!this.connectionManager) return;
+        if (!this.connectionManager) {return;}
 
         try {
             const providers = await this.connectionManager.getAvailableProviders();
@@ -96,7 +96,7 @@ export class ConnectionUIManager implements vscode.Disposable {
     }
 
     private async showConnectionDetails(): Promise<void> {
-        if (!this.connectionManager) return;
+        if (!this.connectionManager) {return;}
         const status = this.connectionManager.getStatus();
         this.detailsService.showConnectionDetails(status);
     }

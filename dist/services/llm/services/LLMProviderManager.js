@@ -133,12 +133,14 @@ class LLMProviderManager extends events_1.EventEmitter {
     }
     updateMetrics(providerId, latency, isError = false) {
         const metrics = this.metrics.get(providerId);
-        if (!metrics)
+        if (!metrics) {
             return;
+        }
         metrics.requestCount++;
         metrics.totalLatency += latency;
-        if (isError)
+        if (isError) {
             metrics.errorCount++;
+        }
         metrics.lastUsed = Date.now();
     }
     getMetrics(providerId) {

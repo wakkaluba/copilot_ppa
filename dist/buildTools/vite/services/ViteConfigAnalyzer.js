@@ -92,8 +92,9 @@ class ViteConfigAnalyzer {
         return result;
     }
     validateBuildConfig(config, result) {
-        if (!config.build)
+        if (!config.build) {
             return;
+        }
         if (config.build.target) {
             const validTargets = ['es2015', 'es2016', 'es2017', 'es2018', 'es2019', 'es2020'];
             for (const target of config.build.target) {
@@ -108,8 +109,9 @@ class ViteConfigAnalyzer {
         }
     }
     validateOptimizeDeps(config, result) {
-        if (!config.optimizeDeps)
+        if (!config.optimizeDeps) {
             return;
+        }
         if (config.optimizeDeps.include && !Array.isArray(config.optimizeDeps.include)) {
             result.errors.push(new ConfigValidationError_1.ConfigValidationError('optimizeDeps.include must be an array', 'INVALID_DEPS_INCLUDE', { value: typeof config.optimizeDeps.include, expected: 'array' }));
         }
@@ -118,8 +120,9 @@ class ViteConfigAnalyzer {
         }
     }
     validateServer(config, result) {
-        if (!config.server)
+        if (!config.server) {
             return;
+        }
         if (config.server.port && !Number.isInteger(config.server.port)) {
             result.errors.push(new ConfigValidationError_1.ConfigValidationError('server.port must be an integer', 'INVALID_PORT', { value: config.server.port, expected: 'integer' }));
         }

@@ -80,8 +80,9 @@ class RepositoryPanel {
         }
     }
     updateWebviewContent() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         try {
             this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview);
         }
@@ -91,8 +92,9 @@ class RepositoryPanel {
         }
     }
     registerMessageHandlers() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
                 switch (message.command) {

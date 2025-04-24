@@ -231,8 +231,8 @@ export class RollupConfigAnalyzer implements IRollupConfigAnalyzer {
         let currentBlock = '';
 
         for (const char of content) {
-            if (char === '{') depth++;
-            if (char === '}') depth--;
+            if (char === '{') {depth++;}
+            if (char === '}') {depth--;}
 
             currentBlock += char;
 

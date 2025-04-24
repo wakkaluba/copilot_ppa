@@ -64,8 +64,9 @@ class UnusedCodeDetector {
      */
     async removeUnusedCode(editor) {
         const diagnostics = await this.detectUnusedCode(editor);
-        if (!diagnostics.length)
+        if (!diagnostics.length) {
             return;
+        }
         const edit = new vscode.WorkspaceEdit();
         // Apply deletions in reverse order to avoid position shifting
         for (const diagnostic of [...diagnostics].reverse()) {

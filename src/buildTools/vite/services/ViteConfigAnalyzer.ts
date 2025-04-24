@@ -98,7 +98,7 @@ export class ViteConfigAnalyzer {
     }
 
     private validateBuildConfig(config: ViteConfig, result: ConfigAnalysisResult): void {
-        if (!config.build) return;
+        if (!config.build) {return;}
 
         if (config.build.target) {
             const validTargets = ['es2015', 'es2016', 'es2017', 'es2018', 'es2019', 'es2020'];
@@ -122,7 +122,7 @@ export class ViteConfigAnalyzer {
     }
 
     private validateOptimizeDeps(config: ViteConfig, result: ConfigAnalysisResult): void {
-        if (!config.optimizeDeps) return;
+        if (!config.optimizeDeps) {return;}
 
         if (config.optimizeDeps.include && !Array.isArray(config.optimizeDeps.include)) {
             result.errors.push(
@@ -146,7 +146,7 @@ export class ViteConfigAnalyzer {
     }
 
     private validateServer(config: ViteConfig, result: ConfigAnalysisResult): void {
-        if (!config.server) return;
+        if (!config.server) {return;}
 
         if (config.server.port && !Number.isInteger(config.server.port)) {
             result.errors.push(

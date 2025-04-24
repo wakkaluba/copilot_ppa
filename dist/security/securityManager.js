@@ -106,8 +106,9 @@ class SecurityManager {
         }
     }
     registerWebviewMessageHandlers() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
                 switch (message.command) {
@@ -128,8 +129,9 @@ class SecurityManager {
         }, undefined, this.disposables);
     }
     async runScan() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         try {
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -148,8 +150,9 @@ class SecurityManager {
         }
     }
     updateWebviewContent() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         try {
             this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview, this.lastResult);
         }

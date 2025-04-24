@@ -218,8 +218,9 @@ function validateModel(model) {
     }
 }
 function validateModelParameters(model) {
-    if (!model.parameters)
+    if (!model.parameters) {
         return;
+    }
     if (model.parameters['temperature'] !== undefined) {
         if (model.parameters['temperature'] < 0 || model.parameters['temperature'] > 1) {
             throw new Error('Temperature must be between 0 and 1');

@@ -82,8 +82,9 @@ class LLMChatFormatter {
      * Format conversation history
      */
     formatConversationHistory(messages) {
-        if (messages.length === 0)
+        if (messages.length === 0) {
             return '';
+        }
         // Get most recent messages up to maxContextMessages
         const recentMessages = messages
             .slice(-this.options.maxContextMessages)
@@ -121,8 +122,9 @@ class LLMChatFormatter {
      * Apply markdown formatting
      */
     applyMarkdownFormatting(text, message) {
-        if (!this.options.useMarkdown)
+        if (!this.options.useMarkdown) {
             return text;
+        }
         let formatted = text;
         // Add code block formatting
         if (message.metadata?.isCode) {

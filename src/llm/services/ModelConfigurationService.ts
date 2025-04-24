@@ -75,7 +75,7 @@ export class ModelConfigurationService implements Disposable {
     }
 
     private startPersistence(): void {
-        if (this._persistenceInterval) return;
+        if (this._persistenceInterval) {return;}
 
         this._persistenceInterval = setInterval(
             () => this.persistAllConfigurations(),
@@ -86,7 +86,7 @@ export class ModelConfigurationService implements Disposable {
     private async persistConfiguration(modelId: string): Promise<void> {
         try {
             const config = this._configurations.get(modelId);
-            if (!config) return;
+            if (!config) {return;}
 
             // Add persistence logic here
             // This could write to disk, database, etc.

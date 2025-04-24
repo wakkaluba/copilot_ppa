@@ -107,11 +107,13 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         };
     }
     parseParameterSize(size) {
-        if (!size)
+        if (!size) {
             return undefined;
+        }
         const match = size.match(/(\d+)([BM])/);
-        if (!match)
+        if (!match) {
             return undefined;
+        }
         const [, num, unit] = match;
         const base = parseInt(num, 10);
         return unit === 'B' ? base * 1e9 : base * 1e6;

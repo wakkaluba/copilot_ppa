@@ -104,8 +104,9 @@ class JavaScriptAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
                         complexity++;
                         break;
                     case 'SwitchCase':
-                        if (path.node.test)
+                        if (path.node.test) {
                             complexity++;
+                        }
                         break;
                     case 'LogicalExpression':
                         if (path.node.operator === '&&' || path.node.operator === '||') {

@@ -44,7 +44,7 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
 
     public getStateSnapshot(modelId: string): ModelStateSnapshot | undefined {
         const state = this.getState(modelId);
-        if (!state) return undefined;
+        if (!state) {return undefined;}
 
         return {
             modelId,

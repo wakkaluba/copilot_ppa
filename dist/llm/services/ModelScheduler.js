@@ -93,8 +93,9 @@ let ModelScheduler = (() => {
             try {
                 while (this.activeTasks.size < this.maxConcurrentTasks) {
                     const nextTask = this.getNextTask();
-                    if (!nextTask)
+                    if (!nextTask) {
                         break;
+                    }
                     await this.executeTask(nextTask);
                 }
             }

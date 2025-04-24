@@ -144,8 +144,9 @@ class AgentSidebarProvider {
      * Updates the connection state in the webview
      */
     async updateConnectionState() {
-        if (!this._view)
+        if (!this._view) {
             return;
+        }
         const state = this._connectionManager.getConnectionState();
         const currentModel = this._connectionManager.getCurrentModel();
         await this._view.webview.postMessage({
@@ -161,8 +162,9 @@ class AgentSidebarProvider {
      * Shows an error message in the webview
      */
     async showError(message) {
-        if (!this._view)
+        if (!this._view) {
             return;
+        }
         await this._view.webview.postMessage({
             type: 'showError',
             data: message

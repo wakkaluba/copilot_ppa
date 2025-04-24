@@ -78,7 +78,7 @@ export class ConversationManager {
     }
 
     getCurrentContext(maxMessages: number = 10): ChatMessage[] {
-        if (!this.currentConversation) return [];
+        if (!this.currentConversation) {return [];}
         return this.currentConversation.messages.slice(-maxMessages);
     }
 
@@ -89,7 +89,7 @@ export class ConversationManager {
     }
 
     private async saveCurrentConversation(): Promise<void> {
-        if (!this.currentConversation) return;
+        if (!this.currentConversation) {return;}
 
         const filePath = `${this.historyPath}/${this.currentConversation.id}.json`;
         await this.workspaceManager.createDirectory(this.historyPath);

@@ -196,7 +196,7 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
     }
 
     protected async useCachedResponse(prompt: string): Promise<string | null> {
-        if (!this.offlineMode) return null;
+        if (!this.offlineMode) {return null;}
         return this.cache.get(prompt);
     }
 

@@ -212,7 +212,7 @@ export class BuildToolsManager {
 
     public async optimizeWebpackConfig(): Promise<void> {
         const configs = await this.detectConfigsForOptimization('webpack');
-        if (!configs.length) return;
+        if (!configs.length) {return;}
 
         const selected = await vscode.window.showQuickPick(
             configs.map(c => ({ label: path.basename(c), description: c })),
@@ -252,7 +252,7 @@ export class BuildToolsManager {
 
     public async optimizeRollupConfig(): Promise<void> {
         const configs = await this.detectConfigsForOptimization('rollup');
-        if (!configs.length) return;
+        if (!configs.length) {return;}
 
         const selected = await vscode.window.showQuickPick(
             configs.map(c => ({ label: path.basename(c), description: c })),
@@ -439,7 +439,7 @@ export class BuildToolsManager {
     private async applyBuildScriptOptimization(packageJsonPath: string, scriptName: string, optimizationIndex: number): Promise<void> {
         try {
             const content = fs.readFileSync(packageJsonPath, 'utf-8');
-            let packageJson = JSON.parse(content);
+            const packageJson = JSON.parse(content);
             
             const optimizations = await this.buildScriptOptimizer.optimizeScript(
                 scriptName, 
@@ -502,11 +502,11 @@ export class BuildToolsManager {
                     { placeHolder: 'Select a build directory to analyze' }
                 );
                 
-                if (!selected) return;
+                if (!selected) {return;}
                 dirToAnalyze = selected.description;
             }
             
-            if (!dirToAnalyze) return;
+            if (!dirToAnalyze) {return;}
             
             const analysisResult = await this.bundleAnalyzer.analyzeDirectory(dirToAnalyze);
             this.showBundleAnalysis(analysisResult);

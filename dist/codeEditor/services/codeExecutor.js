@@ -66,7 +66,7 @@ class CodeExecutorService {
      * Executes code in the appropriate terminal based on language
      */
     async executeInTerminal(code, language) {
-        let terminal = vscode.window.activeTerminal || vscode.window.createTerminal('Code Execution');
+        const terminal = vscode.window.activeTerminal || vscode.window.createTerminal('Code Execution');
         terminal.show();
         let command = '';
         switch (language) {

@@ -11,4 +11,5 @@
 
 # error handling for html output
 copilot seem to have memory issues after a while.
-  - add a button to clear the memory of copilot "changed" file list not only remove the file entries.
+  - if possible add a button to clear the memory of copilot "changed" file list not only remove the file entries.
+  - if possible add a button to restart copilot.

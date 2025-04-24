@@ -37,8 +37,9 @@ class LLMHostHealthMonitor extends events_1.EventEmitter {
         try {
             const metrics = await this.collectMetrics(pid);
             const healthCheck = this.healthChecks.get(pid);
-            if (!healthCheck)
+            if (!healthCheck) {
                 return;
+            }
             healthCheck.lastCheck = Date.now();
             healthCheck.checkCount++;
             if (metrics.cpuUsage > 90 || metrics.memoryUsage > 90) {

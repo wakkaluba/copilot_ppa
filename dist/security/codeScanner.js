@@ -107,8 +107,9 @@ class CodeSecurityScanner {
         this.processMessageQueue();
     }
     async processMessageQueue() {
-        if (this.isProcessing)
+        if (this.isProcessing) {
             return;
+        }
         this.isProcessing = true;
         while (this.messageQueue.length > 0) {
             const handler = this.messageQueue.shift();

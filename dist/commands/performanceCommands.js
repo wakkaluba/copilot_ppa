@@ -89,8 +89,9 @@ function registerPerformanceCommands(context) {
         const selected = await vscode.window.showQuickPick(operations, {
             placeHolder: 'Select an operation to get optimization suggestions'
         });
-        if (!selected)
+        if (!selected) {
             return;
+        }
         const suggestions = perfManager.getBottleneckDetector().getOptimizationSuggestions(selected);
         logger.log(`=== OPTIMIZATION SUGGESTIONS FOR ${selected} ===`);
         suggestions.forEach((suggestion, index) => {

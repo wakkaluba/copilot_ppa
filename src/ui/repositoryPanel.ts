@@ -55,7 +55,7 @@ export class RepositoryPanel implements vscode.Disposable {
     }
 
     private updateWebviewContent(): void {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         try {
             this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview);
@@ -66,7 +66,7 @@ export class RepositoryPanel implements vscode.Disposable {
     }
 
     private registerMessageHandlers(): void {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {

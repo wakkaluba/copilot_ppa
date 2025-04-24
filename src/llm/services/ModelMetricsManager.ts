@@ -49,7 +49,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     public getAggregateMetrics(modelId: string): ModelPerformanceMetrics | undefined {
         const history = this.getMetricsHistory(modelId);
         const latest = this.getLatestSnapshot(history);
-        if (!latest) return undefined;
+        if (!latest) {return undefined;}
 
         return {
             averageResponseTime: this.calculateAverageResponseTime(history),
@@ -72,7 +72,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
 
     private analyzePerformanceTrends(modelId: string): void {
         const history = this.getMetricsHistory(modelId);
-        if (history.length < 2) return;
+        if (history.length < 2) {return;}
 
         const recentSnapshots = history.slice(-10); // Analyze last 10 snapshots
         
@@ -106,7 +106,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     }
 
     private calculateTrend(values: number[]): number {
-        if (values.length < 2) return 0;
+        if (values.length < 2) {return 0;}
 
         const n = values.length;
         const sumX = values.reduce((sum, _, i) => sum + i, 0);
@@ -139,7 +139,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     }
 
     private calculateAverage(values: number[]): number {
-        if (values.length === 0) return 0;
+        if (values.length === 0) {return 0;}
         return values.reduce((sum, value) => sum + value, 0) / values.length;
     }
 

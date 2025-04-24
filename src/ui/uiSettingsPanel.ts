@@ -69,7 +69,7 @@ export class UISettingsPanel implements vscode.Disposable {
     }
 
     private registerMessageHandlers(): void {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
@@ -91,7 +91,7 @@ export class UISettingsPanel implements vscode.Disposable {
     }
 
     public selectTab(tabName: string): void {
-        if (!this.panel?.visible) return;
+        if (!this.panel?.visible) {return;}
 
         try {
             this.panel.webview.postMessage({

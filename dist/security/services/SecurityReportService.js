@@ -124,8 +124,9 @@ class SecurityReportService {
      * Export the current report
      */
     async exportReport(format) {
-        if (!this.lastReport)
+        if (!this.lastReport) {
             return;
+        }
         const filters = {
             'HTML Files': ['html'],
             'PDF Files': ['pdf'],

@@ -104,8 +104,9 @@ class ModelProvisioningService {
     }
     async releaseResources(modelId) {
         const allocation = this._allocations.get(modelId);
-        if (!allocation)
+        if (!allocation) {
             return;
+        }
         // Add actual resource release logic
     }
     async getInstance(modelId) {

@@ -117,8 +117,9 @@ class CSharpAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
     calculateAverageMethodLength(content) {
         const methodRegex = /\b(public|private|protected)\s+[\w<>[\]]+\s+\w+\s*\([^{]*\{/g;
         const methods = content.match(methodRegex);
-        if (!methods)
+        if (!methods) {
             return 0;
+        }
         let totalLines = 0;
         let methodCount = 0;
         const lines = content.split('\n');

@@ -20,15 +20,17 @@ class TeamService {
     }
     async joinSession(sessionId, member) {
         const session = this.sessions.get(sessionId);
-        if (!session)
+        if (!session) {
             throw new Error('Session not found');
+        }
         session.members.push(member);
         await this.liveShare.joinSession(session, member);
     }
     async shareContext(sessionId, context) {
         const session = this.sessions.get(sessionId);
-        if (!session)
+        if (!session) {
             throw new Error('Session not found');
+        }
         await this.liveShare.syncContext(session, context);
     }
 }

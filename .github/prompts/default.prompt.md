@@ -22,6 +22,18 @@
     - zzzbuild\refactoring-status.md
     - zzzbuild\code-coverage.md
     - zzzbuild\finished.md
+    - zzzbuild\kpi.md
+      - Documentation of
+        - unit tests
+        - integration tests
+        - performance tests
+        - security tests
+        - code coverage
+        - code quality
+        - code style
+        - code smells
+        - code duplication
+        - code complexity
 - zzzbuild/artifacts/ - folder for build artifacts like:
   - vsix files
 

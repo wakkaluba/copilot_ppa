@@ -65,12 +65,14 @@ class ConversationExportCommand {
         try {
             if (!conversationId) {
                 conversationId = await this.selectionService.selectConversation('Select a conversation to export');
-                if (!conversationId)
+                if (!conversationId) {
                     return;
+                }
             }
             const filepath = await this.fileDialogService.getSaveFilePath('conversation.json', ['json']);
-            if (!filepath)
+            if (!filepath) {
                 return;
+            }
             await this.exportService.exportConversation(conversationId, filepath);
             vscode.window.showInformationMessage(`Conversation exported successfully`);
         }
@@ -81,8 +83,9 @@ class ConversationExportCommand {
     async exportAllConversations() {
         try {
             const filepath = await this.fileDialogService.getSaveFilePath('all_conversations.json', ['json']);
-            if (!filepath)
+            if (!filepath) {
                 return;
+            }
             await this.exportService.exportAllConversations(filepath);
             vscode.window.showInformationMessage(`All conversations exported successfully`);
         }

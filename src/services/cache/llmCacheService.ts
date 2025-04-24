@@ -244,10 +244,10 @@ export class LLMCacheService {
           
           if (statusMatch) {
             const statusChar = statusMatch[1];
-            if (statusChar === '/') status = 'in-progress';
-            else if (statusChar === 'X') status = 'completed';
-            else if (statusChar === '-') status = 'do-not-touch';
-            else status = 'not-started';
+            if (statusChar === '/') {status = 'in-progress';}
+            else if (statusChar === 'X') {status = 'completed';}
+            else if (statusChar === '-') {status = 'do-not-touch';}
+            else {status = 'not-started';}
           }
           
           // Extract percentage

@@ -18,8 +18,9 @@ class LLMProviderMetricsTracker extends events_1.EventEmitter {
     }
     recordSuccess(providerId, responseTime, tokens) {
         const metrics = this.metrics.get(providerId);
-        if (!metrics)
+        if (!metrics) {
             return;
+        }
         const now = Date.now();
         // Update request times, keeping only those within the window
         metrics.requestTimes = [
@@ -39,8 +40,9 @@ class LLMProviderMetricsTracker extends events_1.EventEmitter {
     }
     recordError(providerId, error) {
         const metrics = this.metrics.get(providerId);
-        if (!metrics)
+        if (!metrics) {
             return;
+        }
         metrics.requestCount++;
         metrics.errorCount++;
         metrics.lastUpdated = Date.now();

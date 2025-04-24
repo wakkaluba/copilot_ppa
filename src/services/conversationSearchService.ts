@@ -82,11 +82,11 @@ export class ConversationSearchService {
             // Apply message type filters
             if (filters.onlyUserMessages || filters.onlyAssistantMessages) {
                 const hasMatchingMessage = conversation.messages.some(message => {
-                    if (filters.onlyUserMessages && message.role === 'user') return true;
-                    if (filters.onlyAssistantMessages && message.role === 'assistant') return true;
+                    if (filters.onlyUserMessages && message.role === 'user') {return true;}
+                    if (filters.onlyAssistantMessages && message.role === 'assistant') {return true;}
                     return false;
                 });
-                if (!hasMatchingMessage) return false;
+                if (!hasMatchingMessage) {return false;}
             }
 
             return true;

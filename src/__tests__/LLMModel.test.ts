@@ -252,7 +252,7 @@ function validateModel(model: LLMModel): void {
 }
 
 function validateModelParameters(model: LLMModel): void {
-    if (!model.parameters) return;
+    if (!model.parameters) {return;}
 
     if (model.parameters['temperature'] !== undefined) {
         if (model.parameters['temperature'] < 0 || model.parameters['temperature'] > 1) {

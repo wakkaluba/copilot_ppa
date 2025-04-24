@@ -160,9 +160,9 @@ export class OllamaProvider extends BaseLLMProvider {
     }
 
     private parseParameterSize(size?: string): number | undefined {
-        if (!size) return undefined;
+        if (!size) {return undefined;}
         const match = size.match(/(\d+)([BM])/);
-        if (!match) return undefined;
+        if (!match) {return undefined;}
         
         const [, num, unit] = match;
         const base = parseInt(num, 10);

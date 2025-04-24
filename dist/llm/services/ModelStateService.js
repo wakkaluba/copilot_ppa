@@ -52,8 +52,9 @@ class ModelStateService {
     async synchronizeState(modelId) {
         try {
             const state = this._states.get(modelId);
-            if (!state)
+            if (!state) {
                 return;
+            }
             // Trigger state persistence
             await this.persistState(modelId, state);
             // Notify any other services that need to sync
@@ -64,8 +65,9 @@ class ModelStateService {
         }
     }
     startPersistence() {
-        if (this._persistenceInterval)
+        if (this._persistenceInterval) {
             return;
+        }
         this._persistenceInterval = setInterval(() => this.persistAllStates(), this.storageOptions.persistenceInterval);
     }
     async persistAllStates() {

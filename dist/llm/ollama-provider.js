@@ -79,8 +79,9 @@ class OllamaProvider extends llm_provider_1.BaseLLMProvider {
         try {
             if (this.offlineMode) {
                 const cached = await this.useCachedResponse(prompt);
-                if (cached)
+                if (cached) {
                     return { content: cached };
+                }
             }
             const request = {
                 model,
@@ -225,11 +226,13 @@ class OllamaProvider extends llm_provider_1.BaseLLMProvider {
         };
     }
     parseParameterSize(size) {
-        if (!size)
+        if (!size) {
             return undefined;
+        }
         const match = size.match(/(\d+)([BM])/);
-        if (!match)
+        if (!match) {
             return undefined;
+        }
         const [, num, unit] = match;
         return unit === 'B' ? parseInt(num) : parseInt(num) / 1000;
     }

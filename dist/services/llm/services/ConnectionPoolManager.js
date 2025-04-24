@@ -20,8 +20,9 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         const now = Date.now();
         for (const [providerId, pool] of this.pools) {
             const config = this.poolConfigs.get(providerId);
-            if (!config)
+            if (!config) {
                 continue;
+            }
             // Check idle connections
             for (const [connectionId, connection] of pool) {
                 if (!connection.isInUse &&
@@ -90,11 +91,13 @@ class ConnectionPoolManager extends events_1.EventEmitter {
     }
     async removeConnection(providerId, connectionId) {
         const pool = this.pools.get(providerId);
-        if (!pool)
+        if (!pool) {
             return;
+        }
         const connection = pool.get(connectionId);
-        if (!connection)
+        if (!connection) {
             return;
+        }
         try {
             await connection.provider.dispose();
         }
@@ -145,8 +148,9 @@ class ConnectionPoolManager extends events_1.EventEmitter {
     }
     async releaseConnection(providerId, provider) {
         const pool = this.pools.get(providerId);
-        if (!pool)
+        if (!pool) {
             return;
+        }
         for (const [connectionId, connection] of pool) {
             if (connection.provider === provider) {
                 connection.isInUse = false;

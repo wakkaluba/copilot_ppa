@@ -69,8 +69,9 @@ class ConversationManager {
         }
     }
     getCurrentContext(maxMessages = 10) {
-        if (!this.currentConversation)
+        if (!this.currentConversation) {
             return [];
+        }
         return this.currentConversation.messages.slice(-maxMessages);
     }
     async autoSave() {
@@ -79,8 +80,9 @@ class ConversationManager {
         }
     }
     async saveCurrentConversation() {
-        if (!this.currentConversation)
+        if (!this.currentConversation) {
             return;
+        }
         const filePath = `${this.historyPath}/${this.currentConversation.id}.json`;
         await this.workspaceManager.createDirectory(this.historyPath);
         await this.workspaceManager.writeFile(filePath, JSON.stringify(this.currentConversation, null, 2));

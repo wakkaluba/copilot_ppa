@@ -48,7 +48,7 @@ export class TypeScriptAnalyzer implements ILanguageAnalyzer {
         collectUsages(sourceFile);
 
         declaredVariables.forEach((node, name) => {
-            if (name === 'React' || usedVariables.has(name)) return;
+            if (name === 'React' || usedVariables.has(name)) {return;}
 
             const start = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart());
             const end = ts.getLineAndCharacterOfPosition(sourceFile, node.getEnd());
@@ -58,7 +58,7 @@ export class TypeScriptAnalyzer implements ILanguageAnalyzer {
                 new vscode.Position(end.line, end.character)
             );
 
-            if (!this.isWithinRange(elementPos, new vscode.Range(startPos, endPos))) return;
+            if (!this.isWithinRange(elementPos, new vscode.Range(startPos, endPos))) {return;}
 
             unusedElements.push({
                 name,
@@ -71,11 +71,11 @@ export class TypeScriptAnalyzer implements ILanguageAnalyzer {
     }
 
     private getElementType(node: ts.Node): string {
-        if (ts.isFunctionDeclaration(node)) return 'function';
-        if (ts.isClassDeclaration(node)) return 'class';
-        if (ts.isInterfaceDeclaration(node)) return 'interface';
-        if (ts.isImportDeclaration(node)) return 'import';
-        if (ts.isVariableDeclaration(node)) return 'variable';
+        if (ts.isFunctionDeclaration(node)) {return 'function';}
+        if (ts.isClassDeclaration(node)) {return 'class';}
+        if (ts.isInterfaceDeclaration(node)) {return 'interface';}
+        if (ts.isImportDeclaration(node)) {return 'import';}
+        if (ts.isVariableDeclaration(node)) {return 'variable';}
         return 'declaration';
     }
 

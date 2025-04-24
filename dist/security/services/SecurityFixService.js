@@ -150,8 +150,9 @@ class SecurityFixService {
     }
     async addToEnvFile(name, value) {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders)
+        if (!workspaceFolders) {
             return;
+        }
         const rootPath = workspaceFolders[0].uri.fsPath;
         const envPath = vscode.Uri.file(`${rootPath}/.env`);
         try {
@@ -184,8 +185,9 @@ class SecurityFixService {
             // Apply fix based on issue type
             const edit = new vscode.WorkspaceEdit();
             const range = this.findIssueRange(document, issueId);
-            if (!range)
+            if (!range) {
                 return;
+            }
             const replacement = this.generateFix(issueId, document.getText(range));
             if (replacement) {
                 edit.replace(document.uri, range, replacement);

@@ -73,7 +73,7 @@ export class ModelMetricsService implements vscode.Disposable {
     }
 
     private startMetricsCollection(): void {
-        if (this._collectionInterval) return;
+        if (this._collectionInterval) {return;}
 
         this._collectionInterval = setInterval(
             () => this.collectMetrics(),

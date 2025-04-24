@@ -43,7 +43,7 @@ export class LLMHostHealthMonitor extends EventEmitter {
             const metrics = await this.collectMetrics(pid);
             const healthCheck = this.healthChecks.get(pid);
             
-            if (!healthCheck) return;
+            if (!healthCheck) {return;}
 
             healthCheck.lastCheck = Date.now();
             healthCheck.checkCount++;

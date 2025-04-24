@@ -29,8 +29,9 @@ class LLMProviderMetricsTracker extends events_1.EventEmitter {
      */
     recordSuccess(providerId, responseTimeMs, tokenCount) {
         const metrics = this.getMetrics(providerId);
-        if (!metrics)
+        if (!metrics) {
             return;
+        }
         metrics.requestCount++;
         metrics.successCount++;
         metrics.tokenUsage += tokenCount;
@@ -42,8 +43,9 @@ class LLMProviderMetricsTracker extends events_1.EventEmitter {
      */
     recordError(providerId, error, responseTimeMs) {
         const metrics = this.getMetrics(providerId);
-        if (!metrics)
+        if (!metrics) {
             return;
+        }
         metrics.requestCount++;
         metrics.errorCount++;
         metrics.lastError = error;
@@ -69,8 +71,9 @@ class LLMProviderMetricsTracker extends events_1.EventEmitter {
      */
     updateResponseTime(providerId, responseTimeMs) {
         const times = this.lastResponseTimes.get(providerId);
-        if (!times)
+        if (!times) {
             return;
+        }
         times.push(responseTimeMs);
         if (times.length > this.maxResponseTimeHistory) {
             times.shift();

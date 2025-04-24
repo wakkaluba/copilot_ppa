@@ -39,7 +39,7 @@ export class LLMProviderMetricsTracker extends EventEmitter {
         tokenCount: number
     ): void {
         const metrics = this.getMetrics(providerId);
-        if (!metrics) return;
+        if (!metrics) {return;}
 
         metrics.requestCount++;
         metrics.successCount++;
@@ -58,7 +58,7 @@ export class LLMProviderMetricsTracker extends EventEmitter {
         responseTimeMs?: number
     ): void {
         const metrics = this.getMetrics(providerId);
-        if (!metrics) return;
+        if (!metrics) {return;}
 
         metrics.requestCount++;
         metrics.errorCount++;
@@ -90,7 +90,7 @@ export class LLMProviderMetricsTracker extends EventEmitter {
      */
     private updateResponseTime(providerId: string, responseTimeMs: number): void {
         const times = this.lastResponseTimes.get(providerId);
-        if (!times) return;
+        if (!times) {return;}
 
         times.push(responseTimeMs);
         if (times.length > this.maxResponseTimeHistory) {

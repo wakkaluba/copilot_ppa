@@ -217,11 +217,11 @@ export class LLMProviderManager extends EventEmitter {
         isError: boolean = false
     ): void {
         const metrics = this.metrics.get(providerId);
-        if (!metrics) return;
+        if (!metrics) {return;}
 
         metrics.requestCount++;
         metrics.totalLatency += latency;
-        if (isError) metrics.errorCount++;
+        if (isError) {metrics.errorCount++;}
         metrics.lastUsed = Date.now();
     }
 

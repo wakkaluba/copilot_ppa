@@ -105,7 +105,7 @@ export class AsyncOptimizer {
      */
     private async processBatch<T, R>(batchId: string, processFn: (items: T[]) => Promise<R[]>): Promise<void> {
         const batch = this.pendingBatches.get(batchId);
-        if (!batch) return;
+        if (!batch) {return;}
         
         this.pendingBatches.delete(batchId);
         

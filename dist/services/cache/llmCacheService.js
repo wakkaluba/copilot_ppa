@@ -240,14 +240,18 @@ class LLMCacheService {
                     let status = 'not-started';
                     if (statusMatch) {
                         const statusChar = statusMatch[1];
-                        if (statusChar === '/')
+                        if (statusChar === '/') {
                             status = 'in-progress';
-                        else if (statusChar === 'X')
+                        }
+                        else if (statusChar === 'X') {
                             status = 'completed';
-                        else if (statusChar === '-')
+                        }
+                        else if (statusChar === '-') {
                             status = 'do-not-touch';
-                        else
+                        }
+                        else {
                             status = 'not-started';
+                        }
                     }
                     // Extract percentage
                     const percentageMatch = line.match(/\((\d+)%\)$/);

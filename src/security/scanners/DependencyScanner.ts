@@ -42,7 +42,7 @@ export class DependencyScanner implements vscode.Disposable {
             // Process each vulnerability
             if (auditResult.vulnerabilities) {
                 for (const [pkgName, vuln] of Object.entries<any>(auditResult.vulnerabilities)) {
-                    if (!dependencies[pkgName]) continue;
+                    if (!dependencies[pkgName]) {continue;}
 
                     const vulnInfo = await this.enrichVulnerabilityInfo(vuln);
                     vulnerabilities.push({

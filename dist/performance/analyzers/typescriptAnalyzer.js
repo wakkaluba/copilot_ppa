@@ -198,8 +198,9 @@ let TypeScriptAnalyzer = (() => {
         calculateAverageMethodLength(content) {
             const methodRegex = /\b(public|private|protected|async)?\s*\w+\s*\([^)]*\)\s*{/g;
             const methods = content.match(methodRegex);
-            if (!methods)
+            if (!methods) {
                 return 0;
+            }
             let totalLines = 0;
             let methodCount = 0;
             const lines = content.split('\n');

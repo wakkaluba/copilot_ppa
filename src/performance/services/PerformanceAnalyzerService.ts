@@ -30,7 +30,7 @@ export class PerformanceAnalyzerService {
 
         for (let i = 0; i < files.length && !token.isCancellationRequested; i++) {
             const file = files[i];
-            if (!file) continue;
+            if (!file) {continue;}
             
             try {
                 const document = await vscode.workspace.openTextDocument(file.fsPath);

@@ -135,8 +135,8 @@ export class WebpackConfigAnalyzer {
         let currentBlock = '';
 
         for (const char of rulesContent) {
-            if (char === '{') depth++;
-            if (char === '}') depth--;
+            if (char === '{') {depth++;}
+            if (char === '}') {depth--;}
 
             currentBlock += char;
 

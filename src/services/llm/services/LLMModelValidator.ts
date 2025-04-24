@@ -204,7 +204,7 @@ export class LLMModelValidator {
         actual: string[] | undefined,
         required: string[]
     ): boolean {
-        if (!actual) return false;
+        if (!actual) {return false;}
         return required.every(format => actual.includes(format));
     }
 
@@ -250,7 +250,7 @@ export class LLMModelValidator {
      * Check version compatibility
      */
     private checkVersion(actual: string | undefined, required: string): boolean {
-        if (!actual) return false;
+        if (!actual) {return false;}
 
         const [actualMajor, actualMinor = 0] = actual.split('.').map(Number);
         const [requiredMajor, requiredMinor = 0] = required.split('.').map(Number);

@@ -245,7 +245,7 @@ export class PromptTemplatePanel {
                 this.insertTemplate(uri, message.templateId);
                 break;
             case 'refresh':
-                this._panel!.webview.html = PromptTemplateHtmlProvider.getHtml(uri);
+                this._panel.webview.html = PromptTemplateHtmlProvider.getHtml(uri);
                 break;
         }
     }

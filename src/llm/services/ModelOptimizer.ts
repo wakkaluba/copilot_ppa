@@ -132,7 +132,7 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
     }
 
     private calculateOptimalBatchSize(): number {
-        if (!this.systemInfo) return 1;
+        if (!this.systemInfo) {return 1;}
 
         // Calculate based on available memory and CPU cores
         const memoryFactor = this.systemInfo.totalMemoryGB / 8; // Base on 8GB reference
@@ -142,7 +142,7 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
     }
 
     private calculateOptimalContextLength(): number {
-        if (!this.systemInfo) return 2048;
+        if (!this.systemInfo) {return 2048;}
 
         // Calculate based on available memory
         const memoryFactor = this.systemInfo.totalMemoryGB / 16; // Base on 16GB reference
@@ -150,7 +150,7 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
     }
 
     private calculateOptimalCacheSize(): number {
-        if (!this.systemInfo) return 1024;
+        if (!this.systemInfo) {return 1024;}
 
         // Calculate based on available memory
         const memoryMB = this.systemInfo.totalMemoryGB * 1024;
@@ -191,7 +191,7 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
         metrics: ModelPerformanceMetrics,
         history: Array<OptimizationResult>
     ): number {
-        if (history.length === 0) return 1;
+        if (history.length === 0) {return 1;}
 
         const previous = history[history.length - 1].metrics.averageResponseTime;
         return metrics.averageResponseTime / previous;
@@ -201,7 +201,7 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
         metrics: ModelPerformanceMetrics,
         history: Array<OptimizationResult>
     ): number {
-        if (history.length === 0) return 1;
+        if (history.length === 0) {return 1;}
 
         const previous = history[history.length - 1].metrics.tokenThroughput;
         return metrics.tokenThroughput / previous;
@@ -211,14 +211,14 @@ export class ModelOptimizer extends EventEmitter implements vscode.Disposable {
         metrics: ModelPerformanceMetrics,
         history: Array<OptimizationResult>
     ): number {
-        if (history.length === 0) return 1;
+        if (history.length === 0) {return 1;}
 
         const previous = history[history.length - 1].metrics.errorRate;
         return metrics.errorRate / previous;
     }
 
     private async ensureSystemInfo(): Promise<void> {
-        if (this.systemInfo) return;
+        if (this.systemInfo) {return;}
 
         this.systemInfo = await this.getSystemInfo();
     }

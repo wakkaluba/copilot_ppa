@@ -121,10 +121,12 @@ class JSDocTSDocIntegration {
      */
     isExportedVariable(node) {
         const getParentStatement = (n) => {
-            if (!n.parent)
+            if (!n.parent) {
                 return undefined;
-            if (ts.isVariableStatement(n.parent))
+            }
+            if (ts.isVariableStatement(n.parent)) {
                 return n.parent;
+            }
             return getParentStatement(n.parent);
         };
         const statement = getParentStatement(node);
@@ -220,22 +222,30 @@ class JSDocTSDocIntegration {
      * Get the type of a node for documentation purposes
      */
     getNodeType(node) {
-        if (ts.isClassDeclaration(node))
+        if (ts.isClassDeclaration(node)) {
             return 'class';
-        if (ts.isInterfaceDeclaration(node))
+        }
+        if (ts.isInterfaceDeclaration(node)) {
             return 'interface';
-        if (ts.isFunctionDeclaration(node))
+        }
+        if (ts.isFunctionDeclaration(node)) {
             return 'function';
-        if (ts.isMethodDeclaration(node))
+        }
+        if (ts.isMethodDeclaration(node)) {
             return 'method';
-        if (ts.isPropertyDeclaration(node))
+        }
+        if (ts.isPropertyDeclaration(node)) {
             return 'property';
-        if (ts.isEnumDeclaration(node))
+        }
+        if (ts.isEnumDeclaration(node)) {
             return 'enum';
-        if (ts.isTypeAliasDeclaration(node))
+        }
+        if (ts.isTypeAliasDeclaration(node)) {
             return 'type';
-        if (ts.isVariableDeclaration(node))
+        }
+        if (ts.isVariableDeclaration(node)) {
             return 'variable';
+        }
         return 'other';
     }
     /**

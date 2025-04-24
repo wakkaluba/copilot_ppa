@@ -89,7 +89,7 @@ async function handleCodeSelection(
 
     const text = editor.document.getText(selection);
     const userPrompt = await promptForUserInput();
-    if (!userPrompt) return;
+    if (!userPrompt) {return;}
 
     await processCodeWithProgress(text, userPrompt, codeProcessingService);
 }

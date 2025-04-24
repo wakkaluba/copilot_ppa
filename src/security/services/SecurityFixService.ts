@@ -149,7 +149,7 @@ export class SecurityFixService implements vscode.Disposable {
 
     private async addToEnvFile(name: string, value: string): Promise<void> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) return;
+        if (!workspaceFolders) {return;}
 
         const rootPath = workspaceFolders[0].uri.fsPath;
         const envPath = vscode.Uri.file(`${rootPath}/.env`);
@@ -187,7 +187,7 @@ export class SecurityFixService implements vscode.Disposable {
             // Apply fix based on issue type
             const edit = new vscode.WorkspaceEdit();
             const range = this.findIssueRange(document, issueId);
-            if (!range) return;
+            if (!range) {return;}
 
             const replacement = this.generateFix(issueId, document.getText(range));
             if (replacement) {

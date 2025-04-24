@@ -122,12 +122,15 @@ class ViteConfigManager {
         try {
             this.logger.debug(`Detecting framework in ${configPath}`);
             const content = await fs.promises.readFile(configPath, 'utf-8');
-            if (content.includes('@vitejs/plugin-vue'))
+            if (content.includes('@vitejs/plugin-vue')) {
                 return 'vue';
-            if (content.includes('@vitejs/plugin-react'))
+            }
+            if (content.includes('@vitejs/plugin-react')) {
                 return 'react';
-            if (content.includes('@sveltejs/vite-plugin'))
+            }
+            if (content.includes('@sveltejs/vite-plugin')) {
                 return 'svelte';
+            }
             return null;
         }
         catch (error) {

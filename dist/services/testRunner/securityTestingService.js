@@ -63,13 +63,15 @@ class SecurityTestingService {
      */
     async runSecurityTest(options) {
         const workspace = options.path || vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        if (!workspace)
+        if (!workspace) {
             return { success: false, message: 'No workspace folder found' };
+        }
         this.outputChannel.appendLine(`Running security test on ${workspace}`);
         this.outputChannel.show();
         const tool = await this.toolService.detectTool(options, workspace);
-        if (!tool)
+        if (!tool) {
             return { success: false, message: 'No security testing tool detected' };
+        }
         const cmd = options.command || this.toolService.buildCommand(tool, options);
         this.outputChannel.appendLine(`Running command: ${cmd}`);
         const result = await this.executor.execute(cmd, workspace, this.outputChannel);

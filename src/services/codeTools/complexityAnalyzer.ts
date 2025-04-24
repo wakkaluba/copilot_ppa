@@ -72,7 +72,7 @@ export class ComplexityAnalyzer implements IComplexityService {
         );
 
         const functionNode = this.findFunctionNode(sourceFile, functionName);
-        if (!functionNode) return null;
+        if (!functionNode) {return null;}
 
         const metrics = this.analyzeNode(functionNode);
         const dependencies = this.dependencyAnalyzer.analyzeDependencies(functionNode);
@@ -98,8 +98,8 @@ export class ComplexityAnalyzer implements IComplexityService {
     }
 
     public getComplexityGrade(complexity: number): 'Low' | 'Medium' | 'High' {
-        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW) return 'Low';
-        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM) return 'Medium';
+        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW) {return 'Low';}
+        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM) {return 'Medium';}
         return 'High';
     }
 
@@ -224,7 +224,7 @@ export class MetricsCalculator implements IMetricsCalculator {
         const n2 = metrics.distinctOperands;
         const N2 = metrics.totalOperands;
 
-        if (n2 === 0) return 0;
+        if (n2 === 0) {return 0;}
         return (n1 * N2) / (2 * n2);
     }
 
@@ -262,7 +262,7 @@ export class MetricsCalculator implements IMetricsCalculator {
         const vocabulary = metrics.distinctOperators + metrics.distinctOperands;
         const length = metrics.totalOperators + metrics.totalOperands;
 
-        if (vocabulary === 0) return 0;
+        if (vocabulary === 0) {return 0;}
         return length * Math.log2(vocabulary);
     }
 
@@ -327,7 +327,7 @@ export class DependencyAnalyzer {
     }
 
     private isParameter(node: ts.Node, parent: ts.Node | undefined): boolean {
-        if (!parent) return false;
+        if (!parent) {return false;}
         return ts.isParameter(parent) && parent.name === node;
     }
 }

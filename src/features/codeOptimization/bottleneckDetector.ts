@@ -156,7 +156,7 @@ export class BottleneckDetector {
         const lines = content.split('\n');
         
         // Track nesting level
-        let nestingLevels: number[] = [];
+        const nestingLevels: number[] = [];
         let currentNestingLevel = 0;
         let nestingStartLine = -1;
         

@@ -202,8 +202,9 @@ class BuildToolsManager {
     }
     async optimizeWebpackConfig() {
         const configs = await this.detectConfigsForOptimization('webpack');
-        if (!configs.length)
+        if (!configs.length) {
             return;
+        }
         const selected = await vscode.window.showQuickPick(configs.map(c => ({ label: path.basename(c), description: c })), { placeHolder: 'Select a webpack configuration file to optimize' });
         if (selected) {
             const optimizations = await this.webpackManager.generateOptimizations(selected.description);
@@ -231,8 +232,9 @@ class BuildToolsManager {
     }
     async optimizeRollupConfig() {
         const configs = await this.detectConfigsForOptimization('rollup');
-        if (!configs.length)
+        if (!configs.length) {
             return;
+        }
         const selected = await vscode.window.showQuickPick(configs.map(c => ({ label: path.basename(c), description: c })), { placeHolder: 'Select a Rollup configuration file to optimize' });
         if (selected) {
             const optimizations = await this.rollupManager.generateOptimizations(selected.description);
@@ -383,7 +385,7 @@ class BuildToolsManager {
     async applyBuildScriptOptimization(packageJsonPath, scriptName, optimizationIndex) {
         try {
             const content = fs.readFileSync(packageJsonPath, 'utf-8');
-            let packageJson = JSON.parse(content);
+            const packageJson = JSON.parse(content);
             const optimizations = await this.buildScriptOptimizer.optimizeScript(scriptName, packageJson.scripts[scriptName]);
             const optimization = optimizations[optimizationIndex];
             if (optimization) {
@@ -433,12 +435,14 @@ class BuildToolsManager {
             }
             else {
                 const selected = await vscode.window.showQuickPick(outputDirs.map(dir => ({ label: path.basename(dir), description: dir })), { placeHolder: 'Select a build directory to analyze' });
-                if (!selected)
+                if (!selected) {
                     return;
+                }
                 dirToAnalyze = selected.description;
             }
-            if (!dirToAnalyze)
+            if (!dirToAnalyze) {
                 return;
+            }
             const analysisResult = await this.bundleAnalyzer.analyzeDirectory(dirToAnalyze);
             this.showBundleAnalysis(analysisResult);
         }

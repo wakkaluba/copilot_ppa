@@ -48,7 +48,7 @@ export class LLMSessionTrackingService extends EventEmitter {
      */
     public endSession(sessionId: string, state: SessionState = 'completed'): void {
         const session = this.activeSessions.get(sessionId);
-        if (!session) return;
+        if (!session) {return;}
 
         session.endTime = Date.now();
         session.state = state;
@@ -64,7 +64,7 @@ export class LLMSessionTrackingService extends EventEmitter {
      */
     public recordSuccess(sessionId: string, response: LLMResponse): void {
         const session = this.activeSessions.get(sessionId);
-        if (!session) return;
+        if (!session) {return;}
 
         session.response = response;
         session.state = 'completed';
@@ -85,7 +85,7 @@ export class LLMSessionTrackingService extends EventEmitter {
      */
     public recordError(sessionId: string, error: unknown): void {
         const session = this.activeSessions.get(sessionId);
-        if (!session) return;
+        if (!session) {return;}
 
         session.error = error instanceof Error ? error : new Error(String(error));
         session.state = 'failed';
@@ -148,7 +148,7 @@ export class LLMSessionTrackingService extends EventEmitter {
     }
 
     private updateStats(session: SessionInfo): void {
-        if (!session.endTime) return;
+        if (!session.endTime) {return;}
 
         const duration = session.endTime - session.startTime;
         

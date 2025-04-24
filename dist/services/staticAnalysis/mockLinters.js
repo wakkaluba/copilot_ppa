@@ -138,8 +138,9 @@ exports.PrettierMock = {
      */
     async check(content, options) {
         // Simple formatting check - just check a few rules
-        if (!content)
+        if (!content) {
             return true;
+        }
         const lines = content.split('\n');
         for (const line of lines) {
             // Check for missing semicolons in JS/TS files

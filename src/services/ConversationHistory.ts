@@ -319,7 +319,7 @@ export class ConversationHistory extends EventEmitter {
             if (line.startsWith('## ')) {
                 if (currentMessage?.role && currentMessage.content) {
                     messages.push({
-                        role: currentMessage.role as 'user' | 'assistant' | 'system',
+                        role: currentMessage.role,
                         content: currentMessage.content.trim(),
                         timestamp: Date.now()
                     });
@@ -336,7 +336,7 @@ export class ConversationHistory extends EventEmitter {
 
         if (currentMessage?.role && currentMessage.content) {
             messages.push({
-                role: currentMessage.role as 'user' | 'assistant' | 'system',
+                role: currentMessage.role,
                 content: currentMessage.content.trim(),
                 timestamp: Date.now()
             });

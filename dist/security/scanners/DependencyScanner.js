@@ -37,8 +37,9 @@ class DependencyScanner {
             // Process each vulnerability
             if (auditResult.vulnerabilities) {
                 for (const [pkgName, vuln] of Object.entries(auditResult.vulnerabilities)) {
-                    if (!dependencies[pkgName])
+                    if (!dependencies[pkgName]) {
                         continue;
+                    }
                     const vulnInfo = await this.enrichVulnerabilityInfo(vuln);
                     vulnerabilities.push({
                         name: pkgName,

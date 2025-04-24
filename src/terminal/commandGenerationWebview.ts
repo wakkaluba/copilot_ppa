@@ -740,7 +740,7 @@ export class CommandGenerationWebview {
      */
     private async getCommandHistory(shellType: TerminalShellType): Promise<void> {
         try {
-            const history = this.interactiveShell.getCommandHistory(shellType as TerminalShellType);
+            const history = this.interactiveShell.getCommandHistory(shellType);
             
             // Send history to webview
             if (this.panel) {

@@ -103,8 +103,9 @@ class RepositoryManager {
             prompt: 'Enter repository name',
             placeHolder: 'my-project'
         });
-        if (!name)
+        if (!name) {
             return undefined;
+        }
         const description = await vscode.window.showInputBox({
             prompt: 'Enter repository description (optional)',
             placeHolder: 'A brief description of the project'

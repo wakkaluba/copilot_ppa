@@ -107,7 +107,7 @@ export async function getHardwareSpecs(): Promise<{
  * Format bytes to a human readable string
  */
 export function formatBytes(bytes: number, decimals: number = 2): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {return '0 Bytes';}
   
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
@@ -133,10 +133,10 @@ export function formatTime(ms: number): string {
   
   const parts: string[] = [];
   
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  if (days > 0) {parts.push(`${days}d`);}
+  if (hours > 0) {parts.push(`${hours}h`);}
+  if (minutes > 0) {parts.push(`${minutes}m`);}
+  if (seconds > 0 || parts.length === 0) {parts.push(`${seconds}s`);}
   
   return parts.join(' ');
 }

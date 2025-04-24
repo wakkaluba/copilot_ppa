@@ -35,7 +35,7 @@ export class LLMHostProcessService extends EventEmitter {
     }
 
     private setupProcessHandlers(): void {
-        if (!this.process) return;
+        if (!this.process) {return;}
 
         this.process.stdout?.on('data', this.handleOutput.bind(this));
         this.process.stderr?.on('data', this.handleError.bind(this));
@@ -63,7 +63,7 @@ export class LLMHostProcessService extends EventEmitter {
     }
 
     public async stopProcess(): Promise<void> {
-        if (!this.process) return;
+        if (!this.process) {return;}
 
         this.process.kill();
         this.process = null;
@@ -134,7 +134,7 @@ export class LLMHostProcessService extends EventEmitter {
     }
 
     private updateProcessMetrics(): void {
-        if (!this.process || !this.processInfo) return;
+        if (!this.process || !this.processInfo) {return;}
 
         try {
             const usage = process.cpuUsage();

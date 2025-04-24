@@ -186,8 +186,8 @@ export class StatusBarManager implements vscode.Disposable, IStatusBarService {
     }
 
     private getMetricsIcon(score: number): string {
-        if (score < 50) return '$(warning)';
-        if (score < 80) return '$(info)';
+        if (score < 50) {return '$(warning)';}
+        if (score < 80) {return '$(info)';}
         return '$(check)';
     }
 

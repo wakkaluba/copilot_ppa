@@ -101,8 +101,8 @@ export function extractFunctionBody(content: string, position: number): string {
     
     // Find the matching closing brace
     do {
-        if (content[endPos] === '{') bracketCount++;
-        if (content[endPos] === '}') bracketCount--;
+        if (content[endPos] === '{') {bracketCount++;}
+        if (content[endPos] === '}') {bracketCount--;}
         endPos++;
     } while (bracketCount > 0 && endPos < content.length);
     

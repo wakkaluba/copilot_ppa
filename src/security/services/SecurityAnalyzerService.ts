@@ -13,7 +13,7 @@ export class SecurityAnalyzerService {
         const languageId = document.languageId;
 
         for (const pattern of patterns) {
-            if (!pattern.languages.includes(languageId)) continue;
+            if (!pattern.languages.includes(languageId)) {continue;}
             
             const regex = pattern.pattern;
             regex.lastIndex = 0;

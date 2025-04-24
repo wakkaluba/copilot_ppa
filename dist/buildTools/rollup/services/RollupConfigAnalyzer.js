@@ -234,10 +234,12 @@ class RollupConfigAnalyzer {
         let depth = 0;
         let currentBlock = '';
         for (const char of content) {
-            if (char === '{')
+            if (char === '{') {
                 depth++;
-            if (char === '}')
+            }
+            if (char === '}') {
                 depth--;
+            }
             currentBlock += char;
             if (depth === 0 && currentBlock.trim()) {
                 blocks.push(currentBlock.trim());

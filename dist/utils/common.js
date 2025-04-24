@@ -133,8 +133,9 @@ async function getHardwareSpecs() {
  * Format bytes to a human readable string
  */
 function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0)
+    if (bytes === 0) {
         return '0 Bytes';
+    }
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -153,14 +154,18 @@ function formatTime(ms) {
     const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
     const days = Math.floor(ms / (1000 * 60 * 60 * 24));
     const parts = [];
-    if (days > 0)
+    if (days > 0) {
         parts.push(`${days}d`);
-    if (hours > 0)
+    }
+    if (hours > 0) {
         parts.push(`${hours}h`);
-    if (minutes > 0)
+    }
+    if (minutes > 0) {
         parts.push(`${minutes}m`);
-    if (seconds > 0 || parts.length === 0)
+    }
+    if (seconds > 0 || parts.length === 0) {
         parts.push(`${seconds}s`);
+    }
     return parts.join(' ');
 }
 /**

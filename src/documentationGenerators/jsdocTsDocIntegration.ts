@@ -128,8 +128,8 @@ export class JSDocTSDocIntegration {
      */
     private isExportedVariable(node: ts.VariableDeclaration): boolean {
         const getParentStatement = (n: ts.Node): ts.VariableStatement | undefined => {
-            if (!n.parent) return undefined;
-            if (ts.isVariableStatement(n.parent)) return n.parent;
+            if (!n.parent) {return undefined;}
+            if (ts.isVariableStatement(n.parent)) {return n.parent;}
             return getParentStatement(n.parent);
         };
 
@@ -255,14 +255,14 @@ export class JSDocTSDocIntegration {
      * Get the type of a node for documentation purposes
      */
     private getNodeType(node: ts.Node): JSDocNodeType | TSDocNodeType {
-        if (ts.isClassDeclaration(node)) return 'class';
-        if (ts.isInterfaceDeclaration(node)) return 'interface';
-        if (ts.isFunctionDeclaration(node)) return 'function';
-        if (ts.isMethodDeclaration(node)) return 'method';
-        if (ts.isPropertyDeclaration(node)) return 'property';
-        if (ts.isEnumDeclaration(node)) return 'enum';
-        if (ts.isTypeAliasDeclaration(node)) return 'type';
-        if (ts.isVariableDeclaration(node)) return 'variable';
+        if (ts.isClassDeclaration(node)) {return 'class';}
+        if (ts.isInterfaceDeclaration(node)) {return 'interface';}
+        if (ts.isFunctionDeclaration(node)) {return 'function';}
+        if (ts.isMethodDeclaration(node)) {return 'method';}
+        if (ts.isPropertyDeclaration(node)) {return 'property';}
+        if (ts.isEnumDeclaration(node)) {return 'enum';}
+        if (ts.isTypeAliasDeclaration(node)) {return 'type';}
+        if (ts.isVariableDeclaration(node)) {return 'variable';}
         return 'other';
     }
 

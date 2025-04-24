@@ -37,8 +37,9 @@ class BaseLLMProvider extends events_1.EventEmitter {
         this.emit('offlineModeChanged', enabled);
     }
     async useCachedResponse(prompt) {
-        if (!this.offlineMode)
+        if (!this.offlineMode) {
             return null;
+        }
         return this.cache.get(prompt);
     }
     async cacheResponse(prompt, response) {

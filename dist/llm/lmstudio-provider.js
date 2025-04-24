@@ -150,8 +150,9 @@ class LMStudioProvider {
                 // Process complete lines from the stream
                 while (true) {
                     const lineEndIndex = buffer.indexOf('\n');
-                    if (lineEndIndex === -1)
+                    if (lineEndIndex === -1) {
                         break;
+                    }
                     const line = buffer.substring(0, lineEndIndex).trim();
                     buffer = buffer.substring(lineEndIndex + 1);
                     if (line.startsWith('data: ')) {
@@ -215,8 +216,9 @@ class LMStudioProvider {
                 // Process complete lines from the stream
                 while (true) {
                     const lineEndIndex = buffer.indexOf('\n');
-                    if (lineEndIndex === -1)
+                    if (lineEndIndex === -1) {
                         break;
+                    }
                     const line = buffer.substring(0, lineEndIndex).trim();
                     buffer = buffer.substring(lineEndIndex + 1);
                     if (line.startsWith('data: ')) {

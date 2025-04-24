@@ -72,13 +72,15 @@ class TypeScriptAnalyzer {
         collectDeclarations(sourceFile);
         collectUsages(sourceFile);
         declaredVariables.forEach((node, name) => {
-            if (name === 'React' || usedVariables.has(name))
+            if (name === 'React' || usedVariables.has(name)) {
                 return;
+            }
             const start = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart());
             const end = ts.getLineAndCharacterOfPosition(sourceFile, node.getEnd());
             const elementPos = new vscode.Range(new vscode.Position(start.line, start.character), new vscode.Position(end.line, end.character));
-            if (!this.isWithinRange(elementPos, new vscode.Range(startPos, endPos)))
+            if (!this.isWithinRange(elementPos, new vscode.Range(startPos, endPos))) {
                 return;
+            }
             unusedElements.push({
                 name,
                 type: this.getElementType(node),
@@ -88,16 +90,21 @@ class TypeScriptAnalyzer {
         return unusedElements;
     }
     getElementType(node) {
-        if (ts.isFunctionDeclaration(node))
+        if (ts.isFunctionDeclaration(node)) {
             return 'function';
-        if (ts.isClassDeclaration(node))
+        }
+        if (ts.isClassDeclaration(node)) {
             return 'class';
-        if (ts.isInterfaceDeclaration(node))
+        }
+        if (ts.isInterfaceDeclaration(node)) {
             return 'interface';
-        if (ts.isImportDeclaration(node))
+        }
+        if (ts.isImportDeclaration(node)) {
             return 'import';
-        if (ts.isVariableDeclaration(node))
+        }
+        if (ts.isVariableDeclaration(node)) {
             return 'variable';
+        }
         return 'declaration';
     }
     isWithinRange(elementRange, selectionRange) {

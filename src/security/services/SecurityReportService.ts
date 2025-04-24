@@ -111,7 +111,7 @@ export class SecurityReportService implements vscode.Disposable {
      * Export the current report
      */
     private async exportReport(format: 'html' | 'pdf' | 'markdown'): Promise<void> {
-        if (!this.lastReport) return;
+        if (!this.lastReport) {return;}
 
         const filters = {
             'HTML Files': ['html'],

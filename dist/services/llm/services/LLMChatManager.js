@@ -135,8 +135,9 @@ class LLMChatManager extends events_1.EventEmitter {
      */
     async endSession(sessionId) {
         const session = this.activeSessions.get(sessionId);
-        if (!session)
+        if (!session) {
             return;
+        }
         session.state = types_1.ChatState.Ended;
         session.metadata.endedAt = Date.now();
         await this.historyService.saveSession(session);

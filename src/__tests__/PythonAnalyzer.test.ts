@@ -89,7 +89,7 @@ def get_user(id: int) -> Optional[User]:
     for i in range(10):
         yield User('test', i)
 `;
-            const result = analyzer.analyze(code, 'test.py') as PerformanceAnalysisResult;
+            const result = analyzer.analyze(code, 'test.py');
             const metrics = result.metrics;
             
             expect(metrics['functionCount']).toBe(2);

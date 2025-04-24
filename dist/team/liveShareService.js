@@ -10,14 +10,16 @@ class LiveShareService {
     }
     async joinSession(session, member) {
         const liveShare = this.sessions.get(session.id);
-        if (!liveShare)
+        if (!liveShare) {
             throw new Error('Live Share session not found');
+        }
         await this.connectToSharedService(session, member);
     }
     async syncContext(session, context) {
         const liveShare = this.sessions.get(session.id);
-        if (!liveShare)
+        if (!liveShare) {
             throw new Error('Live Share session not found');
+        }
         await this.broadcastUpdate(session, context);
     }
     async initializeLiveShare() {

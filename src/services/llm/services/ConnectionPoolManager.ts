@@ -43,7 +43,7 @@ export class ConnectionPoolManager extends EventEmitter {
 
         for (const [providerId, pool] of this.pools) {
             const config = this.poolConfigs.get(providerId);
-            if (!config) continue;
+            if (!config) {continue;}
 
             // Check idle connections
             for (const [connectionId, connection] of pool) {
@@ -147,10 +147,10 @@ export class ConnectionPoolManager extends EventEmitter {
         connectionId: string
     ): Promise<void> {
         const pool = this.pools.get(providerId);
-        if (!pool) return;
+        if (!pool) {return;}
 
         const connection = pool.get(connectionId);
-        if (!connection) return;
+        if (!connection) {return;}
 
         try {
             await connection.provider.dispose();
@@ -220,7 +220,7 @@ export class ConnectionPoolManager extends EventEmitter {
         provider: LLMProvider
     ): Promise<void> {
         const pool = this.pools.get(providerId);
-        if (!pool) return;
+        if (!pool) {return;}
 
         for (const [connectionId, connection] of pool) {
             if (connection.provider === provider) {

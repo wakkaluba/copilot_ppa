@@ -76,7 +76,7 @@ export class ModelScheduler implements vscode.Disposable {
         try {
             while (this.activeTasks.size < this.maxConcurrentTasks) {
                 const nextTask = this.getNextTask();
-                if (!nextTask) break;
+                if (!nextTask) {break;}
 
                 await this.executeTask(nextTask);
             }

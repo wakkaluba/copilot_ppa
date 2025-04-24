@@ -172,7 +172,7 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
     private calculateAverageMethodLength(content: string): number {
         const methodRegex = /\b(public|private|protected|async)?\s*\w+\s*\([^)]*\)\s*{/g;
         const methods = content.match(methodRegex);
-        if (!methods) return 0;
+        if (!methods) {return 0;}
 
         let totalLines = 0;
         let methodCount = 0;

@@ -76,7 +76,7 @@ class ModelDeploymentManagerService {
      */
     constructor(context, deploymentService, versioningService, systemManager, registryService) {
         this.context = context;
-        this._logger = logger_1.Logger.for('ModelDeploymentManagerService');
+        this._logger = new logger_1.Logger();
         this._deploymentService = deploymentService;
         this._versioningService = versioningService;
         this._systemManager = systemManager;
@@ -584,7 +584,7 @@ class ModelDeploymentManagerService {
         catch (err) {
             this._logger.error(`Failed to update deployment ${deploymentId}`, err);
             await this.updateDeploymentStatus(deploymentId, 'failed', {
-                error: err.message || String(err),
+                error: err instanceof Error ? err.message : String(err),
                 previousVersion
             });
             throw err;
@@ -650,7 +650,7 @@ class ModelDeploymentManagerService {
             this.startDeploymentProcess(deploymentId).catch(err => {
                 this._logger.error(`Failed to start deployment ${deploymentId}`, err);
                 this.updateDeploymentStatus(deploymentId, 'failed', {
-                    error: err.message || String(err)
+                    error: err instanceof Error ? err.message : String(err)
                 });
             });
             return true;
@@ -971,7 +971,8 @@ class ModelDeploymentManagerService {
                         `INFO: Setting up API endpoints`,
                         `DEBUG: CPU utilization: ${Math.floor(Math.random() * 100)}%`
                     ];
-                    message = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+                    const index = Math.floor(Math.random() * randomMessages.length);
+                    message = randomMessages[index] || `INFO: Processing deployment`;
                 }
                 logs.push(`${timestamp} - ${message}`);
             }

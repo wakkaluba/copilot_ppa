@@ -25,7 +25,7 @@ export class ServiceContainer implements IServiceContainer {
     }
 
     private async initializeServices(): Promise<void> {
-        if (this.initialized) return;
+        if (this.initialized) {return;}
 
         this.logging.log('Initializing core services');
 

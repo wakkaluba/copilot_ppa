@@ -96,8 +96,9 @@ class CachingService {
      */
     has(key) {
         const cachedItem = this.cache.get(key);
-        if (!cachedItem)
+        if (!cachedItem) {
             return false;
+        }
         const now = Date.now();
         return cachedItem.expiresAt === null || cachedItem.expiresAt > now;
     }
@@ -179,8 +180,9 @@ class CachingService {
      * Ensure the cache doesn't exceed the maximum size
      */
     enforceMaxSize() {
-        if (this.cache.size <= this.maxCacheSize)
+        if (this.cache.size <= this.maxCacheSize) {
             return;
+        }
         // Use LRU (Least Recently Used) + frequency based eviction
         const entries = Array.from(this.cache.entries())
             .sort((a, b) => {
@@ -231,12 +233,15 @@ class CachingService {
     estimateObjectSize(obj) {
         const seen = new WeakSet();
         const estimate = (value) => {
-            if (value === null || value === undefined)
+            if (value === null || value === undefined) {
                 return 0;
-            if (typeof value !== 'object')
-                return 8; // Primitive size approximation
-            if (seen.has(value))
-                return 0; // Handle circular references
+            }
+            if (typeof value !== 'object') {
+                return 8;
+            } // Primitive size approximation
+            if (seen.has(value)) {
+                return 0;
+            } // Handle circular references
             seen.add(value);
             let size = 0;
             if (Array.isArray(value)) {

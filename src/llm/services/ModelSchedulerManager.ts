@@ -73,7 +73,7 @@ export class ModelSchedulerManager extends EventEmitter implements vscode.Dispos
     }
 
     private async processQueues(): Promise<void> {
-        if (this.isProcessing) return;
+        if (this.isProcessing) {return;}
         this.isProcessing = true;
 
         try {
@@ -84,7 +84,7 @@ export class ModelSchedulerManager extends EventEmitter implements vscode.Dispos
                 }
 
                 const request = this.getNextRequest();
-                if (!request) continue;
+                if (!request) {continue;}
 
                 this.activeRequests.add(request.id);
                 this.emit('requestStarted', { requestId: request.id });

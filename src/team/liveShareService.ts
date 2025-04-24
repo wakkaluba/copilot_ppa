@@ -18,13 +18,13 @@ export class LiveShareService {
 
     async joinSession(session: TeamSession, member: TeamMember): Promise<void> {
         const liveShare = this.sessions.get(session.id);
-        if (!liveShare) throw new Error('Live Share session not found');
+        if (!liveShare) {throw new Error('Live Share session not found');}
         await this.connectToSharedService(session, member);
     }
 
     async syncContext(session: TeamSession, context: any): Promise<void> {
         const liveShare = this.sessions.get(session.id);
-        if (!liveShare) throw new Error('Live Share session not found');
+        if (!liveShare) {throw new Error('Live Share session not found');}
         await this.broadcastUpdate(session, context);
     }
 

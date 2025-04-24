@@ -176,7 +176,7 @@ export class LLMChatManager extends EventEmitter {
      */
     public async endSession(sessionId: string): Promise<void> {
         const session = this.activeSessions.get(sessionId);
-        if (!session) return;
+        if (!session) {return;}
 
         session.state = ChatState.Ended;
         session.metadata.endedAt = Date.now();

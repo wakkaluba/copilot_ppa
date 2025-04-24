@@ -439,12 +439,15 @@ class SecurityReportHtmlProvider {
      * Get risk score CSS class
      */
     getRiskClass(score) {
-        if (score >= 75)
+        if (score >= 75) {
             return 'severity-critical';
-        if (score >= 50)
+        }
+        if (score >= 50) {
             return 'severity-high';
-        if (score >= 25)
+        }
+        if (score >= 25) {
             return 'severity-medium';
+        }
         return 'severity-low';
     }
     /**

@@ -176,23 +176,26 @@ let ModelOptimizer = (() => {
             return predicted;
         }
         calculateOptimalBatchSize() {
-            if (!this.systemInfo)
+            if (!this.systemInfo) {
                 return 1;
+            }
             // Calculate based on available memory and CPU cores
             const memoryFactor = this.systemInfo.totalMemoryGB / 8; // Base on 8GB reference
             const coreFactor = this.systemInfo.cpuCores / 4; // Base on 4 cores reference
             return Math.max(1, Math.min(32, Math.floor(Math.min(memoryFactor, coreFactor) * 8)));
         }
         calculateOptimalContextLength() {
-            if (!this.systemInfo)
+            if (!this.systemInfo) {
                 return 2048;
+            }
             // Calculate based on available memory
             const memoryFactor = this.systemInfo.totalMemoryGB / 16; // Base on 16GB reference
             return Math.max(2048, Math.min(8192, Math.floor(memoryFactor * 4096)));
         }
         calculateOptimalCacheSize() {
-            if (!this.systemInfo)
+            if (!this.systemInfo) {
                 return 1024;
+            }
             // Calculate based on available memory
             const memoryMB = this.systemInfo.totalMemoryGB * 1024;
             return Math.max(1024, Math.min(8192, Math.floor(memoryMB * 0.1))); // Use up to 10% of memory
@@ -217,26 +220,30 @@ let ModelOptimizer = (() => {
             return (patternConfidence + historyConfidence) / 2;
         }
         analyzeResponseTimePattern(metrics, history) {
-            if (history.length === 0)
+            if (history.length === 0) {
                 return 1;
+            }
             const previous = history[history.length - 1].metrics.averageResponseTime;
             return metrics.averageResponseTime / previous;
         }
         analyzeThroughputPattern(metrics, history) {
-            if (history.length === 0)
+            if (history.length === 0) {
                 return 1;
+            }
             const previous = history[history.length - 1].metrics.tokenThroughput;
             return metrics.tokenThroughput / previous;
         }
         analyzeErrorRatePattern(metrics, history) {
-            if (history.length === 0)
+            if (history.length === 0) {
                 return 1;
+            }
             const previous = history[history.length - 1].metrics.errorRate;
             return metrics.errorRate / previous;
         }
         async ensureSystemInfo() {
-            if (this.systemInfo)
+            if (this.systemInfo) {
                 return;
+            }
             this.systemInfo = await this.getSystemInfo();
         }
         async getSystemInfo() {

@@ -105,7 +105,7 @@ suite('ApprovalManager Tests', () => {
         const result = await approvalManager.requestApproval(changes);
         assert.strictEqual(result, true);
         assert.strictEqual(trustManagerStub.requireTrust.calledOnce, true);
-        assert.strictEqual(windowStub.calledOnce, true);
+        assert.strictEqual((windowStub).calledOnce, true);
         assert.strictEqual(vscode.window.showWarningMessage.calledOnce, true);
     });
     test('requestApproval should cancel if user cancels preview', async () => {
@@ -124,7 +124,7 @@ suite('ApprovalManager Tests', () => {
         const result = await approvalManager.requestApproval(changes);
         assert.strictEqual(result, false);
         assert.strictEqual(trustManagerStub.requireTrust.calledOnce, true);
-        assert.strictEqual(windowStub.calledOnce, true);
+        assert.strictEqual((windowStub).calledOnce, true);
         assert.strictEqual(vscode.window.showWarningMessage.called, false);
     });
     test('requestApproval should show diff if user requests preview', async () => {
@@ -177,7 +177,7 @@ suite('ApprovalManager Tests', () => {
         const result = await approvalManager.requestApproval(changes);
         assert.strictEqual(result, true);
         assert.strictEqual(trustManagerStub.requireTrust.callCount, 3);
-        assert.strictEqual(windowStub.callCount, 3);
+        assert.strictEqual((windowStub).callCount, 3);
         assert.strictEqual(vscode.window.showWarningMessage.calledOnce, true);
         // Verify the confirmation message contains the correct summary
         const confirmCall = vscode.window.showWarningMessage.firstCall;

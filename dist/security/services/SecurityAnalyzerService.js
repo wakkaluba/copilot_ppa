@@ -47,8 +47,9 @@ class SecurityAnalyzerService {
         const text = document.getText();
         const languageId = document.languageId;
         for (const pattern of patterns) {
-            if (!pattern.languages.includes(languageId))
+            if (!pattern.languages.includes(languageId)) {
                 continue;
+            }
             const regex = pattern.pattern;
             regex.lastIndex = 0;
             let match;

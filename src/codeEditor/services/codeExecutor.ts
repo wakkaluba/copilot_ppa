@@ -35,7 +35,7 @@ export class CodeExecutorService implements ICodeExecutor {
      * Executes code in the appropriate terminal based on language
      */
     private async executeInTerminal(code: string, language: string): Promise<void> {
-        let terminal = vscode.window.activeTerminal || vscode.window.createTerminal('Code Execution');
+        const terminal = vscode.window.activeTerminal || vscode.window.createTerminal('Code Execution');
         terminal.show();
 
         let command = '';

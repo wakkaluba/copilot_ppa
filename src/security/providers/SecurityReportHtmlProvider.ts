@@ -455,9 +455,9 @@ export class SecurityReportHtmlProvider implements vscode.Disposable {
      * Get risk score CSS class
      */
     private getRiskClass(score: number): string {
-        if (score >= 75) return 'severity-critical';
-        if (score >= 50) return 'severity-high';
-        if (score >= 25) return 'severity-medium';
+        if (score >= 75) {return 'severity-critical';}
+        if (score >= 50) {return 'severity-high';}
+        if (score >= 25) {return 'severity-medium';}
         return 'severity-low';
     }
 

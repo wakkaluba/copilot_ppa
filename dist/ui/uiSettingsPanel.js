@@ -92,8 +92,9 @@ class UISettingsPanel {
         }
     }
     registerMessageHandlers() {
-        if (!this.panel)
+        if (!this.panel) {
             return;
+        }
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
                 switch (message.command) {
@@ -114,8 +115,9 @@ class UISettingsPanel {
         }, undefined, this.disposables);
     }
     selectTab(tabName) {
-        if (!this.panel?.visible)
+        if (!this.panel?.visible) {
             return;
+        }
         try {
             this.panel.webview.postMessage({
                 command: 'selectTab',

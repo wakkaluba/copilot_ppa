@@ -109,8 +109,9 @@ class LLMModelValidator {
      * Validate supported formats
      */
     validateFormats(actual, required) {
-        if (!actual)
+        if (!actual) {
             return false;
+        }
         return required.every(format => actual.includes(format));
     }
     /**
@@ -137,8 +138,9 @@ class LLMModelValidator {
      * Check version compatibility
      */
     checkVersion(actual, required) {
-        if (!actual)
+        if (!actual) {
             return false;
+        }
         const [actualMajor, actualMinor = 0] = actual.split('.').map(Number);
         const [requiredMajor, requiredMinor = 0] = required.split('.').map(Number);
         if (actualMajor !== requiredMajor) {

@@ -88,7 +88,7 @@ suite('ApprovalManager Tests', () => {
         
         assert.strictEqual(result, true);
         assert.strictEqual(trustManagerStub.requireTrust.calledOnce, true);
-        assert.strictEqual((windowStub as sinon.SinonStub).calledOnce, true);
+        assert.strictEqual((windowStub).calledOnce, true);
         assert.strictEqual((vscode.window.showWarningMessage as sinon.SinonStub).calledOnce, true);
     });
 
@@ -112,7 +112,7 @@ suite('ApprovalManager Tests', () => {
         
         assert.strictEqual(result, false);
         assert.strictEqual(trustManagerStub.requireTrust.calledOnce, true);
-        assert.strictEqual((windowStub as sinon.SinonStub).calledOnce, true);
+        assert.strictEqual((windowStub).calledOnce, true);
         assert.strictEqual((vscode.window.showWarningMessage as sinon.SinonStub).called, false);
     });
 
@@ -177,7 +177,7 @@ suite('ApprovalManager Tests', () => {
         
         assert.strictEqual(result, true);
         assert.strictEqual(trustManagerStub.requireTrust.callCount, 3);
-        assert.strictEqual((windowStub as sinon.SinonStub).callCount, 3);
+        assert.strictEqual((windowStub).callCount, 3);
         assert.strictEqual((vscode.window.showWarningMessage as sinon.SinonStub).calledOnce, true);
         
         // Verify the confirmation message contains the correct summary

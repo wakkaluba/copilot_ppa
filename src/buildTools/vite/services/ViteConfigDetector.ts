@@ -60,8 +60,8 @@ export class ViteConfigDetector {
     }
 
     private getConfigType(path: string): 'typescript' | 'javascript' | 'esm' {
-        if (path.endsWith('.ts')) return 'typescript';
-        if (path.endsWith('.mjs')) return 'esm';
+        if (path.endsWith('.ts')) {return 'typescript';}
+        if (path.endsWith('.mjs')) {return 'esm';}
         return 'javascript';
     }
 

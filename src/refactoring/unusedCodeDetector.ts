@@ -32,7 +32,7 @@ export class UnusedCodeDetector implements vscode.Disposable {
      */
     public async removeUnusedCode(editor: vscode.TextEditor): Promise<void> {
         const diagnostics = await this.detectUnusedCode(editor);
-        if (!diagnostics.length) return;
+        if (!diagnostics.length) {return;}
 
         const edit = new vscode.WorkspaceEdit();
         // Apply deletions in reverse order to avoid position shifting

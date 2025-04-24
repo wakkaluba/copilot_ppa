@@ -36,8 +36,9 @@ class LLMSessionTrackingService extends events_1.EventEmitter {
      */
     endSession(sessionId, state = 'completed') {
         const session = this.activeSessions.get(sessionId);
-        if (!session)
+        if (!session) {
             return;
+        }
         session.endTime = Date.now();
         session.state = state;
         this.updateStats(session);
@@ -50,8 +51,9 @@ class LLMSessionTrackingService extends events_1.EventEmitter {
      */
     recordSuccess(sessionId, response) {
         const session = this.activeSessions.get(sessionId);
-        if (!session)
+        if (!session) {
             return;
+        }
         session.response = response;
         session.state = 'completed';
         // Update token usage stats if available
@@ -68,8 +70,9 @@ class LLMSessionTrackingService extends events_1.EventEmitter {
      */
     recordError(sessionId, error) {
         const session = this.activeSessions.get(sessionId);
-        if (!session)
+        if (!session) {
             return;
+        }
         session.error = error instanceof Error ? error : new Error(String(error));
         session.state = 'failed';
         this.emit('sessionError', {
@@ -123,8 +126,9 @@ class LLMSessionTrackingService extends events_1.EventEmitter {
             .map(session => ({ ...session }));
     }
     updateStats(session) {
-        if (!session.endTime)
+        if (!session.endTime) {
             return;
+        }
         const duration = session.endTime - session.startTime;
         switch (session.state) {
             case 'completed':

@@ -81,14 +81,16 @@ class EnhancedChatProvider {
         this.renderChatInterface();
     }
     renderChatInterface() {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         this.sendMessagesToWebview();
         this.updateConnectionStatus();
     }
     sendMessagesToWebview() {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         const messages = this.contextManager.listMessages();
         this.view.webview.postMessage({
             type: 'updateMessages',
@@ -96,8 +98,9 @@ class EnhancedChatProvider {
         });
     }
     updateConnectionStatus() {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         const isConnected = this.llmProvider.isConnected();
         const status = {
             state: isConnected ? 'connected' : 'disconnected',
@@ -110,8 +113,9 @@ class EnhancedChatProvider {
         });
     }
     async handleUserMessage(content) {
-        if (!content.trim())
+        if (!content.trim()) {
             return;
+        }
         const userMessage = {
             id: (0, uuid_1.v4)(),
             role: 'user',
@@ -198,28 +202,32 @@ class EnhancedChatProvider {
         await new Promise(resolve => setTimeout(resolve, delay));
     }
     updateStreamingContent(content) {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         this.view.webview.postMessage({
             type: 'updateStreamingContent',
             content
         });
     }
     async syncOfflineMessages() {
-        if (!this.llmProvider.isConnected())
+        if (!this.llmProvider.isConnected()) {
             return;
+        }
         const conversationId = this.contextManager.getCurrentConversationId();
         const cachedMessages = this.offlineCache.get(conversationId) || [];
-        if (cachedMessages.length === 0)
+        if (cachedMessages.length === 0) {
             return;
+        }
         for (const message of cachedMessages) {
             await this.generateStreamingResponse(message);
         }
         this.offlineCache.delete(conversationId);
     }
     updateStatus(status) {
-        if (!this.view)
+        if (!this.view) {
             return;
+        }
         this.view.webview.postMessage({
             type: 'updateStatus',
             status

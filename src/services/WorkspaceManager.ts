@@ -182,7 +182,7 @@ export class WorkspaceManager {
     async updateTaskStatus(filePath: string): Promise<void> {
         const lines = await this.parseTodoFile(filePath);
         const updatedLines = lines.map(line => {
-            if (!line.trim().startsWith('-')) return line;
+            if (!line.trim().startsWith('-')) {return line;}
             
             // Add status indicator if missing
             if (!line.includes('- [')) {
@@ -208,9 +208,9 @@ export class WorkspaceManager {
     }
 
     private getTaskStatus(line: string): string {
-        if (line.includes('- [X]')) return 'completed';
-        if (line.includes('- [/]')) return 'in-progress';
-        if (line.includes('- [-]')) return 'do-not-touch';
+        if (line.includes('- [X]')) {return 'completed';}
+        if (line.includes('- [/]')) {return 'in-progress';}
+        if (line.includes('- [-]')) {return 'do-not-touch';}
         return 'not-started';
     }
 
@@ -222,7 +222,7 @@ export class WorkspaceManager {
     async updateTaskStatus(filePath: string): Promise<void> {
         const lines = await this.parseTodoFile(filePath);
         const updatedLines = lines.map(line => {
-            if (!line.trim().startsWith('-')) return line;
+            if (!line.trim().startsWith('-')) {return line;}
             
             if (!line.includes('- [')) {
                 return line.replace(/^-/, '- [ ]');

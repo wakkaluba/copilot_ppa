@@ -98,8 +98,9 @@ class CommandParser {
         try {
             // Format: #command(arg1="value1", arg2="value2")
             const match = input.match(/^#(\w+)\((.*)\)$/);
-            if (!match)
+            if (!match) {
                 return null;
+            }
             const [, name, argsString] = match;
             const args = this.parseArgs(argsString);
             return { name, args };
@@ -113,8 +114,9 @@ class CommandParser {
             // Format: @agent Command(arg1="value1", arg2="value2")
             // Or simply: @agent Command
             const match = input.match(/^@agent\s+(\w+)(?:\((.*)\))?$/i);
-            if (!match)
+            if (!match) {
                 return null;
+            }
             const [, name, argsString] = match;
             const args = argsString ? this.parseArgs(argsString) : {};
             return { name, args };

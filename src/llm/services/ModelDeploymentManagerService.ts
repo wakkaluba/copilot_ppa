@@ -11,7 +11,7 @@ import { ModelRegistryService } from './ModelRegistryService';
 /**
  * Interface for deployment metadata
  */
-export interface DeploymentMetadata {
+export interface IDeploymentMetadata {
     id: string;
     modelId: string;
     version: string;
@@ -19,15 +19,15 @@ export interface DeploymentMetadata {
     status: DeploymentStatus;
     createdAt: string;
     lastUpdated: string;
-    metrics?: DeploymentMetrics;
+    metrics?: IDeploymentMetrics;
     tags: string[];
-    config: Record<string, any>;
+    config: Record<string, unknown>;
 }
 
 /**
  * Interface for deployment metrics
  */
-export interface DeploymentMetrics {
+export interface IDeploymentMetrics {
     requestCount: number;
     errorCount: number;
     averageLatency: number;
@@ -44,7 +44,7 @@ export interface DeploymentMetrics {
 /**
  * Interface for environment metadata
  */
-export interface EnvironmentMetadata {
+export interface IEnvironmentMetadata {
     id: string;
     name: string;
     description: string;
@@ -77,31 +77,31 @@ export type DeploymentStatus =
 /**
  * Interface for deployment events
  */
-export interface DeploymentEvent {
+export interface IDeploymentEvent {
     deploymentId: string;
     type: 'created' | 'updated' | 'deleted' | 'status' | 'scaled' | 'error';
     timestamp: string;
-    details: Record<string, any>;
+    details: Record<string, unknown>;
 }
 
 /**
  * Interface for environment events
  */
-export interface EnvironmentEvent {
+export interface IEnvironmentEvent {
     environmentId: string;
     type: 'created' | 'updated' | 'deleted' | 'status';
     timestamp: string;
-    details: Record<string, any>;
+    details: Record<string, unknown>;
 }
 
 /**
  * Interface for deployment creation options
  */
-export interface DeploymentCreateOptions {
+export interface IDeploymentCreateOptions {
     modelId: string;
     version: string;
     environmentId: string;
-    config?: Record<string, any>;
+    config?: Record<string, unknown>;
     tags?: string[];
     name?: string;
     description?: string;
@@ -110,7 +110,7 @@ export interface DeploymentCreateOptions {
 /**
  * Interface for environment creation options
  */
-export interface EnvironmentCreateOptions {
+export interface IEnvironmentCreateOptions {
     name: string;
     description?: string;
     type?: 'development' | 'testing' | 'staging' | 'production' | 'custom';
@@ -131,26 +131,26 @@ export interface IModelDeploymentManagerService extends vscode.Disposable {
      * Get a deployment by ID
      * @param deploymentId The deployment ID
      */
-    getDeployment(deploymentId: string): Promise<DeploymentMetadata | undefined>;
+    getDeployment(deploymentId: string): Promise<IDeploymentMetadata | undefined>;
     
     /**
      * Get all deployments, optionally filtered by model ID
      * @param modelId Optional model ID filter
      */
-    getDeployments(modelId?: string): Promise<DeploymentMetadata[]>;
+    getDeployments(modelId?: string): Promise<IDeploymentMetadata[]>;
     
     /**
      * Create a new deployment
      * @param options Deployment creation options
      */
-    createDeployment(options: DeploymentCreateOptions): Promise<DeploymentMetadata>;
+    createDeployment(options: IDeploymentCreateOptions): Promise<IDeploymentMetadata>;
     
     /**
      * Update an existing deployment
      * @param deploymentId The deployment ID
      * @param updates Updates to apply to the deployment
      */
-    updateDeployment(deploymentId: string, updates: Partial<DeploymentMetadata>): Promise<DeploymentMetadata>;
+    updateDeployment(deploymentId: string, updates: Partial<IDeploymentMetadata>): Promise<IDeploymentMetadata>;
     
     /**
      * Delete a deployment
@@ -181,7 +181,7 @@ export interface IModelDeploymentManagerService extends vscode.Disposable {
      * @param deploymentId The deployment ID
      * @param scale Scale configuration
      */
-    scaleDeployment(deploymentId: string, scale: Record<string, any>): Promise<boolean>;
+    scaleDeployment(deploymentId: string, scale: Record<string, unknown>): Promise<boolean>;
     
     /**
      * Rollback a deployment to a previous version
@@ -193,26 +193,26 @@ export interface IModelDeploymentManagerService extends vscode.Disposable {
     /**
      * Get all environments
      */
-    getEnvironments(): Promise<EnvironmentMetadata[]>;
+    getEnvironments(): Promise<IEnvironmentMetadata[]>;
     
     /**
      * Get an environment by ID
      * @param environmentId The environment ID
      */
-    getEnvironment(environmentId: string): Promise<EnvironmentMetadata | undefined>;
+    getEnvironment(environmentId: string): Promise<IEnvironmentMetadata | undefined>;
     
     /**
      * Create a new environment
      * @param options Environment creation options
      */
-    createEnvironment(options: EnvironmentCreateOptions): Promise<EnvironmentMetadata>;
+    createEnvironment(options: IEnvironmentCreateOptions): Promise<IEnvironmentMetadata>;
     
     /**
      * Update an environment
      * @param environmentId The environment ID
      * @param updates Updates to apply
      */
-    updateEnvironment(environmentId: string, updates: Partial<EnvironmentMetadata>): Promise<EnvironmentMetadata>;
+    updateEnvironment(environmentId: string, updates: Partial<IEnvironmentMetadata>): Promise<IEnvironmentMetadata>;
     
     /**
      * Delete an environment
@@ -232,19 +232,19 @@ export interface IModelDeploymentManagerService extends vscode.Disposable {
      * Get metrics for a deployment
      * @param deploymentId The deployment ID
      */
-    getDeploymentMetrics(deploymentId: string): Promise<DeploymentMetrics | undefined>;
+    getDeploymentMetrics(deploymentId: string): Promise<IDeploymentMetrics | undefined>;
     
     /**
      * Get deployment events
      * @param deploymentId Optional deployment ID filter
      */
-    getDeploymentEvents(deploymentId?: string): Promise<DeploymentEvent[]>;
+    getDeploymentEvents(deploymentId?: string): Promise<IDeploymentEvent[]>;
     
     /**
      * Get environment events
      * @param environmentId Optional environment ID filter
      */
-    getEnvironmentEvents(environmentId?: string): Promise<EnvironmentEvent[]>;
+    getEnvironmentEvents(environmentId?: string): Promise<IEnvironmentEvent[]>;
     
     /**
      * Add a tag to a deployment
@@ -277,12 +277,12 @@ export interface IModelDeploymentManagerService extends vscode.Disposable {
     /**
      * Event that fires when a deployment status changes
      */
-    readonly onDeploymentStatusChanged: vscode.Event<DeploymentEvent>;
+    readonly onDeploymentStatusChanged: vscode.Event<IDeploymentEvent>;
     
     /**
      * Event that fires when an environment status changes
      */
-    readonly onEnvironmentStatusChanged: vscode.Event<EnvironmentEvent>;
+    readonly onEnvironmentStatusChanged: vscode.Event<IEnvironmentEvent>;
 }
 
 /**
@@ -292,18 +292,18 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
     private readonly _logger: Logger;
     private readonly _deploymentsStoragePath: string;
     private readonly _environmentsStoragePath: string;
-    private readonly _deploymentEmitter = new vscode.EventEmitter<DeploymentEvent>();
-    private readonly _environmentEmitter = new vscode.EventEmitter<EnvironmentEvent>();
-    private readonly _deployments = new Map<string, DeploymentMetadata>();
-    private readonly _environments = new Map<string, EnvironmentMetadata>();
-    private readonly _deploymentEvents: DeploymentEvent[] = [];
-    private readonly _environmentEvents: EnvironmentEvent[] = [];
+    private readonly _deploymentEmitter = new vscode.EventEmitter<IDeploymentEvent>();
+    private readonly _environmentEmitter = new vscode.EventEmitter<IEnvironmentEvent>();
+    private readonly _deployments = new Map<string, IDeploymentMetadata>();
+    private readonly _environments = new Map<string, IEnvironmentMetadata>();
+    private readonly _deploymentEvents: IDeploymentEvent[] = [];
+    private readonly _environmentEvents: IEnvironmentEvent[] = [];
     private readonly _disposables: vscode.Disposable[] = [];
     private readonly _deploymentService: ModelDeploymentService;
     private readonly _versioningService: ModelVersioningService;
     private readonly _systemManager: ModelSystemManager;
     private readonly _registryService: ModelRegistryService;
-    private _monitoringInterval?: NodeJS.Timer;
+    private _monitoringInterval: NodeJS.Timeout | undefined;
 
     /**
      * Event that fires when a deployment status changes
@@ -330,7 +330,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
         systemManager: ModelSystemManager,
         registryService: ModelRegistryService
     ) {
-        this._logger = Logger.for('ModelDeploymentManagerService');
+        this._logger = new Logger();
         this._deploymentService = deploymentService;
         this._versioningService = versioningService;
         this._systemManager = systemManager;
@@ -488,7 +488,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Save deployment to storage
      * @param deployment The deployment to save
      */
-    private async saveDeployment(deployment: DeploymentMetadata): Promise<void> {
+    private async saveDeployment(deployment: IDeploymentMetadata): Promise<void> {
         try {
             const filePath = path.join(this._deploymentsStoragePath, `${deployment.id}.json`);
             fs.writeFileSync(filePath, JSON.stringify(deployment, null, 2));
@@ -502,7 +502,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Save environment to storage
      * @param environment The environment to save
      */
-    private async saveEnvironment(environment: EnvironmentMetadata): Promise<void> {
+    private async saveEnvironment(environment: IEnvironmentMetadata): Promise<void> {
         try {
             const filePath = path.join(this._environmentsStoragePath, `${environment.id}.json`);
             fs.writeFileSync(filePath, JSON.stringify(environment, null, 2));
@@ -536,7 +536,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Record a deployment event
      * @param event The event to record
      */
-    private recordDeploymentEvent(event: DeploymentEvent): void {
+    private recordDeploymentEvent(event: IDeploymentEvent): void {
         this._deploymentEvents.push(event);
         this._deploymentEmitter.fire(event);
         this.saveEvents().catch(err => {
@@ -548,7 +548,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Record an environment event
      * @param event The event to record
      */
-    private recordEnvironmentEvent(event: EnvironmentEvent): void {
+    private recordEnvironmentEvent(event: IEnvironmentEvent): void {
         this._environmentEvents.push(event);
         this._environmentEmitter.fire(event);
         this.saveEvents().catch(err => {
@@ -565,7 +565,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
     private async updateDeploymentStatus(
         deploymentId: string,
         status: DeploymentStatus,
-        details: Record<string, any> = {}
+        details: Record<string, unknown> = {}
     ): Promise<boolean> {
         try {
             const deployment = this._deployments.get(deploymentId);
@@ -581,7 +581,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             
             await this.saveDeployment(deployment);
             
-            const event: DeploymentEvent = {
+            const event: IDeploymentEvent = {
                 deploymentId,
                 type: 'status',
                 timestamp: deployment.lastUpdated,
@@ -653,7 +653,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Collect metrics for a deployment
      * @param deploymentId The deployment ID
      */
-    private async collectDeploymentMetrics(deploymentId: string): Promise<DeploymentMetrics | undefined> {
+    private async collectDeploymentMetrics(deploymentId: string): Promise<IDeploymentMetrics | undefined> {
         try {
             const deployment = this._deployments.get(deploymentId);
             
@@ -683,7 +683,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             const uptimeIncrease = (now.getTime() - lastActive.getTime()) / 1000; // in seconds
             
             // Create updated metrics
-            const metrics: DeploymentMetrics = {
+            const metrics: IDeploymentMetrics = {
                 ...existingMetrics,
                 uptime: existingMetrics.uptime + uptimeIncrease,
                 lastActive: now.toISOString(),
@@ -708,7 +708,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get a deployment by ID
      * @param deploymentId The deployment ID
      */
-    public async getDeployment(deploymentId: string): Promise<DeploymentMetadata | undefined> {
+    public async getDeployment(deploymentId: string): Promise<IDeploymentMetadata | undefined> {
         return this._deployments.get(deploymentId);
     }
     
@@ -716,7 +716,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get all deployments, optionally filtered by model ID
      * @param modelId Optional model ID filter
      */
-    public async getDeployments(modelId?: string): Promise<DeploymentMetadata[]> {
+    public async getDeployments(modelId?: string): Promise<IDeploymentMetadata[]> {
         const deployments = Array.from(this._deployments.values());
         
         if (modelId) {
@@ -730,7 +730,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Create a new deployment
      * @param options Deployment creation options
      */
-    public async createDeployment(options: DeploymentCreateOptions): Promise<DeploymentMetadata> {
+    public async createDeployment(options: IDeploymentCreateOptions): Promise<IDeploymentMetadata> {
         try {
             // Validate environment exists
             const environment = this._environments.get(options.environmentId);
@@ -746,7 +746,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             
             // Create new deployment
             const now = new Date().toISOString();
-            const deployment: DeploymentMetadata = {
+            const deployment: IDeploymentMetadata = {
                 id: this.generateId(),
                 modelId: options.modelId,
                 version: options.version,
@@ -828,8 +828,8 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      */
     public async updateDeployment(
         deploymentId: string, 
-        updates: Partial<DeploymentMetadata>
-    ): Promise<DeploymentMetadata> {
+        updates: Partial<IDeploymentMetadata>
+    ): Promise<IDeploymentMetadata> {
         try {
             const deployment = this._deployments.get(deploymentId);
             
@@ -906,7 +906,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
         } catch (err) {
             this._logger.error(`Failed to update deployment ${deploymentId}`, err);
             await this.updateDeploymentStatus(deploymentId, 'failed', {
-                error: err.message || String(err),
+                error: err instanceof Error ? err.message : String(err),
                 previousVersion
             });
             throw err;
@@ -983,7 +983,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
             this.startDeploymentProcess(deploymentId).catch(err => {
                 this._logger.error(`Failed to start deployment ${deploymentId}`, err);
                 this.updateDeploymentStatus(deploymentId, 'failed', {
-                    error: err.message || String(err)
+                    error: err instanceof Error ? err.message : String(err)
                 });
             });
             
@@ -1047,7 +1047,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * @param deploymentId The deployment ID
      * @param scale Scale configuration
      */
-    public async scaleDeployment(deploymentId: string, scale: Record<string, any>): Promise<boolean> {
+    public async scaleDeployment(deploymentId: string, scale: Record<string, unknown>): Promise<boolean> {
         try {
             const deployment = this._deployments.get(deploymentId);
             
@@ -1153,7 +1153,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
     /**
      * Get all environments
      */
-    public async getEnvironments(): Promise<EnvironmentMetadata[]> {
+    public async getEnvironments(): Promise<IEnvironmentMetadata[]> {
         return Array.from(this._environments.values());
     }
     
@@ -1161,7 +1161,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get an environment by ID
      * @param environmentId The environment ID
      */
-    public async getEnvironment(environmentId: string): Promise<EnvironmentMetadata | undefined> {
+    public async getEnvironment(environmentId: string): Promise<IEnvironmentMetadata | undefined> {
         return this._environments.get(environmentId);
     }
     
@@ -1169,11 +1169,11 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Create a new environment
      * @param options Environment creation options
      */
-    public async createEnvironment(options: EnvironmentCreateOptions): Promise<EnvironmentMetadata> {
+    public async createEnvironment(options: IEnvironmentCreateOptions): Promise<IEnvironmentMetadata> {
         try {
             // Create the environment
             const now = new Date().toISOString();
-            const environment: EnvironmentMetadata = {
+            const environment: IEnvironmentMetadata = {
                 id: this.generateId(),
                 name: options.name,
                 description: options.description || '',
@@ -1220,8 +1220,8 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      */
     public async updateEnvironment(
         environmentId: string, 
-        updates: Partial<EnvironmentMetadata>
-    ): Promise<EnvironmentMetadata> {
+        updates: Partial<IEnvironmentMetadata>
+    ): Promise<IEnvironmentMetadata> {
         try {
             const environment = this._environments.get(environmentId);
             
@@ -1352,7 +1352,8 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
                         `INFO: Setting up API endpoints`,
                         `DEBUG: CPU utilization: ${Math.floor(Math.random() * 100)}%`
                     ];
-                    message = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+                    const index = Math.floor(Math.random() * randomMessages.length);
+                    message = randomMessages[index] || `INFO: Processing deployment`;
                 }
                 
                 logs.push(`${timestamp} - ${message}`);
@@ -1369,7 +1370,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get metrics for a deployment
      * @param deploymentId The deployment ID
      */
-    public async getDeploymentMetrics(deploymentId: string): Promise<DeploymentMetrics | undefined> {
+    public async getDeploymentMetrics(deploymentId: string): Promise<IDeploymentMetrics | undefined> {
         try {
             const deployment = this._deployments.get(deploymentId);
             
@@ -1393,7 +1394,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get deployment events
      * @param deploymentId Optional deployment ID filter
      */
-    public async getDeploymentEvents(deploymentId?: string): Promise<DeploymentEvent[]> {
+    public async getDeploymentEvents(deploymentId?: string): Promise<IDeploymentEvent[]> {
         if (deploymentId) {
             return this._deploymentEvents.filter(e => e.deploymentId === deploymentId);
         }
@@ -1405,7 +1406,7 @@ export class ModelDeploymentManagerService implements IModelDeploymentManagerSer
      * Get environment events
      * @param environmentId Optional environment ID filter
      */
-    public async getEnvironmentEvents(environmentId?: string): Promise<EnvironmentEvent[]> {
+    public async getEnvironmentEvents(environmentId?: string): Promise<IEnvironmentEvent[]> {
         if (environmentId) {
             return this._environmentEvents.filter(e => e.environmentId === environmentId);
         }

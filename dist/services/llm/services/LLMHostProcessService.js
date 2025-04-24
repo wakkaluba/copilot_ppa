@@ -62,8 +62,9 @@ class LLMHostProcessService extends events_1.EventEmitter {
         return this.processInfo;
     }
     setupProcessHandlers() {
-        if (!this.process)
+        if (!this.process) {
             return;
+        }
         this.process.stdout?.on('data', this.handleOutput.bind(this));
         this.process.stderr?.on('data', this.handleError.bind(this));
         this.process.on('error', this.handleProcessError.bind(this));
@@ -86,8 +87,9 @@ class LLMHostProcessService extends events_1.EventEmitter {
         });
     }
     async stopProcess() {
-        if (!this.process)
+        if (!this.process) {
             return;
+        }
         this.process.kill();
         this.process = null;
         if (this.metricsInterval) {
@@ -141,8 +143,9 @@ class LLMHostProcessService extends events_1.EventEmitter {
         this.process = null;
     }
     updateProcessMetrics() {
-        if (!this.process || !this.processInfo)
+        if (!this.process || !this.processInfo) {
             return;
+        }
         try {
             const usage = process.cpuUsage();
             const memory = process.memoryUsage();

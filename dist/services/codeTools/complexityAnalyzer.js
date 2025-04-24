@@ -59,8 +59,9 @@ class ComplexityAnalyzer {
     async analyzeFunction(document, functionName) {
         const sourceFile = ts.createSourceFile(document.fileName, document.getText(), ts.ScriptTarget.Latest, true);
         const functionNode = this.findFunctionNode(sourceFile, functionName);
-        if (!functionNode)
+        if (!functionNode) {
             return null;
+        }
         const metrics = this.analyzeNode(functionNode);
         const dependencies = this.dependencyAnalyzer.analyzeDependencies(functionNode);
         return {
@@ -76,10 +77,12 @@ class ComplexityAnalyzer {
         return this.analyzeNode(sourceFile);
     }
     getComplexityGrade(complexity) {
-        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW)
+        if (complexity <= this.COMPLEXITY_THRESHOLD.LOW) {
             return 'Low';
-        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM)
+        }
+        if (complexity <= this.COMPLEXITY_THRESHOLD.MEDIUM) {
             return 'Medium';
+        }
         return 'High';
     }
     analyzeNode(node) {
@@ -190,8 +193,9 @@ class MetricsCalculator {
         const n1 = metrics.distinctOperators;
         const n2 = metrics.distinctOperands;
         const N2 = metrics.totalOperands;
-        if (n2 === 0)
+        if (n2 === 0) {
             return 0;
+        }
         return (n1 * N2) / (2 * n2);
     }
     calculateNestingDepth(node) {
@@ -222,8 +226,9 @@ class MetricsCalculator {
         const metrics = this.getHalsteadMetrics(ts.createSourceFile('temp.ts', code, ts.ScriptTarget.Latest, true));
         const vocabulary = metrics.distinctOperators + metrics.distinctOperands;
         const length = metrics.totalOperators + metrics.totalOperands;
-        if (vocabulary === 0)
+        if (vocabulary === 0) {
             return 0;
+        }
         return length * Math.log2(vocabulary);
     }
     getHalsteadMetrics(node) {
@@ -279,8 +284,9 @@ class DependencyAnalyzer {
         return node.type ? node.type.getText() : 'any';
     }
     isParameter(node, parent) {
-        if (!parent)
+        if (!parent) {
             return false;
+        }
         return ts.isParameter(parent) && parent.name === node;
     }
 }

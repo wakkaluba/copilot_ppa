@@ -58,8 +58,9 @@ class PerformanceAnalyzerService {
         const increment = 100 / files.length;
         for (let i = 0; i < files.length && !token.isCancellationRequested; i++) {
             const file = files[i];
-            if (!file)
+            if (!file) {
                 continue;
+            }
             try {
                 const document = await vscode.workspace.openTextDocument(file.fsPath);
                 const result = await this.analyzeFile(document);

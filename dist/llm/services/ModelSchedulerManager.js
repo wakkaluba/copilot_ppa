@@ -141,8 +141,9 @@ let ModelSchedulerManager = (() => {
             return false;
         }
         async processQueues() {
-            if (this.isProcessing)
+            if (this.isProcessing) {
                 return;
+            }
             this.isProcessing = true;
             try {
                 while (this.hasQueuedRequests()) {
@@ -151,8 +152,9 @@ let ModelSchedulerManager = (() => {
                         continue;
                     }
                     const request = this.getNextRequest();
-                    if (!request)
+                    if (!request) {
                         continue;
+                    }
                     this.activeRequests.add(request.id);
                     this.emit('requestStarted', { requestId: request.id });
                     this.processRequest(request).catch(error => {

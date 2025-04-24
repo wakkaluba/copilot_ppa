@@ -120,7 +120,7 @@ export const PrettierMock = {
      */
     async check(content: string, options: { filepath: string }): Promise<boolean> {
         // Simple formatting check - just check a few rules
-        if (!content) return true;
+        if (!content) {return true;}
         
         const lines = content.split('\n');
         

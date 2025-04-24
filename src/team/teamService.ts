@@ -34,14 +34,14 @@ export class TeamService {
 
     async joinSession(sessionId: string, member: TeamMember): Promise<void> {
         const session = this.sessions.get(sessionId);
-        if (!session) throw new Error('Session not found');
+        if (!session) {throw new Error('Session not found');}
         session.members.push(member);
         await this.liveShare.joinSession(session, member);
     }
 
     async shareContext(sessionId: string, context: any): Promise<void> {
         const session = this.sessions.get(sessionId);
-        if (!session) throw new Error('Session not found');
+        if (!session) {throw new Error('Session not found');}
         await this.liveShare.syncContext(session, context);
     }
 }

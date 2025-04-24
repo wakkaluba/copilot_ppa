@@ -93,7 +93,7 @@ export class RepositoryManager {
             placeHolder: 'my-project'
         });
 
-        if (!name) return undefined;
+        if (!name) {return undefined;}
 
         const description = await vscode.window.showInputBox({
             prompt: 'Enter repository description (optional)',

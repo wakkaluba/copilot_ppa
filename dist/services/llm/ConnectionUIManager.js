@@ -57,8 +57,9 @@ class ConnectionUIManager {
         this.updateUI(this.connectionManager.getStatus());
     }
     subscribeToEvents() {
-        if (!this.connectionManager)
+        if (!this.connectionManager) {
             return;
+        }
         this.connectionManager.on('stateChanged', status => {
             this.updateUI(status);
         });
@@ -84,8 +85,9 @@ class ConnectionUIManager {
         }));
     }
     async handleToggleConnection() {
-        if (!this.connectionManager)
+        if (!this.connectionManager) {
             return;
+        }
         try {
             const status = this.connectionManager.getStatus();
             if (status.isConnected) {
@@ -100,8 +102,9 @@ class ConnectionUIManager {
         }
     }
     async handleConfigure() {
-        if (!this.connectionManager)
+        if (!this.connectionManager) {
             return;
+        }
         try {
             const providers = await this.connectionManager.getAvailableProviders();
             const selected = await this.modelInfoService.selectProvider(providers);
@@ -114,8 +117,9 @@ class ConnectionUIManager {
         }
     }
     async showConnectionDetails() {
-        if (!this.connectionManager)
+        if (!this.connectionManager) {
             return;
+        }
         const status = this.connectionManager.getStatus();
         this.detailsService.showConnectionDetails(status);
     }

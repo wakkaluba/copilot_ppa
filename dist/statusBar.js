@@ -173,10 +173,12 @@ class StatusBarManager {
         }
     }
     getMetricsIcon(score) {
-        if (score < 50)
+        if (score < 50) {
             return '$(warning)';
-        if (score < 80)
+        }
+        if (score < 80) {
             return '$(info)';
+        }
         return '$(check)';
     }
     dispose() {

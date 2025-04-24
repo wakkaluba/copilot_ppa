@@ -57,7 +57,7 @@ export class ModelStateService implements Disposable {
     private async synchronizeState(modelId: string): Promise<void> {
         try {
             const state = this._states.get(modelId);
-            if (!state) return;
+            if (!state) {return;}
 
             // Trigger state persistence
             await this.persistState(modelId, state);
@@ -70,7 +70,7 @@ export class ModelStateService implements Disposable {
     }
 
     private startPersistence(): void {
-        if (this._persistenceInterval) return;
+        if (this._persistenceInterval) {return;}
 
         this._persistenceInterval = setInterval(
             () => this.persistAllStates(),

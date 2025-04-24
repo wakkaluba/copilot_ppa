@@ -124,7 +124,7 @@ export class AgentSidebarProvider implements vscode.WebviewViewProvider {
      * Updates the connection state in the webview
      */
     private async updateConnectionState(): Promise<void> {
-        if (!this._view) return;
+        if (!this._view) {return;}
 
         const state = this._connectionManager.getConnectionState();
         const currentModel = this._connectionManager.getCurrentModel();
@@ -143,7 +143,7 @@ export class AgentSidebarProvider implements vscode.WebviewViewProvider {
      * Shows an error message in the webview
      */
     private async showError(message: string): Promise<void> {
-        if (!this._view) return;
+        if (!this._view) {return;}
         
         await this._view.webview.postMessage({
             type: 'showError',

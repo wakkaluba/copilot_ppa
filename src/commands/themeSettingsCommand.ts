@@ -124,7 +124,7 @@ export class ThemeSettingsCommand {
         switch (message.command) {
             case 'updateTheme':
                 this.themeManager.updateCustomTheme(themeId, message.data)
-                    .then(() => panel.webview.html = ThemeEditorHtmlProvider.getEditorHtml(this.themeManager.getAllThemes().find(t => t.id === themeId)!));
+                    .then(() => panel.webview.html = ThemeEditorHtmlProvider.getEditorHtml(this.themeManager.getAllThemes().find(t => t.id === themeId)));
                 break;
             case 'previewTheme':
                 this.themeManager.setTheme(themeId);

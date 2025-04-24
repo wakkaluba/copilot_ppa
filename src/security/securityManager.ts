@@ -94,7 +94,7 @@ export class SecurityManager implements vscode.Disposable {
     }
 
     private registerWebviewMessageHandlers(): void {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
@@ -116,7 +116,7 @@ export class SecurityManager implements vscode.Disposable {
     }
 
     private async runScan(): Promise<void> {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         try {
             await vscode.window.withProgress({
@@ -137,7 +137,7 @@ export class SecurityManager implements vscode.Disposable {
     }
 
     private updateWebviewContent(): void {
-        if (!this.panel) return;
+        if (!this.panel) {return;}
 
         try {
             this.panel.webview.html = this.webviewService.generateWebviewContent(

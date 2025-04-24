@@ -19,7 +19,7 @@ export class LLMProviderMetricsTracker extends EventEmitter {
     
     recordSuccess(providerId: string, responseTime: number, tokens: number): void {
         const metrics = this.metrics.get(providerId);
-        if (!metrics) return;
+        if (!metrics) {return;}
         
         const now = Date.now();
         
@@ -48,7 +48,7 @@ export class LLMProviderMetricsTracker extends EventEmitter {
     
     recordError(providerId: string, error: Error): void {
         const metrics = this.metrics.get(providerId);
-        if (!metrics) return;
+        if (!metrics) {return;}
         
         metrics.requestCount++;
         metrics.errorCount++;

@@ -164,7 +164,7 @@ export class StructureReorganizer {
             let endPos = startPos;
             
             for (let i = startPos; i < code.length; i++) {
-                if (code[i] === '{') braceCount++;
+                if (code[i] === '{') {braceCount++;}
                 if (code[i] === '}') {
                     braceCount--;
                     if (braceCount === 0) {

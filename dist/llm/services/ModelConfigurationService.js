@@ -69,15 +69,17 @@ class ModelConfigurationService {
         }
     }
     startPersistence() {
-        if (this._persistenceInterval)
+        if (this._persistenceInterval) {
             return;
+        }
         this._persistenceInterval = setInterval(() => this.persistAllConfigurations(), this.persistenceIntervalMs);
     }
     async persistConfiguration(modelId) {
         try {
             const config = this._configurations.get(modelId);
-            if (!config)
+            if (!config) {
                 return;
+            }
             // Add persistence logic here
             // This could write to disk, database, etc.
         }

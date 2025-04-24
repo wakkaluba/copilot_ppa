@@ -83,14 +83,17 @@ class ConversationSearchService {
             // Apply message type filters
             if (filters.onlyUserMessages || filters.onlyAssistantMessages) {
                 const hasMatchingMessage = conversation.messages.some(message => {
-                    if (filters.onlyUserMessages && message.role === 'user')
+                    if (filters.onlyUserMessages && message.role === 'user') {
                         return true;
-                    if (filters.onlyAssistantMessages && message.role === 'assistant')
+                    }
+                    if (filters.onlyAssistantMessages && message.role === 'assistant') {
                         return true;
+                    }
                     return false;
                 });
-                if (!hasMatchingMessage)
+                if (!hasMatchingMessage) {
                     return false;
+                }
             }
             return true;
         });

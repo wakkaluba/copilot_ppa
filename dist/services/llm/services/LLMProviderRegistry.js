@@ -86,8 +86,9 @@ class LLMProviderRegistry extends events_1.EventEmitter {
         this.priorityQueue.sort((a, b) => {
             const regA = this.providers.get(a);
             const regB = this.providers.get(b);
-            if (!regA || !regB)
+            if (!regA || !regB) {
                 return 0;
+            }
             return regA.registeredAt - regB.registeredAt;
         });
     }

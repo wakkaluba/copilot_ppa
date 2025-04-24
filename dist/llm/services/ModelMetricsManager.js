@@ -73,8 +73,9 @@ class ModelMetricsManager extends events_1.EventEmitter {
     getAggregateMetrics(modelId) {
         const history = this.getMetricsHistory(modelId);
         const latest = this.getLatestSnapshot(history);
-        if (!latest)
+        if (!latest) {
             return undefined;
+        }
         return {
             averageResponseTime: this.calculateAverageResponseTime(history),
             tokenThroughput: this.calculateAverageThroughput(history),
@@ -94,8 +95,9 @@ class ModelMetricsManager extends events_1.EventEmitter {
     }
     analyzePerformanceTrends(modelId) {
         const history = this.getMetricsHistory(modelId);
-        if (history.length < 2)
+        if (history.length < 2) {
             return;
+        }
         const recentSnapshots = history.slice(-10); // Analyze last 10 snapshots
         // Analyze response time trend
         const responseTimeTrend = this.calculateTrend(recentSnapshots.map(s => s.metrics.averageResponseTime));
@@ -116,8 +118,9 @@ class ModelMetricsManager extends events_1.EventEmitter {
         });
     }
     calculateTrend(values) {
-        if (values.length < 2)
+        if (values.length < 2) {
             return 0;
+        }
         const n = values.length;
         const sumX = values.reduce((sum, _, i) => sum + i, 0);
         const sumY = values.reduce((sum, value) => sum + value, 0);
@@ -142,8 +145,9 @@ class ModelMetricsManager extends events_1.EventEmitter {
         return history.reduce((sum, s) => sum + s.metrics.totalTokens, 0);
     }
     calculateAverage(values) {
-        if (values.length === 0)
+        if (values.length === 0) {
             return 0;
+        }
         return values.reduce((sum, value) => sum + value, 0) / values.length;
     }
     emitMetricsUpdate(modelId, metrics) {

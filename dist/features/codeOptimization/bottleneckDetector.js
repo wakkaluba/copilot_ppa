@@ -147,7 +147,7 @@ class BottleneckDetector {
         const bottlenecks = [];
         const lines = content.split('\n');
         // Track nesting level
-        let nestingLevels = [];
+        const nestingLevels = [];
         let currentNestingLevel = 0;
         let nestingStartLine = -1;
         // Detect loop nesting

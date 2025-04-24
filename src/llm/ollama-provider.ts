@@ -140,7 +140,7 @@ export class OllamaProvider extends BaseLLMProvider {
         try {
             if (this.offlineMode) {
                 const cached = await this.useCachedResponse(prompt);
-                if (cached) return { content: cached };
+                if (cached) {return { content: cached };}
             }
 
             const request: OllamaGenerateRequest = {
@@ -310,9 +310,9 @@ export class OllamaProvider extends BaseLLMProvider {
     }
 
     private parseParameterSize(size?: string): number | undefined {
-        if (!size) return undefined;
+        if (!size) {return undefined;}
         const match = size.match(/(\d+)([BM])/);
-        if (!match) return undefined;
+        if (!match) {return undefined;}
         const [, num, unit] = match;
         return unit === 'B' ? parseInt(num) : parseInt(num) / 1000;
     }

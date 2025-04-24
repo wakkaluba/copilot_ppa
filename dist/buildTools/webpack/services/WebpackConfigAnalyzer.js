@@ -151,10 +151,12 @@ class WebpackConfigAnalyzer {
         let depth = 0;
         let currentBlock = '';
         for (const char of rulesContent) {
-            if (char === '{')
+            if (char === '{') {
                 depth++;
-            if (char === '}')
+            }
+            if (char === '}') {
                 depth--;
+            }
             currentBlock += char;
             if (depth === 0 && currentBlock.trim()) {
                 blocks.push(currentBlock.trim());

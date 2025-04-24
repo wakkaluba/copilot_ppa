@@ -1776,9 +1776,9 @@
     "test:performance": "jest --testMatch='**/tests/performance/**/*.test.ts'",
     "test:coverage": "jest --coverage",
     "test:all": "node tests/run-all-tests.js",
-    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "lint:fix": "eslint src/**/*.ts --fix",
     "test:interfaces": "jest --testMatch='**/tests/unit/interfaces/**/*.test.ts'",
-    "test:watch": "jest --watch",
+"test:watch": "jest --watch",
     "test:coverage-report": "jest --coverage && http-server coverage/lcov-report -o",
     "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
     "test:detect-leaks": "jest --detectOpenHandles",
@@ -1787,7 +1787,7 @@
     "test:parallel:unit": "node scripts/test-sharding.js --shards=4 --testGlob=tests/unit/**/*.test.ts",
     "test:parallel:integration": "node scripts/test-sharding.js --shards=2 --testGlob=tests/integration/**/*.test.ts",
     "test:parallel:all": "npm run test:parallel:unit && npm run test:parallel:integration",
-    "lint:test": "eslint 'tests/**/*.ts' --config .eslintrc.test.json"
+    "lint:test": "eslint tests/**/*.ts --config .eslintrc.test.json"
   },
   "devDependencies": {
     "@gitbeaker/node": "^35.8.0",

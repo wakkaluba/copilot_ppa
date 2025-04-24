@@ -94,10 +94,12 @@ function extractFunctionBody(content, position) {
     let endPos = startPos;
     // Find the matching closing brace
     do {
-        if (content[endPos] === '{')
+        if (content[endPos] === '{') {
             bracketCount++;
-        if (content[endPos] === '}')
+        }
+        if (content[endPos] === '}') {
             bracketCount--;
+        }
         endPos++;
     } while (bracketCount > 0 && endPos < content.length);
     return content.substring(startPos, endPos);

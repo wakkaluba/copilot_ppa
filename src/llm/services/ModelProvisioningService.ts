@@ -125,7 +125,7 @@ export class ModelProvisioningService implements Disposable {
 
     private async releaseResources(modelId: string): Promise<void> {
         const allocation = this._allocations.get(modelId);
-        if (!allocation) return;
+        if (!allocation) {return;}
 
         // Add actual resource release logic
     }

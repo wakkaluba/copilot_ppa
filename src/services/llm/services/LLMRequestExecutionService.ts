@@ -81,7 +81,7 @@ export class LLMRequestExecutionService extends EventEmitter {
      * Process the request queue
      */
     private async processQueue(): Promise<void> {
-        if (this.processingQueue) return;
+        if (this.processingQueue) {return;}
         this.processingQueue = true;
 
         while (this.requestQueue.length > 0) {
@@ -92,7 +92,7 @@ export class LLMRequestExecutionService extends EventEmitter {
             }
 
             const request = this.requestQueue.shift();
-            if (!request) continue;
+            if (!request) {continue;}
 
             this.processRequest(request).catch(error => {
                 this.emit(LLMRequestEvent.Error + request.id, error);

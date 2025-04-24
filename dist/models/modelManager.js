@@ -19,17 +19,20 @@ class ModelManager {
     }
     async switchModel(modelName) {
         const config = this.models.get(modelName);
-        if (!config)
+        if (!config) {
             throw new Error(`Model ${modelName} not found`);
+        }
         const provider = this.providers.get(config.provider);
-        if (!provider)
+        if (!provider) {
             throw new Error(`Provider ${config.provider} not found`);
+        }
         await provider.initialize(config);
         this.activeModel = provider;
     }
     getActiveModel() {
-        if (!this.activeModel)
+        if (!this.activeModel) {
             throw new Error('No active model');
+        }
         return this.activeModel;
     }
     getAvailableModels() {

@@ -59,16 +59,18 @@ class ApprovalManager {
             }
         }
         const previewResult = await this.showChangePreview(changes);
-        if (!previewResult)
+        if (!previewResult) {
             return false;
+        }
         return await this.showConfirmationDialog(changes);
     }
     async showChangePreview(changes) {
         for (const change of changes) {
             const diff = await this.createDiffView(change);
             const choice = await vscode.window.showInformationMessage(`Preview changes for ${change.filePath}?`, 'Show Preview', 'Skip', 'Cancel');
-            if (choice === 'Cancel')
+            if (choice === 'Cancel') {
                 return false;
+            }
             if (choice === 'Show Preview') {
                 await vscode.commands.executeCommand('vscode.diff', this.createTempUri(change.filePath, 'original'), this.createTempUri(change.filePath, 'modified'), `${change.filePath} (Preview)`);
             }

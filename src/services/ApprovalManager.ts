@@ -35,7 +35,7 @@ export class ApprovalManager {
         }
 
         const previewResult = await this.showChangePreview(changes);
-        if (!previewResult) return false;
+        if (!previewResult) {return false;}
 
         return await this.showConfirmationDialog(changes);
     }
@@ -50,7 +50,7 @@ export class ApprovalManager {
                 'Cancel'
             );
 
-            if (choice === 'Cancel') return false;
+            if (choice === 'Cancel') {return false;}
             if (choice === 'Show Preview') {
                 await vscode.commands.executeCommand('vscode.diff',
                     this.createTempUri(change.filePath, 'original'),

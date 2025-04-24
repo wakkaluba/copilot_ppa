@@ -159,8 +159,9 @@ function registerDebugCommands(context) {
             { label: 'CSV', description: 'Export logs as CSV format' },
             { label: 'Text', description: 'Export logs as plain text' }
         ], { placeHolder: 'Select export format' });
-        if (!format)
+        if (!format) {
             return;
+        }
         const formatType = format.label.toLowerCase();
         // Show log viewer with the export dialog
         const viewer = logViewer_1.LogViewer.getInstance();

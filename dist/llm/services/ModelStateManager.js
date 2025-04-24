@@ -119,8 +119,9 @@ let ModelStateManager = (() => {
         }
         getStateSnapshot(modelId) {
             const state = this.getState(modelId);
-            if (!state)
+            if (!state) {
                 return undefined;
+            }
             return {
                 modelId,
                 state,

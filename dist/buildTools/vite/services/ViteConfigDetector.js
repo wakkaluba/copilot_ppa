@@ -43,10 +43,12 @@ class ViteConfigDetector {
         }
     }
     getConfigType(path) {
-        if (path.endsWith('.ts'))
+        if (path.endsWith('.ts')) {
             return 'typescript';
-        if (path.endsWith('.mjs'))
+        }
+        if (path.endsWith('.mjs')) {
             return 'esm';
+        }
         return 'javascript';
     }
     async analyzeDependencies(configPath, content) {

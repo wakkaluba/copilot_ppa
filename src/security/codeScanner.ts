@@ -92,7 +92,7 @@ export class CodeSecurityScanner {
     }
 
     private async processMessageQueue(): Promise<void> {
-        if (this.isProcessing) return;
+        if (this.isProcessing) {return;}
         this.isProcessing = true;
 
         while (this.messageQueue.length > 0) {

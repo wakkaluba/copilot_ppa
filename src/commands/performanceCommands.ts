@@ -80,7 +80,7 @@ export function registerPerformanceCommands(context: vscode.ExtensionContext): v
                 placeHolder: 'Select an operation to get optimization suggestions'
             });
             
-            if (!selected) return;
+            if (!selected) {return;}
             
             const suggestions = perfManager.getBottleneckDetector().getOptimizationSuggestions(selected);
             

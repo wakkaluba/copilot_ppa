@@ -248,7 +248,7 @@ export class LMStudioProvider implements LLMProvider {
         // Process complete lines from the stream
         while (true) {
           const lineEndIndex = buffer.indexOf('\n');
-          if (lineEndIndex === -1) break;
+          if (lineEndIndex === -1) {break;}
           
           const line = buffer.substring(0, lineEndIndex).trim();
           buffer = buffer.substring(lineEndIndex + 1);
@@ -330,7 +330,7 @@ export class LMStudioProvider implements LLMProvider {
         // Process complete lines from the stream
         while (true) {
           const lineEndIndex = buffer.indexOf('\n');
-          if (lineEndIndex === -1) break;
+          if (lineEndIndex === -1) {break;}
           
           const line = buffer.substring(0, lineEndIndex).trim();
           buffer = buffer.substring(lineEndIndex + 1);

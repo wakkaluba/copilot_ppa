@@ -64,14 +64,14 @@ export class EnhancedChatProvider {
     }
 
     private renderChatInterface(): void {
-        if (!this.view) return;
+        if (!this.view) {return;}
         
         this.sendMessagesToWebview();
         this.updateConnectionStatus();
     }
 
     private sendMessagesToWebview(): void {
-        if (!this.view) return;
+        if (!this.view) {return;}
         
         const messages = this.contextManager.listMessages();
         this.view.webview.postMessage({
@@ -81,7 +81,7 @@ export class EnhancedChatProvider {
     }
 
     private updateConnectionStatus(): void {
-        if (!this.view) return;
+        if (!this.view) {return;}
         
         const isConnected = this.llmProvider.isConnected();
         const status = {
@@ -97,7 +97,7 @@ export class EnhancedChatProvider {
     }
 
     public async handleUserMessage(content: string): Promise<void> {
-        if (!content.trim()) return;
+        if (!content.trim()) {return;}
         
         const userMessage: ChatMessage = {
             id: uuidv4(),
@@ -204,7 +204,7 @@ export class EnhancedChatProvider {
     }
 
     private updateStreamingContent(content: string): void {
-        if (!this.view) return;
+        if (!this.view) {return;}
         
         this.view.webview.postMessage({
             type: 'updateStreamingContent',
@@ -213,12 +213,12 @@ export class EnhancedChatProvider {
     }
 
     public async syncOfflineMessages(): Promise<void> {
-        if (!this.llmProvider.isConnected()) return;
+        if (!this.llmProvider.isConnected()) {return;}
         
         const conversationId = this.contextManager.getCurrentConversationId();
         const cachedMessages = this.offlineCache.get(conversationId) || [];
         
-        if (cachedMessages.length === 0) return;
+        if (cachedMessages.length === 0) {return;}
         
         for (const message of cachedMessages) {
             await this.generateStreamingResponse(message);
@@ -228,7 +228,7 @@ export class EnhancedChatProvider {
     }
 
     private updateStatus(status: string): void {
-        if (!this.view) return;
+        if (!this.view) {return;}
         
         this.view.webview.postMessage({
             type: 'updateStatus',

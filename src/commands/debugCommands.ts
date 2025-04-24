@@ -169,7 +169,7 @@ export function registerDebugCommands(context: vscode.ExtensionContext): void {
                 { placeHolder: 'Select export format' }
             );
             
-            if (!format) return;
+            if (!format) {return;}
             
             const formatType = format.label.toLowerCase() as 'json' | 'csv' | 'txt';
             
