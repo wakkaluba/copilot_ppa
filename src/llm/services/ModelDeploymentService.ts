@@ -1,124 +1,212 @@
+import { inject, injectable } from 'inversify';
+import { ILogger } from '../../utils/logger';
 import { EventEmitter } from 'events';
-import { Disposable } from 'vscode';
-import { Logger } from '../../utils/logger';
-import { IModelInfo, DeploymentEnvironment, DeploymentEvent, VersionInfo } from '../types';
 
-export class ModelDeploymentService implements Disposable {
-    private readonly _deploymentEmitter = new EventEmitter();
-    private readonly _deployments = new Map<string, DeploymentEnvironment>();
-    private readonly _versions = new Map<string, VersionInfo[]>();
-    private readonly _logger: Logger;
+export interface DeploymentConfig {
+    replicas: number;
+    resources?: {
+        cpu?: string;
+        memory?: string;
+        gpu?: string;
+    };
+    autoScaling?: {
+        enabled: boolean;
+        minReplicas?: number;
+        maxReplicas?: number;
+        targetCPUUtilization?: number;
+        targetMemoryUtilization?: number;
+    };
+    envVars?: Record<string, string>;
+}
 
-    constructor() {
-        this._logger = Logger.for('ModelDeploymentService');
+export interface DeploymentOptions {
+    modelId: string;
+    version: string;
+    environmentId: string;
+    config: DeploymentConfig;
+    metadata?: Record<string, any>;
+}
+
+/**
+ * Service for model deployment operations
+ */
+@injectable()
+export class ModelDeploymentService extends EventEmitter {
+    private deployments = new Map<string, any>();
+    private deploymentCounter = 0;
+
+    constructor(
+        @inject(ILogger) private readonly logger: ILogger
+    ) {
+        super();
+        this.logger.info('ModelDeploymentService initialized');
     }
 
-    public async deployModel(modelId: string, info: IModelInfo): Promise<DeploymentEnvironment> {
+    /**
+     * Create a new deployment
+     */
+    public async createDeployment(options: DeploymentOptions): Promise<string> {
         try {
-            await this.validateEnvironment(info);
-            const environment = await this.prepareEnvironment(info);
-            const version = await this.createVersion(modelId, info);
+            this.deploymentCounter++;
+            const deploymentId = `deploy-${this.deploymentCounter}-${Date.now()}`;
             
-            this._deployments.set(modelId, environment);
-            this.trackVersion(modelId, version);
-
-            this._deploymentEmitter.emit('modelDeployed', {
-                modelId,
-                environment,
-                version,
-                timestamp: Date.now()
-            } as DeploymentEvent);
-
-            return environment;
+            const deployment = {
+                id: deploymentId,
+                modelId: options.modelId,
+                version: options.version,
+                environmentId: options.environmentId,
+                config: options.config,
+                metadata: options.metadata || {},
+                status: 'deploying',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            
+            this.deployments.set(deploymentId, deployment);
+            
+            this.logger.info(`Created deployment ${deploymentId} for model ${options.modelId}`);
+            this.emit('deployment.created', { deployment });
+            
+            // Simulate deployment completion after delay
+            setTimeout(() => {
+                this.completeDeployment(deploymentId);
+            }, 1000);
+            
+            return deploymentId;
         } catch (error) {
-            this._logger.error('Failed to deploy model', { modelId, error });
+            this.logger.error('Error creating deployment', error);
             throw error;
         }
     }
 
-    private async validateEnvironment(info: IModelInfo): Promise<void> {
-        // Add environment validation logic here
-        // Check dependencies, resources, etc.
+    /**
+     * Mark a deployment as complete/running
+     */
+    private completeDeployment(deploymentId: string): void {
+        try {
+            const deployment = this.deployments.get(deploymentId);
+            
+            if (!deployment) {
+                return;
+            }
+            
+            deployment.status = 'running';
+            deployment.updatedAt = Date.now();
+            
+            this.deployments.set(deploymentId, deployment);
+            this.emit('deployment.ready', { deploymentId, modelId: deployment.modelId });
+            
+            this.logger.info(`Deployment ${deploymentId} is now running`);
+        } catch (error) {
+            this.logger.error(`Error completing deployment ${deploymentId}`, error);
+        }
     }
-
-    private async prepareEnvironment(info: IModelInfo): Promise<DeploymentEnvironment> {
-        return {
-            id: `env-${Date.now()}`,
-            status: 'initializing',
-            resources: {
-                memory: this.calculateMemoryRequirement(info),
-                cpu: this.calculateCPURequirement(info),
-                gpu: this.calculateGPURequirement(info)
-            },
-            dependencies: await this.resolveDependencies(info),
-            config: this.generateConfig(info)
-        };
+    
+    /**
+     * Get a deployment by ID
+     */
+    public async getDeployment(deploymentId: string): Promise<any | null> {
+        const deployment = this.deployments.get(deploymentId);
+        
+        if (!deployment) {
+            return null;
+        }
+        
+        return { ...deployment };
     }
-
-    private calculateMemoryRequirement(info: IModelInfo): number {
-        // Add memory calculation logic
-        return 1024; // Default 1GB
+    
+    /**
+     * List all deployments, optionally filtered by model ID
+     */
+    public async listDeployments(modelId?: string): Promise<any[]> {
+        const allDeployments = Array.from(this.deployments.values());
+        
+        if (!modelId) {
+            return allDeployments;
+        }
+        
+        return allDeployments.filter(d => d.modelId === modelId);
     }
-
-    private calculateCPURequirement(info: IModelInfo): number {
-        // Add CPU calculation logic
-        return 1; // Default 1 core
+    
+    /**
+     * Update a deployment
+     */
+    public async updateDeployment(
+        deploymentId: string, 
+        updates: Partial<{ 
+            config: Partial<DeploymentConfig>, 
+            metadata: Record<string, any>,
+            status: string
+        }>
+    ): Promise<void> {
+        try {
+            const deployment = this.deployments.get(deploymentId);
+            
+            if (!deployment) {
+                throw new Error(`Deployment ${deploymentId} not found`);
+            }
+            
+            // Apply updates
+            if (updates.config) {
+                deployment.config = {
+                    ...deployment.config,
+                    ...updates.config,
+                    resources: {
+                        ...(deployment.config?.resources || {}),
+                        ...(updates.config?.resources || {})
+                    }
+                };
+            }
+            
+            if (updates.metadata) {
+                deployment.metadata = {
+                    ...deployment.metadata,
+                    ...updates.metadata
+                };
+            }
+            
+            if (updates.status) {
+                deployment.status = updates.status;
+            }
+            
+            deployment.updatedAt = Date.now();
+            
+            this.deployments.set(deploymentId, deployment);
+            
+            this.logger.info(`Updated deployment ${deploymentId}`);
+            this.emit('deployment.updated', { deploymentId, updates });
+        } catch (error) {
+            this.logger.error(`Error updating deployment ${deploymentId}`, error);
+            throw error;
+        }
     }
-
-    private calculateGPURequirement(info: IModelInfo): number {
-        // Add GPU calculation logic
-        return 0; // Default no GPU
+    
+    /**
+     * Delete a deployment
+     */
+    public async deleteDeployment(deploymentId: string): Promise<void> {
+        try {
+            if (!this.deployments.has(deploymentId)) {
+                throw new Error(`Deployment ${deploymentId} not found`);
+            }
+            
+            const deployment = this.deployments.get(deploymentId);
+            this.deployments.delete(deploymentId);
+            
+            this.logger.info(`Deleted deployment ${deploymentId}`);
+            this.emit('deployment.deleted', { deploymentId, modelId: deployment.modelId });
+        } catch (error) {
+            this.logger.error(`Error deleting deployment ${deploymentId}`, error);
+            throw error;
+        }
     }
-
-    private async resolveDependencies(info: IModelInfo): Promise<string[]> {
-        // Add dependency resolution logic
-        return [];
-    }
-
-    private generateConfig(info: IModelInfo): Record<string, unknown> {
-        // Add config generation logic
-        return {};
-    }
-
-    private async createVersion(modelId: string, info: IModelInfo): Promise<VersionInfo> {
-        return {
-            id: `v${Date.now()}`,
-            modelId,
-            timestamp: Date.now(),
-            config: info.config,
-            checksum: await this.calculateChecksum(info)
-        };
-    }
-
-    private async calculateChecksum(info: IModelInfo): Promise<string> {
-        // Add checksum calculation logic
-        return 'checksum';
-    }
-
-    private trackVersion(modelId: string, version: VersionInfo): void {
-        const versions = this._versions.get(modelId) || [];
-        versions.push(version);
-        this._versions.set(modelId, versions);
-    }
-
-    public async getDeployment(modelId: string): Promise<DeploymentEnvironment | undefined> {
-        return this._deployments.get(modelId);
-    }
-
-    public async getVersions(modelId: string): Promise<VersionInfo[]> {
-        return this._versions.get(modelId) || [];
-    }
-
-    public onModelDeployed(listener: (event: DeploymentEvent) => void): Disposable {
-        this._deploymentEmitter.on('modelDeployed', listener);
-        return {
-            dispose: () => this._deploymentEmitter.removeListener('modelDeployed', listener)
-        };
-    }
-
+    
+    /**
+     * Dispose of resources
+     */
     public dispose(): void {
-        this._deploymentEmitter.removeAllListeners();
-        this._deployments.clear();
-        this._versions.clear();
+        this.removeAllListeners();
+        this.deployments.clear();
+        this.logger.info('ModelDeploymentService disposed');
     }
 }

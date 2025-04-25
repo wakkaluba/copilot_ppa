@@ -1,265 +1,122 @@
-import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../../utils/logger';
 import { ModelScalingMetricsService, ScalingMetrics } from './ModelScalingMetricsService';
+import { EventEmitter } from 'events';
 
+/**
+ * Service for displaying scaling metrics in a dashboard
+ */
 @injectable()
-export class ModelScalingDashboardService implements vscode.Disposable {
-    private readonly panels = new Map<string, vscode.WebviewPanel>();
-    private readonly updateInterval: NodeJS.Timer;
+export class ModelScalingDashboardService extends EventEmitter {
+    private dashboardState = new Map<string, any>();
+    private subscribedModels = new Set<string>();
+    private metricsListener: any;
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger,
         @inject(ModelScalingMetricsService) private readonly metricsService: ModelScalingMetricsService
     ) {
-        this.updateInterval = setInterval(() => this.updateAllPanels(), 5000);
-        this.metricsService.on('metricsCollected', this.handleMetricsUpdate.bind(this));
+        super();
+        this.logger.info('ModelScalingDashboardService initialized');
+        this.setupListeners();
     }
 
+    /**
+     * Setup event listeners
+     */
+    private setupListeners(): void {
+        this.metricsListener = (event: { modelId: string, metrics: ScalingMetrics }) => {
+            const { modelId, metrics } = event;
+            if (this.subscribedModels.has(modelId)) {
+                this.updateDashboard(modelId, metrics);
+            }
+        };
+
+        this.metricsService.on('metricsCollected', this.metricsListener);
+        this.metricsService.on('metricsUpdated', this.metricsListener);
+    }
+
+    /**
+     * Show dashboard for a model
+     */
     public async showDashboard(modelId: string): Promise<void> {
         try {
-            let panel = this.panels.get(modelId);
+            this.logger.info(`Showing dashboard for model: ${modelId}`);
             
-            if (!panel) {
-                panel = vscode.window.createWebviewPanel(
-                    'scalingDashboard',
-                    `Scaling Dashboard: ${modelId}`,
-                    vscode.ViewColumn.One,
-                    {
-                        enableScripts: true,
-                        retainContextWhenHidden: true
-                    }
-                );
-
-                panel.onDidDispose(() => {
-                    this.panels.delete(modelId);
-                });
-
-                this.panels.set(modelId, panel);
-            }
-
-            const metrics = await this.getMetricsData(modelId);
-            panel.webview.html = this.generateDashboardHtml(modelId, metrics);
-            panel.reveal();
-
+            // Subscribe to updates for this model
+            this.subscribedModels.add(modelId);
+            
+            // Get initial metrics
+            const metrics = this.metricsService.getMetricsHistory(modelId);
+            
+            // Initialize dashboard
+            this.dashboardState.set(modelId, {
+                modelId,
+                lastUpdated: Date.now(),
+                metrics: metrics.length > 0 ? metrics[metrics.length - 1] : null,
+                history: metrics
+            });
+            
+            this.emit('dashboardOpened', { modelId });
         } catch (error) {
-            this.handleError('Failed to show dashboard', error);
+            this.logger.error(`Error showing dashboard for model ${modelId}`, error);
+            throw error;
         }
     }
 
-    private async updateAllPanels(): Promise<void> {
-        for (const [modelId, panel] of this.panels.entries()) {
-            try {
-                const metrics = await this.getMetricsData(modelId);
-                panel.webview.html = this.generateDashboardHtml(modelId, metrics);
-            } catch (error) {
-                this.handleError(`Failed to update dashboard for ${modelId}`, error);
+    /**
+     * Update dashboard with new metrics
+     */
+    private updateDashboard(modelId: string, metrics: ScalingMetrics): void {
+        try {
+            const dashboard = this.dashboardState.get(modelId) || {
+                modelId,
+                history: []
+            };
+            
+            // Update dashboard state
+            dashboard.lastUpdated = Date.now();
+            dashboard.metrics = metrics;
+            dashboard.history.push(metrics);
+            
+            // Cap history length to avoid memory issues
+            if (dashboard.history.length > 100) {
+                dashboard.history = dashboard.history.slice(-100);
             }
+            
+            this.dashboardState.set(modelId, dashboard);
+            
+            this.logger.info(`Dashboard updated for model ${modelId}`, { timestamp: metrics.timestamp });
+            this.emit('dashboardUpdated', { modelId, metrics });
+        } catch (error) {
+            this.logger.error(`Error updating dashboard for model ${modelId}`, error);
         }
     }
 
-    private async getMetricsData(modelId: string): Promise<ScalingMetrics[]> {
-        return this.metricsService.getMetricsHistory(modelId, 3600000); // Last hour
+    /**
+     * Get current dashboard state
+     */
+    public getDashboard(modelId: string): any {
+        return this.dashboardState.get(modelId);
     }
 
-    private handleMetricsUpdate({ modelId }: { modelId: string }): void {
-        const panel = this.panels.get(modelId);
-        if (panel) {
-            this.updateAllPanels();
-        }
+    /**
+     * Close dashboard for a model
+     */
+    public closeDashboard(modelId: string): void {
+        this.subscribedModels.delete(modelId);
+        this.emit('dashboardClosed', { modelId });
     }
 
-    private generateDashboardHtml(modelId: string, metrics: ScalingMetrics[]): string {
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Scaling Dashboard - ${modelId}</title>
-                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                <style>
-                    body {
-                        font-family: var(--vscode-font-family);
-                        background-color: var(--vscode-editor-background);
-                        color: var(--vscode-editor-foreground);
-                        padding: 20px;
-                    }
-                    .chart-container {
-                        margin-bottom: 30px;
-                        background-color: var(--vscode-editor-background);
-                        border: 1px solid var(--vscode-panel-border);
-                        border-radius: 4px;
-                        padding: 10px;
-                    }
-                    .metrics-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 20px;
-                        margin-bottom: 30px;
-                    }
-                    .metric-card {
-                        background-color: var(--vscode-editor-background);
-                        border: 1px solid var(--vscode-panel-border);
-                        border-radius: 4px;
-                        padding: 15px;
-                    }
-                    h2 {
-                        color: var(--vscode-editor-foreground);
-                        margin-top: 0;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Scaling Dashboard - ${modelId}</h1>
-                
-                <div class="metrics-grid">
-                    ${this.generateCurrentMetricsHtml(metrics[metrics.length - 1])}
-                </div>
-
-                <div class="chart-container">
-                    <h2>Performance Metrics</h2>
-                    <canvas id="performanceChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <h2>Resource Utilization</h2>
-                    <canvas id="resourceChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <h2>Scaling Metrics</h2>
-                    <canvas id="scalingChart"></canvas>
-                </div>
-
-                <script>
-                    ${this.generateChartsScript(metrics)}
-                </script>
-            </body>
-            </html>
-        `;
-    }
-
-    private generateCurrentMetricsHtml(metrics: ScalingMetrics): string {
-        if (!metrics) return '';
-
-        return `
-            <div class="metric-card">
-                <h3>Performance</h3>
-                <p>Response Time: ${metrics.performance.responseTime.toFixed(2)}ms</p>
-                <p>Throughput: ${metrics.performance.throughput.toFixed(2)}/s</p>
-                <p>Error Rate: ${(metrics.performance.errorRate * 100).toFixed(2)}%</p>
-            </div>
-            <div class="metric-card">
-                <h3>Resources</h3>
-                <p>CPU: ${metrics.resources.cpu.toFixed(1)}%</p>
-                <p>Memory: ${metrics.resources.memory.toFixed(1)}%</p>
-                ${metrics.resources.gpu ? `<p>GPU: ${metrics.resources.gpu.toFixed(1)}%</p>` : ''}
-            </div>
-            <div class="metric-card">
-                <h3>Scaling</h3>
-                <p>Nodes: ${metrics.scaling.currentNodes}</p>
-                <p>Active Connections: ${metrics.scaling.activeConnections}</p>
-                <p>Queue Length: ${metrics.scaling.queueLength}</p>
-            </div>
-            <div class="metric-card">
-                <h3>Availability</h3>
-                <p>Success Rate: ${(metrics.availability.successRate * 100).toFixed(2)}%</p>
-                <p>Uptime: ${this.formatUptime(metrics.availability.uptime)}</p>
-                <p>Degraded Periods: ${metrics.availability.degradedPeriods}</p>
-            </div>
-        `;
-    }
-
-    private generateChartsScript(metrics: ScalingMetrics[]): string {
-        const labels = metrics.map(m => new Date(m.timestamp).toLocaleTimeString());
-        
-        return `
-            const ctx1 = document.getElementById('performanceChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: ${JSON.stringify(labels)},
-                    datasets: [{
-                        label: 'Response Time (ms)',
-                        data: ${JSON.stringify(metrics.map(m => m.performance.responseTime))},
-                        borderColor: '#2196F3'
-                    }, {
-                        label: 'Throughput',
-                        data: ${JSON.stringify(metrics.map(m => m.performance.throughput))},
-                        borderColor: '#4CAF50'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: false
-                }
-            });
-
-            const ctx2 = document.getElementById('resourceChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'line',
-                data: {
-                    labels: ${JSON.stringify(labels)},
-                    datasets: [{
-                        label: 'CPU %',
-                        data: ${JSON.stringify(metrics.map(m => m.resources.cpu))},
-                        borderColor: '#FF9800'
-                    }, {
-                        label: 'Memory %',
-                        data: ${JSON.stringify(metrics.map(m => m.resources.memory))},
-                        borderColor: '#E91E63'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: false
-                }
-            });
-
-            const ctx3 = document.getElementById('scalingChart').getContext('2d');
-            new Chart(ctx3, {
-                type: 'line',
-                data: {
-                    labels: ${JSON.stringify(labels)},
-                    datasets: [{
-                        label: 'Nodes',
-                        data: ${JSON.stringify(metrics.map(m => m.scaling.currentNodes))},
-                        borderColor: '#9C27B0'
-                    }, {
-                        label: 'Queue Length',
-                        data: ${JSON.stringify(metrics.map(m => m.scaling.queueLength))},
-                        borderColor: '#FF5722'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: false
-                }
-            });
-        `;
-    }
-
-    private formatUptime(uptimeMs: number): string {
-        const seconds = Math.floor(uptimeMs / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 0) return `${days}d ${hours % 24}h`;
-        if (hours > 0) return `${hours}h ${minutes % 60}m`;
-        if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-        return `${seconds}s`;
-    }
-
-    private handleError(message: string, error: unknown): void {
-        this.logger.error(message, { error });
-        void vscode.window.showErrorMessage(`${message}: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
+    /**
+     * Dispose of resources
+     */
     public dispose(): void {
-        clearInterval(this.updateInterval);
-        for (const panel of this.panels.values()) {
-            panel.dispose();
-        }
-        this.panels.clear();
+        this.metricsService.removeListener('metricsCollected', this.metricsListener);
+        this.metricsService.removeListener('metricsUpdated', this.metricsListener);
+        this.removeAllListeners();
+        this.subscribedModels.clear();
+        this.dashboardState.clear();
+        this.logger.info('ModelScalingDashboardService disposed');
     }
 }

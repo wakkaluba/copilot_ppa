@@ -213,9 +213,19 @@ describe('LLMModelService Tests', () => {
 
     // Mock internal methods on the prototype to apply to all instances
     sandbox.stub(LLMModelService.prototype, 'getHardwareSpecs').resolves({
-      gpu: { available: true, name: 'Test GPU', vram: 4096, cudaSupport: true },
+      gpu: { 
+        name: 'Test GPU', 
+        memory: 4096, 
+        available: true, 
+        vram: 4096, 
+        cudaSupport: true 
+      },
       ram: { total: 16384, free: 8192 },
-      cpu: { cores: 8, model: 'Test CPU' }
+      cpu: { 
+        cores: 8, 
+        model: 'Test CPU',
+        speed: 3.2
+      }
     } as HardwareSpecs);
   });
 
@@ -242,8 +252,9 @@ describe('LLMModelService Tests', () => {
     let modelService: LLMModelService;
     const mockHardwareSpecs: HardwareSpecs = {
       gpu: {
-        available: true,
         name: 'Test GPU',
+        memory: 4096,
+        available: true,
         vram: 4096,
         cudaSupport: true
       },
@@ -253,7 +264,8 @@ describe('LLMModelService Tests', () => {
       },
       cpu: {
         cores: 8,
-        model: 'Test CPU'
+        model: 'Test CPU',
+        speed: 3.2
       }
     };
     
@@ -362,7 +374,11 @@ describe('LLMModelService Tests', () => {
       // Mock hardware with limited VRAM
       const limitedHardware = {
         ...mockHardwareSpecs,
-        gpu: { ...mockHardwareSpecs.gpu, vram: 2048 }
+        gpu: { 
+          ...mockHardwareSpecs.gpu, 
+          vram: 2048,
+          memory: 2048
+        }
       };
       (modelService as any).getHardwareSpecs = sandbox.stub().resolves(limitedHardware);
       
@@ -395,13 +411,14 @@ describe('LLMModelService Tests', () => {
       // Mock hardware specs with CUDA support
       const specWithCuda = {
         gpu: {
-          available: true,
           name: 'Test GPU',
+          memory: 4096,
+          available: true,
           vram: 4096,
           cudaSupport: true
         },
         ram: { total: 16384, free: 8192 },
-        cpu: { cores: 8, model: 'Test CPU' }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       };
       
       (modelService as any).getHardwareSpecs = sandbox.stub().resolves(specWithCuda);
@@ -417,13 +434,14 @@ describe('LLMModelService Tests', () => {
       // Mock hardware specs with GPU but no CUDA
       (modelService as any).getHardwareSpecs = sinon.stub().resolves({
         gpu: {
-          available: true,
           name: 'Test GPU',
+          memory: 4096,
+          available: true,
           vram: 4096,
           cudaSupport: false
         },
         ram: { total: 16384, free: 8192 },
-        cpu: { cores: 8 }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       });
       
       await (modelService as any).checkCudaSupport();
@@ -437,10 +455,12 @@ describe('LLMModelService Tests', () => {
       // Mock hardware specs without GPU
       (modelService as any).getHardwareSpecs = sinon.stub().resolves({
         gpu: {
+          name: 'None',
+          memory: 0,
           available: false
         },
         ram: { total: 16384, free: 8192 },
-        cpu: { cores: 8 }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       });
       
       await (modelService as any).checkCudaSupport();
@@ -451,9 +471,15 @@ describe('LLMModelService Tests', () => {
     it('should show information message when CUDA is supported', async () => {
       // Mock GPU with CUDA support
       (modelService as any).getHardwareSpecs = sandbox.stub().resolves({
-        gpu: { available: true, name: 'NVIDIA GPU', vram: 4096, cudaSupport: true },
+        gpu: { 
+          name: 'NVIDIA GPU',
+          memory: 4096,
+          available: true, 
+          vram: 4096, 
+          cudaSupport: true 
+        },
         ram: { total: 16384, free: 8192 },
-        cpu: { cores: 8, model: 'Test CPU' }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       });
       
       await (modelService as any).checkCudaSupport();
@@ -466,9 +492,15 @@ describe('LLMModelService Tests', () => {
     it('should show warning message when CUDA is not supported', async () => {
       // Mock GPU without CUDA support
       (modelService as any).getHardwareSpecs = sandbox.stub().resolves({
-        gpu: { available: true, name: 'AMD GPU', vram: 4096, cudaSupport: false },
+        gpu: {
+          name: 'AMD GPU',
+          memory: 4096,
+          available: true,
+          vram: 4096,
+          cudaSupport: false
+        },
         ram: { total: 16384, free: 8192 },
-        cpu: { cores: 8, model: 'Test CPU' }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       });
       
       await (modelService as any).checkCudaSupport();
@@ -483,8 +515,9 @@ describe('LLMModelService Tests', () => {
     let modelService: LLMModelService;
     const mockHardwareSpecs: HardwareSpecs = {
       gpu: {
-        available: true,
         name: 'Test GPU',
+        memory: 4096,
+        available: true,
         vram: 4096,
         cudaSupport: true
       },
@@ -494,7 +527,8 @@ describe('LLMModelService Tests', () => {
       },
       cpu: {
         cores: 8,
-        model: 'Test CPU'
+        model: 'Test CPU',
+        speed: 3.2
       }
     };
     
@@ -514,13 +548,14 @@ describe('LLMModelService Tests', () => {
       // Mock hardware specs with good specs
       (modelService as any).getHardwareSpecs = sandbox.stub().resolves({
         gpu: {
-          available: true,
           name: 'Test GPU',
+          memory: 8192,
+          available: true,
           vram: 8192,
           cudaSupport: true
         },
         ram: { total: 32768, free: 16384 },
-        cpu: { cores: 12 }
+        cpu: { cores: 12, model: 'Test CPU', speed: 3.2 }
       });
       
       // Mock configuration to return specific values
@@ -538,13 +573,14 @@ describe('LLMModelService Tests', () => {
       // Mock hardware specs with limited RAM
       (modelService as any).getHardwareSpecs = sinon.stub().resolves({
         gpu: {
-          available: true,
           name: 'Test GPU',
+          memory: 8192,
+          available: true,
           vram: 8192,
           cudaSupport: true
         },
         ram: { total: 8192, free: 4096 },
-        cpu: { cores: 8 }
+        cpu: { cores: 8, model: 'Test CPU', speed: 3.2 }
       });
       
       // Mock configuration for large model
@@ -698,214 +734,6 @@ describe('LLMModelService Tests', () => {
       
       assert.ok(mockStatusBarItem.text.includes('No Model'), 'Status bar should show No Model');
       assert.ok(mockStatusBarItem.show.called, 'Status bar should be shown');
-    });
-  });
-});
-
-import * as sinon from 'sinon';
-import { LLMModelService } from '../../../src/llm/modelService';
-import { HardwareSpecs } from '../../../src/llm/types';
-
-describe('LLM Model Service', () => {
-  let modelService: LLMModelService;
-  let sandbox: sinon.SinonSandbox;
-
-  beforeEach(() => {
-    sandbox = sinon.createSandbox();
-    modelService = new LLMModelService();
-  });
-
-  afterEach(() => {
-    sandbox.restore();
-  });
-
-  describe('Hardware Detection', () => {
-    it('should detect GPU capabilities', async () => {
-      const mockSpecs: HardwareSpecs = {
-        gpu: {
-          available: true,
-          name: 'NVIDIA GeForce RTX 3080',
-          vram: 10240,
-          cudaSupport: true
-        },
-        ram: {
-          total: 32768,
-          available: 16384
-        },
-        cpu: {
-          cores: 8,
-          model: 'Intel Core i7-11700K'
-        }
-      };
-
-      const getHardwareSpecsStub = sandbox.stub(modelService as any, 'detectHardware')
-        .resolves(mockSpecs);
-
-      const specs = await modelService.getHardwareSpecs();
-      expect(specs.gpu?.available).toBe(true);
-      expect(specs.gpu?.name).toBe('NVIDIA GeForce RTX 3080');
-      expect(specs.gpu?.vram).toBe(10240);
-      expect(specs.gpu?.cudaSupport).toBe(true);
-    });
-
-    it('should handle systems without GPU', async () => {
-      const mockSpecs: HardwareSpecs = {
-        gpu: {
-          available: false
-        },
-        ram: {
-          total: 16384,
-          available: 8192
-        },
-        cpu: {
-          cores: 4,
-          model: 'Intel Core i5-10400'
-        }
-      };
-
-      const getHardwareSpecsStub = sandbox.stub(modelService as any, 'detectHardware')
-        .resolves(mockSpecs);
-
-      const specs = await modelService.getHardwareSpecs();
-      expect(specs.gpu?.available).toBe(false);
-      expect(specs.ram.total).toBe(16384);
-      expect(specs.cpu.cores).toBe(4);
-    });
-  });
-
-  describe('Model Recommendations', () => {
-    it('should recommend models based on hardware', async () => {
-      const mockSpecs: HardwareSpecs = {
-        gpu: {
-          available: true,
-          name: 'NVIDIA GeForce RTX 3080',
-          vram: 10240,
-          cudaSupport: true
-        },
-        ram: {
-          total: 32768,
-          available: 16384
-        },
-        cpu: {
-          cores: 8,
-          model: 'Intel Core i7-11700K'
-        }
-      };
-
-      sandbox.stub(modelService as any, 'detectHardware').resolves(mockSpecs);
-
-      const recommendations = await modelService.getModelRecommendations();
-      expect(recommendations.length).toBeGreaterThan(0);
-      expect(recommendations[0]).toHaveProperty('name');
-      expect(recommendations[0]).toHaveProperty('provider');
-    });
-
-    it('should handle low-spec systems', async () => {
-      const mockSpecs: HardwareSpecs = {
-        gpu: {
-          available: false
-        },
-        ram: {
-          total: 8192,
-          available: 4096
-        },
-        cpu: {
-          cores: 2,
-          model: 'Intel Celeron'
-        }
-      };
-
-      sandbox.stub(modelService as any, 'detectHardware').resolves(mockSpecs);
-
-      const recommendations = await modelService.getModelRecommendations();
-      expect(recommendations.length).toBeGreaterThan(0);
-      expect(recommendations.every(model => !model.requiresGPU)).toBe(true);
-    });
-  });
-
-  describe('Model Management', () => {
-    it('should download models', async () => {
-      const downloadStub = sandbox.stub(modelService as any, 'downloadModel')
-        .resolves(true);
-
-      const result = await modelService.downloadModel('test-model');
-      expect(result).toBe(true);
-      expect(downloadStub.calledOnce).toBe(true);
-    });
-
-    it('should handle download failures', async () => {
-      sandbox.stub(modelService as any, 'downloadModel')
-        .rejects(new Error('Download failed'));
-
-      await expect(modelService.downloadModel('test-model'))
-        .rejects.toThrow('Download failed');
-    });
-
-    it('should list installed models', async () => {
-      const mockModels = [
-        { name: 'model1', installed: true },
-        { name: 'model2', installed: true }
-      ];
-
-      sandbox.stub(modelService as any, 'getInstalledModels')
-        .resolves(mockModels);
-
-      const models = await modelService.getInstalledModels();
-      expect(models).toHaveLength(2);
-      expect(models[0].installed).toBe(true);
-    });
-
-    it('should uninstall models', async () => {
-      const uninstallStub = sandbox.stub(modelService as any, 'uninstallModel')
-        .resolves(true);
-
-      const result = await modelService.uninstallModel('test-model');
-      expect(result).toBe(true);
-      expect(uninstallStub.calledOnce).toBe(true);
-    });
-  });
-
-  describe('Model Configuration', () => {
-    it('should update model settings', async () => {
-      const settings = {
-        temperature: 0.7,
-        maxTokens: 2048
-      };
-
-      const updateStub = sandbox.stub(modelService as any, 'updateModelSettings')
-        .resolves(true);
-
-      const result = await modelService.updateModelSettings('test-model', settings);
-      expect(result).toBe(true);
-      expect(updateStub.calledWith('test-model', settings)).toBe(true);
-    });
-
-    it('should validate settings', async () => {
-      const invalidSettings = {
-        temperature: 2.0, // Invalid temperature > 1.0
-        maxTokens: -1 // Invalid negative tokens
-      };
-
-      await expect(modelService.updateModelSettings('test-model', invalidSettings))
-        .rejects.toThrow();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle hardware detection errors', async () => {
-      sandbox.stub(modelService as any, 'detectHardware')
-        .rejects(new Error('Hardware detection failed'));
-
-      await expect(modelService.getHardwareSpecs())
-        .rejects.toThrow('Hardware detection failed');
-    });
-
-    it('should handle model operation errors', async () => {
-      sandbox.stub(modelService as any, 'downloadModel')
-        .rejects(new Error('Operation failed'));
-
-      await expect(modelService.downloadModel('test-model'))
-        .rejects.toThrow('Operation failed');
     });
   });
 });

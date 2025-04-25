@@ -5,12 +5,12 @@ exports.initializeServices = initializeServices;
 const LLMConnectionManager_1 = require("./llm/LLMConnectionManager");
 const LLMHostManager_1 = require("./llm/LLMHostManager");
 const LLMSessionManager_1 = require("./llm/LLMSessionManager");
-const ContextManager_1 = require("./conversation/ContextManager");
+const ContextManager_1 = require("./ContextManager");
 const PromptManager_1 = require("./PromptManager");
 const themeManager_1 = require("./themeManager");
 const displaySettingsService_1 = require("./displaySettingsService");
 const connectionStatusService_1 = require("../status/connectionStatusService");
-const llmProviderManager_1 = require("../llm/llmProviderManager");
+const LLMProviderManager_1 = require("./llm/services/LLMProviderManager");
 exports.Services = {
     LLMProvider: Symbol('LLMProvider'),
     LLMConnectionManager: Symbol('LLMConnectionManager'),
@@ -65,7 +65,7 @@ function initializeServices(context) {
     const themeManager = new themeManager_1.ThemeManager(context);
     const displaySettings = new displaySettingsService_1.DisplaySettingsService(themeManager, context);
     // Initialize provider management
-    const providerManager = new llmProviderManager_1.LLMProviderManager(connectionManager, hostManager, connectionStatus);
+    const providerManager = new LLMProviderManager_1.LLMProviderManager(connectionManager, hostManager, connectionStatus);
     // Register all services
     registry.register(exports.Services.LLMHostManager, hostManager);
     registry.register(exports.Services.LLMConnectionManager, connectionManager);

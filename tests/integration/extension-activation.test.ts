@@ -13,7 +13,17 @@ jest.mock('vscode', () => ({
     window: {
         showInformationMessage: jest.fn()
     },
-    ExtensionContext: jest.fn()
+    ExtensionContext: jest.fn(),
+    ExtensionMode: {
+        Test: 2
+    },
+    ExtensionKind: {
+        UI: 1,
+        Workspace: 2
+    },
+    Uri: {
+        file: jest.fn(path => ({ path, scheme: 'file', fsPath: path }))
+    }
 }), { virtual: true });
 
 describe('Extension Activation Integration Test', () => {
@@ -23,6 +33,13 @@ describe('Extension Activation Integration Test', () => {
         mockContext = {
             subscriptions: [],
             extensionPath: '',
+            storagePath: '/test/storage',
+            globalStoragePath: '/test/global/storage',
+            logPath: '/test/log',
+            extensionUri: vscode.Uri.file(''),
+            globalStorageUri: vscode.Uri.file('/test/global/storage'),
+            logUri: vscode.Uri.file('/test/log'),
+            storageUri: vscode.Uri.file('/test/storage'),
             globalState: {
                 get: jest.fn(),
                 update: jest.fn(),
@@ -40,7 +57,6 @@ describe('Extension Activation Integration Test', () => {
                 delete: jest.fn(),
                 onDidChange: jest.fn()
             },
-            extensionUri: vscode.Uri.file(''),
             environmentVariableCollection: {
                 persistent: true,
                 replace: jest.fn(),
@@ -55,10 +71,21 @@ describe('Extension Activation Integration Test', () => {
                 [Symbol.iterator]: jest.fn()
             },
             extensionMode: vscode.ExtensionMode.Test,
-            globalStorageUri: vscode.Uri.file(''),
-            logUri: vscode.Uri.file(''),
-            storageUri: vscode.Uri.file(''),
-            asAbsolutePath: jest.fn(),
+            asAbsolutePath: jest.fn(path => `/test/path/${path}`),
+            extension: {
+                id: 'test-extension',
+                extensionUri: vscode.Uri.file(''),
+                extensionPath: '',
+                isActive: true,
+                packageJSON: {},
+                exports: {},
+                activate: jest.fn(),
+                extensionKind: 1 // ExtensionKind.UI
+            },
+            languageModelAccessInformation: {
+                endpoint: "https://mock-endpoint.com",
+                authHeader: "mock-auth-header"
+            }
         };
 
         jest.clearAllMocks();

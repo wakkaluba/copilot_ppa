@@ -1,42 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseLLMProvider = exports.LLMProviderError = void 0;
-const events_1 = require("events");
+exports.LLMProvider = void 0;
 /**
- * Error thrown by LLM providers
+ * Base implementation of the LLM Provider interface
  */
-class LLMProviderError extends Error {
-    code;
-    constructor(code, message) {
-        super(message);
-        this.code = code;
-        this.name = 'LLMProviderError';
+class LLMProvider {
+    /**
+     * Stream a prompt response from this provider (optional)
+     * @param request The LLM request to process
+     */
+    async *streamPrompt(request) {
+        // Default implementation for providers that don't support streaming
+        // Just get the full response and yield it
+        const response = await this.completePrompt(request);
+        yield response;
     }
 }
-exports.LLMProviderError = LLMProviderError;
-/**
- * Abstract base class for LLM providers
- * Provides basic implementation of the LLMProvider interface
- */
-class BaseLLMProvider extends events_1.EventEmitter {
-    name;
-    status = {
-        isConnected: false,
-        activeModel: null,
-        modelInfo: null,
-        error: null
-    };
-    constructor(name) {
-        super();
-        this.name = name;
-    }
-    getStatus() {
-        return { ...this.status };
-    }
-    updateStatus(partial) {
-        this.status = { ...this.status, ...partial };
-        this.emit('stateChanged', this.status);
-    }
-}
-exports.BaseLLMProvider = BaseLLMProvider;
+exports.LLMProvider = LLMProvider;
 //# sourceMappingURL=llm-provider.js.map

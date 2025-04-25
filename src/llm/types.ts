@@ -1,296 +1,167 @@
-import * as vscode from 'vscode';
+// Basic LLM types for the VS Code extension
 
-export interface LLMPromptOptions {
-    maxTokens?: number;
+export interface LLMRequest {
+    id: string;
+    prompt: string;
+    model: string;
+    options?: LLMRequestOptions;
+    priority: LLMRequestPriority;
+    timestamp: number;
+    status: LLMRequestStatus;
+    error?: LLMRequestError;
+}
+
+export interface LLMRequestOptions {
     temperature?: number;
+    maxTokens?: number;
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
-    stopSequences?: string[];
+    stop?: string[];
+    timeout?: number;
+    stream?: boolean;
 }
 
-export interface HardwareSpecs {
-    cpu: {
-        cores: number;
-        model: string;
-        speed: number;
-    };
-    ram: {
-        total: number;
-        free: number;
-    };
-    gpu?: {
-        name: string;
-        memory: number;
-        available?: boolean;
-        vram?: number;
-        cudaSupport?: boolean;
-    };
+export enum LLMRequestPriority {
+    Low = 'low',
+    Normal = 'normal',
+    High = 'high'
 }
 
-export interface ILLMModelService extends vscode.Disposable {
-    initialize(): Promise<void>;
-    clearConversation(): Promise<void>;
+export enum LLMRequestStatus {
+    Pending = 'pending',
+    InProgress = 'in-progress',
+    Completed = 'completed',
+    Failed = 'failed',
+    Cancelled = 'cancelled'
 }
 
-/**
- * Model requirements specification
- */
-export interface ModelRequirements {
-    minRAM: number;
-    minVRAM?: number;
-    minCPUCores?: number;
-    cudaRequired?: boolean;
-    diskSpace?: number;
+export interface LLMRequestError {
+    code: string;
+    message: string;
+    details?: unknown;
 }
 
-/**
- * Result of model validation
- */
-export interface ModelValidationResult {
-    isValid: boolean;
-    issues: string[];
-    warnings: string[];
-    systemInfo: SystemInfo;
-    requirements: ModelRequirements;
+export interface LLMResponse {
+    id: string;
+    requestId: string;
+    content: string;
+    model: string;
+    prompt: string;
+    timestamp: number;
+    tokenUsage?: TokenUsage;
+    format?: LLMResponseFormat;
+    error?: LLMResponseError;
 }
 
-/**
- * Model performance metrics
- */
-export interface ModelPerformanceMetrics {
-    averageResponseTime: number;
-    tokenThroughput: number;
-    errorRate: number;
+export type LLMResponseFormat = 'text' | 'json' | 'markdown' | 'code';
+
+export interface LLMResponseOptions {
+    format?: LLMResponseFormat;
+    includePrompt?: boolean;
+    includeTokenUsage?: boolean;
+}
+
+export interface LLMResponseError {
+    code: string;
+    message: string;
+    details?: unknown;
+}
+
+export interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+export interface LLMRequestEvent {
+    type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
+    request: LLMRequest;
+    timestamp: number;
+    details?: unknown;
+}
+
+// Model-related types
+export enum ModelEvents {
+    // Evaluation events
+    EvaluationStarted = 'evaluation:started',
+    EvaluationCompleted = 'evaluation:completed',
+    
+    // Optimization events
+    OptimizationStarted = 'optimization:started',
+    OptimizationCompleted = 'optimization:completed',
+    OptimizationProgress = 'optimization:progress',
+    
+    // Scheduling events
+    SchedulingStarted = 'scheduling:started',
+    SchedulingCompleted = 'scheduling:completed',
+    
+    // Execution events
+    ExecutionStarted = 'execution:started',
+    ExecutionCompleted = 'execution:completed',
+    
+    // Task events
+    TaskStarted = 'task:started',
+    TaskCompleted = 'task:completed',
+    TaskFailed = 'task:failed',
+    
+    // Tuning events
+    TuningStarted = 'tuning:started',
+    TuningCompleted = 'tuning:completed',
+    TuningProgress = 'tuning:progress',
+    
+    // Metrics events
+    MetricsUpdated = 'metrics:updated',
+    MetricsExpired = 'metrics:expired',
+    MetricsAggregated = 'metrics:aggregated'
+}
+
+export interface LLMSessionConfig {
+    model: string;
+    provider: string;
+    parameters: LLMRequestOptions;
+    contextSize: number;
+    historySize: number;
+    systemPrompt?: string;
+}
+
+export interface SessionState {
+    id: string;
+    active: boolean;
+    startTime: number;
+    lastActivity: number;
+    requestCount: number;
+    tokenCount: number;
+    model: string;
+    provider: string;
+}
+
+export interface SessionStats {
     totalRequests: number;
     totalTokens: number;
-    lastUsed: Date;
-}
-
-/**
- * System capabilities information
- */
-export interface SystemInfo {
-    totalMemoryGB: number;
-    freeDiskSpaceGB: number;
-    cpuCores: number;
-    cudaAvailable: boolean;
-    cudaVersion?: string | undefined;
-}
-
-/**
- * Events emitted by model services
- */
-export interface ModelServiceEvents {
-    modelRegistered: (modelId: string) => void;
-    modelRemoved: (modelId: string) => void;
-    modelUpdated: (modelId: string) => void;
-    metricsUpdated: (modelId: string, metrics: ModelPerformanceMetrics) => void;
-    validationUpdated: (modelId: string, validation: ModelValidationResult) => void;
-}
-
-/**
- * Model configuration options
- */
-export interface ModelConfig {
-    maxTokens: number;
-    temperature: number;
-    topP: number;
-    presencePenalty: number;
-    frequencyPenalty: number;
-    stopSequences: string[];
-    [key: string]: any;
-}
-
-export interface LLMModelInfo {
-    id: string;
-    name: string;
-    provider: string;
-    description: string;
-    tags?: string[];
-    contextSize?: number;
-    parameters?: Record<string, any>;
-}
-
-export enum ModelEvent {
-    ModelRegistered = 'modelRegistered',
-    ModelRemoved = 'modelRemoved',
-    ModelUpdated = 'modelUpdated',
-    ActiveModelChanged = 'activeModelChanged',
-    MetricsUpdated = 'metricsUpdated',
-    ValidationUpdated = 'validationUpdated'
-}
-
-export type ModelLifecycleState = 
-    | 'initial' 
-    | 'loading'
-    | 'ready'
-    | 'error'
-    | 'unloading'
-    | 'unloaded';
-
-export interface StateTransition {
-    from: ModelLifecycleState;
-    to: ModelLifecycleState;
-    timestamp: number;
-}
-
-export interface ModelStateSnapshot {
-    modelId: string;
-    state: ModelLifecycleState;
-    timestamp: number;
-    transitions: StateTransition[];
-}
-
-export type ConfigUpdateEvent = {
-    modelId: string;
-    config: ModelConfig;
-};
-
-export type ConfigValidationError = {
-    field: keyof ModelConfig;
-    message: string;
-};
-
-// Model version interfaces
-export interface ModelVersionMetadata {
-    /**
-     * Creation timestamp
-     */
-    createdAt?: string;
-    
-    /**
-     * Optional checksum for the model version
-     */
-    checksum?: string;
-    
-    /**
-     * Whether this version is a checkpoint
-     */
-    isCheckpoint?: boolean;
-    
-    /**
-     * For rollbacks, the version it was rolled back from
-     */
-    rolledBackFrom?: string;
-    
-    /**
-     * For checkpoints, the base version
-     */
-    checkpointBase?: string;
-    
-    /**
-     * Any additional metadata properties
-     */
-    [key: string]: any;
-}
-
-export interface ModelVersionHistoryEntry {
-    /**
-     * The action that occurred
-     */
-    action: 'create' | 'update' | 'rollback' | 'checkpoint' | 'tag' | string;
-    
-    /**
-     * If applicable, the version related to this action
-     */
-    fromVersion?: string;
-    
-    /**
-     * Timestamp of the action
-     */
-    timestamp: string;
-    
-    /**
-     * Any additional properties
-     */
-    [key: string]: any;
-}
-
-export interface ModelVersion {
-    /**
-     * The model identifier
-     */
-    modelId: string;
-    
-    /**
-     * The version string
-     */
-    version: string;
-    
-    /**
-     * Version metadata
-     */
-    metadata: ModelVersionMetadata;
-    
-    /**
-     * Checksum of the model version
-     */
-    checksum: string;
-    
-    /**
-     * Tags associated with this version
-     */
-    tags: string[];
-    
-    /**
-     * Version history
-     */
-    history?: ModelVersionHistoryEntry[];
-}
-
-export interface ModelVersionChangeEvent {
-    /**
-     * The type of change
-     */
-    type: 'created' | 'updated' | 'rollback' | 'tagged' | 'untagged' | string;
-    
-    /**
-     * The model identifier
-     */
-    modelId: string;
-    
-    /**
-     * The version affected
-     */
-    version: string;
-    
-    /**
-     * For rollbacks, the version it was rolled back from
-     */
-    fromVersion?: string;
-    
-    /**
-     * For tagging operations, the tag
-     */
-    tag?: string;
-    
-    /**
-     * Timestamp of the change
-     */
-    timestamp: string;
-    
-    /**
-     * Any additional properties
-     */
-    [key: string]: any;
-}
-
-export enum ModelStatus {
-    Available = 'available',
-    Loading = 'loading',
-    Error = 'error',
-    NotFound = 'not-found'
-}
-
-export interface ModelStats {
-    requestCount: number;
     averageResponseTime: number;
-    errorCount: number;
-    lastError?: string;
+    errorRate: number;
 }
 
-export interface ModelInfo extends LLMModelInfo {
-    status: ModelStatus;
-    stats?: ModelStats;
+// Provider capability types
+export interface ProviderCapabilities {
+    maxContextTokens: number;
+    streamingSupport: boolean;
+    supportedFormats: LLMResponseFormat[];
+    multimodalSupport: boolean;
+    supportsTemperature: boolean;
+    supportsTopP: boolean;
+    supportsPenalties: boolean;
+    supportsRetries: boolean;
+}
+
+// Basic interface for LLM providers
+export interface LLMProvider {
+    getName(): string;
+    getCapabilities(): ProviderCapabilities;
+    isAvailable(): Promise<boolean>;
+    getStatus(): 'active' | 'inactive' | 'error';
+    completePrompt(request: LLMRequest): Promise<LLMResponse>;
+    streamPrompt?(request: LLMRequest): AsyncIterable<LLMResponse>;
+    cancelRequest(requestId: string): Promise<boolean>;
 }

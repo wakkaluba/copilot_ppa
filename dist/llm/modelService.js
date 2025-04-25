@@ -34,10 +34,12 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     return useValue ? value : void 0;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ModelService = exports.ModelRecommendation = void 0;
+exports.ModelService = exports.ModelRecommendation = exports.HardwareSpecs = exports.LLMModelInfo = void 0;
 const inversify_1 = require("inversify");
 const vscode_1 = require("vscode");
 const types_1 = require("./types");
+Object.defineProperty(exports, "LLMModelInfo", { enumerable: true, get: function () { return types_1.LLMModelInfo; } });
+Object.defineProperty(exports, "HardwareSpecs", { enumerable: true, get: function () { return types_1.HardwareSpecs; } });
 Object.defineProperty(exports, "ModelRecommendation", { enumerable: true, get: function () { return types_1.ModelRecommendation; } });
 let ModelService = (() => {
     let _classDecorators = [(0, inversify_1.injectable)()];

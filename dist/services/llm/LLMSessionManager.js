@@ -1,131 +1,321 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMSessionManager = void 0;
-/**
- * LLM Session Manager - Handles sessions for communicating with LLM services
- */
-const vscode = __importStar(require("vscode"));
-const LLMSessionConfigService_1 = require("./services/LLMSessionConfigService");
-const LLMRequestExecutionService_1 = require("./services/LLMRequestExecutionService");
-const LLMSessionTrackingService_1 = require("./services/LLMSessionTrackingService");
-const types_1 = require("./types");
-/**
- * Manager for LLM sessions - handles session lifecycle, configuration, and tracking
- */
-class LLMSessionManager {
-    static instance;
-    disposables = [];
-    configService;
-    trackingService;
-    requestService;
+const events_1 = require("events");
+const uuid_1 = require("uuid");
+const LLMConnectionManager_1 = require("./LLMConnectionManager");
+class LLMSessionManager extends events_1.EventEmitter {
+    sessions = new Map();
+    activeSessionId;
     connectionManager;
-    constructor(connectionManager) {
+    hostManager;
+    sessionTimeout = 3600000; // 1 hour
+    sessionCheckInterval;
+    constructor(connectionManager, hostManager) {
+        super();
         this.connectionManager = connectionManager;
-        this.configService = new LLMSessionConfigService_1.LLMSessionConfigService();
-        this.requestService = new LLMRequestExecutionService_1.LLMRequestExecutionService();
-        this.trackingService = new LLMSessionTrackingService_1.LLMSessionTrackingService();
-        this.setupEventListeners();
-    }
-    static getInstance(connectionManager) {
-        if (!LLMSessionManager.instance) {
-            LLMSessionManager.instance = new LLMSessionManager(connectionManager);
-        }
-        return LLMSessionManager.instance;
-    }
-    setupEventListeners() {
-        // Listen for configuration changes
-        this.disposables.push(vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('copilot-ppa.llm')) {
-                this.configService.reloadConfig();
+        this.hostManager = hostManager;
+        // Listen for connection status changes
+        this.connectionManager.on('statusChanged', (event) => {
+            if (event.status === LLMConnectionManager_1.ConnectionStatus.Disconnected && this.activeSessionId) {
+                this.deactivateSession(this.activeSessionId);
             }
-        }));
-        // Listen for connection events
-        this.connectionManager.on(types_1.ConnectionEvent.Disconnected, () => {
-            this.trackingService.stopAllSessions();
         });
-        this.connectionManager.on(types_1.ConnectionEvent.Error, (error) => {
-            this.trackingService.handleError(error);
-        });
+        // Start session cleanup
+        this.startSessionCleanup();
     }
     /**
-     * Execute an LLM request within a session
+     * Create a new LLM session
+     * @param config Session configuration
+     * @returns The created session
      */
-    async executeRequest(request, sessionConfig, sessionId = crypto.randomUUID()) {
-        await this.connectionManager.connectToLLM();
-        const config = this.configService.mergeConfig(sessionConfig);
-        const session = this.trackingService.startSession(sessionId, config);
+    createSession(config) {
+        const id = (0, uuid_1.v4)();
+        const now = Date.now();
+        const session = {
+            id,
+            config,
+            state: {
+                id,
+                active: false,
+                startTime: now,
+                lastActivity: now,
+                requestCount: 0,
+                tokenCount: 0,
+                model: config.model,
+                provider: config.provider
+            },
+            createdAt: now,
+            messages: []
+        };
+        this.sessions.set(id, session);
+        this.emit('sessionCreated', session);
+        return session;
+    }
+    /**
+     * Get a session by ID
+     * @param id Session ID
+     * @returns The session or undefined if not found
+     */
+    getSession(id) {
+        return this.sessions.get(id);
+    }
+    /**
+     * Get all active sessions
+     * @returns Array of active sessions
+     */
+    getAllSessions() {
+        return Array.from(this.sessions.values());
+    }
+    /**
+     * Get the current active session
+     * @returns The active session or undefined if none is active
+     */
+    getActiveSession() {
+        if (!this.activeSessionId) {
+            return undefined;
+        }
+        return this.sessions.get(this.activeSessionId);
+    }
+    /**
+     * Activate a session
+     * @param id Session ID to activate
+     * @returns True if the session was activated
+     */
+    activateSession(id) {
+        const session = this.sessions.get(id);
+        if (!session) {
+            return false;
+        }
+        // Deactivate current active session if any
+        if (this.activeSessionId && this.activeSessionId !== id) {
+            this.deactivateSession(this.activeSessionId);
+        }
+        // Set as active
+        this.activeSessionId = id;
+        session.state.active = true;
+        this.emit('sessionActivated', session);
+        return true;
+    }
+    /**
+     * Deactivate a session
+     * @param id Session ID to deactivate
+     * @returns True if the session was deactivated
+     */
+    deactivateSession(id) {
+        const session = this.sessions.get(id);
+        if (!session) {
+            return false;
+        }
+        session.state.active = false;
+        if (this.activeSessionId === id) {
+            this.activeSessionId = undefined;
+        }
+        this.emit('sessionDeactivated', session);
+        return true;
+    }
+    /**
+     * Close and remove a session
+     * @param id Session ID to close
+     * @returns True if the session was closed
+     */
+    closeSession(id) {
+        if (!this.sessions.has(id)) {
+            return false;
+        }
+        if (this.activeSessionId === id) {
+            this.activeSessionId = undefined;
+        }
+        const session = this.sessions.get(id);
+        this.sessions.delete(id);
+        this.emit('sessionClosed', session);
+        return true;
+    }
+    /**
+     * Update a session's configuration
+     * @param id Session ID to update
+     * @param config New session configuration
+     * @returns Updated session or undefined if not found
+     */
+    updateSessionConfig(id, config) {
+        const session = this.sessions.get(id);
+        if (!session) {
+            return undefined;
+        }
+        session.config = {
+            ...session.config,
+            ...config
+        };
+        // Update state if model or provider changed
+        if (config.model) {
+            session.state.model = config.model;
+        }
+        if (config.provider) {
+            session.state.provider = config.provider;
+        }
+        this.emit('sessionUpdated', session);
+        return session;
+    }
+    /**
+     * Send a prompt to the LLM using the active session
+     * @param prompt The prompt to send
+     * @returns Promise resolving to the LLM response
+     */
+    async sendPrompt(prompt) {
+        if (!this.activeSessionId) {
+            throw new Error('No active session');
+        }
+        return this.sendPromptWithSession(this.activeSessionId, prompt);
+    }
+    /**
+     * Send a prompt using a specific session
+     * @param sessionId Session ID to use
+     * @param prompt The prompt to send
+     * @returns Promise resolving to the LLM response
+     */
+    async sendPromptWithSession(sessionId, prompt) {
+        const session = this.sessions.get(sessionId);
+        if (!session) {
+            throw new Error(`Session with ID ${sessionId} not found`);
+        }
+        if (this.connectionManager.getConnectionStatus() !== LLMConnectionManager_1.ConnectionStatus.Connected) {
+            throw new Error('LLM provider is not connected');
+        }
+        const provider = this.connectionManager.getProvider();
+        if (!provider) {
+            throw new Error('No LLM provider available');
+        }
+        // Update session activity timestamp
+        session.state.lastActivity = Date.now();
+        session.state.requestCount++;
+        // Create request
+        const request = {
+            id: (0, uuid_1.v4)(),
+            prompt,
+            model: session.config.model,
+            options: session.config.parameters,
+            priority: 'normal', // Default priority
+            timestamp: Date.now(),
+            status: 'pending'
+        };
         try {
-            const response = await this.requestService.execute(request, config);
-            this.trackingService.recordSuccess(sessionId, response);
+            // Send to provider
+            const response = await provider.completePrompt(request);
+            // Record message
+            session.messages.push({
+                prompt,
+                response: response.content,
+                timestamp: Date.now()
+            });
+            // Update token count if available
+            if (response.tokenUsage) {
+                session.state.tokenCount += response.tokenUsage.totalTokens;
+            }
+            this.emit('promptCompleted', { sessionId, request, response });
             return response;
         }
         catch (error) {
-            this.trackingService.recordError(sessionId, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.emit('promptFailed', {
+                sessionId,
+                request,
+                error: new Error(`Failed to complete prompt: ${errorMessage}`)
+            });
             throw error;
         }
-        finally {
-            this.trackingService.endSession(sessionId);
+    }
+    /**
+     * Clear message history for a session
+     * @param id Session ID
+     * @returns True if history was cleared
+     */
+    clearSessionHistory(id) {
+        const session = this.sessions.get(id);
+        if (!session) {
+            return false;
         }
+        session.messages = [];
+        this.emit('historyCleared', id);
+        return true;
     }
     /**
-     * Abort an ongoing LLM session
+     * Get session statistics
+     * @param id Session ID
+     * @returns Session statistics or undefined if session not found
      */
-    abortSession(sessionId) {
-        const aborted = this.requestService.abortRequest(sessionId);
-        if (aborted) {
-            this.trackingService.endSession(sessionId, 'aborted');
+    getSessionStats(id) {
+        const session = this.sessions.get(id);
+        if (!session) {
+            return undefined;
         }
-        return aborted;
+        const errorCount = session.messages.filter(m => !m.response).length;
+        const totalRequests = session.state.requestCount;
+        const errorRate = totalRequests > 0 ? errorCount / totalRequests : 0;
+        // Calculate average response time
+        let totalResponseTime = 0;
+        let responseTimes = 0;
+        for (let i = 1; i < session.messages.length; i++) {
+            if (session.messages[i].response) {
+                totalResponseTime += session.messages[i].timestamp - session.messages[i - 1].timestamp;
+                responseTimes++;
+            }
+        }
+        const averageResponseTime = responseTimes > 0
+            ? totalResponseTime / responseTimes
+            : 0;
+        return {
+            totalRequests,
+            totalTokens: session.state.tokenCount,
+            averageResponseTime,
+            errorRate
+        };
     }
     /**
-     * Get current session statistics
+     * Set the session timeout period
+     * @param timeoutMs Timeout in milliseconds
      */
-    getSessionStats() {
-        return this.trackingService.getStats();
+    setSessionTimeout(timeoutMs) {
+        if (timeoutMs < 60000) { // Minimum 1 minute
+            throw new Error('Session timeout must be at least 60000ms (1 minute)');
+        }
+        this.sessionTimeout = timeoutMs;
     }
     /**
-     * Get current session configuration
+     * Start the session cleanup process
      */
-    getSessionConfig() {
-        return this.configService.getCurrentConfig();
+    startSessionCleanup() {
+        this.sessionCheckInterval = setInterval(() => {
+            this.cleanupInactiveSessions();
+        }, 60000); // Check every minute
+    }
+    /**
+     * Cleanup inactive sessions
+     */
+    cleanupInactiveSessions() {
+        const now = Date.now();
+        const expiredSessionIds = [];
+        // Find expired sessions
+        for (const [id, session] of this.sessions.entries()) {
+            if (!session.state.active && (now - session.state.lastActivity) > this.sessionTimeout) {
+                expiredSessionIds.push(id);
+            }
+        }
+        // Close expired sessions
+        for (const id of expiredSessionIds) {
+            this.closeSession(id);
+            this.emit('sessionExpired', id);
+        }
     }
     dispose() {
-        this.trackingService.dispose();
-        this.requestService.dispose();
-        this.disposables.forEach(d => d.dispose());
+        // Clear session cleanup interval
+        if (this.sessionCheckInterval) {
+            clearInterval(this.sessionCheckInterval);
+        }
+        // Close all sessions
+        for (const id of this.sessions.keys()) {
+            this.closeSession(id);
+        }
+        this.removeAllListeners();
     }
 }
 exports.LLMSessionManager = LLMSessionManager;

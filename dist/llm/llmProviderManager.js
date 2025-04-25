@@ -1,242 +1,238 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderManager = void 0;
+const vscode = __importStar(require("vscode"));
 const events_1 = require("events");
-const llm_provider_1 = require("./llm-provider");
-const connectionStatusService_1 = require("../status/connectionStatusService");
-const LLMConnectionManager_1 = require("../services/llm/LLMConnectionManager");
-const multilingualPromptManager_1 = require("./multilingualPromptManager");
-const i18n_1 = require("../i18n");
-/**
- * Manages LLM providers and their lifecycle, integrated with the connection management system
- */
-class LLMProviderManager extends events_1.EventEmitter {
-    static instance;
-    _providers = new Map();
+class LLMProviderManager {
+    providers = new Map();
+    defaultProviderId;
     connectionManager;
-    multilingualManager;
-    _activeProvider = null;
-    connectionStatusService;
-    constructor(connectionStatusService) {
-        super();
-        this.connectionStatusService = connectionStatusService;
-        this.connectionManager = LLMConnectionManager_1.LLMConnectionManager.getInstance();
-        this.multilingualManager = new multilingualPromptManager_1.MultilingualPromptManager();
-    }
-    /**
-     * Gets the singleton instance of the LLMProviderManager
-     */
-    static getInstance(connectionStatusService) {
-        if (!LLMProviderManager.instance && connectionStatusService) {
-            LLMProviderManager.instance = new LLMProviderManager(connectionStatusService);
-        }
-        return LLMProviderManager.instance;
-    }
-    /**
-     * Registers a new LLM provider
-     * @param provider The provider to register
-     */
-    registerProvider(provider) {
-        this._providers.set(provider.name, provider);
-        provider.on('stateChanged', (status) => {
-            this.emit('providerStateChanged', {
-                provider: provider.name,
-                status
-            });
+    hostManager;
+    statusService;
+    disposables = [];
+    eventEmitter = new events_1.EventEmitter();
+    constructor(connectionManager, hostManager, statusService) {
+        this.connectionManager = connectionManager;
+        this.hostManager = hostManager;
+        this.statusService = statusService;
+        // Load available providers from configuration
+        this.loadProviderSettings();
+        // Listen for configuration changes
+        const configDisposable = vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('copilot-ppa.models') ||
+                e.affectsConfiguration('vscodeLocalLLMAgent')) {
+                this.loadProviderSettings();
+            }
         });
+        this.disposables.push(configDisposable);
     }
     /**
-     * Sets the active LLM provider
-     * @param name Name of the provider to activate
+     * Register a new LLM provider
+     * @param id Unique provider ID
+     * @param name Display name for the provider
+     * @param provider Provider implementation
+     * @param options Additional registration options
+     * @returns True if registration was successful
      */
-    async setActiveProvider(name) {
-        if (!this._providers.has(name)) {
-            throw new llm_provider_1.LLMProviderError('PROVIDER_NOT_FOUND', `Provider ${name} not found`);
+    registerProvider(id, name, provider, options = {}) {
+        if (this.providers.has(id)) {
+            return false;
         }
-        this._activeProvider = this._providers.get(name) || null;
-        this.emit('activeProviderChanged', name);
-        if (this._activeProvider) {
-            const status = this._activeProvider.getStatus();
-            this.updateConnectionState(status.isConnected ? connectionStatusService_1.ConnectionState.Connected : connectionStatusService_1.ConnectionState.Disconnected);
+        const registration = {
+            id,
+            name,
+            provider,
+            isDefault: options.isDefault || false,
+            priority: options.priority || 0
+        };
+        this.providers.set(id, registration);
+        if (registration.isDefault && !this.defaultProviderId) {
+            this.defaultProviderId = id;
         }
+        this.eventEmitter.emit('providerRegistered', registration);
+        return true;
     }
     /**
-     * Gets a provider by name
-     * @param name Name of the provider
-     * @returns The provider or undefined if not found
+     * Unregister a provider
+     * @param id Provider ID to remove
+     * @returns True if the provider was removed
      */
-    getProvider(name) {
-        return this._providers.get(name);
-    }
-    /**
-     * Gets the currently active provider
-     * @returns The active provider or undefined if none is set
-     */
-    getActiveProvider() {
-        return this._activeProvider;
-    }
-    /**
-     * Gets all registered providers
-     * @returns Map of all registered providers
-     */
-    getProviders() {
-        return new Map(this._providers);
-    }
-    /**
-     * Gets the name of the currently active model
-     * @returns The active model name or null if none is set
-     */
-    getActiveModelName() {
-        if (!this._activeProvider) {
-            return null;
+    unregisterProvider(id) {
+        if (!this.providers.has(id)) {
+            return false;
         }
-        const status = this._activeProvider.getStatus();
-        return status.activeModel || null;
+        const wasDefault = this.providers.get(id).isDefault;
+        this.providers.delete(id);
+        // If we removed the default provider, find a new one
+        if (wasDefault && this.defaultProviderId === id) {
+            this.defaultProviderId = this.findNewDefaultProvider();
+        }
+        this.eventEmitter.emit('providerUnregistered', id);
+        return true;
     }
     /**
-     * Connects to the currently active LLM provider
-     * @returns A promise that resolves to true if connection was successful
+     * Get a provider by ID
+     * @param id Provider ID
+     * @returns The provider registration or undefined if not found
      */
-    async connect() {
-        if (!this._activeProvider) {
-            throw new Error('No LLM provider is active');
+    getProvider(id) {
+        return this.providers.get(id);
+    }
+    /**
+     * Get all registered providers
+     * @returns Array of provider registrations
+     */
+    getAllProviders() {
+        return Array.from(this.providers.values());
+    }
+    /**
+     * Set a provider as the default
+     * @param id Provider ID to set as default
+     * @returns True if the provider was set as default
+     */
+    setDefaultProvider(id) {
+        if (!this.providers.has(id)) {
+            return false;
         }
+        // Clear previous default
+        if (this.defaultProviderId) {
+            const prevDefault = this.providers.get(this.defaultProviderId);
+            if (prevDefault) {
+                prevDefault.isDefault = false;
+            }
+        }
+        // Set new default
+        const provider = this.providers.get(id);
+        provider.isDefault = true;
+        this.defaultProviderId = id;
+        // Try to use this provider with the connection manager
         try {
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Connecting);
-            await this._activeProvider.connect();
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Connected);
-            this.connectionStatusService.showNotification('Connected to LLM Provider');
-            return true;
+            this.connectionManager.setProvider(provider.provider);
+            this.statusService.updateConnectionStatus();
         }
         catch (error) {
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Error);
-            this.connectionStatusService.showNotification(`Failed to connect to LLM: ${error instanceof Error ? error.message : String(error)}`, 'error');
-            throw error;
+            console.error('Failed to set provider:', error);
         }
+        this.eventEmitter.emit('defaultProviderChanged', id);
+        return true;
     }
     /**
-     * Disconnects from the currently active LLM provider
+     * Get the current default provider
+     * @returns The default provider registration or undefined if none is set
      */
-    async disconnect() {
-        if (!this._activeProvider) {
-            return;
+    getDefaultProvider() {
+        if (!this.defaultProviderId) {
+            return undefined;
         }
-        try {
-            await this._activeProvider.disconnect();
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Disconnected);
-        }
-        catch (error) {
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Error);
-            this.connectionStatusService.showNotification(`Failed to disconnect from LLM: ${error instanceof Error ? error.message : String(error)}`, 'error');
-            throw error;
-        }
+        return this.providers.get(this.defaultProviderId);
     }
     /**
-     * Sets a new active model on the current provider
-     * @param modelName The model name to activate
+     * Load provider settings from VS Code configuration
      */
-    async setActiveModel(modelName) {
-        if (!this._activeProvider) {
-            throw new Error('No LLM provider is active');
-        }
-        try {
-            // Since the LLMProvider interface doesn't have setActiveModel, we'll use this as a placeholder
-            // In practice, providers might have different ways of switching models
-            // For testing purposes, we'll just update the connection state
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Connected, { modelName });
-        }
-        catch (error) {
-            this.updateConnectionState(connectionStatusService_1.ConnectionState.Error);
-            throw error;
-        }
-    }
-    /**
-     * Enables or disables offline mode for the current provider
-     * @param enabled Whether offline mode should be enabled
-     */
-    setOfflineMode(enabled) {
-        const provider = this.getActiveProvider();
-        if (provider && typeof provider.setOfflineMode === 'function') {
-            provider.setOfflineMode(enabled);
-        }
-    }
-    /**
-     * Sends a prompt to the current LLM provider
-     * @param prompt The prompt to send
-     * @param options Optional settings for the request
-     * @returns Promise that resolves with the LLM response
-     */
-    async sendPrompt(prompt, options) {
-        const provider = this.getActiveProvider();
-        if (!provider) {
-            throw new Error('No LLM provider is currently connected');
-        }
-        const response = await provider.generateCompletion(provider.getStatus().activeModel || '', prompt, undefined, options);
-        // Cache response if provider supports it
-        if (typeof provider.cacheResponse === 'function') {
-            await provider.cacheResponse(prompt, response.content);
-        }
-        return response.content;
-    }
-    /**
-     * Sends a prompt to the current LLM provider with language support
-     * @param prompt The prompt to send
-     * @param options Optional settings for the request
-     * @param targetLanguage Target language for the response, defaults to UI language
-     * @returns Promise that resolves with the LLM response
-     */
-    async sendPromptWithLanguage(prompt, options, targetLanguage) {
-        const provider = this.getActiveProvider();
-        if (!provider) {
-            throw new Error('No LLM provider is currently connected');
-        }
-        const language = targetLanguage || (0, i18n_1.getCurrentLanguage)();
-        const enhancedPrompt = this.multilingualManager.enhancePromptWithLanguage(prompt, language);
-        const response = await provider.generateCompletion(provider.getStatus().activeModel || '', enhancedPrompt, undefined, options);
-        if (!this.multilingualManager.isResponseInExpectedLanguage(response.content, language)) {
-            const correctionPrompt = this.multilingualManager.buildLanguageCorrectionPrompt(prompt, response.content, language);
-            const correctedResponse = await provider.generateCompletion(provider.getStatus().activeModel || '', correctionPrompt, undefined, options);
-            return correctedResponse.content;
-        }
-        return response.content;
-    }
-    /**
-     * Sends a streaming prompt to the current LLM provider
-     * @param prompt The prompt to send
-     * @param callback Callback function to receive streaming chunks
-     * @param options Optional settings for the request
-     * @returns Promise that resolves when streaming is complete
-     */
-    async sendStreamingPrompt(prompt, callback, options) {
-        const provider = this.getActiveProvider();
-        if (!provider) {
-            throw new Error('No LLM provider is currently connected');
-        }
-        let fullResponse = '';
-        await provider.streamCompletion(provider.getStatus().activeModel || '', prompt, undefined, options, (event) => {
-            fullResponse += event.content;
-            callback(event.content);
+    loadProviderSettings() {
+        const config = vscode.workspace.getConfiguration('copilot-ppa');
+        const models = config.get('models', []);
+        // Load provider preferences
+        const defaultProvider = config.get('defaultProvider');
+        // Register configured providers
+        models.forEach((model, index) => {
+            // For each model configuration, we would create and register a provider
+            // This is placeholder code - in a real implementation you would
+            // create a provider instance based on the model settings
+            // This is just for testing
+            if (model.name && model.provider && !this.providers.has(model.id)) {
+                this.registerProvider(model.id || `provider-${index}`, model.name, {}, // Placeholder for actual provider
+                {
+                    isDefault: model.id === defaultProvider,
+                    priority: index
+                });
+            }
         });
-        return fullResponse;
-    }
-    /**
-     * Updates the connection state in the status service
-     */
-    updateConnectionState(state, additionalInfo) {
-        const info = additionalInfo || {};
-        if (this._activeProvider) {
-            const providerStatus = this._activeProvider.getStatus();
-            info.providerName = this._activeProvider.name;
-            info.modelName = info.modelName || providerStatus.activeModel;
+        // If no default provider is set and we have providers, set the first one as default
+        if (!this.defaultProviderId && this.providers.size > 0) {
+            this.defaultProviderId = this.findNewDefaultProvider();
+            const defaultReg = this.providers.get(this.defaultProviderId);
+            if (defaultReg) {
+                defaultReg.isDefault = true;
+            }
         }
-        this.connectionStatusService.setState(state, info);
     }
     /**
-     * Disposes of resources
+     * Find a new default provider based on priority
+     * @returns The ID of the new default provider or undefined if none found
      */
+    findNewDefaultProvider() {
+        if (this.providers.size === 0) {
+            return undefined;
+        }
+        // Sort by priority and pick the highest
+        const sortedProviders = Array.from(this.providers.values())
+            .sort((a, b) => b.priority - a.priority);
+        return sortedProviders[0]?.id;
+    }
+    /**
+     * Listen for provider events
+     * @param event Event name
+     * @param listener Event listener function
+     */
+    on(event, listener) {
+        this.eventEmitter.on(event, listener);
+    }
+    /**
+     * Register a one-time listener for provider events
+     * @param event Event name
+     * @param listener Event listener function
+     */
+    once(event, listener) {
+        this.eventEmitter.once(event, listener);
+    }
+    /**
+     * Remove a listener from provider events
+     * @param event Event name
+     * @param listener Event listener function
+     */
+    off(event, listener) {
+        this.eventEmitter.off(event, listener);
+    }
     dispose() {
-        this._activeProvider = null;
-        this.removeAllListeners();
+        // Dispose all disposables
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+        // Remove all event listeners
+        this.eventEmitter.removeAllListeners();
     }
 }
 exports.LLMProviderManager = LLMProviderManager;

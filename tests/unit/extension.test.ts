@@ -14,16 +14,19 @@ describe('Extension', () => {
       globalState: {
         get: jest.fn(),
         update: jest.fn(),
-        setKeysForSync: jest.fn()
+        setKeysForSync: jest.fn(),
+        keys: jest.fn().mockReturnValue([])
       },
       workspaceState: {
         get: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
+        keys: jest.fn().mockReturnValue([])
       },
       secrets: {
         get: jest.fn(),
         store: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
+        onDidChange: jest.fn()
       },
       globalStorageUri: vscode.Uri.file('/test/global'),
       logUri: vscode.Uri.file('/test/log'),
@@ -39,7 +42,25 @@ describe('Extension', () => {
         get: jest.fn(),
         forEach: jest.fn(),
         delete: jest.fn(),
-        clear: jest.fn()
+        clear: jest.fn(),
+        getScoped: jest.fn(),
+        description: '',
+        [Symbol.iterator]: jest.fn()
+      },
+      globalStoragePath: '/test/global/storage',
+      extension: {
+        id: 'test-extension',
+        extensionUri: vscode.Uri.file('/test'),
+        extensionPath: '/test',
+        isActive: true,
+        packageJSON: {},
+        exports: {},
+        activate: jest.fn(),
+        extensionKind: vscode.ExtensionKind.UI
+      },
+      languageModelAccessInformation: {
+        endpoint: "https://mock-endpoint.com",
+        authHeader: "mock-auth-header"
       }
     };
   });

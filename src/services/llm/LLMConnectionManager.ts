@@ -1,168 +1,198 @@
+import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
-import { LLMProvider } from '../../llm/llm-provider';
-import { ConnectionState } from '../../status/connectionStatusService';
+import { LLMProvider, ProviderCapabilities } from '../../llm/types';
+import { LLMProviderValidator } from './validators/LLMProviderValidator';
 
-/**
- * Manager for handling connections to LLM providers
- */
-export class LLMConnectionManager extends EventEmitter {
-    private static instance: LLMConnectionManager;
-    private providers: Map<string, LLMProvider> = new Map();
-    private activeProvider: string | null = null;
-    private connectionState: ConnectionState = ConnectionState.Disconnected;
-    private hostState: 'running' | 'stopped' | 'unknown' = 'unknown';
+export enum ConnectionStatus {
+    Disconnected = 'disconnected',
+    Connecting = 'connecting',
+    Connected = 'connected',
+    Error = 'error'
+}
 
-    private constructor() {
+export interface ConnectionEvent {
+    provider?: string;
+    status: ConnectionStatus;
+    timestamp: number;
+    error?: Error;
+    details?: Record<string, any>;
+}
+
+export class LLMConnectionManager extends EventEmitter implements vscode.Disposable {
+    private provider: LLMProvider | null = null;
+    private status: ConnectionStatus = ConnectionStatus.Disconnected;
+    private validator: LLMProviderValidator;
+    private connectionTimeout: number = 30000; // 30 seconds default timeout
+    private connectionAttempts: number = 0;
+    private maxConnectionAttempts: number = 3;
+    
+    constructor() {
         super();
+        this.validator = new LLMProviderValidator();
     }
-
-    public static getInstance(): LLMConnectionManager {
-        if (!LLMConnectionManager.instance) {
-            LLMConnectionManager.instance = new LLMConnectionManager();
-        }
-        return LLMConnectionManager.instance;
-    }
-
+    
     /**
-     * Registers a provider with the connection manager
-     * @param name Unique provider name
-     * @param provider Provider instance
+     * Set the LLM provider to use
+     * @param provider The LLM provider implementation
+     * @returns True if the provider was set successfully
      */
-    public registerProvider(name: string, provider: LLMProvider): void {
-        this.providers.set(name, provider);
+    setProvider(provider: LLMProvider): boolean {
+        if (!provider) {
+            throw new Error('Provider cannot be null or undefined');
+        }
         
-        // Listen for provider state changes
-        provider.on('stateChanged', (status) => {
-            if (name === this.activeProvider) {
-                this.updateConnectionState(
-                    status.isConnected ? ConnectionState.Connected : ConnectionState.Disconnected
-                );
-            }
+        // Validate the provider
+        const validationResult = this.validator.validate(provider);
+        if (!validationResult.isValid) {
+            const errors = validationResult.errors.join(', ');
+            throw new Error(`Invalid LLM provider: ${errors}`);
+        }
+        
+        this.provider = provider;
+        
+        this.emit('providerChanged', {
+            provider: provider.getName(),
+            status: this.status,
+            timestamp: Date.now()
         });
+        
+        return true;
     }
-
+    
     /**
-     * Sets the active provider
-     * @param name Provider name to activate
+     * Get the current LLM provider
+     * @returns The current LLM provider or null if not set
      */
-    public setActiveProvider(name: string): void {
-        if (!this.providers.has(name)) {
-            throw new Error(`Provider ${name} not registered`);
+    getProvider(): LLMProvider | null {
+        return this.provider;
+    }
+    
+    /**
+     * Connect to the LLM provider
+     * @returns True if connected successfully
+     */
+    async connectToLLM(): Promise<boolean> {
+        if (!this.provider) {
+            throw new Error('No provider set - call setProvider first');
         }
         
-        this.activeProvider = name;
+        // Prevent connection if already connecting or connected
+        if (this.status === ConnectionStatus.Connecting || this.status === ConnectionStatus.Connected) {
+            return this.status === ConnectionStatus.Connected;
+        }
         
-        // Update state based on provider's current state
-        const provider = this.providers.get(name);
-        if (provider) {
-            const status = provider.getStatus();
-            this.updateConnectionState(
-                status.isConnected ? ConnectionState.Connected : ConnectionState.Disconnected
+        this.setStatus(ConnectionStatus.Connecting);
+        this.connectionAttempts += 1;
+        
+        try {
+            // Check if provider is available with timeout
+            const isAvailable = await this.withTimeout(
+                this.provider.isAvailable(),
+                this.connectionTimeout,
+                'Connection timeout'
             );
+            
+            if (!isAvailable) {
+                throw new Error('Provider is not available');
+            }
+            
+            this.setStatus(ConnectionStatus.Connected);
+            this.connectionAttempts = 0;
+            return true;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.setStatus(ConnectionStatus.Error, new Error(`Failed to connect: ${errorMessage}`));
+            
+            // If we haven't exceeded max attempts, try again
+            if (this.connectionAttempts < this.maxConnectionAttempts) {
+                console.log(`Connection attempt ${this.connectionAttempts} failed, retrying...`);
+                return this.connectToLLM();
+            }
+            
+            this.connectionAttempts = 0;
+            return false;
         }
     }
-
+    
     /**
-     * Gets the active provider
-     * @returns The active provider or null if none set
+     * Disconnect from the LLM provider
      */
-    public getActiveProvider(): LLMProvider | null {
-        if (!this.activeProvider) {
+    disconnectFromLLM(): void {
+        this.setStatus(ConnectionStatus.Disconnected);
+    }
+    
+    /**
+     * Get the current connection status
+     * @returns The current connection status
+     */
+    getConnectionStatus(): ConnectionStatus {
+        return this.status;
+    }
+    
+    /**
+     * Get the capabilities of the current provider
+     * @returns The provider capabilities or null if no provider is set
+     */
+    getCapabilities(): ProviderCapabilities | null {
+        if (!this.provider) {
             return null;
         }
         
-        return this.providers.get(this.activeProvider) || null;
+        return this.provider.getCapabilities();
     }
-
+    
     /**
-     * Initiates a connection to the active provider
-     * @returns True if connection was successful
+     * Set the connection timeout
+     * @param timeoutMs Timeout in milliseconds
      */
-    public async connectToLLM(): Promise<boolean> {
-        if (!this.activeProvider) {
-            throw new Error('No active provider set');
+    setConnectionTimeout(timeoutMs: number): void {
+        if (timeoutMs < 1000) {
+            throw new Error('Timeout must be at least 1000ms (1 second)');
         }
         
-        const provider = this.providers.get(this.activeProvider);
-        if (!provider) {
-            throw new Error(`Provider ${this.activeProvider} not found`);
+        this.connectionTimeout = timeoutMs;
+    }
+    
+    /**
+     * Set the maximum number of connection attempts
+     * @param attempts Maximum number of attempts
+     */
+    setMaxConnectionAttempts(attempts: number): void {
+        if (attempts < 1) {
+            throw new Error('Max connection attempts must be at least 1');
         }
         
-        try {
-            this.updateConnectionState(ConnectionState.Connecting);
-            await provider.connect();
-            this.updateConnectionState(ConnectionState.Connected);
-            return true;
-        } catch (error) {
-            this.updateConnectionState(ConnectionState.Error);
-            throw error;
-        }
+        this.maxConnectionAttempts = attempts;
     }
-
-    /**
-     * Disconnects the current active provider
-     */
-    public async disconnectFromLLM(): Promise<void> {
-        if (!this.activeProvider) {
-            return;
-        }
+    
+    private setStatus(status: ConnectionStatus, error?: Error): void {
+        this.status = status;
         
-        const provider = this.providers.get(this.activeProvider);
-        if (!provider) {
-            return;
-        }
-        
-        try {
-            await provider.disconnect();
-            this.updateConnectionState(ConnectionState.Disconnected);
-        } catch (error) {
-            this.updateConnectionState(ConnectionState.Error);
-            throw error;
-        }
-    }
-
-    /**
-     * Gets the current connection state
-     */
-    public async getCurrentState(): Promise<ConnectionState> {
-        return this.connectionState;
-    }
-
-    /**
-     * Updates the connection state and emits an event
-     */
-    private updateConnectionState(state: ConnectionState): void {
-        this.connectionState = state;
-        this.emit('stateChanged', state);
-    }
-
-    /**
-     * Sets the host state (running/stopped) and emits an event
-     */
-    public setHostState(state: 'running' | 'stopped'): void {
-        this.hostState = state;
-        this.emit('hostStateChanged', state);
-    }
-
-    /**
-     * Sets the active model for the current provider
-     * @param modelName Name of the model to activate
-     */
-    public async setActiveModel(modelName: string): Promise<void> {
-        const provider = this.getActiveProvider();
-        if (!provider) {
-            throw new Error('No active provider set');
-        }
-        
-        // For now, we'll just update the provider status
-        // In a real implementation, this might involve API calls to change the model
-        const currentStatus = provider.getStatus();
-        const updatedStatus = { 
-            ...currentStatus,
-            activeModel: modelName 
+        const event: ConnectionEvent = {
+            provider: this.provider?.getName(),
+            status,
+            timestamp: Date.now()
         };
         
-        // Emit a state change event - the provider should implement this properly
-        provider.emit('stateChanged', updatedStatus);
+        if (error) {
+            event.error = error;
+        }
+        
+        this.emit('statusChanged', event);
+    }
+    
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+        return Promise.race([
+            promise,
+            new Promise<T>((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error(message));
+                }, timeoutMs);
+            })
+        ]);
+    }
+    
+    dispose(): void {
+        this.removeAllListeners();
     }
 }

@@ -24,9 +24,19 @@ export interface ILogEntry {
 }
 
 /**
+ * Logger interface
+ */
+export interface ILogger {
+    log: (message: string, details?: unknown) => void;
+    info: (message: string, details?: unknown) => void;
+    warn: (message: string, details?: unknown) => void;
+    error: (message: string, details?: unknown) => void;
+}
+
+/**
  * Logger class for Copilot PPA extension
  */
-export class Logger {
+export class Logger implements ILogger {
     private _outputChannel: vscode.OutputChannel;
     private _logLevel: LogLevel;
     private _logToFile: boolean;

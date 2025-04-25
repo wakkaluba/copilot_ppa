@@ -1,151 +1,255 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LLMHostManager = void 0;
+exports.LLMHostManager = exports.HostStatus = void 0;
 const events_1 = require("events");
-const vscode = __importStar(require("vscode"));
-const llm_1 = require("../../types/llm");
-const LLMHostProcessService_1 = require("./services/LLMHostProcessService");
-const LLMHostHealthMonitorService_1 = require("./services/LLMHostHealthMonitorService");
-const LLMHostStateService_1 = require("./services/LLMHostStateService");
-const LLMHostErrorHandlerService_1 = require("./services/LLMHostErrorHandlerService");
-/**
- * Manages LLM host processes and their lifecycle
- */
+var HostStatus;
+(function (HostStatus) {
+    HostStatus["Unknown"] = "unknown";
+    HostStatus["Available"] = "available";
+    HostStatus["Unavailable"] = "unavailable";
+    HostStatus["Error"] = "error";
+})(HostStatus || (exports.HostStatus = HostStatus = {}));
 class LLMHostManager extends events_1.EventEmitter {
-    static instance;
-    processService;
-    healthMonitor;
-    stateService;
-    errorHandler;
+    hosts = new Map();
+    checkIntervals = new Map();
+    defaultCheckInterval = 60000; // 1 minute
     constructor() {
         super();
-        const outputChannel = vscode.window.createOutputChannel('LLM Host');
-        this.processService = new LLMHostProcessService_1.LLMHostProcessService(outputChannel);
-        this.healthMonitor = new LLMHostHealthMonitorService_1.LLMHostHealthMonitorService(outputChannel);
-        this.stateService = new LLMHostStateService_1.LLMHostStateService();
-        this.errorHandler = new LLMHostErrorHandlerService_1.LLMHostErrorHandlerService(outputChannel);
-        this.setupEventHandlers();
     }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new LLMHostManager();
+    /**
+     * Add a new LLM host
+     * @param id Unique identifier for the host
+     * @param name Display name for the host
+     * @param url Base URL for the host's API
+     * @returns The created host object
+     */
+    addHost(id, name, url) {
+        if (this.hosts.has(id)) {
+            throw new Error(`Host with ID ${id} already exists`);
         }
-        return this.instance;
+        const host = {
+            id,
+            name,
+            url,
+            isAvailable: false,
+            lastCheck: 0,
+            status: HostStatus.Unknown,
+            supportsStreaming: false
+        };
+        this.hosts.set(id, host);
+        this.emit('hostAdded', host);
+        return host;
     }
-    get state() {
-        return this.stateService.getCurrentState();
+    /**
+     * Add a host from provider configuration
+     * @param config Provider configuration
+     * @returns The created host object
+     */
+    addHostFromConfig(config) {
+        return this.addHost(config.id, config.name, config.apiEndpoint);
     }
-    setupEventHandlers() {
-        // Process events
-        this.processService.on('process:started', info => {
-            this.healthMonitor.startMonitoring(info);
-            this.emit('hostStarted', info);
-        });
-        this.processService.on('process:stopped', info => {
-            this.healthMonitor.stopMonitoring(info.pid);
-            this.emit('hostStopped', info);
-        });
-        this.processService.on('process:error', (error, info) => {
-            this.errorHandler.handleProcessError(error, info);
-            this.emit('hostError', error);
-        });
-        // Health events
-        this.healthMonitor.on('health:warning', (msg, metrics) => {
-            this.errorHandler.handleHealthWarning(msg, metrics);
-            this.emit('healthWarning', msg);
-        });
-        this.healthMonitor.on('health:critical', (error, metrics) => {
-            this.errorHandler.handleHealthCritical(error, metrics);
-            this.emit('healthCritical', error);
-        });
+    /**
+     * Get a host by ID
+     * @param id Host ID
+     * @returns The host object or undefined if not found
+     */
+    getHost(id) {
+        return this.hosts.get(id);
     }
-    async startHost(config) {
+    /**
+     * Get all registered hosts
+     * @returns Array of all hosts
+     */
+    getAllHosts() {
+        return Array.from(this.hosts.values());
+    }
+    /**
+     * Remove a host
+     * @param id Host ID to remove
+     * @returns True if the host was removed
+     */
+    removeHost(id) {
+        if (!this.hosts.has(id)) {
+            return false;
+        }
+        // Stop any active check interval
+        this.stopHostCheck(id);
+        const host = this.hosts.get(id);
+        this.hosts.delete(id);
+        this.emit('hostRemoved', host);
+        return true;
+    }
+    /**
+     * Check if a host is available
+     * @param id Host ID to check
+     * @returns Promise resolving to the check result
+     */
+    async checkHost(id) {
+        const host = this.hosts.get(id);
+        if (!host) {
+            throw new Error(`Host with ID ${id} not found`);
+        }
+        const startTime = Date.now();
+        let result = {
+            isAvailable: false
+        };
         try {
-            if (this.state === llm_1.HostState.RUNNING) {
-                return;
-            }
-            this.stateService.updateState(llm_1.HostState.STARTING);
-            const process = await this.processService.startProcess(config);
-            this.healthMonitor.startMonitoring(process);
-            this.stateService.updateState(llm_1.HostState.RUNNING);
+            // This would typically be an API call to check the host
+            // For now, we'll simulate the check
+            const isAvailable = await this.simulateHostCheck(host.url);
+            const endTime = Date.now();
+            result = {
+                isAvailable,
+                latency: endTime - startTime,
+                apiVersion: "1.0", // This would come from the actual API response
+                supportsStreaming: true // This would be determined from the API response
+            };
         }
         catch (error) {
-            this.errorHandler.handleStartError(error);
-            throw error;
+            result.isAvailable = false;
+            result.error = error instanceof Error ? error.message : String(error);
+        }
+        // Update the host status
+        this.updateHostStatus(id, result);
+        return result;
+    }
+    /**
+     * Start periodic checking of a host
+     * @param id Host ID to check
+     * @param intervalMs Interval in milliseconds between checks
+     */
+    startHostCheck(id, intervalMs = this.defaultCheckInterval) {
+        if (!this.hosts.has(id)) {
+            throw new Error(`Host with ID ${id} not found`);
+        }
+        // Clear any existing interval
+        this.stopHostCheck(id);
+        // Set up a new check interval
+        const timer = setInterval(() => {
+            this.checkHost(id).catch(error => {
+                console.error(`Error checking host ${id}:`, error);
+            });
+        }, intervalMs);
+        this.checkIntervals.set(id, timer);
+        // Run an immediate check
+        this.checkHost(id).catch(error => {
+            console.error(`Error checking host ${id}:`, error);
+        });
+    }
+    /**
+     * Stop periodic checking of a host
+     * @param id Host ID to stop checking
+     */
+    stopHostCheck(id) {
+        const interval = this.checkIntervals.get(id);
+        if (interval) {
+            clearInterval(interval);
+            this.checkIntervals.delete(id);
         }
     }
-    async stopHost() {
-        if (this.state === llm_1.HostState.STOPPED) {
+    /**
+     * Update a host's configuration
+     * @param id Host ID to update
+     * @param updates Partial host updates
+     * @returns The updated host
+     */
+    updateHost(id, updates) {
+        const host = this.hosts.get(id);
+        if (!host) {
+            throw new Error(`Host with ID ${id} not found`);
+        }
+        // Don't allow changing the ID
+        const { id: _, ...validUpdates } = updates;
+        const updatedHost = {
+            ...host,
+            ...validUpdates
+        };
+        this.hosts.set(id, updatedHost);
+        this.emit('hostUpdated', updatedHost);
+        return updatedHost;
+    }
+    /**
+     * Get all available hosts
+     * @returns Array of available hosts
+     */
+    getAvailableHosts() {
+        return Array.from(this.hosts.values()).filter(host => host.isAvailable);
+    }
+    /**
+     * Set the default check interval for all hosts
+     * @param intervalMs Interval in milliseconds
+     */
+    setDefaultCheckInterval(intervalMs) {
+        if (intervalMs < 5000) {
+            throw new Error('Check interval must be at least 5000ms (5 seconds)');
+        }
+        this.defaultCheckInterval = intervalMs;
+    }
+    /**
+     * Start checking all hosts
+     */
+    startCheckingAllHosts() {
+        for (const host of this.hosts.keys()) {
+            this.startHostCheck(host);
+        }
+    }
+    /**
+     * Stop checking all hosts
+     */
+    stopCheckingAllHosts() {
+        for (const interval of this.checkIntervals.values()) {
+            clearInterval(interval);
+        }
+        this.checkIntervals.clear();
+    }
+    async simulateHostCheck(url) {
+        // In a real implementation, this would make an actual HTTP request to check the host
+        // For testing purposes, we'll simulate a success with occasional failures
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // 90% success rate
+                const isAvailable = Math.random() < 0.9;
+                resolve(isAvailable);
+            }, Math.random() * 100 + 50); // Random delay between 50-150ms
+        });
+    }
+    updateHostStatus(id, result) {
+        const host = this.hosts.get(id);
+        if (!host) {
             return;
         }
-        try {
-            this.healthMonitor.stopMonitoring();
-            await this.processService.stopProcess();
-            this.stateService.updateState(llm_1.HostState.STOPPED);
-            this.emit('stopped');
+        const previousStatus = host.status;
+        const previousAvailability = host.isAvailable;
+        // Update the host with check results
+        host.isAvailable = result.isAvailable;
+        host.lastCheck = Date.now();
+        if (result.latency !== undefined) {
+            host.latency = result.latency;
         }
-        catch (error) {
-            this.errorHandler.handleStopError(error);
-            throw error;
+        if (result.apiVersion !== undefined) {
+            host.apiVersion = result.apiVersion;
         }
-    }
-    isRunning() {
-        return this.state === llm_1.HostState.RUNNING && this.processService.hasProcess();
-    }
-    getProcessInfo() {
-        if (this.state !== llm_1.HostState.RUNNING) {
-            return null;
+        if (result.supportsStreaming !== undefined) {
+            host.supportsStreaming = result.supportsStreaming;
         }
-        return this.processService.getProcessInfo();
-    }
-    async restartHost() {
-        try {
-            await this.stopHost();
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await this.startHost();
+        if (result.isAvailable) {
+            host.status = HostStatus.Available;
+            host.error = undefined;
         }
-        catch (error) {
-            this.errorHandler.handleRestartError(error);
-            throw error;
+        else {
+            host.status = result.error ? HostStatus.Error : HostStatus.Unavailable;
+            host.error = result.error;
+        }
+        // Emit status change events if needed
+        if (previousStatus !== host.status) {
+            this.emit('hostStatusChanged', host);
+        }
+        if (previousAvailability !== host.isAvailable) {
+            this.emit(host.isAvailable ? 'hostBecameAvailable' : 'hostBecameUnavailable', host);
         }
     }
     dispose() {
-        this.stopHost().catch(console.error);
-        this.healthMonitor.dispose();
-        this.processService.dispose();
+        this.stopCheckingAllHosts();
         this.removeAllListeners();
     }
 }

@@ -1,77 +1,84 @@
-import { LLMProvider } from '../types';
+import { LLMProvider, ProviderCapabilities } from '../../../llm/types';
 
 export interface ValidationResult {
     isValid: boolean;
-    errors?: string[];
+    errors: string[];
 }
 
 export class LLMProviderValidator {
     /**
-     * Validates a provider implementation
+     * Validates an LLM provider implementation
+     * @param provider The provider to validate
+     * @returns Validation result indicating if the provider is valid
      */
-    public async validateProvider(provider: LLMProvider): Promise<ValidationResult> {
+    validate(provider: LLMProvider): ValidationResult {
         const errors: string[] = [];
-
-        // Check required properties
-        if (!provider.name) {
-            errors.push('Provider must have a name');
+        
+        // Check for required methods
+        this.validateRequiredMethods(provider, errors);
+        
+        // Validate capabilities object
+        if (provider.getCapabilities) {
+            const capabilities = provider.getCapabilities();
+            this.validateCapabilities(capabilities, errors);
+        } else {
+            errors.push('Provider must implement getCapabilities method');
         }
-        if (!provider.id) {
-            errors.push('Provider must have an id');
-        }
-
-        // Validate required methods exist and are functions
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors.length > 0 ? errors : []
+        };
+    }
+    
+    private validateRequiredMethods(provider: LLMProvider, errors: string[]): void {
         const requiredMethods = [
+            'getName',
+            'getCapabilities',
             'isAvailable',
-            'connect',
-            'disconnect',
             'getStatus',
-            'getAvailableModels',
-            'getModelInfo',
-            'generateCompletion',
-            'generateChatCompletion',
-            'streamCompletion',
-            'streamChatCompletion',
-            'healthCheck'
+            'completePrompt'
         ];
+        
         for (const method of requiredMethods) {
             if (typeof provider[method] !== 'function') {
                 errors.push(`Provider must implement ${method} method`);
             }
         }
-
-        // Validate event emitter functionality
-        if (!provider.emit || !provider.on || !provider.removeListener) {
-            errors.push('Provider must extend EventEmitter');
+        
+        // Check for stream support consistency
+        const capabilities = provider.getCapabilities?.();
+        if (capabilities?.streamingSupport && typeof provider.streamPrompt !== 'function') {
+            errors.push('Provider claims to support streaming but does not implement streamPrompt method');
         }
-
-        try {
-            // Test capabilities method
-            const capabilities = await provider.getCapabilities();
-            if (!capabilities) {
-                errors.push('Provider must return capabilities');
-            } else {
-                // Validate capabilities structure
-                const requiredCapabilities = [
-                    'supportsStreaming',
-                    'supportsCancellation',
-                    'supportsModelSwitch',
-                    'maxContextLength',
-                    'supportedModels'
-                ];
-                for (const cap of requiredCapabilities) {
-                    if (capabilities[cap] === undefined) {
-                        errors.push(`Provider capabilities must include ${cap}`);
-                    }
-                }
+    }
+    
+    private validateCapabilities(capabilities: ProviderCapabilities, errors: string[]): void {
+        // Check for required capability properties
+        const requiredCapabilities = [
+            'maxContextTokens',
+            'streamingSupport',
+            'supportedFormats',
+            'multimodalSupport',
+            'supportsTemperature',
+            'supportsTopP',
+            'supportsPenalties',
+            'supportsRetries'
+        ];
+        
+        for (const cap of requiredCapabilities) {
+            if (capabilities[cap] === undefined) {
+                errors.push(`Provider capabilities must include ${cap} property`);
             }
-        } catch (error) {
-            errors.push('Failed to get provider capabilities');
         }
-
-        return {
-            isValid: errors.length === 0,
-            errors: errors.length > 0 ? errors : undefined
-        };
+        
+        // Validate specific capability constraints
+        if (capabilities.maxContextTokens <= 0) {
+            errors.push('maxContextTokens must be greater than 0');
+        }
+        
+        if (!Array.isArray(capabilities.supportedFormats) || capabilities.supportedFormats.length === 0) {
+            errors.push('supportedFormats must be a non-empty array');
+        }
     }
 }

@@ -2,67 +2,90 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProviderConfigValidator = void 0;
 class ProviderConfigValidator {
-    async validateConfig(config) {
+    /**
+     * Validates a provider configuration
+     * @param config The provider configuration to validate
+     * @returns Validation result indicating if the config is valid
+     */
+    validate(config) {
         const errors = [];
         // Validate required fields
+        if (!config.id) {
+            errors.push('Provider config must include an id');
+        }
+        if (!config.name) {
+            errors.push('Provider config must include a name');
+        }
         if (!config.apiEndpoint) {
-            errors.push('Configuration must include apiEndpoint');
+            errors.push('Provider config must include an apiEndpoint');
         }
-        // Validate connection settings
-        if (config.connection) {
-            if (typeof config.connection.timeout !== 'number' || config.connection.timeout <= 0) {
-                errors.push('Connection timeout must be a positive number');
-            }
-            if (config.connection.retries !== undefined) {
-                if (typeof config.connection.retries !== 'number' || config.connection.retries < 0) {
-                    errors.push('Connection retries must be a non-negative number');
-                }
-            }
-            if (config.connection.poolSize !== undefined) {
-                if (typeof config.connection.poolSize !== 'number' || config.connection.poolSize <= 0) {
-                    errors.push('Connection pool size must be a positive number');
-                }
-            }
+        else if (!this.isValidUrl(config.apiEndpoint)) {
+            errors.push('Provider config apiEndpoint must be a valid URL');
         }
-        // Validate model settings
-        if (config.model) {
-            if (!config.model.name) {
-                errors.push('Model configuration must include model name');
-            }
-            if (config.model.contextLength !== undefined) {
-                if (typeof config.model.contextLength !== 'number' || config.model.contextLength <= 0) {
-                    errors.push('Model context length must be a positive number');
-                }
+        if (!config.defaultModel) {
+            errors.push('Provider config must include a defaultModel');
+        }
+        // Validate models array
+        if (!Array.isArray(config.models) || config.models.length === 0) {
+            errors.push('Provider config must include at least one model');
+        }
+        else {
+            // Validate each model in the array
+            config.models.forEach((model, index) => {
+                this.validateModelConfig(model, index, errors);
+            });
+            // Check if defaultModel exists in models array
+            const hasDefaultModel = config.models.some(model => model.id === config.defaultModel);
+            if (!hasDefaultModel) {
+                errors.push(`Default model "${config.defaultModel}" is not defined in models array`);
             }
         }
-        // Validate request settings
-        if (config.requestDefaults) {
-            const validTemperatureRange = config.requestDefaults.temperature === undefined ||
-                (typeof config.requestDefaults.temperature === 'number' &&
-                    config.requestDefaults.temperature >= 0 &&
-                    config.requestDefaults.temperature <= 1);
-            if (!validTemperatureRange) {
-                errors.push('Temperature must be between 0 and 1');
-            }
-            if (config.requestDefaults.maxTokens !== undefined) {
-                if (typeof config.requestDefaults.maxTokens !== 'number' || config.requestDefaults.maxTokens <= 0) {
-                    errors.push('Max tokens must be a positive number');
-                }
-            }
+        // Validate timeout and retries if provided
+        if (config.timeout !== undefined && (typeof config.timeout !== 'number' || config.timeout <= 0)) {
+            errors.push('Timeout must be a positive number');
         }
-        // Validate health check settings
-        if (config.healthCheck) {
-            if (typeof config.healthCheck.interval !== 'number' || config.healthCheck.interval < 5000) {
-                errors.push('Health check interval must be at least 5000ms');
-            }
-            if (typeof config.healthCheck.timeout !== 'number' || config.healthCheck.timeout <= 0) {
-                errors.push('Health check timeout must be a positive number');
-            }
+        if (config.retries !== undefined && (typeof config.retries !== 'number' || config.retries < 0 || !Number.isInteger(config.retries))) {
+            errors.push('Retries must be a non-negative integer');
         }
         return {
             isValid: errors.length === 0,
-            errors: errors.length > 0 ? errors : undefined
+            errors: errors.length > 0 ? errors : []
         };
+    }
+    validateModelConfig(model, index, errors) {
+        if (!model.id) {
+            errors.push(`Model at index ${index} must have an id`);
+        }
+        if (!model.name) {
+            errors.push(`Model at index ${index} must have a name`);
+        }
+        if (typeof model.contextWindow !== 'number' || model.contextWindow <= 0) {
+            errors.push(`Model "${model.id}" must have a valid contextWindow (positive number)`);
+        }
+        // Validate cost properties if provided
+        if (model.inputCostPer1K !== undefined && (typeof model.inputCostPer1K !== 'number' || model.inputCostPer1K < 0)) {
+            errors.push(`Model "${model.id}" inputCostPer1K must be a non-negative number`);
+        }
+        if (model.outputCostPer1K !== undefined && (typeof model.outputCostPer1K !== 'number' || model.outputCostPer1K < 0)) {
+            errors.push(`Model "${model.id}" outputCostPer1K must be a non-negative number`);
+        }
+        // Validate capabilities array if provided
+        if (model.capabilities !== undefined && !Array.isArray(model.capabilities)) {
+            errors.push(`Model "${model.id}" capabilities must be an array`);
+        }
+        // Validate supported languages array if provided
+        if (model.supportedLanguages !== undefined && !Array.isArray(model.supportedLanguages)) {
+            errors.push(`Model "${model.id}" supportedLanguages must be an array`);
+        }
+    }
+    isValidUrl(url) {
+        try {
+            new URL(url);
+            return true;
+        }
+        catch {
+            return false;
+        }
     }
 }
 exports.ProviderConfigValidator = ProviderConfigValidator;

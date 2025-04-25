@@ -35,79 +35,143 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisplaySettingsService = void 0;
 const vscode = __importStar(require("vscode"));
-class DisplaySettingsService {
+const events_1 = require("events");
+class DisplaySettingsService extends events_1.EventEmitter {
+    settings;
     themeManager;
     context;
-    _onSettingsChanged = new vscode.EventEmitter();
-    onSettingsChanged = this._onSettingsChanged.event;
+    disposables = [];
     constructor(themeManager, context) {
+        super();
         this.themeManager = themeManager;
         this.context = context;
+        // Initialize with default settings
+        this.settings = this.getDefaultSettings();
+        // Load settings from configuration
+        this.loadSettings();
         // Listen for configuration changes
-        vscode.workspace.onDidChangeConfiguration(e => {
+        const configDisposable = vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('copilot-ppa.display')) {
-                this._onSettingsChanged.fire(this.getSettings());
+                this.loadSettings();
             }
         });
-        // Listen for theme changes
-        this.themeManager.onThemeChanged(() => {
-            this._onSettingsChanged.fire(this.getSettings());
+        // Listen for theme changes to update code block theme
+        themeManager.on('themeChanged', () => {
+            this.updateCodeBlockThemeForCurrentTheme();
         });
+        this.disposables.push(configDisposable);
     }
+    /**
+     * Get current display settings
+     */
     getSettings() {
+        return { ...this.settings };
+    }
+    /**
+     * Update display settings
+     * @param updates Partial settings to update
+     */
+    updateSettings(updates) {
+        const oldSettings = { ...this.settings };
+        // Update in-memory settings
+        this.settings = {
+            ...this.settings,
+            ...updates
+        };
+        // Save to configuration
         const config = vscode.workspace.getConfiguration('copilot-ppa.display');
-        const theme = this.themeManager.getCurrentTheme();
-        return {
-            fontSize: config.get('fontSize', 14),
-            fontFamily: config.get('fontFamily', 'var(--vscode-editor-font-family)'),
-            lineHeight: config.get('lineHeight', 1.5),
-            maxWidth: config.get('maxWidth', '800px'),
-            padding: config.get('padding', '1rem'),
-            theme: theme.type,
-            colors: {
-                background: theme.components.background,
-                foreground: theme.components.foreground,
-                primary: theme.components.primary,
-                secondary: theme.components.secondary,
-                accent: theme.components.accent,
-                error: theme.components.error
+        // Only update changed settings
+        for (const [key, value] of Object.entries(updates)) {
+            if (oldSettings[key] !== value) {
+                config.update(key, value, vscode.ConfigurationTarget.Global);
             }
+        }
+        this.emit('settingsChanged', this.settings, updates);
+    }
+    /**
+     * Reset display settings to default
+     */
+    resetToDefault() {
+        const defaultSettings = this.getDefaultSettings();
+        this.updateSettings(defaultSettings);
+    }
+    /**
+     * Get default display settings
+     */
+    getDefaultSettings() {
+        return {
+            fontSize: 13,
+            fontFamily: 'system-ui, sans-serif',
+            lineHeight: 1.5,
+            showLineNumbers: true,
+            wordWrap: true,
+            showCompletionTimes: true,
+            showTokenCounts: true,
+            showPromptTemplates: false,
+            codeBlockTheme: 'vs-dark',
+            messageSpacing: 12,
+            compactMode: false,
+            showAvatars: true,
+            timestampFormat: 'time'
         };
     }
-    async updateSetting(setting, value) {
+    /**
+     * Load settings from VS Code configuration
+     */
+    loadSettings() {
         const config = vscode.workspace.getConfiguration('copilot-ppa.display');
-        await config.update(setting, value, vscode.ConfigurationTarget.Global);
-        this._onSettingsChanged.fire(this.getSettings());
+        const defaultSettings = this.getDefaultSettings();
+        // Read each setting, falling back to defaults
+        this.settings = {
+            fontSize: config.get('fontSize', defaultSettings.fontSize),
+            fontFamily: config.get('fontFamily', defaultSettings.fontFamily),
+            lineHeight: config.get('lineHeight', defaultSettings.lineHeight),
+            showLineNumbers: config.get('showLineNumbers', defaultSettings.showLineNumbers),
+            wordWrap: config.get('wordWrap', defaultSettings.wordWrap),
+            showCompletionTimes: config.get('showCompletionTimes', defaultSettings.showCompletionTimes),
+            showTokenCounts: config.get('showTokenCounts', defaultSettings.showTokenCounts),
+            showPromptTemplates: config.get('showPromptTemplates', defaultSettings.showPromptTemplates),
+            codeBlockTheme: config.get('codeBlockTheme', defaultSettings.codeBlockTheme),
+            messageSpacing: config.get('messageSpacing', defaultSettings.messageSpacing),
+            compactMode: config.get('compactMode', defaultSettings.compactMode),
+            showAvatars: config.get('showAvatars', defaultSettings.showAvatars),
+            timestampFormat: config.get('timestampFormat', defaultSettings.timestampFormat),
+        };
+        // Update code block theme based on VS Code theme if set to auto
+        if (this.settings.codeBlockTheme === 'auto') {
+            this.updateCodeBlockThemeForCurrentTheme();
+        }
+        this.emit('settingsLoaded', this.settings);
     }
-    applySettingsToElement(element) {
-        const settings = this.getSettings();
-        element.style.setProperty('--font-size', `${settings.fontSize}px`);
-        element.style.setProperty('--font-family', settings.fontFamily);
-        element.style.setProperty('--line-height', settings.lineHeight.toString());
-        element.style.setProperty('--max-width', settings.maxWidth);
-        element.style.setProperty('--padding', settings.padding);
-        Object.entries(settings.colors).forEach(([key, value]) => {
-            element.style.setProperty(`--color-${key}`, value);
-        });
+    /**
+     * Update code block theme based on current VS Code theme
+     */
+    updateCodeBlockThemeForCurrentTheme() {
+        if (this.settings.codeBlockTheme !== 'auto') {
+            return;
+        }
+        const isDark = this.themeManager.isDarkTheme();
+        this.settings.codeBlockTheme = isDark ? 'vs-dark' : 'vs';
+        this.emit('codeBlockThemeChanged', this.settings.codeBlockTheme);
     }
-    getCssVariables() {
-        const settings = this.getSettings();
-        let css = `
+    /**
+     * Generate CSS for the current display settings
+     */
+    generateCSS() {
+        const { fontSize, fontFamily, lineHeight, messageSpacing, compactMode } = this.settings;
+        return `
             :root {
-                --font-size: ${settings.fontSize}px;
-                --font-family: ${settings.fontFamily};
-                --line-height: ${settings.lineHeight};
-                --max-width: ${settings.maxWidth};
-                --padding: ${settings.padding};
+                --ppa-font-size: ${fontSize}px;
+                --ppa-font-family: ${fontFamily};
+                --ppa-line-height: ${lineHeight};
+                --ppa-message-spacing: ${messageSpacing}px;
+                --ppa-compact-mode: ${compactMode ? '1' : '0'};
+            }
         `;
-        Object.entries(settings.colors).forEach(([key, value]) => {
-            css += `\n                --color-${key}: ${value};`;
-        });
-        css += '\n            }';
-        return css;
     }
     dispose() {
-        this._onSettingsChanged.dispose();
+        this.disposables.forEach(d => d.dispose());
+        this.removeAllListeners();
     }
 }
 exports.DisplaySettingsService = DisplaySettingsService;

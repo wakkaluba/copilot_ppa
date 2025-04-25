@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
-import { LLMProvider } from '../llm/llm-provider';
+import { LLMProvider } from '../llm/types';
 import { LLMConnectionManager } from './llm/LLMConnectionManager';
 import { LLMHostManager } from './llm/LLMHostManager';
 import { LLMSessionManager } from './llm/LLMSessionManager';
-import { ContextManager } from './conversation/ContextManager';
+import { ContextManager } from './ContextManager';
 import { PromptManager } from './PromptManager';
 import { ThemeManager } from './themeManager';
 import { DisplaySettingsService } from './displaySettingsService';
 import { ConnectionStatusService } from '../status/connectionStatusService';
-import { LLMProviderManager } from '../llm/llmProviderManager';
+import { LLMProviderManager } from './llm/services/LLMProviderManager';
 
 export interface IServiceRegistry {
     get<T>(serviceType: symbol): T;
