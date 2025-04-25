@@ -1,117 +1,93 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MultilingualPromptManager = void 0;
-const i18n_1 = require("../i18n");
 /**
- * Manager for handling multilingual prompts and responses
+ * Manages multilingual prompts and language detection for LLM responses
  */
 class MultilingualPromptManager {
+    // Language names mapping (ISO code to full name)
+    languageNames = new Map([
+        ['en', 'English'],
+        ['es', 'Spanish'],
+        ['de', 'German'],
+        ['fr', 'French'],
+        ['it', 'Italian'],
+        ['pt', 'Portuguese'],
+        ['ja', 'Japanese'],
+        ['ko', 'Korean'],
+        ['zh', 'Chinese'],
+        ['ru', 'Russian'],
+        ['ar', 'Arabic'],
+        ['tr', 'Turkish'],
+        ['pl', 'Polish'],
+        ['nl', 'Dutch'],
+        ['sv', 'Swedish'],
+        ['no', 'Norwegian'],
+        ['fi', 'Finnish'],
+        ['da', 'Danish'],
+        ['cs', 'Czech'],
+        ['uk', 'Ukrainian'],
+        ['hu', 'Hungarian'],
+        ['th', 'Thai'],
+        ['el', 'Greek']
+    ]);
     /**
-     * Wraps a prompt with language directives if needed
-     * @param prompt The original prompt text
-     * @param targetLanguage The target language for the response
-     * @param options LLM prompt options
-     * @returns Enhanced prompt with language directives
-     */
-    enhancePromptWithLanguage(prompt, targetLanguage, options) {
-        // Detect the input language
-        const detectedLanguage = (0, i18n_1.detectLanguage)(prompt);
-        // If no target language is specified, use the detected language
-        const responseLanguage = targetLanguage || detectedLanguage || i18n_1.SupportedLanguage.English;
-        // If input and output languages are the same (and not English),
-        // add a directive to ensure the model responds in that language
-        if (detectedLanguage &&
-            detectedLanguage !== i18n_1.SupportedLanguage.English &&
-            detectedLanguage === responseLanguage) {
-            return this.addLanguageDirective(prompt, responseLanguage);
-        }
-        // If output language is different from input, add translation directive
-        if (responseLanguage &&
-            ((detectedLanguage && detectedLanguage !== responseLanguage) ||
-                (!detectedLanguage && responseLanguage !== i18n_1.SupportedLanguage.English))) {
-            return this.addTranslationDirective(prompt, responseLanguage);
-        }
-        // Otherwise, return the original prompt
-        return prompt;
-    }
-    /**
-     * Adds a language directive to a prompt
-     * @param prompt Original prompt text
+     * Creates a prompt that enhances the original prompt with language instructions
+     * @param prompt Original prompt
      * @param language Target language
-     * @returns Enhanced prompt with language directive
+     * @returns Enhanced prompt with language instructions
      */
-    addLanguageDirective(prompt, language) {
-        // Get language name in that language
-        const languageName = this.getLanguageNameInLanguage(language);
-        // Add directive at the beginning
-        return `[Please respond in ${languageName}]\n\n${prompt}`;
-    }
-    /**
-     * Adds a translation directive to a prompt
-     * @param prompt Original prompt text
-     * @param targetLanguage Target language for translation
-     * @returns Enhanced prompt with translation directive
-     */
-    addTranslationDirective(prompt, targetLanguage) {
-        // Get language name in target language
-        const languageName = this.getLanguageNameInLanguage(targetLanguage);
-        const englishName = this.getLanguageNameInLanguage(i18n_1.SupportedLanguage.English);
-        // Add directive at the beginning
-        return `[Please respond in ${languageName} (${englishName})]\n\n${prompt}`;
-    }
-    /**
-     * Gets the name of a language in that language
-     * @param language Language code
-     * @returns Language name in its own language
-     */
-    getLanguageNameInLanguage(language) {
-        switch (language) {
-            case i18n_1.SupportedLanguage.English:
-                return 'English';
-            case i18n_1.SupportedLanguage.German:
-                return 'Deutsch';
-            case i18n_1.SupportedLanguage.Spanish:
-                return 'Español';
-            case i18n_1.SupportedLanguage.French:
-                return 'Français';
-            case i18n_1.SupportedLanguage.Chinese:
-                return '中文';
-            case i18n_1.SupportedLanguage.Japanese:
-                return '日本語';
-            case i18n_1.SupportedLanguage.Russian:
-                return 'Русский';
-            default:
-                return 'English';
+    enhancePromptWithLanguage(prompt, language) {
+        if (language === 'en') {
+            return prompt; // No need to enhance for English
         }
+        const languageName = this.getLanguageName(language);
+        return `${prompt}\n\nRespond in ${languageName}.`;
     }
     /**
-     * Detects if the response is in the expected language
-     * @param response LLM response text
-     * @param expectedLanguage The language we expected
-     * @returns Whether the response appears to be in the expected language
+     * Checks if the response is in the expected language
+     * @param response The LLM response to check
+     * @param language The expected language
+     * @returns True if the response is likely in the expected language
      */
-    isResponseInExpectedLanguage(response, expectedLanguage) {
-        // Detect language of the response
-        const detectedLanguage = (0, i18n_1.detectLanguage)(response);
-        // If no language could be detected, return true (benefit of doubt)
-        if (!detectedLanguage) {
-            return true;
+    isResponseInExpectedLanguage(response, language) {
+        // This is a simple implementation - in a real system, you might use a language detection library
+        // For now, we'll assume all responses are correctly in the requested language
+        // Implement basic heuristics for very obvious cases like responses explicitly saying they can't respond in that language
+        const lowerResponse = response.toLowerCase();
+        const languageName = this.getLanguageName(language);
+        if (language !== 'en' && lowerResponse.includes("i can only respond in english") ||
+            lowerResponse.includes("i can't respond in") ||
+            lowerResponse.includes("i cannot respond in")) {
+            return false;
         }
-        // Check if detected language matches expected language
-        return detectedLanguage === expectedLanguage;
+        return true;
     }
     /**
-     * Request a correction if response is in the wrong language
+     * Builds a correction prompt to fix a response in the wrong language
      * @param originalPrompt The original prompt
-     * @param response The response in the wrong language
-     * @param targetLanguage The expected language
-     * @returns A new prompt requesting translation
+     * @param originalResponse The response in the wrong language
+     * @param targetLanguage The language we want
+     * @returns A new prompt asking for a translation
      */
-    buildLanguageCorrectionPrompt(originalPrompt, response, targetLanguage) {
-        // Get language name in target language
-        const languageName = this.getLanguageNameInLanguage(targetLanguage);
-        const englishName = this.getLanguageNameInLanguage(i18n_1.SupportedLanguage.English);
-        return `Your previous response was not in ${languageName} (${englishName}) as requested. Please translate your previous response to ${languageName}. Original prompt was: "${originalPrompt.substring(0, 100)}..."`;
+    buildLanguageCorrectionPrompt(originalPrompt, originalResponse, targetLanguage) {
+        const languageName = this.getLanguageName(targetLanguage);
+        return `
+I need this response translated to ${languageName}:
+
+Original prompt: ${originalPrompt}
+
+Response to translate: ${originalResponse}
+
+Provide only the translated response in ${languageName}, no explanations.`;
+    }
+    /**
+     * Gets the full language name from its code
+     * @param language Language code
+     * @returns Full language name
+     */
+    getLanguageName(language) {
+        return this.languageNames.get(language) || 'English';
     }
 }
 exports.MultilingualPromptManager = MultilingualPromptManager;

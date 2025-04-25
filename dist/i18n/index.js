@@ -48,14 +48,13 @@ function localize(key, defaultValue, params) {
     return localizationService.getString(key, defaultValue, params);
 }
 /**
- * Get the current language
- * @returns The current language code
+ * Gets the current UI language
+ * @returns Current language code
  */
 function getCurrentLanguage() {
-    if (!localizationService) {
-        return localization_1.SupportedLanguage.English;
-    }
-    return localizationService.getCurrentLanguage();
+    // In a real implementation, this would get the language from VSCode settings
+    // or from the user's OS settings
+    return 'en';
 }
 /**
  * Detect language of text

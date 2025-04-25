@@ -1,343 +1,168 @@
-/**
- * LLM Connection Manager - Primary manager for LLM connections, integrating metrics, 
- * error handling, event management, and health monitoring.
- */
-import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
-import { 
-    ConnectionState, 
-    ConnectionOptions,
-    ConnectionEvent,
-    ConnectionEventData,
-    LLMConnectionError,
-    LLMConnectionErrorCode,
-    HealthCheckResult,
-    LLMHealthStatus,
-    ConnectionMetrics
-} from './types';
-import { LLMProvider, LLMProviderStatus, LLMModelInfo } from '../../llm/llm-provider';
-import { LLMProviderRegistryService } from './services/LLMProviderRegistryService';
-import { LLMConnectionHandlerService } from './services/LLMConnectionHandlerService';
-import { RetryManagerService } from './services/LLMRetryManagerService';
-import { StatusReporterService } from './services/LLMStatusReporterService';
-import { LLMHealthMonitorService } from './services/LLMHealthMonitorService';
-import { MetricsService } from './services/LLMMetricsService';
-import { LLMErrorHandlerService as ErrorHandlerService } from './services/LLMErrorHandlerService';
-import { ConnectionEventService } from './services/LLMConnectionEventService';
-import { ConnectionMetricsTracker } from './ConnectionMetricsTracker';
-import { ConnectionPoolManager } from './services/ConnectionPoolManager';
+import { LLMProvider } from '../../llm/llm-provider';
+import { ConnectionState } from '../../status/connectionStatusService';
 
 /**
- * Primary manager for LLM connections
- * Handles connection lifecycle, error handling, metrics, events, and health monitoring
+ * Manager for handling connections to LLM providers
  */
-export class LLMConnectionManager extends EventEmitter implements vscode.Disposable {
+export class LLMConnectionManager extends EventEmitter {
     private static instance: LLMConnectionManager;
-    private readonly providerRegistry: LLMProviderRegistryService;
-    private readonly connectionHandler: LLMConnectionHandlerService;
-    private readonly retryManager: RetryManagerService;
-    private readonly statusReporter: StatusReporterService;
-    private readonly healthMonitor: LLMHealthMonitorService;
-    private readonly metricsService: MetricsService;
-    private readonly errorHandler: LLMErrorHandlerService;
-    private readonly eventService: ConnectionEventService;
-    private readonly metricsTracker: ConnectionMetricsTracker;
-    private readonly connectionPool: ConnectionPoolManager;
-    
-    private healthCheckInterval: NodeJS.Timeout | null = null;
-    private activeProvider: LLMProvider | null = null;
-    private connectionOptions: ConnectionOptions = {};
-    private currentStatus: LLMProviderStatus = {
-        isConnected: false,
-        isAvailable: false,
-        error: ''
-    };
+    private providers: Map<string, LLMProvider> = new Map();
+    private activeProvider: string | null = null;
+    private connectionState: ConnectionState = ConnectionState.Disconnected;
+    private hostState: 'running' | 'stopped' | 'unknown' = 'unknown';
 
-    private constructor(options: Partial<ConnectionOptions> = {}) {
+    private constructor() {
         super();
-        this.providerRegistry = new LLMProviderRegistryService();
-        this.connectionHandler = new LLMConnectionHandlerService(options);
-        this.retryManager = new RetryManagerService(options);
-        this.statusReporter = new StatusReporterService();
-        this.healthMonitor = new LLMHealthMonitorService(options);
-        this.metricsService = new MetricsService();
-        this.errorHandler = new ErrorHandlerService();
-        this.eventService = new ConnectionEventService(this.metricsService);
-        this.metricsTracker = new ConnectionMetricsTracker();
-        this.connectionPool = new ConnectionPoolManager({
-            maxSize: options.maxConnections || 5,
-            minSize: options.minConnections || 1,
-            acquireTimeout: options.connectionTimeout || 30000
-        });
-        this.connectionOptions = options;
-        
-        this.setupEventListeners();
-        this.startHealthMonitoring();
     }
 
-    public static getInstance(options: Partial<ConnectionOptions> = {}): LLMConnectionManager {
+    public static getInstance(): LLMConnectionManager {
         if (!LLMConnectionManager.instance) {
-            LLMConnectionManager.instance = new LLMConnectionManager(options);
+            LLMConnectionManager.instance = new LLMConnectionManager();
         }
         return LLMConnectionManager.instance;
     }
 
-    private setupEventListeners(): void {
-        this.providerRegistry.on('providerStatusChanged', 
-            this.handleProviderStatusChange.bind(this));
-    }
-
-    private setupEventHandlers(): void {
-        this.errorHandler.on('error', this.handleError.bind(this));
-        this.errorHandler.on('retrying', this.handleRetry.bind(this));
-        this.healthMonitor.on(ConnectionEvent.HealthCheckFailed, 
-            this.handleHealthCheckFailure.bind(this));
-        this.eventService.on(ConnectionEvent.StateChanged, 
-            this.handleStateChange.bind(this));
-    }
-
-    public get connectionState(): ConnectionState {
-        return this.connectionHandler.currentState;
-    }
-
+    /**
+     * Registers a provider with the connection manager
+     * @param name Unique provider name
+     * @param provider Provider instance
+     */
     public registerProvider(name: string, provider: LLMProvider): void {
-        this.providerRegistry.registerProvider(name, provider);
-        this.metricsService.initializeMetrics(name);
-        provider.on('statusChanged', (status) => {
-            this.handleProviderStatusChange(name, status);
+        this.providers.set(name, provider);
+        
+        // Listen for provider state changes
+        provider.on('stateChanged', (status) => {
+            if (name === this.activeProvider) {
+                this.updateConnectionState(
+                    status.isConnected ? ConnectionState.Connected : ConnectionState.Disconnected
+                );
+            }
         });
     }
 
-    public getProvider(name: string): LLMProvider | undefined {
-        return this.providerRegistry.getProvider(name);
-    }
-
-    public async setActiveProvider(name: string): Promise<void> {
-        const provider = this.providerRegistry.getProvider(name);
-        if (!provider) {
-            throw new LLMConnectionError(
-                LLMConnectionErrorCode.ProviderNotFound,
-                `Provider ${name} not found`
+    /**
+     * Sets the active provider
+     * @param name Provider name to activate
+     */
+    public setActiveProvider(name: string): void {
+        if (!this.providers.has(name)) {
+            throw new Error(`Provider ${name} not registered`);
+        }
+        
+        this.activeProvider = name;
+        
+        // Update state based on provider's current state
+        const provider = this.providers.get(name);
+        if (provider) {
+            const status = provider.getStatus();
+            this.updateConnectionState(
+                status.isConnected ? ConnectionState.Connected : ConnectionState.Disconnected
             );
         }
-
-        await this.disconnect(); // Ensure clean disconnect from current provider
-        await this.connectionHandler.setActiveProvider(provider);
-        this.activeProvider = provider;
-        this.statusReporter.updateStatusBar(this.connectionState, provider.name);
-        this.healthMonitor.setActiveProvider(provider);
-        this.metricsService.setActiveProvider(name);
     }
 
-    public async connectToLLM(): Promise<boolean> {
-        try {
-            if (this.connectionState === ConnectionState.CONNECTED) {
-                return true;
-            }
-
-            const startTime = Date.now();
-            const connection = await this.connectionPool.acquire(
-                this.connectionHandler.activeProviderName || 'default'
-            );
-            
-            await this.connectionHandler.connect(connection);
-            this.metricsTracker.recordConnectionSuccess();
-            this.metricsTracker.recordRequest(Date.now() - startTime);
-            
-            this.currentStatus.isConnected = true;
-            this.currentStatus.isAvailable = true;
-            this.currentStatus.error = '';
-
-            this.emit(ConnectionEvent.Connected);
-            this.emit(ConnectionEvent.StateChanged, this.createConnectionEventData());
-            this.updateStatus();
-            return true;
-        } catch (error) {
-            await this.handleConnectionError(error);
-            return await this.retryManager.handleConnectionFailure(() => this.connectToLLM());
-        }
-    }
-
-    public async disconnect(): Promise<void> {
-        this.retryManager.clearRetryTimeout();
-        this.stopHealthMonitoring();
-        
-        if (this.connectionHandler.activeProviderName) {
-            await this.connectionPool.clear(this.connectionHandler.activeProviderName);
-        }
-        
-        await this.connectionHandler.disconnect();
-        this.currentStatus.isConnected = false;
-        this.currentStatus.isAvailable = false;
-
-        this.emit(ConnectionEvent.Disconnected);
-        this.emit(ConnectionEvent.StateChanged, this.createConnectionEventData());
-        this.updateStatus();
-    }
-
-    private startHealthMonitoring(): void {
-        if (this.healthCheckInterval) {
-            clearInterval(this.healthCheckInterval);
-        }
-
-        this.healthCheckInterval = setInterval(async () => {
-            try {
-                const health = await this.healthMonitor.performHealthCheck();
-                if (health.status === 'error') {
-                    await this.handleHealthCheckFailure(health);
-                } else {
-                    this.metricsService.recordSuccessfulHealthCheck(
-                        this.connectionHandler.activeProviderName || 'unknown'
-                    );
-                }
-            } catch (error) {
-                await this.handleConnectionError(error);
-            }
-        }, 30000); // 30 second interval
-    }
-
-    private stopHealthMonitoring(): void {
-        if (this.healthCheckInterval) {
-            clearInterval(this.healthCheckInterval);
-            this.healthCheckInterval = null;
-        }
-    }
-
-    private handleProviderStatusChange(providerName: string, status: LLMProviderStatus): void {
-        this.emit('providerStatusChanged', providerName, status);
-        if (this.connectionHandler.activeProviderName === providerName) {
-            this.updateStatus();
-        }
-        this.metricsService.recordProviderStatus(providerName, status);
-    }
-
-    private async handleConnectionError(error: unknown): Promise<void> {
-        const formattedError = error instanceof Error ? error : new Error(String(error));
-        await this.eventService.transitionTo('error', { error: formattedError });
-        await this.errorHandler.handleError(error);
-    }
-
-    private async handleError(event: { error: Error; retryCount: number }): Promise<void> {
-        if (this.activeProvider) {
-            this.metricsService.recordError(this.activeProvider.name, event.error);
-        }
-    }
-
-    private async handleRetry(event: { error: Error; retryCount: number; delay: number }): Promise<void> {
-        await this.eventService.transitionTo('reconnecting', { error: event.error });
-        
-        if (this.activeProvider) {
-            try {
-                await this.activeProvider.connect(this.connectionOptions);
-                await this.eventService.transitionTo('connected', {
-                    modelInfo: await this.activeProvider.getModelInfo()
-                });
-            } catch (error) {
-                await this.handleConnectionError(error);
-            }
-        }
-    }
-
-    private async handleHealthCheckFailure(event: { error: Error }): Promise<void> {
-        await this.handleConnectionError(event.error);
-    }
-
-    private handleStateChange(event: { currentState: ConnectionState }): void {
-        this.emit(ConnectionEvent.StateChanged, event);
-    }
-
-    private createConnectionEventData(): ConnectionEventData {
-        return {
-            state: this.currentStatus.isConnected ? 'connected' : 'disconnected',
-            timestamp: new Date(),
-            error: this.currentStatus.error ? new Error(this.currentStatus.error) : undefined,
-            modelInfo: this.currentStatus.metadata?.modelInfo
-        };
-    }
-
-    private updateStatus(): void {
-        const currentState = this.connectionState;
-        const providerName = this.connectionHandler.activeProviderName;
-        const eventData: ConnectionEventData = {
-            state: currentState,
-            timestamp: new Date(),
-            error: this.connectionHandler.lastError
-        };
-
-        if (this.connectionHandler.activeProvider) {
-            this.connectionHandler.activeProvider.getModelInfo().then(modelInfo => {
-                eventData.modelInfo = modelInfo;
-                this.emit('stateChanged', eventData);
-                this.statusReporter.updateStatusBar(currentState, providerName);
-            }).catch(error => {
-                console.error('Failed to get model info:', error);
-                this.emit('stateChanged', eventData);
-                this.statusReporter.updateStatusBar(currentState, providerName);
-            });
-        } else {
-            this.emit('stateChanged', eventData);
-            this.statusReporter.updateStatusBar(currentState, providerName);
-        }
-    }
-
-    public getCurrentState(): ConnectionState {
-        return this.connectionHandler.currentState;
-    }
-
-    private async validateConnection(): Promise<boolean> {
-        if (!this.activeProvider) {
-            return false;
-        }
-
-        try {
-            const health = await this.healthMonitor.checkHealth(this.activeProvider);
-            if (health.status === 'error') {
-                await this.handleHealthCheckFailure({ error: new Error(health.message || 'Health check failed') });
-                return false;
-            }
-            return true;
-        } catch (error) {
-            await this.handleConnectionError(error);
-            return false;
-        }
-    }
-
-    public async ensureConnection(): Promise<boolean> {
-        const isValid = await this.validateConnection();
-        if (!isValid) {
-            return this.connectToLLM();
-        }
-        return true;
-    }
-
+    /**
+     * Gets the active provider
+     * @returns The active provider or null if none set
+     */
     public getActiveProvider(): LLMProvider | null {
-        return this.activeProvider;
+        if (!this.activeProvider) {
+            return null;
+        }
+        
+        return this.providers.get(this.activeProvider) || null;
     }
 
-    public getStatus(): LLMProviderStatus {
-        return this.currentStatus;
+    /**
+     * Initiates a connection to the active provider
+     * @returns True if connection was successful
+     */
+    public async connectToLLM(): Promise<boolean> {
+        if (!this.activeProvider) {
+            throw new Error('No active provider set');
+        }
+        
+        const provider = this.providers.get(this.activeProvider);
+        if (!provider) {
+            throw new Error(`Provider ${this.activeProvider} not found`);
+        }
+        
+        try {
+            this.updateConnectionState(ConnectionState.Connecting);
+            await provider.connect();
+            this.updateConnectionState(ConnectionState.Connected);
+            return true;
+        } catch (error) {
+            this.updateConnectionState(ConnectionState.Error);
+            throw error;
+        }
     }
 
-    public getMetrics(): Map<string, ConnectionMetrics> {
-        return this.metricsService.getAllMetrics();
+    /**
+     * Disconnects the current active provider
+     */
+    public async disconnectFromLLM(): Promise<void> {
+        if (!this.activeProvider) {
+            return;
+        }
+        
+        const provider = this.providers.get(this.activeProvider);
+        if (!provider) {
+            return;
+        }
+        
+        try {
+            await provider.disconnect();
+            this.updateConnectionState(ConnectionState.Disconnected);
+        } catch (error) {
+            this.updateConnectionState(ConnectionState.Error);
+            throw error;
+        }
     }
 
-    public getConnectionPoolStats(): Record<string, unknown> {
-        return this.connectionHandler.activeProviderName ? 
-            this.connectionPool.getStats(this.connectionHandler.activeProviderName) : 
-            {};
+    /**
+     * Gets the current connection state
+     */
+    public async getCurrentState(): Promise<ConnectionState> {
+        return this.connectionState;
     }
 
-    public dispose(): void {
-        this.retryManager.clearRetryTimeout();
-        this.stopHealthMonitoring();
-        this.disconnect().catch(console.error);
-        this.connectionPool.dispose();
-        this.statusReporter.dispose();
-        this.metricsService.dispose();
-        this.errorHandler.dispose();
-        this.eventService.dispose();
-        this.healthMonitor.dispose();
-        this.removeAllListeners();
+    /**
+     * Updates the connection state and emits an event
+     */
+    private updateConnectionState(state: ConnectionState): void {
+        this.connectionState = state;
+        this.emit('stateChanged', state);
+    }
+
+    /**
+     * Sets the host state (running/stopped) and emits an event
+     */
+    public setHostState(state: 'running' | 'stopped'): void {
+        this.hostState = state;
+        this.emit('hostStateChanged', state);
+    }
+
+    /**
+     * Sets the active model for the current provider
+     * @param modelName Name of the model to activate
+     */
+    public async setActiveModel(modelName: string): Promise<void> {
+        const provider = this.getActiveProvider();
+        if (!provider) {
+            throw new Error('No active provider set');
+        }
+        
+        // For now, we'll just update the provider status
+        // In a real implementation, this might involve API calls to change the model
+        const currentStatus = provider.getStatus();
+        const updatedStatus = { 
+            ...currentStatus,
+            activeModel: modelName 
+        };
+        
+        // Emit a state change event - the provider should implement this properly
+        provider.emit('stateChanged', updatedStatus);
     }
 }

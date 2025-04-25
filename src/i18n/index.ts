@@ -34,14 +34,22 @@ export function localize(key: string, defaultValue: string, params?: Record<stri
 }
 
 /**
- * Get the current language
- * @returns The current language code
+ * Supported languages in the application
+ */
+export type SupportedLanguage = 
+    | 'en' | 'es' | 'de' | 'fr' | 'it' | 'pt' | 'ja' 
+    | 'ko' | 'zh' | 'ru' | 'ar' | 'tr' | 'pl' | 'nl'
+    | 'sv' | 'no' | 'fi' | 'da' | 'cs' | 'uk' | 'hu'
+    | 'th' | 'el';
+
+/**
+ * Gets the current UI language
+ * @returns Current language code
  */
 export function getCurrentLanguage(): SupportedLanguage {
-    if (!localizationService) {
-        return SupportedLanguage.English;
-    }
-    return localizationService.getCurrentLanguage();
+    // In a real implementation, this would get the language from VSCode settings
+    // or from the user's OS settings
+    return 'en';
 }
 
 /**

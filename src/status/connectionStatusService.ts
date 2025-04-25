@@ -1,111 +1,138 @@
 import * as vscode from 'vscode';
-import { EventEmitter } from 'vscode';
-import { LLMHostManager } from '../services/llm/LLMHostManager';
-import { LLMConnectionManager } from '../services/llm/LLMConnectionManager';
 
+/**
+ * Enum representing the different connection states
+ */
 export enum ConnectionState {
-    Connected = 'connected',
-    Disconnected = 'disconnected',
-    Error = 'error'
+    Disconnected = 0,
+    Connecting = 1,
+    Connected = 2,
+    Error = 3
 }
 
-export interface ConnectionStatus {
-    state: ConnectionState;
-    message?: string;
-    error?: Error;
-    lastUpdate: Date;
-}
+/**
+ * Service for handling LLM connection status and UI updates
+ */
+export class ConnectionStatusService implements vscode.Disposable {
+    private _state: ConnectionState = ConnectionState.Disconnected;
+    private _activeModelName: string = '';
+    private _providerName: string = '';
+    private _statusBarItem: vscode.StatusBarItem;
+    private _stateChangeEmitter = new vscode.EventEmitter<ConnectionState>();
 
-export class ConnectionStatusService extends EventEmitter implements vscode.Disposable {
-    private _status: ConnectionStatus = {
-        state: ConnectionState.Disconnected,
-        lastUpdate: new Date()
-    };
-    private readonly _onStatusChanged = new vscode.EventEmitter<ConnectionState>();
-    public readonly onStatusChanged = this._onStatusChanged.event;
-
-    constructor(
-        private readonly hostManager: LLMHostManager,
-        private readonly connectionManager: LLMConnectionManager
-    ) {
-        super();
-        this.setupEventListeners();
+    constructor() {
+        this._statusBarItem = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right,
+            100
+        );
+        this._statusBarItem.command = 'copilot-ppa.toggleLLMConnection';
+        this.updateStatusBarItem();
+        this._statusBarItem.show();
     }
 
-    private setupEventListeners(): void {
-        this.hostManager.on('stateChanged', (state) => {
-            this.updateFromHostState(state);
-        });
-
-        this.connectionManager.on('stateChanged', (state) => {
-            this.updateFromConnectionState(state);
-        });
-
-        this.connectionManager.on('error', (error) => {
-            this.setStatus(ConnectionState.Error, error.message, error);
-        });
+    /**
+     * Current connection state
+     */
+    get state(): ConnectionState {
+        return this._state;
     }
 
-    private updateFromHostState(hostState: string): void {
-        switch (hostState) {
-            case 'RUNNING':
-                // Only update if we're not already connected
-                if (this._status.state !== ConnectionState.Connected) {
-                    this.setStatus(ConnectionState.Disconnected, 'LLM host is running, establishing connection...');
-                }
-                break;
-            case 'STOPPED':
-                this.setStatus(ConnectionState.Disconnected, 'LLM host is stopped');
-                break;
-            case 'ERROR':
-                this.setStatus(ConnectionState.Error, 'LLM host encountered an error');
-                break;
-        }
+    /**
+     * Name of the currently active model
+     */
+    get activeModelName(): string {
+        return this._activeModelName;
     }
 
-    private updateFromConnectionState(connectionState: string): void {
-        switch (connectionState) {
-            case 'CONNECTED':
-                this.setStatus(ConnectionState.Connected, 'Connected to LLM service');
-                break;
-            case 'CONNECTING':
-                this.setStatus(ConnectionState.Disconnected, 'Establishing connection to LLM service...');
-                break;
-            case 'DISCONNECTED':
-                this.setStatus(ConnectionState.Disconnected, 'Disconnected from LLM service');
-                break;
-            case 'ERROR':
-                this.setStatus(ConnectionState.Error, 'Connection error');
-                break;
-        }
+    /**
+     * Name of the currently active provider
+     */
+    get providerName(): string {
+        return this._providerName;
     }
 
-    public setStatus(
-        state: ConnectionState,
-        message?: string,
-        error?: Error
-    ): void {
-        this._status = {
-            state,
-            message,
-            error,
-            lastUpdate: new Date()
-        };
+    /**
+     * Event that fires when the connection state changes
+     */
+    get onDidChangeState(): vscode.Event<ConnectionState> {
+        return this._stateChangeEmitter.event;
+    }
+
+    /**
+     * Sets the connection state
+     * @param state New state
+     * @param info Additional info about the state change
+     */
+    public setState(state: ConnectionState, info?: any): void {
+        this._state = state;
         
-        this._onStatusChanged.fire(state);
-        this.emit('statusChanged', this._status);
+        if (info) {
+            if (info.modelName) {
+                this._activeModelName = info.modelName;
+            }
+            
+            if (info.providerName) {
+                this._providerName = info.providerName;
+            }
+        }
+        
+        this.updateStatusBarItem();
+        this._stateChangeEmitter.fire(state);
     }
 
-    public get status(): ConnectionState {
-        return this._status.state;
+    /**
+     * Shows a notification to the user
+     * @param message Message to show
+     * @param type Notification type (info, warning, error)
+     */
+    public showNotification(message: string, type: 'info' | 'warning' | 'error' = 'info'): void {
+        switch (type) {
+            case 'info':
+                vscode.window.showInformationMessage(message);
+                break;
+            case 'warning':
+                vscode.window.showWarningMessage(message);
+                break;
+            case 'error':
+                vscode.window.showErrorMessage(message);
+                break;
+        }
     }
 
-    public getFullStatus(): ConnectionStatus {
-        return { ...this._status };
+    /**
+     * Updates the status bar item based on the current state
+     */
+    private updateStatusBarItem(): void {
+        switch (this._state) {
+            case ConnectionState.Disconnected:
+                this._statusBarItem.text = '$(cloud) LLM: Disconnected';
+                this._statusBarItem.tooltip = 'LLM is disconnected. Click to connect.';
+                this._statusBarItem.backgroundColor = undefined;
+                break;
+            case ConnectionState.Connecting:
+                this._statusBarItem.text = '$(sync~spin) LLM: Connecting...';
+                this._statusBarItem.tooltip = 'Connecting to LLM...';
+                this._statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+                break;
+            case ConnectionState.Connected:
+                const modelInfo = this._activeModelName ? ` (${this._activeModelName})` : '';
+                this._statusBarItem.text = `$(cloud) LLM: ${this._providerName}${modelInfo}`;
+                this._statusBarItem.tooltip = `Connected to ${this._providerName}${modelInfo}. Click to disconnect.`;
+                this._statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+                break;
+            case ConnectionState.Error:
+                this._statusBarItem.text = '$(error) LLM: Error';
+                this._statusBarItem.tooltip = 'Error connecting to LLM. Click for details.';
+                this._statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+                break;
+        }
     }
 
-    dispose(): void {
-        this._onStatusChanged.dispose();
-        this.removeAllListeners();
+    /**
+     * Disposes resources used by this service
+     */
+    public dispose(): void {
+        this._stateChangeEmitter.dispose();
+        this._statusBarItem.dispose();
     }
 }

@@ -33,431 +33,127 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LocalizationService = exports.SupportedLanguage = void 0;
+exports.LocalizationService = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const events_1 = require("events");
 /**
- * Supported languages in the application
+ * Service for handling localization and language-related functions
  */
-var SupportedLanguage;
-(function (SupportedLanguage) {
-    SupportedLanguage["English"] = "en";
-    SupportedLanguage["German"] = "de";
-    SupportedLanguage["Spanish"] = "es";
-    SupportedLanguage["French"] = "fr";
-    SupportedLanguage["Chinese"] = "zh";
-    SupportedLanguage["Japanese"] = "ja";
-    SupportedLanguage["Russian"] = "ru";
-    SupportedLanguage["Ukrainian"] = "uk";
-    SupportedLanguage["Polish"] = "pl";
-    SupportedLanguage["Danish"] = "da";
-    SupportedLanguage["Norwegian"] = "no";
-    SupportedLanguage["Swedish"] = "sv";
-    SupportedLanguage["Portuguese"] = "pt";
-    SupportedLanguage["Italian"] = "it";
-    SupportedLanguage["Greek"] = "el";
-    SupportedLanguage["Arabic"] = "ar";
-    SupportedLanguage["Hebrew"] = "he";
-    SupportedLanguage["Sanskrit"] = "sa";
-    SupportedLanguage["Esperanto"] = "eo";
-    SupportedLanguage["Korean"] = "ko";
-    SupportedLanguage["ChineseTW"] = "zh-tw";
-    SupportedLanguage["Thai"] = "th";
-    SupportedLanguage["Malaysian"] = "ms";
-    SupportedLanguage["Maori"] = "mi";
-    SupportedLanguage["Mandarin"] = "cmn";
-    SupportedLanguage["Turkish"] = "tr";
-    SupportedLanguage["Czech"] = "cs";
-    SupportedLanguage["Slovak"] = "sk";
-    SupportedLanguage["Hungarian"] = "hu";
-    SupportedLanguage["Serbian"] = "sr";
-    SupportedLanguage["Albanian"] = "sq";
-})(SupportedLanguage || (exports.SupportedLanguage = SupportedLanguage = {}));
-/**
- * Main localization service for the extension
- */
-class LocalizationService extends events_1.EventEmitter {
-    translations = new Map();
-    currentLanguage;
-    detectionCache = new Map();
+class LocalizationService {
     context;
-    config;
-    languagePatterns;
-    disposables = [];
+    strings = new Map();
+    language = 'en';
     constructor(context) {
-        super();
         this.context = context;
-        this.config = this.loadConfig();
-        this.currentLanguage = this.config.defaultLanguage;
-        this.languagePatterns = this.initializeLanguagePatterns();
-        this.initialize();
+        this.loadLanguage();
     }
     /**
-     * Initialize the localization service
+     * Loads the current language settings and string resources
      */
-    initialize() {
-        // Load translations and configure settings
-        this.loadConfiguredLanguage();
-        if (!this.config.loadOnDemand) {
-            this.loadAllTranslations();
-        }
-        // Setup VS Code configuration change listener
-        this.disposables.push(vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('i18n')) {
-                this.updateConfiguration();
-            }
-        }));
-        // Start cleanup interval for detection cache
-        if (this.config.cacheEnabled) {
-            setInterval(() => this.cleanupDetectionCache(), this.config.cacheTimeout);
+    loadLanguage() {
+        // Get language from VS Code or fall back to English
+        let vsCodeLang = vscode.env.language;
+        this.language = this.normalizeLanguage(vsCodeLang);
+        // Load strings from locale files
+        this.loadStrings('en'); // Always load English as fallback
+        if (this.language !== 'en') {
+            this.loadStrings(this.language);
         }
     }
     /**
-     * Load service configuration
+     * Loads string resources from the locale file
      */
-    loadConfig() {
-        const config = vscode.workspace.getConfiguration('i18n');
-        return {
-            defaultLanguage: SupportedLanguage.English,
-            fallbackLanguage: SupportedLanguage.English,
-            cacheEnabled: config.get('cache.enabled', true),
-            cacheTimeout: config.get('cache.timeout', 3600000), // 1 hour
-            loadOnDemand: config.get('loadOnDemand', false),
-            healthCheckInterval: config.get('healthCheck.interval', 300000), // 5 minutes
-            detectionThreshold: config.get('detection.threshold', 0.6)
-        };
-    }
-    /**
-     * Load the configured language from settings
-     */
-    loadConfiguredLanguage() {
-        const config = vscode.workspace.getConfiguration('localLlmAgent');
-        const configuredLanguage = config.get('language');
-        if (configuredLanguage && Object.values(SupportedLanguage).includes(configuredLanguage)) {
-            this.currentLanguage = configuredLanguage;
-        }
-        else {
-            // Use VS Code UI language as fallback
-            const editorLanguage = vscode.env.language;
-            this.currentLanguage = this.mapEditorLanguageToSupported(editorLanguage);
-        }
-    }
-    /**
-     * Map VS Code editor language to supported language
-     */
-    mapEditorLanguageToSupported(editorLanguage) {
-        const languageMap = {
-            'de': SupportedLanguage.German,
-            'es': SupportedLanguage.Spanish,
-            'fr': SupportedLanguage.French,
-            'zh-cn': SupportedLanguage.Chinese,
-            'zh-tw': SupportedLanguage.ChineseTW,
-            'ja': SupportedLanguage.Japanese,
-            'ru': SupportedLanguage.Russian,
-            'uk': SupportedLanguage.Ukrainian,
-            'pl': SupportedLanguage.Polish,
-            'da': SupportedLanguage.Danish,
-            'no': SupportedLanguage.Norwegian,
-            'sv': SupportedLanguage.Swedish,
-            'pt': SupportedLanguage.Portuguese,
-            'it': SupportedLanguage.Italian,
-            'el': SupportedLanguage.Greek,
-            'ar': SupportedLanguage.Arabic,
-            'he': SupportedLanguage.Hebrew,
-            'ko': SupportedLanguage.Korean,
-            'th': SupportedLanguage.Thai,
-            'tr': SupportedLanguage.Turkish,
-            'cs': SupportedLanguage.Czech,
-            'sk': SupportedLanguage.Slovak,
-            'hu': SupportedLanguage.Hungarian,
-            'sr': SupportedLanguage.Serbian,
-            'sq': SupportedLanguage.Albanian
-        };
-        // Find the matching language code
-        const languageCode = Object.keys(languageMap).find(code => editorLanguage.toLowerCase().startsWith(code.toLowerCase()));
-        return (languageCode && languageMap[languageCode]) || this.config.defaultLanguage;
-    }
-    /**
-     * Load all translation files
-     */
-    loadAllTranslations() {
-        const localesPath = this.context.asAbsolutePath('locales');
+    loadStrings(lang) {
         try {
-            if (!fs.existsSync(localesPath)) {
-                console.error('Locales directory not found:', localesPath);
-                return;
-            }
-            const localeFiles = fs.readdirSync(localesPath).filter(file => file.endsWith('.json'));
-            for (const file of localeFiles) {
-                try {
-                    const locale = path.basename(file, '.json');
-                    const filePath = path.join(localesPath, file);
-                    const content = fs.readFileSync(filePath, 'utf8');
-                    const translations = JSON.parse(content);
-                    if (Object.values(SupportedLanguage).includes(locale)) {
-                        this.translations.set(locale, translations);
-                    }
-                }
-                catch (error) {
-                    console.error(`Failed to load translation file ${file}:`, error);
-                }
+            const localeFile = path.join(this.context.extensionPath, 'locales', `${lang}.json`);
+            if (fs.existsSync(localeFile)) {
+                const content = fs.readFileSync(localeFile, 'utf8');
+                const strings = JSON.parse(content);
+                this.strings.set(lang, strings);
             }
         }
         catch (error) {
-            console.error('Failed to load translations:', error);
-        }
-        // Ensure English translation exists as a fallback
-        if (!this.translations.has(this.config.fallbackLanguage)) {
-            this.translations.set(this.config.fallbackLanguage, {});
+            console.error(`Failed to load strings for language ${lang}:`, error);
         }
     }
     /**
-     * Load translations for a specific language
-     */
-    loadTranslationsForLanguage(language) {
-        if (this.translations.has(language)) {
-            return;
-        }
-        const localesPath = this.context.asAbsolutePath('locales');
-        const filePath = path.join(localesPath, `${language}.json`);
-        try {
-            if (fs.existsSync(filePath)) {
-                const content = fs.readFileSync(filePath, 'utf8');
-                const translations = JSON.parse(content);
-                this.translations.set(language, translations);
-            }
-            else {
-                console.warn(`Translation file not found for language: ${language}`);
-                this.translations.set(language, {});
-            }
-        }
-        catch (error) {
-            console.error(`Failed to load translations for language ${language}:`, error);
-            this.translations.set(language, {});
-        }
-    }
-    /**
-     * Get a localized string by key
+     * Gets a localized string by key
+     * @param key The key of the string to get
+     * @param defaultValue Default value if the key is not found
+     * @param params Optional parameters to format the string
+     * @returns The localized string
      */
     getString(key, defaultValue, params) {
-        // Load translations on demand if configured
-        if (this.config.loadOnDemand && !this.translations.has(this.currentLanguage)) {
-            this.loadTranslationsForLanguage(this.currentLanguage);
+        let value = defaultValue;
+        // Try to find the string in the current language
+        const strings = this.strings.get(this.language);
+        if (strings && strings[key]) {
+            value = strings[key];
         }
-        // Get translations for current language
-        const translations = this.translations.get(this.currentLanguage) || {};
-        // Try to get value from current language translations
-        let value = this.getNestedValue(translations, key);
-        // Fall back to English if not found
-        if (value === undefined && this.currentLanguage !== this.config.fallbackLanguage) {
-            const fallbackTranslations = this.translations.get(this.config.fallbackLanguage);
-            value = fallbackTranslations ? this.getNestedValue(fallbackTranslations, key) : undefined;
+        else {
+            // Fall back to English
+            const englishStrings = this.strings.get('en');
+            if (englishStrings && englishStrings[key]) {
+                value = englishStrings[key];
+            }
         }
-        // Use default value if still not found
-        value = value?.toString() || defaultValue;
-        // Replace parameters if provided
+        // Replace parameters if any
         if (params) {
-            value = this.interpolateParams(value, params);
+            for (const [param, replacement] of Object.entries(params)) {
+                value = value.replace(`{${param}}`, replacement);
+            }
         }
         return value;
     }
     /**
-     * Get a nested value from translations using dot notation
+     * Gets the current language
+     * @returns The current language code
      */
-    getNestedValue(obj, key) {
-        const parts = key.split('.');
-        let current = obj;
-        for (const part of parts) {
-            if (current === undefined || typeof current !== 'object') {
-                return undefined;
-            }
-            current = current[part];
-        }
-        return typeof current === 'string' ? current : undefined;
+    getCurrentLanguage() {
+        return this.language;
     }
     /**
-     * Replace parameters in a string
+     * Sets the current language
+     * @param language The language to set
      */
-    interpolateParams(value, params) {
-        return value.replace(/\{(\w+)\}/g, (match, key) => params[key] !== undefined ? params[key] : match);
-    }
-    /**
-     * Initialize language detection patterns
-     */
-    initializeLanguagePatterns() {
-        const patterns = new Map();
-        patterns.set(SupportedLanguage.English, {
-            commonWords: [/\b(the|and|is|in|it|to|of|that|you|for)\b/gi],
-            minConfidenceScore: 0.6
-        });
-        patterns.set(SupportedLanguage.German, {
-            commonWords: [/\b(und|ist|der|die|das|ich|zu|mit|für|nicht)\b/gi],
-            specialCharacters: [/[äöüß]/g],
-            minConfidenceScore: 0.7
-        });
-        patterns.set(SupportedLanguage.Spanish, {
-            commonWords: [/\b(el|la|de|que|y|en|un|una|es|para)\b/gi],
-            specialCharacters: [/[áéíóúñ]/g],
-            minConfidenceScore: 0.7
-        });
-        patterns.set(SupportedLanguage.French, {
-            commonWords: [/\b(le|la|de|et|un|une|est|pour|dans|ce)\b/gi],
-            specialCharacters: [/[éèêëàâîïôùûç]/g],
-            minConfidenceScore: 0.7
-        });
-        patterns.set(SupportedLanguage.Chinese, {
-            commonWords: [],
-            script: /[\u4e00-\u9fff]/g,
-            minConfidenceScore: 0.5
-        });
-        patterns.set(SupportedLanguage.Japanese, {
-            commonWords: [],
-            script: /[\u3040-\u309f\u30a0-\u30ff]/g,
-            minConfidenceScore: 0.5
-        });
-        // Add other language patterns...
-        return patterns;
-    }
-    /**
-     * Update configuration when settings change
-     */
-    updateConfiguration() {
-        this.config = this.loadConfig();
-        // Clear cache if cache settings changed
-        if (!this.config.cacheEnabled) {
-            this.detectionCache.clear();
-        }
-        // Notify listeners of configuration change
-        this.emit('configurationChanged', this.config);
-    }
-    /**
-     * Clean up expired cache entries
-     */
-    cleanupDetectionCache() {
-        const now = Date.now();
-        for (const [key, entry] of this.detectionCache.entries()) {
-            if (now - entry.timestamp > this.config.cacheTimeout) {
-                this.detectionCache.delete(key);
-            }
+    setLanguage(language) {
+        if (this.language !== language) {
+            this.language = language;
+            this.loadLanguage();
         }
     }
     /**
      * Detect the language of a text
+     * @param text The text to analyze
+     * @returns The detected language or null if detection failed
      */
     detectLanguage(text) {
-        if (!text || text.length < 5) {
-            return null;
-        }
-        // Check cache first if enabled
-        if (this.config.cacheEnabled) {
-            const cached = this.detectionCache.get(text);
-            if (cached && (Date.now() - cached.timestamp < this.config.cacheTimeout)) {
-                return cached.language;
-            }
-        }
-        const scores = new Map();
-        // Calculate scores for each language
-        for (const [language, patterns] of this.languagePatterns.entries()) {
-            let totalScore = 0;
-            let maxPossibleScore = 0;
-            // Check script pattern if available
-            if (patterns.script) {
-                const scriptMatches = (text.match(patterns.script) || []).length;
-                totalScore += scriptMatches * 2;
-                maxPossibleScore += text.length * 2;
-            }
-            // Check common words
-            if (patterns.commonWords) {
-                for (const pattern of patterns.commonWords) {
-                    const matches = text.match(pattern) || [];
-                    totalScore += matches.length;
-                    maxPossibleScore += 1;
-                }
-            }
-            // Check special characters
-            if (patterns.specialCharacters) {
-                for (const pattern of patterns.specialCharacters) {
-                    const matches = text.match(pattern) || [];
-                    totalScore += matches.length;
-                    maxPossibleScore += 1;
-                }
-            }
-            if (maxPossibleScore > 0) {
-                const confidence = totalScore / maxPossibleScore;
-                if (confidence >= patterns.minConfidenceScore) {
-                    scores.set(language, {
-                        score: totalScore,
-                        confidence: confidence
-                    });
-                }
-            }
-        }
-        // Find language with highest score and sufficient confidence
-        let bestLanguage = null;
-        let highestScore = 0;
-        let highestConfidence = 0;
-        for (const [language, result] of scores.entries()) {
-            if (result.score > highestScore &&
-                result.confidence >= (this.languagePatterns.get(language)?.minConfidenceScore || 0)) {
-                highestScore = result.score;
-                highestConfidence = result.confidence;
-                bestLanguage = language;
-            }
-        }
-        // Cache the result if enabled
-        if (this.config.cacheEnabled) {
-            this.detectionCache.set(text, {
-                language: bestLanguage,
-                timestamp: Date.now(),
-                confidence: highestConfidence
-            });
-        }
-        return bestLanguage;
+        // This is a simple mock implementation
+        // In a real app, you would use a proper language detection library
+        // For now, we'll assume English
+        return 'en';
     }
     /**
-     * Get the current language
+     * Normalizes a language code to a supported language
+     * @param langCode A language code (e.g., "en-US")
+     * @returns A supported language code
      */
-    getCurrentLanguage() {
-        return this.currentLanguage;
-    }
-    /**
-     * Set the current language
-     */
-    setLanguage(language) {
-        if (this.currentLanguage !== language) {
-            this.currentLanguage = language;
-            // Load translations if using load-on-demand
-            if (this.config.loadOnDemand) {
-                this.loadTranslationsForLanguage(language);
-            }
-            // Update VS Code configuration
-            void vscode.workspace.getConfiguration('localLlmAgent')
-                .update('language', language, vscode.ConfigurationTarget.Global)
-                .then(() => {
-                this.emit('languageChanged', language);
-            })
-                .catch((error) => {
-                console.error('Failed to update language configuration:', error);
-            });
+    normalizeLanguage(langCode) {
+        // Extract the base language code (e.g., "en" from "en-US")
+        const baseLang = langCode.split('-')[0].toLowerCase();
+        // Check if it's a supported language
+        const supportedLanguages = [
+            'en', 'es', 'de', 'fr', 'it', 'pt', 'ja',
+            'ko', 'zh', 'ru', 'ar', 'tr', 'pl', 'nl',
+            'sv', 'no', 'fi', 'da', 'cs', 'uk', 'hu',
+            'th', 'el'
+        ];
+        if (supportedLanguages.includes(baseLang)) {
+            return baseLang;
         }
-    }
-    /**
-     * Get all supported languages
-     */
-    getSupportedLanguages() {
-        return Object.values(SupportedLanguage);
-    }
-    /**
-     * Dispose of resources
-     */
-    dispose() {
-        this.disposables.forEach(d => d.dispose());
-        this.disposables = [];
-        this.translations.clear();
-        this.detectionCache.clear();
-        this.removeAllListeners();
+        // Fall back to English
+        return 'en';
     }
 }
 exports.LocalizationService = LocalizationService;

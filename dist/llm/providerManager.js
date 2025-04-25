@@ -1,16 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderManager = void 0;
-const i18n_1 = require("../i18n");
 const multilingualPromptManager_1 = require("./multilingualPromptManager");
+const llmProviderManager_1 = require("./llmProviderManager");
+const connectionStatusService_1 = require("../status/connectionStatusService");
 /**
- * Manages LLM providers and connections
+ * Legacy LLM Provider Manager - acts as a wrapper to the main implementation
+ * @deprecated Use LLMProviderManager from llmProviderManager.ts instead
  */
 class LLMProviderManager {
-    currentProvider = null;
+    mainProviderManager;
     multilingualManager;
     constructor(context) {
         this.multilingualManager = new multilingualPromptManager_1.MultilingualPromptManager();
+        // Create a ConnectionStatusService stub if not provided
+        const statusService = new connectionStatusService_1.ConnectionStatusService();
+        this.mainProviderManager = llmProviderManager_1.LLMProviderManager.getInstance(statusService);
     }
     /**
      * Sends a prompt to the current LLM provider with language support
@@ -20,26 +25,10 @@ class LLMProviderManager {
      * @returns Promise that resolves with the LLM response
      */
     async sendPromptWithLanguage(prompt, options, targetLanguage) {
-        if (!this.currentProvider) {
-            throw new Error('No LLM provider is currently connected');
-        }
-        // Use UI language if no target language specified
-        const language = targetLanguage || (0, i18n_1.getCurrentLanguage)();
-        // Enhance prompt with language directives
-        const enhancedPrompt = this.multilingualManager.enhancePromptWithLanguage(prompt, language, options);
-        // Send to LLM
-        let response = await this.currentProvider.sendPrompt(enhancedPrompt, options);
-        // Check if response is in expected language
-        if (!this.multilingualManager.isResponseInExpectedLanguage(response, language)) {
-            // Request translation
-            const correctionPrompt = this.multilingualManager.buildLanguageCorrectionPrompt(prompt, response, language);
-            // Send correction prompt
-            response = await this.currentProvider.sendPrompt(correctionPrompt, options);
-        }
-        return response;
+        return this.mainProviderManager.sendPromptWithLanguage(prompt, options, targetLanguage);
     }
     getCurrentProvider() {
-        const provider = this.providers[this.currentProvider];
+        const provider = this.mainProviderManager.getActiveProvider();
         if (!provider) {
             throw new Error('No LLM provider is currently active');
         }
@@ -47,15 +36,26 @@ class LLMProviderManager {
     }
     getCurrentModelId() {
         const provider = this.getCurrentProvider();
-        return provider.getModelId();
+        return provider.getStatus().activeModel || '';
     }
-    // Fix the sendPrompt methods to use the proper method from the provider
+    /**
+     * Sends a prompt to the current LLM provider
+     * @param prompt The prompt to send
+     * @param options Optional settings for the request
+     * @returns Promise that resolves with the LLM response
+     */
     async sendPrompt(prompt, options) {
-        return this.getCurrentProvider().sendPrompt(prompt, options);
+        return this.mainProviderManager.sendPrompt(prompt, options);
     }
+    /**
+     * Sends a streaming prompt to the current LLM provider
+     * @param prompt The prompt to send
+     * @param callback Callback function to receive streaming chunks
+     * @param options Optional settings for the request
+     * @returns Promise that resolves with the full response
+     */
     async sendStreamingPrompt(prompt, callback, options) {
-        const provider = this.getCurrentProvider();
-        return provider.sendPrompt(prompt, options);
+        return this.mainProviderManager.sendStreamingPrompt(prompt, callback, options);
     }
 }
 exports.LLMProviderManager = LLMProviderManager;

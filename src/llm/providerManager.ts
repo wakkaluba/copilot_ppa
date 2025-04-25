@@ -1,18 +1,24 @@
 import * as vscode from 'vscode';
 import { SupportedLanguage, getCurrentLanguage } from '../i18n';
 import { MultilingualPromptManager } from './multilingualPromptManager';
-import { LLMProvider } from './llmProvider';
-import { LLMPromptOptions } from './types';
+import { LLMProvider, LLMRequestOptions, LLMResponse } from './llm-provider';
+import { LLMProviderManager as MainLLMProviderManager } from './llmProviderManager';
+import { ConnectionStatusService } from '../status/connectionStatusService';
 
 /**
- * Manages LLM providers and connections
+ * Legacy LLM Provider Manager - acts as a wrapper to the main implementation
+ * @deprecated Use LLMProviderManager from llmProviderManager.ts instead
  */
 export class LLMProviderManager {
-    private currentProvider: LLMProvider | null = null;
+    private mainProviderManager: MainLLMProviderManager;
     private multilingualManager: MultilingualPromptManager;
 
     constructor(context: vscode.ExtensionContext) {
         this.multilingualManager = new MultilingualPromptManager();
+        
+        // Create a ConnectionStatusService stub if not provided
+        const statusService = new ConnectionStatusService();
+        this.mainProviderManager = MainLLMProviderManager.getInstance(statusService);
     }
 
     /**
@@ -24,44 +30,14 @@ export class LLMProviderManager {
      */
     public async sendPromptWithLanguage(
         prompt: string,
-        options?: LLMPromptOptions,
+        options?: LLMRequestOptions,
         targetLanguage?: SupportedLanguage
     ): Promise<string> {
-        if (!this.currentProvider) {
-            throw new Error('No LLM provider is currently connected');
-        }
-
-        // Use UI language if no target language specified
-        const language = targetLanguage || getCurrentLanguage();
-
-        // Enhance prompt with language directives
-        const enhancedPrompt = this.multilingualManager.enhancePromptWithLanguage(
-            prompt,
-            language,
-            options
-        );
-
-        // Send to LLM
-        let response = await this.currentProvider.sendPrompt(enhancedPrompt, options);
-
-        // Check if response is in expected language
-        if (!this.multilingualManager.isResponseInExpectedLanguage(response, language)) {
-            // Request translation
-            const correctionPrompt = this.multilingualManager.buildLanguageCorrectionPrompt(
-                prompt,
-                response,
-                language
-            );
-
-            // Send correction prompt
-            response = await this.currentProvider.sendPrompt(correctionPrompt, options);
-        }
-
-        return response;
+        return this.mainProviderManager.sendPromptWithLanguage(prompt, options, targetLanguage);
     }
 
     getCurrentProvider(): LLMProvider {
-        const provider = this.providers[this.currentProvider];
+        const provider = this.mainProviderManager.getActiveProvider();
         if (!provider) {
             throw new Error('No LLM provider is currently active');
         }
@@ -70,16 +46,27 @@ export class LLMProviderManager {
 
     getCurrentModelId(): string {
         const provider = this.getCurrentProvider();
-        return provider.getModelId();
+        return provider.getStatus().activeModel || '';
     }
 
-    // Fix the sendPrompt methods to use the proper method from the provider
-    async sendPrompt(prompt: string, options?: LLMPromptOptions): Promise<string> {
-        return this.getCurrentProvider().sendPrompt(prompt, options);
+    /**
+     * Sends a prompt to the current LLM provider 
+     * @param prompt The prompt to send
+     * @param options Optional settings for the request
+     * @returns Promise that resolves with the LLM response
+     */
+    async sendPrompt(prompt: string, options?: LLMRequestOptions): Promise<string> {
+        return this.mainProviderManager.sendPrompt(prompt, options);
     }
 
-    async sendStreamingPrompt(prompt: string, callback: (chunk: string) => void, options?: LLMPromptOptions): Promise<string> {
-        const provider = this.getCurrentProvider();
-        return provider.sendPrompt(prompt, options);
+    /**
+     * Sends a streaming prompt to the current LLM provider
+     * @param prompt The prompt to send
+     * @param callback Callback function to receive streaming chunks
+     * @param options Optional settings for the request
+     * @returns Promise that resolves with the full response
+     */
+    async sendStreamingPrompt(prompt: string, callback: (chunk: string) => void, options?: LLMRequestOptions): Promise<string> {
+        return this.mainProviderManager.sendStreamingPrompt(prompt, callback, options);
     }
 }
