@@ -1,6 +1,3 @@
-export interface ChatMessage {
-    id: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: number;
-}
+// Re-export ChatMessage from centralized location
+import { ChatMessage } from '../types/conversation';
+export { ChatMessage };

@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UISettingsWebviewService = void 0;
-const logger_1 = require("../../utils/logger");
 class UISettingsWebviewService {
     logger;
     constructor() {
@@ -122,7 +121,7 @@ class UISettingsWebviewService {
                                 case 'selectTab':
                                     const tabToSelect = message.tab;
                                     if (tabToSelect) {
-                                        const tabEl = document.querySelector(\`.tab[data-tab="\${tabToSelect}"]\`);
+                                        const tabEl = document.querySelector(\`[data-tab="\${tabToSelect}"]\`);
                                         if (tabEl) {
                                             tabEl.click();
                                         }

@@ -37,7 +37,6 @@ exports.RepositoryPanel = void 0;
 const vscode = __importStar(require("vscode"));
 const RepositoryWebviewService_1 = require("./services/RepositoryWebviewService");
 const themeManager_1 = require("../services/ui/themeManager");
-const logger_1 = require("../utils/logger");
 class RepositoryPanel {
     context;
     static instance;

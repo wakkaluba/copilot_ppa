@@ -38,7 +38,6 @@ const vscode = __importStar(require("vscode"));
 const VulnerabilityService_1 = require("./services/VulnerabilityService");
 const DependencyScanService_1 = require("./services/DependencyScanService");
 const VulnerabilityReportService_1 = require("./services/VulnerabilityReportService");
-const logger_1 = require("../utils/logger");
 /**
  * Class responsible for scanning project dependencies for known vulnerabilities
  */

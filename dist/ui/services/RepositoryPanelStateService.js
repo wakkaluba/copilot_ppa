@@ -1,44 +1,47 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryPanelStateService = void 0;
-const events_1 = require("events");
 class RepositoryPanelStateService {
+    context;
     state = {
-        isAccessEnabled: false,
-        errorMessage: undefined
+        repositories: [],
+        currentView: 'list',
     };
-    eventEmitter = new events_1.EventEmitter();
-    getAccessState() {
-        return this.state.isAccessEnabled;
-    }
-    setAccessEnabled(enabled) {
-        this.state.isAccessEnabled = enabled;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-    setLastProvider(provider) {
-        this.state.lastProvider = provider;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-    setLastCreatedRepo(repoUrl) {
-        this.state.lastCreatedRepo = repoUrl;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-    setErrorMessage(message) {
-        this.state.errorMessage = message;
-        this.eventEmitter.emit('stateChanged', this.state);
+    constructor(context) {
+        this.context = context;
+        this.loadState();
     }
     getState() {
         return { ...this.state };
     }
-    onStateChanged(listener) {
-        this.eventEmitter.on('stateChanged', listener);
+    setState(newState) {
+        this.state = { ...this.state, ...newState };
+        this.saveState();
     }
-    clearState() {
-        this.state = {
-            isAccessEnabled: false,
-            errorMessage: undefined
-        };
-        this.eventEmitter.emit('stateChanged', this.state);
+    setSelectedRepository(repositoryName) {
+        this.state.selectedRepository = repositoryName;
+        this.saveState();
+    }
+    clearSelectedRepository() {
+        delete this.state.selectedRepository;
+        this.saveState();
+    }
+    setRepositories(repositories) {
+        this.state.repositories = repositories;
+        this.saveState();
+    }
+    setCurrentView(view) {
+        this.state.currentView = view;
+        this.saveState();
+    }
+    saveState() {
+        this.context.workspaceState.update('repository-panel-state', this.state);
+    }
+    loadState() {
+        const savedState = this.context.workspaceState.get('repository-panel-state');
+        if (savedState) {
+            this.state = savedState;
+        }
     }
 }
 exports.RepositoryPanelStateService = RepositoryPanelStateService;

@@ -1,19 +1,6 @@
 import * as vscode from 'vscode';
 import { EventEmitter } from 'events';
-
-export interface ChatMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: number;
-}
-
-export interface Conversation {
-    id: string;
-    title: string;
-    messages: ChatMessage[];
-    created: number;
-    updated: number;
-}
+import { ChatMessage, Conversation } from '../types/conversation';
 
 export class ConversationHistory extends EventEmitter implements vscode.Disposable {
     private conversations: Map<string, Conversation> = new Map();

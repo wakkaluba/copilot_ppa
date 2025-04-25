@@ -45,6 +45,7 @@ const bottleneckDetector_1 = require("./bottleneckDetector");
 const events_1 = require("events");
 const cachingService_1 = require("./cachingService");
 const asyncOptimizer_1 = require("./asyncOptimizer");
+const logger_1 = require("../utils/logger");
 /**
  * Central manager for all performance-related functionality in the extension.
  * Coordinates analysis, profiling, monitoring and reporting of performance metrics.
@@ -61,6 +62,7 @@ class PerformanceManager {
     cachingService;
     asyncOptimizer;
     eventEmitter;
+    logger;
     constructor(extensionContext) {
         this.eventEmitter = new events_1.EventEmitter();
         this.configService = new PerformanceConfigService_1.PerformanceConfigService();
@@ -72,9 +74,10 @@ class PerformanceManager {
         this.bottleneckDetector = bottleneckDetector_1.BottleneckDetector.getInstance();
         this.cachingService = cachingService_1.CachingService.getInstance();
         this.asyncOptimizer = asyncOptimizer_1.AsyncOptimizer.getInstance();
+        this.logger = new logger_1.LoggerImpl();
         this.setupEventListeners();
         this.initializeServices().catch(error => {
-            console.error('Failed to initialize performance services:', error);
+            this.logger.error('Failed to initialize performance services:', error);
             vscode.window.showErrorMessage('Failed to initialize performance services');
         });
     }
@@ -98,7 +101,7 @@ class PerformanceManager {
             this.eventEmitter.emit('servicesInitialized');
         }
         catch (error) {
-            console.error('Failed to initialize performance services:', error);
+            this.logger.error('Failed to initialize performance services:', error);
             throw error;
         }
     }
@@ -129,7 +132,7 @@ class PerformanceManager {
             });
         }
         catch (error) {
-            console.error('Workspace analysis failed:', error);
+            this.logger.error('Workspace analysis failed:', error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`Workspace analysis failed: ${message}`);
             throw error;
@@ -157,7 +160,7 @@ class PerformanceManager {
             return result;
         }
         catch (error) {
-            console.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+            this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`File analysis failed: ${message}`);
             return null;
@@ -184,12 +187,12 @@ class PerformanceManager {
         const bottleneckAnalysis = this.bottleneckDetector.analyzeAll();
         const cacheStats = this.cachingService.getCacheStats();
         const asyncStats = this.asyncOptimizer.getStats();
-        console.info('Performance Report:');
-        console.info(`Operations analyzed: ${operationStats?.length || 0}`);
-        console.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
-        console.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
-        console.info(`Cache hits: ${cacheStats.hits}, misses: ${cacheStats.misses}, evictions: ${cacheStats.evictions}`);
-        console.info(`Async operations optimized: ${asyncStats.optimizedCount}`);
+        this.logger.info('Performance Report:');
+        this.logger.info(`Operations analyzed: ${operationStats?.length || 0}`);
+        this.logger.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
+        this.logger.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
+        this.logger.info(`Cache hits: ${cacheStats.hits}, misses: ${cacheStats.misses}, evictions: ${cacheStats.evictions}`);
+        this.logger.info(`Async operations optimized: ${asyncStats.optimizedCount}`);
         this.eventEmitter.emit('performanceReport', {
             operationStats,
             bottleneckAnalysis,
@@ -202,14 +205,14 @@ class PerformanceManager {
         this.fileMonitorService.onActiveEditorChanged((editor) => {
             if (editor) {
                 this.analyzeFile(editor.document).catch(error => {
-                    console.error('Failed to analyze active editor:', error);
+                    this.logger.error('Failed to analyze active editor:', error);
                 });
             }
         });
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('performance')) {
                 this.initializeServices().catch(error => {
-                    console.error('Failed to reinitialize services:', error);
+                    this.logger.error('Failed to reinitialize services:', error);
                 });
             }
         });
@@ -248,7 +251,7 @@ class PerformanceManager {
             this.eventEmitter.emit('workspaceMetricsUpdated', result.summary);
         }
         catch (error) {
-            console.error('Failed to update workspace metrics:', error);
+            this.logger.error('Failed to update workspace metrics:', error);
         }
     }
     async updateFileMetrics(uri, result) {
@@ -270,7 +273,7 @@ class PerformanceManager {
             this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: result.metrics });
         }
         catch (error) {
-            console.error(`Failed to update metrics for ${uri.fsPath}:`, error);
+            this.logger.error(`Failed to update metrics for ${uri.fsPath}:`, error);
         }
     }
     getProfiler() {

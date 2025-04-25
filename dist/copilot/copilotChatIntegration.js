@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotChatIntegration = void 0;
 const copilotApi_1 = require("../services/copilotApi");
-const logger_1 = require("../utils/logger");
 const CopilotChatInitializationService_1 = require("./services/CopilotChatInitializationService");
 const CopilotChatParticipantService_1 = require("./services/CopilotChatParticipantService");
 const CopilotChatMessageHandlerService_1 = require("./services/CopilotChatMessageHandlerService");

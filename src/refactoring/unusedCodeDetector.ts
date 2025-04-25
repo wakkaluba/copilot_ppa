@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import { UnusedCodeAnalyzer } from './codeAnalysis/UnusedCodeAnalyzer';
+import { LoggerImpl } from '../utils/logger';
 
 export class UnusedCodeDetector implements vscode.Disposable {
     private readonly analyzer: UnusedCodeAnalyzer;
+    private readonly logger: LoggerImpl;
 
     constructor(context: vscode.ExtensionContext) {
         this.analyzer = new UnusedCodeAnalyzer();
+        this.logger = new LoggerImpl();
         context.subscriptions.push(this);
     }
 
@@ -21,7 +24,7 @@ export class UnusedCodeDetector implements vscode.Disposable {
         try {
             return await this.analyzer.analyze(editor.document, editor.selection);
         } catch (error) {
-            console.error('Error during unused code detection:', error);
+            this.logger.error('Error during unused code detection:', error);
             vscode.window.showErrorMessage(`Error analyzing file: ${error}`);
             return [];
         }

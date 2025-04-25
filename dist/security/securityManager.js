@@ -37,7 +37,6 @@ exports.SecurityManager = void 0;
 const vscode = __importStar(require("vscode"));
 const SecurityWebviewService_1 = require("../services/security/SecurityWebviewService");
 const SecurityScanService_1 = require("../services/security/SecurityScanService");
-const logger_1 = require("../utils/logger");
 class SecurityManager {
     context;
     static instance;
@@ -111,12 +110,14 @@ class SecurityManager {
         }
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
+                let issueId;
                 switch (message.command) {
                     case 'refresh':
                         await this.runScan();
                         break;
                     case 'showDetails':
-                        await this.showIssueDetails(message.issueId);
+                        issueId = message.issueId;
+                        await this.showIssueDetails(issueId);
                         break;
                     default:
                         this.logger.warn(`Unknown command received: ${message.command}`);

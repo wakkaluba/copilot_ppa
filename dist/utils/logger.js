@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Logger = exports.LogLevel = void 0;
+exports.LoggerImpl = exports.LogLevel = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -51,7 +51,7 @@ var LogLevel;
 /**
  * Logger class for Copilot PPA extension
  */
-class Logger {
+class LoggerImpl {
     _outputChannel;
     _logLevel;
     _logToFile;
@@ -246,5 +246,5 @@ class Logger {
         }
     }
 }
-exports.Logger = Logger;
+exports.LoggerImpl = LoggerImpl;
 //# sourceMappingURL=logger.js.map

@@ -1,4 +1,6 @@
-export function getConversationListHtml(conversations: any[], currentConversationId?: string): string {
+import { Conversation } from '../../types/conversation';
+
+export function getConversationListHtml(conversations: Conversation[], currentConversationId?: string): string {
     return `
     <div class="conversation-list">
         <div class="conversation-list-header">
@@ -268,7 +270,7 @@ export function getConversationListScript(): string {
     `;
 }
 
-function renderConversationItems(conversations: any[], currentConversationId?: string): string {
+function renderConversationItems(conversations: Conversation[], currentConversationId?: string): string {
     if (!conversations || conversations.length === 0) {
         return `
         <div class="empty-state">
@@ -280,7 +282,7 @@ function renderConversationItems(conversations: any[], currentConversationId?: s
     
     return conversations.map(conversation => {
         const isActive = conversation.id === currentConversationId;
-        const date = new Date(conversation.updatedAt).toLocaleString();
+        const date = new Date(conversation.updated).toLocaleString();
         const messageCount = conversation.messages.length;
         
         return `

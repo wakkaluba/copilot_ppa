@@ -19,3 +19,10 @@ copilot seem to have memory issues after a while.
   - enable PPA copilot to alter configurations in VSCode and extensions
   - enable PPA copilot installation of extensions if needed or useful/meaningful
   - enable PPA copilot to use VSCode API
+
+# 'Continue?' question handler
+  The copilot keeps asking to continue after a certain amount of time/iterations/etc.pp, which forces the users attention to the chat window all the time. Just in case a command has to be executed, a confirmation to continue iteration is needed or the like.
+  - I want a toggle switch to disable the continue queries to the user.
+  
+# yes/no button in the reply in copilot
+  Often I want to reply to the copilot with a yes or no. It would be nice to have a yes/no button in the reply window.

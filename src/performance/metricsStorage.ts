@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-interface StoredMetrics {
+export interface IStoredMetrics {
     operationTimings: { [operationId: string]: number[] };
     operationTrends: { [operationId: string]: { timestamp: number, duration: number }[] };
     resourceUsage: {
@@ -19,14 +19,14 @@ export class MetricsStorage {
 
     constructor(private context: vscode.ExtensionContext) {}
 
-    public async saveMetrics(metrics: StoredMetrics): Promise<void> {
+    public async saveMetrics(metrics: IStoredMetrics): Promise<void> {
         // Clean up old data before saving
         const cleanedMetrics = this.cleanupOldData(metrics);
         await this.context.globalState.update(MetricsStorage.STORAGE_KEY, cleanedMetrics);
     }
 
-    public async loadMetrics(): Promise<StoredMetrics> {
-        const metrics = this.context.globalState.get<StoredMetrics>(MetricsStorage.STORAGE_KEY);
+    public async loadMetrics(): Promise<IStoredMetrics> {
+        const metrics = this.context.globalState.get<IStoredMetrics>(MetricsStorage.STORAGE_KEY);
         if (!metrics) {
             return {
                 operationTimings: {},
@@ -38,7 +38,7 @@ export class MetricsStorage {
         return metrics;
     }
 
-    private cleanupOldData(metrics: StoredMetrics): StoredMetrics {
+    private cleanupOldData(metrics: IStoredMetrics): IStoredMetrics {
         const now = Date.now();
         const cutoffTime = now - MetricsStorage.MAX_HISTORY_AGE;
 

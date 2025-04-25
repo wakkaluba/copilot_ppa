@@ -37,7 +37,6 @@ exports.UISettingsPanel = void 0;
 const vscode = __importStar(require("vscode"));
 const UISettingsWebviewService_1 = require("./services/UISettingsWebviewService");
 const themeManager_1 = require("../services/ui/themeManager");
-const logger_1 = require("../utils/logger");
 class UISettingsPanel {
     context;
     static instance;

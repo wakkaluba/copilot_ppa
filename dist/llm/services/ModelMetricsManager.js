@@ -36,7 +36,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelMetricsManager = void 0;
 const vscode = __importStar(require("vscode"));
 const events_1 = require("events");
-const logger_1 = require("../../utils/logger");
 class ModelMetricsManager extends events_1.EventEmitter {
     outputChannel;
     metricsHistory = new Map();

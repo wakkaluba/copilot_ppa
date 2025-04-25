@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotApiService = void 0;
-const logger_1 = require("../utils/logger");
 const CopilotConnectionService_1 = require("./copilot/CopilotConnectionService");
 const CopilotChatService_1 = require("./copilot/CopilotChatService");
 const CopilotSuggestionService_1 = require("./copilot/CopilotSuggestionService");

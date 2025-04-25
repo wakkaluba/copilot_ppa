@@ -281,7 +281,7 @@ function renderConversationItems(conversations, currentConversationId) {
     }
     return conversations.map(conversation => {
         const isActive = conversation.id === currentConversationId;
-        const date = new Date(conversation.updatedAt).toLocaleString();
+        const date = new Date(conversation.updated).toLocaleString();
         const messageCount = conversation.messages.length;
         return `
         <div class="conversation-item ${isActive ? 'active' : ''}" data-id="${conversation.id}">

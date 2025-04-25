@@ -1,15 +1,6 @@
 // Import required modules and interfaces
-import { Conversation } from '../../models/conversation';
+import { Conversation, ChatMessage } from '../../types/conversation';
 import { escapeHtml } from '../../utils/htmlEscaper';
-
-// Define the chat message interface here to avoid circular imports
-export interface IChatMessage {
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: number | string;
-    id?: string;
-    [key: string]: unknown;
-}
 
 // Import renderer function
 import { renderMessages } from './messageRenderer';
@@ -20,7 +11,7 @@ import { renderMessages } from './messageRenderer';
  * @param index Index of the message in the conversation
  * @returns HTML string representation of the message
  */
-export function renderMessage(message: IChatMessage, index: number): string {
+export function renderMessage(message: ChatMessage, index: number): string {
     const role = message.role === 'user' ? 'user' : 
                 message.role === 'assistant' ? 'assistant' : 'system';
     const timestamp = new Date(message.timestamp).toLocaleString();

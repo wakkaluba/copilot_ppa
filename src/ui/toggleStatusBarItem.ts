@@ -3,7 +3,7 @@ import { CommandToggleManager } from './commandToggleManager';
 import { QuickAccessMenu } from './quickAccessMenu';
 import { KeybindingCategory } from '../services/ui/keybindingManager';
 
-interface ToggleState {
+export interface IToggleState {
     id: string;
     label: string;
     description: string;
@@ -108,8 +108,8 @@ export class ToggleStatusBarItem implements vscode.Disposable {
     /**
      * Group toggles by their category
      */
-    private groupByCategory(toggles: ToggleState[]): Map<KeybindingCategory, ToggleState[]> {
-        const grouped = new Map<KeybindingCategory, ToggleState[]>();
+    private groupByCategory(toggles: IToggleState[]): Map<KeybindingCategory, IToggleState[]> {
+        const grouped = new Map<KeybindingCategory, IToggleState[]>();
         for (const toggle of toggles) {
             const list = grouped.get(toggle.category) || [];
             list.push(toggle);
@@ -121,7 +121,7 @@ export class ToggleStatusBarItem implements vscode.Disposable {
     /**
      * Format tooltip with category grouping
      */
-    private formatTooltip(byCategory: Map<KeybindingCategory, ToggleState[]>): string {
+    private formatTooltip(byCategory: Map<KeybindingCategory, IToggleState[]>): string {
         const lines = [`${[...byCategory.values()].flat().length} command toggles active:`];
         
         for (const [category, toggles] of byCategory.entries()) {

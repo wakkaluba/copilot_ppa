@@ -71,6 +71,7 @@ exports.ModelValidator = void 0;
 const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
 const events_1 = require("events");
+const os = __importStar(require("os"));
 let ModelValidator = (() => {
     let _classDecorators = [(0, inversify_1.injectable)()];
     let _classDescriptor;
@@ -193,8 +194,8 @@ let ModelValidator = (() => {
                 // Implementation specific to getting system info
                 // This would need platform-specific implementations
                 this.systemRequirements = {
-                    totalMemoryGB: Math.round(require('os').totalmem() / (1024 * 1024 * 1024)),
-                    cpuCores: require('os').cpus().length,
+                    totalMemoryGB: Math.round(os.totalmem() / (1024 * 1024 * 1024)),
+                    cpuCores: os.cpus().length,
                     freeDiskSpaceGB: 100, // Placeholder - would need actual implementation
                     cudaAvailable: false, // Placeholder - would need actual implementation
                     gpuInfo: await this.getGPUInfo()

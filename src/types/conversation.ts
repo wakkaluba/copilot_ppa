@@ -1,31 +1,40 @@
-export interface IChatMessage {
+/**
+ * Represents a chat message in a conversation
+ */
+export interface ChatMessage {
+    /** Unique identifier for the message */
     id?: string;
+    /** Role of the message sender */
     role: 'user' | 'assistant' | 'system';
+    /** Content of the message */
     content: string;
-    timestamp: number;
+    /** Timestamp when the message was created (milliseconds since epoch or ISO string) */
+    timestamp: number | string;
+    /** Any additional properties that might be attached to the message */
+    [key: string]: unknown;
 }
 
-export interface IConversation {
+export interface Conversation {
     id: string;
     title: string;
-    messages: IChatMessage[];
+    messages: ChatMessage[];
     created: number;
     updated: number;
 }
 
-export interface IConversationSearchResult {
-    conversation: IConversation;
-    matches: IMessageMatch[];
+export interface ConversationSearchResult {
+    conversation: Conversation;
+    matches: MessageMatch[];
     titleMatch?: boolean;
     score: number;
 }
 
-export interface IMessageMatch {
-    message: IChatMessage;
+export interface MessageMatch {
+    message: ChatMessage;
     matchPositions: [number, number][]; // Start and end positions of matches
 }
 
-export interface ISearchOptions {
+export interface SearchOptions {
     query: string;
     searchInTitles?: boolean;
     searchInContent?: boolean;

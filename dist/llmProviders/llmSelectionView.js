@@ -641,9 +641,13 @@ class LLMSelectionView {
      * Handle messages from the webview
      */
     async handleWebviewMessage(message) {
+        let ollamaStatus;
+        let lmStudioStatus;
+        let ollamaInstructions;
+        let lmStudioInstructions;
         switch (message.command) {
             case 'checkOllamaStatus':
-                const ollamaStatus = await this.modelsManager.checkOllamaStatus();
+                ollamaStatus = await this.modelsManager.checkOllamaStatus();
                 this.panel?.webview.postMessage({
                     command: 'updateOllamaStatus',
                     installed: ollamaStatus.installed,
@@ -651,7 +655,7 @@ class LLMSelectionView {
                 });
                 break;
             case 'checkLmStudioStatus':
-                const lmStudioStatus = await this.modelsManager.checkLmStudioStatus();
+                lmStudioStatus = await this.modelsManager.checkLmStudioStatus();
                 this.panel?.webview.postMessage({
                     command: 'updateLmStudioStatus',
                     installed: lmStudioStatus.installed
@@ -661,14 +665,14 @@ class LLMSelectionView {
                 await this.modelsManager.refreshInstalledModels();
                 break;
             case 'getOllamaInstallInstructions':
-                const ollamaInstructions = this.modelsManager.getOllamaInstallInstructions();
+                ollamaInstructions = this.modelsManager.getOllamaInstallInstructions();
                 this.panel?.webview.postMessage({
                     command: 'showInstallInstructions',
                     content: `<p>To install Ollama:</p><pre>${ollamaInstructions}</pre><p>After installing, restart this extension to use Ollama.</p>`
                 });
                 break;
             case 'getLmStudioInstallInstructions':
-                const lmStudioInstructions = this.modelsManager.getLmStudioInstallInstructions();
+                lmStudioInstructions = this.modelsManager.getLmStudioInstallInstructions();
                 this.panel?.webview.postMessage({
                     command: 'showInstallInstructions',
                     content: `<p>To install LM Studio:</p><pre>${lmStudioInstructions}</pre><p>After installing, restart this extension to use LM Studio.</p>`

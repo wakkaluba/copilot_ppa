@@ -37,7 +37,6 @@ exports.DependencyScanService = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs/promises"));
-const logger_1 = require("../../utils/logger");
 class DependencyScanService {
     vulnerabilityService;
     logger;

@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityWebviewService = void 0;
 const vscode = __importStar(require("vscode"));
-const logger_1 = require("../../utils/logger");
 class SecurityWebviewService {
     logger;
     constructor() {

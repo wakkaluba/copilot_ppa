@@ -39,25 +39,26 @@ export class CodeExecutorService implements ICodeExecutor {
         terminal.show();
 
         let command = '';
+        let tempFile = '';
         
         switch (language) {
             case 'javascript':
             case 'typescript':
-                const tempJsFile = await this.createTempFile(code, '.js');
-                command = `node "${tempJsFile}"`;
+                tempFile = await this.createTempFile(code, '.js');
+                command = `node "${tempFile}"`;
                 break;
             case 'python':
-                const tempPyFile = await this.createTempFile(code, '.py');
-                command = `python "${tempPyFile}"`;
+                tempFile = await this.createTempFile(code, '.py');
+                command = `python "${tempFile}"`;
                 break;
             case 'shellscript':
             case 'bash':
-                const tempShFile = await this.createTempFile(code, '.sh');
-                command = `bash "${tempShFile}"`;
+                tempFile = await this.createTempFile(code, '.sh');
+                command = `bash "${tempFile}"`;
                 break;
             case 'powershell':
-                const tempPsFile = await this.createTempFile(code, '.ps1');
-                command = `powershell -File "${tempPsFile}"`;
+                tempFile = await this.createTempFile(code, '.ps1');
+                command = `powershell -File "${tempFile}"`;
                 break;
             default:
                 throw new Error(`Unsupported language: ${language}`);

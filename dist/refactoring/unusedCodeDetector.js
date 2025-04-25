@@ -36,10 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnusedCodeDetector = void 0;
 const vscode = __importStar(require("vscode"));
 const UnusedCodeAnalyzer_1 = require("./codeAnalysis/UnusedCodeAnalyzer");
+const logger_1 = require("../utils/logger");
 class UnusedCodeDetector {
     analyzer;
+    logger;
     constructor(context) {
         this.analyzer = new UnusedCodeAnalyzer_1.UnusedCodeAnalyzer();
+        this.logger = new logger_1.LoggerImpl();
         context.subscriptions.push(this);
     }
     /**
@@ -54,7 +57,7 @@ class UnusedCodeDetector {
             return await this.analyzer.analyze(editor.document, editor.selection);
         }
         catch (error) {
-            console.error('Error during unused code detection:', error);
+            this.logger.error('Error during unused code detection:', error);
             vscode.window.showErrorMessage(`Error analyzing file: ${error}`);
             return [];
         }

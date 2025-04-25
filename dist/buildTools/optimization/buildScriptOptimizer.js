@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BuildScriptOptimizer = void 0;
-const logger_1 = require("../../utils/logger");
 const OptimizationGeneratorService_1 = require("./services/OptimizationGeneratorService");
 const BuildScriptAnalyzerService_1 = require("./services/BuildScriptAnalyzerService");
 const UserInteractionService_1 = require("./services/UserInteractionService");

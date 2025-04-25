@@ -85,7 +85,7 @@ optimization: {
 
 optimization: {
     minimizer: [
-        // For webpack@5 you can use the \`...\" syntax to extend existing minimizers
+        // For webpack@5 you can use the '...' syntax to extend existing minimizers
         '...',
         new CssMinimizerPlugin(),
     ],

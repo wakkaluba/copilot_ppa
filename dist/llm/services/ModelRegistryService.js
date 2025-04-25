@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelRegistryService = void 0;
 const events_1 = require("events");
-const logger_1 = require("../../utils/logger");
 class ModelRegistryService {
     _registryEmitter = new events_1.EventEmitter();
     _registry = new Map();

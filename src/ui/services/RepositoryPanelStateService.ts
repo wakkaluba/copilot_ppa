@@ -1,56 +1,58 @@
-import { EventEmitter } from 'events';
+import * as vscode from 'vscode';
 
-export interface PanelState {
-    isAccessEnabled: boolean;
-    lastProvider?: string;
-    lastCreatedRepo?: string;
-    errorMessage: string | undefined;
+export interface IPanelState {
+    selectedRepository?: string;
+    repositories: string[];
+    currentView: string;
 }
 
 export class RepositoryPanelStateService {
-    private state: PanelState = {
-        isAccessEnabled: false,
-        errorMessage: undefined
+    private state: IPanelState = {
+        repositories: [],
+        currentView: 'list',
     };
-    private readonly eventEmitter = new EventEmitter();
-
-    public getAccessState(): boolean {
-        return this.state.isAccessEnabled;
+    
+    constructor(private context: vscode.ExtensionContext) {
+        this.loadState();
     }
-
-    public setAccessEnabled(enabled: boolean): void {
-        this.state.isAccessEnabled = enabled;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-
-    public setLastProvider(provider: string): void {
-        this.state.lastProvider = provider;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-
-    public setLastCreatedRepo(repoUrl: string): void {
-        this.state.lastCreatedRepo = repoUrl;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-
-    public setErrorMessage(message: string | undefined): void {
-        this.state.errorMessage = message;
-        this.eventEmitter.emit('stateChanged', this.state);
-    }
-
-    public getState(): PanelState {
+    
+    public getState(): IPanelState {
         return { ...this.state };
     }
-
-    public onStateChanged(listener: (state: PanelState) => void): void {
-        this.eventEmitter.on('stateChanged', listener);
+    
+    public setState(newState: Partial<IPanelState>): void {
+        this.state = { ...this.state, ...newState };
+        this.saveState();
     }
-
-    public clearState(): void {
-        this.state = {
-            isAccessEnabled: false,
-            errorMessage: undefined
-        };
-        this.eventEmitter.emit('stateChanged', this.state);
+    
+    public setSelectedRepository(repositoryName: string): void {
+        this.state.selectedRepository = repositoryName;
+        this.saveState();
+    }
+    
+    public clearSelectedRepository(): void {
+        delete this.state.selectedRepository;
+        this.saveState();
+    }
+    
+    public setRepositories(repositories: string[]): void {
+        this.state.repositories = repositories;
+        this.saveState();
+    }
+    
+    public setCurrentView(view: string): void {
+        this.state.currentView = view;
+        this.saveState();
+    }
+    
+    private saveState(): void {
+        this.context.workspaceState.update('repository-panel-state', this.state);
+    }
+    
+    private loadState(): void {
+        const savedState = this.context.workspaceState.get<IPanelState>('repository-panel-state');
+        if (savedState) {
+            this.state = savedState;
+        }
     }
 }
