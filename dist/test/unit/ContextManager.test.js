@@ -35,21 +35,18 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const assert = __importStar(require("assert"));
 const sinon = __importStar(require("sinon"));
-const ContextManager_1 = require("../../services/ContextManager");
-const ConversationHistory_1 = require("../../services/ConversationHistory");
-const ConversationManager_1 = require("../../services/ConversationManager");
+const ContextManager_1 = require("../../services/conversation/ContextManager"); // Fixed path to match actual file
 const PromptManager_1 = require("../../services/PromptManager");
-suite('ContextManager', () => {
-    // Test suite organization
+const ConversationManager_1 = require("../../services/ConversationManager"); // Fixed casing
+const ConversationHistory_1 = require("../../services/ConversationHistory");
+describe('ContextManager', () => {
     let contextManager;
-    let historyStub;
-    let conversationManagerStub;
-    let promptManagerStub;
     let sandbox;
+    let historyStub;
+    let promptManagerStub;
     setup(() => {
         sandbox = sinon.createSandbox();
         historyStub = sandbox.createStubInstance(ConversationHistory_1.ConversationHistory);
-        conversationManagerStub = sandbox.createStubInstance(ConversationManager_1.ConversationManager);
         promptManagerStub = sandbox.createStubInstance(PromptManager_1.PromptManager);
         sandbox.stub(ConversationManager_1.ConversationManager, 'getInstance').returns(conversationManagerStub);
         sandbox.stub(PromptManager_1.PromptManager, 'getInstance').returns(promptManagerStub);
