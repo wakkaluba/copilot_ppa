@@ -1,143 +1,275 @@
-import { inject, injectable } from 'inversify';
-import { EventEmitter } from 'events';
+import { injectable } from 'inversify';
 import { ILogger } from '../../utils/logger';
-import { ModelHealthMonitor } from './ModelHealthMonitor';
-import { ModelMetricsService } from './ModelMetricsService';
+import { ScalingMetrics } from './ModelScalingMetricsService';
+import { EventEmitter } from 'events';
 
-export interface ScalingPolicy {
-    name: string;
-    description: string;
-    enabled: boolean;
-    rules: ScalingRule[];
-    cooldown: number;
-    targets: {
-        minInstances: number;
-        maxInstances: number;
-        targetCpuUtilization: number;
-        targetMemoryUtilization: number;
-        targetResponseTime: number;
+export interface ScalingThresholds {
+    cpuUtilizationHigh: number;  // percentage, e.g., 80
+    cpuUtilizationLow: number;   // percentage, e.g., 20
+    memoryUtilizationHigh: number;  // percentage, e.g., 80
+    memoryUtilizationLow: number;   // percentage, e.g., 20
+    queueLengthHigh: number;     // number of requests, e.g., 50
+    queueLengthLow: number;      // number of requests, e.g., 5
+    latencyHigh: number;         // milliseconds, e.g., 1000
+    lastTriggeredTime?: number;
+    replicas?: number;
+    resources?: {
+        cpu?: string;
+        memory?: string;
     };
 }
 
 export interface ScalingRule {
-    metric: string;
-    operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq';
-    threshold: number;
-    scaleChange: number;
-    duration: number;
+    name: string;
+    description: string;
+    condition: (metrics: ScalingMetrics) => boolean;
+    action: 'scale_up' | 'scale_down' | 'no_action';
+    priority: number; // Higher numbers have higher priority
+    cooldownPeriod: number; // milliseconds
+    lastTriggeredTime?: number;
+    replicas?: number;
+    resources?: {
+        cpu?: string;
+        memory?: string;
+    };
+}
+
+export interface ScalingDecision {
+    modelId: string;
+    timestamp: number;
+    action: 'scale_up' | 'scale_down' | 'no_action';
+    reason: string;
+    metrics: ScalingMetrics;
+    rule: ScalingRule | undefined;
+    replicas: number | undefined;
+    resources: {
+        cpu?: string;
+        memory?: string;
+    } | undefined;
 }
 
 @injectable()
 export class ModelScalingPolicy extends EventEmitter {
-    private readonly policies = new Map<string, ScalingPolicy>();
+    private scalingRules = new Map<string, ScalingRule[]>();
+    private recentDecisions = new Map<string, ScalingDecision[]>();
+    private readonly decisionHistoryLimit = 20;
 
     constructor(
-        @inject(ILogger) private readonly logger: ILogger,
-        @inject(ModelHealthMonitor) private readonly healthMonitor: ModelHealthMonitor,
-        @inject(ModelMetricsService) private readonly metricsService: ModelMetricsService
+        private readonly logger: ILogger
     ) {
         super();
+        this.logger.info('ModelScalingPolicy initialized');
+        this.initializeDefaultRules();
     }
 
-    public async createPolicy(modelId: string, policy: ScalingPolicy): Promise<void> {
+    private initializeDefaultRules(): void {
+        // Define default scaling rules
+        const defaultRules: ScalingRule[] = [
+            {
+                name: 'high-cpu-utilization',
+                description: 'Scale up when CPU utilization is high',
+                condition: (metrics) => metrics.resources.cpu > 80,
+                action: 'scale_up',
+                priority: 80,
+                cooldownPeriod: 5 * 60 * 1000, // 5 minutes
+                replicas: 1
+            },
+            {
+                name: 'high-memory-utilization',
+                description: 'Scale up when memory utilization is high',
+                condition: (metrics) => metrics.resources.memory > 85,
+                action: 'scale_up',
+                priority: 85,
+                cooldownPeriod: 5 * 60 * 1000, // 5 minutes
+                replicas: 1
+            },
+            {
+                name: 'long-response-time',
+                description: 'Scale up when response time exceeds threshold',
+                condition: (metrics) => metrics.performance.responseTime > 1000,
+                action: 'scale_up',
+                priority: 90,
+                cooldownPeriod: 3 * 60 * 1000, // 3 minutes
+                replicas: 1
+            },
+            {
+                name: 'high-queue-length',
+                description: 'Scale up when queue length is high',
+                condition: (metrics) => metrics.scaling.queueLength > 50,
+                action: 'scale_up',
+                priority: 95,
+                cooldownPeriod: 2 * 60 * 1000, // 2 minutes
+                replicas: 1
+            },
+            {
+                name: 'low-cpu-utilization',
+                description: 'Scale down when CPU utilization is low',
+                condition: (metrics) => metrics.resources.cpu < 20 && metrics.scaling.currentNodes > 1,
+                action: 'scale_down',
+                priority: 60,
+                cooldownPeriod: 15 * 60 * 1000, // 15 minutes
+                replicas: 1
+            },
+            {
+                name: 'low-queue-length',
+                description: 'Scale down when queue length is low',
+                condition: (metrics) => metrics.scaling.queueLength < 5 && metrics.scaling.currentNodes > 1,
+                action: 'scale_down',
+                priority: 50,
+                cooldownPeriod: 10 * 60 * 1000, // 10 minutes
+                replicas: 1
+            }
+        ];
+
+        // Set defaults for all models
+        this.scalingRules.set('default', defaultRules);
+    }
+
+    /**
+     * Add or update scaling rules for a specific model
+     */
+    public setScalingRules(modelId: string, rules: ScalingRule[]): void {
+        this.scalingRules.set(modelId, rules);
+        this.logger.info(`Set scaling rules for model ${modelId}`, { rulesCount: rules.length });
+        this.emit('rules.updated', { modelId, rules });
+    }
+
+    /**
+     * Get scaling rules for a model (or default if not set)
+     */
+    public getScalingRules(modelId: string): ScalingRule[] {
+        return this.scalingRules.get(modelId) || this.scalingRules.get('default') || [];
+    }
+
+    /**
+     * Evaluate metrics against rules to make a scaling decision
+     */
+    public evaluateScalingDecision(modelId: string, metrics: ScalingMetrics): ScalingDecision {
         try {
-            await this.validatePolicy(policy);
-            this.policies.set(modelId, policy);
-            this.emit('policyCreated', { modelId, policy });
+            this.logger.info(`Evaluating scaling decision for model ${modelId}`);
+            
+            const rules = this.getScalingRules(modelId);
+            const now = Date.now();
+            const applicableRules: ScalingRule[] = [];
+
+            // Find applicable rules that are not in cooldown
+            for (const rule of rules) {
+                const lastTriggered = rule.lastTriggeredTime || 0;
+                const cooldownExpired = (now - lastTriggered) > rule.cooldownPeriod;
+
+                if (cooldownExpired && rule.condition(metrics)) {
+                    applicableRules.push(rule);
+                }
+            }
+
+            if (applicableRules.length === 0) {
+                return this.createDecision(modelId, 'no_action', 'No applicable rules', metrics);
+            }
+
+            // Sort by priority (highest first)
+            applicableRules.sort((a, b) => b.priority - a.priority);
+            const selectedRule = applicableRules[0];
+
+            // Update last triggered time
+            if (selectedRule) {
+                selectedRule.lastTriggeredTime = now;
+                
+                const decision = this.createDecision(
+                    modelId,
+                    selectedRule.action,
+                    `Rule "${selectedRule.name}" triggered: ${selectedRule.description}`,
+                    metrics,
+                    selectedRule
+                );
+
+                this.recordDecision(decision);
+                
+                this.logger.info(`Scaling decision for model ${modelId}: ${decision.action}`, {
+                    reason: decision.reason,
+                    rule: selectedRule.name
+                });
+
+                return decision;
+            }
+
+            // This should never happen since we check applicableRules.length above,
+            // but this satisfies TypeScript's control flow analysis
+            return this.createDecision(
+                modelId,
+                'no_action',
+                'No applicable rule selected',
+                metrics
+            );
         } catch (error) {
-            this.handleError('Failed to create scaling policy', error);
-            throw error;
+            this.logger.error(`Error evaluating scaling decision for model ${modelId}`, error);
+            
+            // Return a safe default
+            return this.createDecision(
+                modelId,
+                'no_action',
+                'Error evaluating scaling rules',
+                metrics
+            );
         }
     }
 
-    public async evaluatePolicy(modelId: string): Promise<ScalingDecision | null> {
-        try {
-            const policy = this.policies.get(modelId);
-            if (!policy || !policy.enabled) return null;
-
-            const metrics = await this.metricsService.getLatestMetrics();
-            const modelMetrics = metrics.get(modelId);
-            if (!modelMetrics) return null;
-
-            const decision = this.evaluateRules(policy, modelMetrics);
-            if (decision) {
-                this.emit('scalingDecision', { modelId, decision });
-            }
-            return decision;
-        } catch (error) {
-            this.handleError('Failed to evaluate scaling policy', error);
-            return null;
-        }
+    /**
+     * Create a scaling decision object
+     */
+    private createDecision(
+        modelId: string,
+        action: 'scale_up' | 'scale_down' | 'no_action',
+        reason: string,
+        metrics: ScalingMetrics,
+        rule?: ScalingRule
+    ): ScalingDecision {
+        return {
+            modelId,
+            timestamp: Date.now(),
+            action,
+            reason,
+            metrics,
+            rule,
+            replicas: rule?.replicas,
+            resources: rule?.resources
+        };
     }
 
-    private evaluateRules(policy: ScalingPolicy, metrics: any): ScalingDecision | null {
-        for (const rule of policy.rules) {
-            const metricValue = this.getMetricValue(metrics, rule.metric);
-            if (this.evaluateCondition(metricValue, rule.operator, rule.threshold)) {
-                return {
-                    scaleChange: rule.scaleChange,
-                    reason: `${rule.metric} ${rule.operator} ${rule.threshold}`,
-                    metrics: metrics,
-                    timestamp: Date.now()
-                };
-            }
-        }
-        return null;
-    }
-
-    private getMetricValue(metrics: any, metricPath: string): number {
-        return metricPath.split('.').reduce((obj, key) => obj?.[key], metrics) || 0;
-    }
-
-    private evaluateCondition(value: number, operator: string, threshold: number): boolean {
-        switch (operator) {
-            case 'gt': return value > threshold;
-            case 'lt': return value < threshold;
-            case 'gte': return value >= threshold;
-            case 'lte': return value <= threshold;
-            case 'eq': return value === threshold;
-            default: return false;
-        }
-    }
-
-    private async validatePolicy(policy: ScalingPolicy): Promise<void> {
-        if (!policy.name || !policy.rules || policy.rules.length === 0) {
-            throw new Error('Invalid policy configuration');
+    /**
+     * Record a scaling decision in history
+     */
+    private recordDecision(decision: ScalingDecision): void {
+        const { modelId } = decision;
+        
+        if (!this.recentDecisions.has(modelId)) {
+            this.recentDecisions.set(modelId, []);
         }
 
-        if (policy.targets.minInstances < 0 || policy.targets.maxInstances < policy.targets.minInstances) {
-            throw new Error('Invalid instance limits');
+        const decisions = this.recentDecisions.get(modelId)!;
+        decisions.push(decision);
+
+        // Limit the history size
+        if (decisions.length > this.decisionHistoryLimit) {
+            decisions.shift();
         }
 
-        for (const rule of policy.rules) {
-            if (!rule.metric || !rule.operator || rule.threshold === undefined) {
-                throw new Error('Invalid rule configuration');
-            }
-        }
+        this.emit('decision.made', { decision });
     }
 
-    private handleError(message: string, error: unknown): void {
-        this.logger.error(message, { error });
-        this.emit('error', { message, error });
+    /**
+     * Get recent scaling decisions for a model
+     */
+    public getRecentDecisions(modelId: string): ScalingDecision[] {
+        return this.recentDecisions.get(modelId) || [];
     }
 
-    public getPolicy(modelId: string): ScalingPolicy | undefined {
-        return this.policies.get(modelId);
-    }
-
-    public getAllPolicies(): Map<string, ScalingPolicy> {
-        return new Map(this.policies);
-    }
-
-    public async updatePolicy(modelId: string, updates: Partial<ScalingPolicy>): Promise<void> {
-        const existing = this.policies.get(modelId);
-        if (!existing) {
-            throw new Error(`No policy found for model ${modelId}`);
-        }
-
-        const updated = { ...existing, ...updates };
-        await this.validatePolicy(updated);
-        this.policies.set(modelId, updated);
-        this.emit('policyUpdated', { modelId, policy: updated });
+    /**
+     * Dispose of resources
+     */
+    public dispose(): void {
+        this.removeAllListeners();
+        this.scalingRules.clear();
+        this.recentDecisions.clear();
+        this.logger.info('ModelScalingPolicy disposed');
     }
 }

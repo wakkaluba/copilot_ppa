@@ -1,97 +1,88 @@
 /**
  * Tests for the LLMModelInfo interface
  */
-import { LLMModelInfo } from '../../../../src/llm/modelService';
+import { LLMModelInfo } from '../../../../src/llm/types';
 
 describe('LLMModelInfo interface', () => {
   it('should create a valid basic model info object', () => {
     const modelInfo: LLMModelInfo = {
-      id: 'llama2',
-      name: 'Llama 2 (7B)',
-      provider: 'ollama',
-      description: 'A versatile 7B parameter model for general use',
-      tags: ['general', 'chat']
+      id: 'model-1',
+      name: 'Test Model',
+      provider: 'OpenAI',
+      description: 'A test model'
     };
 
     expect(modelInfo).toBeDefined();
-    expect(modelInfo.id).toBe('llama2');
-    expect(modelInfo.name).toBe('Llama 2 (7B)');
-    expect(modelInfo.provider).toBe('ollama');
-    expect(modelInfo.description).toBe('A versatile 7B parameter model for general use');
-    expect(modelInfo.tags).toEqual(['general', 'chat']);
+    expect(modelInfo.id).toBe('model-1');
+    expect(modelInfo.name).toBe('Test Model');
+    expect(modelInfo.provider).toBe('OpenAI');
+    expect(modelInfo.description).toBe('A test model');
   });
 
-  it('should create a valid model info object with all properties', () => {
+  it('should create a valid model info with tags', () => {
     const modelInfo: LLMModelInfo = {
-      id: 'mistral',
-      name: 'Mistral (7B)',
-      provider: 'ollama',
-      description: 'A powerful 7B model with strong performance',
-      tags: ['general', 'reasoning'],
-      parameters: 7,
-      quantization: 'Q4_0',
-      contextLength: 8192
+      id: 'model-2',
+      name: 'Test Model with Tags',
+      provider: 'Google',
+      description: 'A test model with tags',
+      tags: ['fast', 'accurate', 'multilingual']
     };
 
     expect(modelInfo).toBeDefined();
-    expect(modelInfo.id).toBe('mistral');
-    expect(modelInfo.name).toBe('Mistral (7B)');
-    expect(modelInfo.provider).toBe('ollama');
-    expect(modelInfo.description).toBe('A powerful 7B model with strong performance');
-    expect(modelInfo.tags).toEqual(['general', 'reasoning']);
-    expect(modelInfo.parameters).toBe(7);
-    expect(modelInfo.quantization).toBe('Q4_0');
-    expect(modelInfo.contextLength).toBe(8192);
+    expect(modelInfo.tags).toContain('fast');
+    expect(modelInfo.tags).toContain('accurate');
+    expect(modelInfo.tags).toHaveLength(3);
   });
 
-  it('should create a valid model info object for LM Studio provider', () => {
+  it('should create a valid model info with parameters', () => {
     const modelInfo: LLMModelInfo = {
-      id: 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF',
-      name: 'Mistral Instruct (7B) GGUF',
-      provider: 'lmstudio',
-      description: 'GGUF version of Mistral 7B optimized for instruction following',
-      tags: ['general', 'instruction'],
-      contextLength: 4096
+      id: 'model-3',
+      name: 'Test Model with Parameters',
+      provider: 'Anthropic',
+      description: 'A model with advanced parameters',
+      contextSize: 8192,
+      parameters: {
+        quantization: 'Q4_0',
+        temperature: 0.7,
+        parameterCount: 7
+      },
+      tags: ['claude', 'conversation']
     };
 
     expect(modelInfo).toBeDefined();
-    expect(modelInfo.id).toBe('TheBloke/Mistral-7B-Instruct-v0.2-GGUF');
-    expect(modelInfo.name).toBe('Mistral Instruct (7B) GGUF');
-    expect(modelInfo.provider).toBe('lmstudio');
-    expect(modelInfo.description).toBe('GGUF version of Mistral 7B optimized for instruction following');
-    expect(modelInfo.tags).toEqual(['general', 'instruction']);
-    expect(modelInfo.contextLength).toBe(4096);
+    expect(modelInfo.parameters?.['quantization']).toBe('Q4_0');
+    expect(modelInfo.contextSize).toBe(8192);
   });
 
-  it('should create a valid code-specific model info object', () => {
+  it('should include contextSize property', () => {
     const modelInfo: LLMModelInfo = {
-      id: 'codellama',
-      name: 'Code Llama (7B)',
-      provider: 'ollama',
-      description: 'Specialized for code generation and understanding',
-      tags: ['code', 'programming'],
-      parameters: 7
+      id: 'model-4',
+      name: 'Test Model with Context Length',
+      provider: 'Cohere',
+      description: 'A model with specified context length',
+      contextSize: 4096
     };
 
     expect(modelInfo).toBeDefined();
-    expect(modelInfo.id).toBe('codellama');
-    expect(modelInfo.name).toBe('Code Llama (7B)');
-    expect(modelInfo.provider).toBe('ollama');
-    expect(modelInfo.description).toBe('Specialized for code generation and understanding');
-    expect(modelInfo.tags).toEqual(['code', 'programming']);
-    expect(modelInfo.parameters).toBe(7);
+    expect(modelInfo.id).toBe('model-4');
+    expect(modelInfo.contextSize).toBe(4096);
+  });
+  
+  it('should allow undefined optional parameters', () => {
+    const modelInfo: LLMModelInfo = {
+      id: 'model-5',
+      name: 'Minimal Model',
+      provider: 'Local',
+      description: 'A minimal model definition',
+      parameters: {
+        parameterCount: 7
+      }
+    };
+
+    expect(modelInfo).toBeDefined();
+    expect(modelInfo.id).toBe('model-5');
+    expect(modelInfo.tags).toBeUndefined();
+    expect(modelInfo.contextSize).toBeUndefined();
+    expect(modelInfo.parameters?.['parameterCount']).toBe(7);
   });
 });
-
-// Helper function to create model info objects for testing
-export function createTestModelInfo(overrides?: Partial<LLMModelInfo>): LLMModelInfo {
-  const defaultModelInfo: LLMModelInfo = {
-    id: 'llama2',
-    name: 'Llama 2 (7B)',
-    provider: 'ollama',
-    description: 'A versatile 7B parameter model for general use',
-    tags: ['general', 'chat']
-  };
-
-  return { ...defaultModelInfo, ...overrides };
-}

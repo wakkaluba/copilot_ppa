@@ -36,185 +36,125 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelResourceOptimizer = void 0;
 const inversify_1 = require("inversify");
+const events_1 = require("events");
 let ModelResourceOptimizer = (() => {
     let _classDecorators = [(0, inversify_1.injectable)()];
     let _classDescriptor;
     let _classExtraInitializers = [];
     let _classThis;
-    var ModelResourceOptimizer = class {
+    let _classSuper = events_1.EventEmitter;
+    var ModelResourceOptimizer = class extends _classSuper {
         static { _classThis = this; }
         static {
-            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
             __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
             ModelResourceOptimizer = _classThis = _classDescriptor.value;
             if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
             __runInitializers(_classThis, _classExtraInitializers);
         }
         logger;
-        systemManager;
-        hardwareManager;
-        optimizationIntervalMs;
-        metricsHistory = new Array();
-        maxHistoryLength = 100;
-        currentOptimization;
-        optimizationInterval = null;
-        constructor(logger, systemManager, hardwareManager, optimizationIntervalMs = 10000) {
+        metricsService;
+        healthMonitor;
+        constructor(logger, metricsService, healthMonitor) {
+            super();
             this.logger = logger;
-            this.systemManager = systemManager;
-            this.hardwareManager = hardwareManager;
-            this.optimizationIntervalMs = optimizationIntervalMs;
-            this.currentOptimization = this.getDefaultOptimization();
-            this.startOptimization();
+            this.metricsService = metricsService;
+            this.healthMonitor = healthMonitor;
         }
-        getCurrentOptimization() {
-            return { ...this.currentOptimization };
+        async optimizeResources(modelId) {
+            try {
+                const metrics = await this.gatherMetrics(modelId);
+                const recommendations = this.generateRecommendations(metrics);
+                const result = {
+                    modelId,
+                    timestamp: Date.now(),
+                    recommendations,
+                    metrics,
+                    confidence: this.calculateConfidence(recommendations)
+                };
+                this.emit('optimizationCompleted', result);
+                return result;
+            }
+            catch (error) {
+                this.handleError('Resource optimization failed', error);
+                throw error;
+            }
         }
-        getOptimizationHistory() {
-            return [...this.metricsHistory];
-        }
-        getDefaultOptimization() {
+        async gatherMetrics(modelId) {
+            const metrics = await this.metricsService.getLatestMetrics();
+            const modelMetrics = metrics.get(modelId);
+            if (!modelMetrics) {
+                throw new Error(`No metrics available for model ${modelId}`);
+            }
             return {
-                memoryLimit: Math.floor(this.hardwareManager.getTotalMemory() * 0.7),
-                maxCpuUsage: 80,
-                swapUsageLimit: 1024 * 1024 * 1024, // 1GB
-                loadBalancingEnabled: true,
-                processPriority: 'normal',
-                throttlingThreshold: 90
+                cpuUtilization: modelMetrics.resourceUtilization.cpu,
+                memoryUtilization: modelMetrics.resourceUtilization.memory,
+                gpuUtilization: modelMetrics.resourceUtilization.gpu,
+                latency: modelMetrics.latency,
+                throughput: modelMetrics.throughput,
+                errorRate: modelMetrics.errorRate
             };
         }
-        async optimizeResources() {
-            try {
-                const systemMetrics = await this.systemManager.getSystemMetrics();
-                const hardwareInfo = await this.hardwareManager.getHardwareInfo();
-                // Memory optimization
-                if (systemMetrics.resources.memoryUsagePercent > this.currentOptimization.throttlingThreshold) {
-                    await this.optimizeMemory(systemMetrics.resources.memoryUsagePercent);
-                }
-                // CPU optimization
-                if (systemMetrics.resources.cpuUsagePercent > this.currentOptimization.maxCpuUsage) {
-                    await this.optimizeCPU(systemMetrics.resources.cpuUsagePercent);
-                }
-                // Process optimization
-                await this.optimizeProcesses(systemMetrics.processes);
-                // Record optimization metrics
-                this.recordOptimizationMetrics(systemMetrics);
+        generateRecommendations(metrics) {
+            const recommendations = [];
+            // CPU optimization
+            if (metrics.cpuUtilization > 80) {
+                recommendations.push({
+                    type: 'cpu',
+                    currentValue: metrics.cpuUtilization,
+                    recommendedValue: metrics.cpuUtilization * 1.5,
+                    impact: 0.8,
+                    reason: 'High CPU utilization detected'
+                });
             }
-            catch (error) {
-                this.handleError('Failed to optimize resources', error);
+            // Memory optimization
+            if (metrics.memoryUtilization > 85) {
+                recommendations.push({
+                    type: 'memory',
+                    currentValue: metrics.memoryUtilization,
+                    recommendedValue: metrics.memoryUtilization * 1.3,
+                    impact: 0.7,
+                    reason: 'High memory usage detected'
+                });
             }
-        }
-        async optimizeMemory(currentUsage) {
-            try {
-                // Calculate target reduction
-                const targetReduction = currentUsage - this.currentOptimization.throttlingThreshold;
-                const processes = await this.systemManager.getSystemMetrics();
-                // Sort processes by memory usage
-                const sortedProcesses = Array.from(processes.processes.values())
-                    .sort((a, b) => b.memoryBytes - a.memoryBytes);
-                // Optimize high memory consumers
-                for (const process of sortedProcesses) {
-                    if (process.memoryBytes > this.currentOptimization.memoryLimit) {
-                        await this.systemManager.unregisterProcess(process.pid);
-                        this.logger.info('ModelResourceOptimizer', `Unregistered high memory process: ${process.pid}`);
-                    }
-                }
+            // GPU optimization if available
+            if (metrics.gpuUtilization !== undefined && metrics.gpuUtilization < 50) {
+                recommendations.push({
+                    type: 'gpu',
+                    currentValue: metrics.gpuUtilization,
+                    recommendedValue: Math.min(metrics.gpuUtilization * 2, 100),
+                    impact: 0.6,
+                    reason: 'Low GPU utilization detected'
+                });
             }
-            catch (error) {
-                this.handleError('Failed to optimize memory', error);
+            // Batch size optimization based on latency and throughput
+            if (metrics.latency > 100 && metrics.throughput < 1000) {
+                recommendations.push({
+                    type: 'batch',
+                    currentValue: this.estimateCurrentBatchSize(metrics),
+                    recommendedValue: this.calculateOptimalBatchSize(metrics),
+                    impact: 0.5,
+                    reason: 'Suboptimal batch size for current load'
+                });
             }
+            return recommendations;
         }
-        async optimizeCPU(currentUsage) {
-            try {
-                const processes = await this.systemManager.getSystemMetrics();
-                const highCpuProcesses = Array.from(processes.processes.values())
-                    .filter(p => p.cpuUsagePercent > this.currentOptimization.maxCpuUsage);
-                for (const process of highCpuProcesses) {
-                    if (this.currentOptimization.loadBalancingEnabled) {
-                        // Implement load balancing logic
-                        await this.balanceProcessLoad(process.pid);
-                    }
-                    else {
-                        // Throttle the process
-                        await this.throttleProcess(process.pid);
-                    }
-                }
-            }
-            catch (error) {
-                this.handleError('Failed to optimize CPU', error);
-            }
+        estimateCurrentBatchSize(metrics) {
+            return Math.ceil(metrics.throughput / (1000 / metrics.latency));
         }
-        async optimizeProcesses(processes) {
-            try {
-                for (const [pid, process] of processes) {
-                    if (process.memoryBytes > this.currentOptimization.memoryLimit ||
-                        process.cpuUsagePercent > this.currentOptimization.maxCpuUsage) {
-                        await this.adjustProcessPriority(pid, this.currentOptimization.processPriority);
-                    }
-                }
-            }
-            catch (error) {
-                this.handleError('Failed to optimize processes', error);
-            }
+        calculateOptimalBatchSize(metrics) {
+            const baseBatch = Math.ceil(metrics.throughput / (500 / metrics.latency));
+            return Math.min(Math.max(baseBatch, 1), 32);
         }
-        async balanceProcessLoad(pid) {
-            // Implementation would depend on the specific load balancing strategy
-            this.logger.info('ModelResourceOptimizer', `Balancing load for process: ${pid}`);
-        }
-        async throttleProcess(pid) {
-            // Implementation would depend on the OS-specific process control mechanism
-            this.logger.info('ModelResourceOptimizer', `Throttling process: ${pid}`);
-        }
-        async adjustProcessPriority(pid, priority) {
-            // Implementation would depend on the OS-specific process priority control
-            this.logger.info('ModelResourceOptimizer', `Adjusting priority for process ${pid} to ${priority}`);
-        }
-        recordOptimizationMetrics(systemMetrics) {
-            const metrics = {
-                memoryUsageReduction: this.calculateMemoryReduction(systemMetrics),
-                cpuUsageReduction: this.calculateCpuReduction(systemMetrics),
-                responseTimeImprovement: this.calculateResponseTimeImprovement(systemMetrics),
-                resourceEfficiencyScore: this.calculateEfficiencyScore(systemMetrics),
-                timestamp: Date.now()
-            };
-            this.metricsHistory.push(metrics);
-            while (this.metricsHistory.length > this.maxHistoryLength) {
-                this.metricsHistory.shift();
-            }
-        }
-        calculateMemoryReduction(metrics) {
-            // Implementation would calculate memory usage reduction
-            return 0;
-        }
-        calculateCpuReduction(metrics) {
-            // Implementation would calculate CPU usage reduction
-            return 0;
-        }
-        calculateResponseTimeImprovement(metrics) {
-            // Implementation would calculate response time improvement
-            return 0;
-        }
-        calculateEfficiencyScore(metrics) {
-            // Implementation would calculate overall resource efficiency score
-            return 0;
-        }
-        startOptimization() {
-            if (this.optimizationInterval) {
-                return;
-            }
-            this.optimizationInterval = setInterval(() => this.optimizeResources(), this.optimizationIntervalMs);
-        }
-        stopOptimization() {
-            if (this.optimizationInterval) {
-                clearInterval(this.optimizationInterval);
-                this.optimizationInterval = null;
-            }
+        calculateConfidence(recommendations) {
+            if (recommendations.length === 0)
+                return 1;
+            const averageImpact = recommendations.reduce((sum, rec) => sum + rec.impact, 0) / recommendations.length;
+            return Math.min(Math.max(averageImpact, 0), 1);
         }
         handleError(message, error) {
-            this.logger.error('ModelResourceOptimizer', message, error);
-        }
-        dispose() {
-            this.stopOptimization();
-            this.metricsHistory.length = 0;
+            this.logger.error(message, { error });
+            this.emit('error', { message, error });
         }
     };
     return ModelResourceOptimizer = _classThis;

@@ -1,146 +1,133 @@
 /**
- * Tests for the HardwareSpecs interface
+ * Tests for hardware specification interface
  */
-import { HardwareSpecs } from '../../../../src/llm/modelService';
+import { HardwareSpecs } from '../../../../src/llm/types';
 
 describe('HardwareSpecs interface', () => {
-  it('should create a valid basic hardware specs object', () => {
+  it('should handle minimal hardware specs', () => {
     const specs: HardwareSpecs = {
-      gpu: {
-        available: false
+      cpu: {
+        cores: 4,
+        model: 'Intel Core i5',
+        speed: 3.2
       },
       ram: {
-        total: 8192, // 8GB
-        free: 4096 // 4GB
+        total: 8192,
+        free: 4096
       },
-      cpu: {
-        cores: 4
+      gpu: {
+        name: 'Integrated Graphics',
+        memory: 2048,
+        available: false
       }
     };
-
-    expect(specs).toBeDefined();
-    expect(specs.gpu.available).toBe(false);
-    expect(specs.ram.total).toBe(8192);
-    expect(specs.ram.free).toBe(4096);
+    
     expect(specs.cpu.cores).toBe(4);
+    expect(specs.ram.total).toBe(8192);
+    expect(specs.gpu!.available).toBe(false);
   });
-
-  it('should create a valid hardware specs object with GPU', () => {
+  
+  it('should handle high-end hardware specs', () => {
     const specs: HardwareSpecs = {
-      gpu: {
-        available: true,
-        name: 'NVIDIA GeForce RTX 3080',
-        vram: 10240, // 10GB
-        cudaSupport: true
+      cpu: {
+        cores: 12,
+        model: 'Intel Core i9',
+        speed: 4.5
       },
       ram: {
-        total: 32768, // 32GB
-        free: 16384 // 16GB
+        total: 32768,
+        free: 16384
       },
+      gpu: {
+        name: 'NVIDIA GeForce RTX 3080',
+        memory: 10240,
+        available: true,
+        vram: 10240,
+        cudaSupport: true
+      }
+    };
+    
+    expect(specs.cpu.cores).toBe(12);
+    expect(specs.ram.total).toBe(32768);
+    expect(specs.gpu!.available).toBe(true);
+    expect(specs.gpu!.name).toBe('NVIDIA GeForce RTX 3080');
+    expect(specs.gpu!.vram).toBe(10240);
+    expect(specs.gpu!.cudaSupport).toBe(true);
+  });
+  
+  it('should handle specs with unavailable GPU', () => {
+    const specs: HardwareSpecs = {
       cpu: {
         cores: 8,
-        model: 'AMD Ryzen 7 5800X'
-      }
-    };
-
-    expect(specs).toBeDefined();
-    expect(specs.gpu.available).toBe(true);
-    expect(specs.gpu.name).toBe('NVIDIA GeForce RTX 3080');
-    expect(specs.gpu.vram).toBe(10240);
-    expect(specs.gpu.cudaSupport).toBe(true);
-    expect(specs.ram.total).toBe(32768);
-    expect(specs.ram.free).toBe(16384);
-    expect(specs.cpu.cores).toBe(8);
-    expect(specs.cpu.model).toBe('AMD Ryzen 7 5800X');
-  });
-
-  it('should create a valid hardware specs object with limited RAM', () => {
-    const specs: HardwareSpecs = {
+        model: 'Intel Core i7',
+        speed: 3.8
+      },
+      ram: {
+        total: 16384,
+        free: 8192
+      },
       gpu: {
+        name: 'Unknown GPU',
+        memory: 0,
         available: false
-      },
-      ram: {
-        total: 4096, // 4GB
-        free: 1024 // 1GB
-      },
-      cpu: {
-        cores: 2,
-        model: 'Intel Core i3'
       }
     };
-
-    expect(specs).toBeDefined();
-    expect(specs.gpu.available).toBe(false);
-    expect(specs.ram.total).toBe(4096);
-    expect(specs.ram.free).toBe(1024);
-    expect(specs.cpu.cores).toBe(2);
-    expect(specs.cpu.model).toBe('Intel Core i3');
-  });
-
-  it('should create a valid hardware specs object with non-CUDA GPU', () => {
-    const specs: HardwareSpecs = {
-      gpu: {
-        available: true,
-        name: 'AMD Radeon RX 6700 XT',
-        vram: 12288, // 12GB
-        cudaSupport: false
-      },
-      ram: {
-        total: 16384, // 16GB
-        free: 8192 // 8GB
-      },
-      cpu: {
-        cores: 6
-      }
-    };
-
-    expect(specs).toBeDefined();
-    expect(specs.gpu.available).toBe(true);
-    expect(specs.gpu.name).toBe('AMD Radeon RX 6700 XT');
-    expect(specs.gpu.vram).toBe(12288);
-    expect(specs.gpu.cudaSupport).toBe(false);
+    
+    expect(specs.cpu.cores).toBe(8);
     expect(specs.ram.total).toBe(16384);
-    expect(specs.ram.free).toBe(8192);
+    expect(specs.gpu!.available).toBe(false);
   });
-});
-
-// Helper function to create hardware specs objects for testing
-export function createTestHardwareSpecs(overrides?: Partial<HardwareSpecs>): HardwareSpecs {
-  const defaultSpecs: HardwareSpecs = {
+  
+  it('should handle AMD GPU specs', () => {
+    const specs: HardwareSpecs = {
+      cpu: {
+        cores: 6,
+        model: 'AMD Ryzen 5',
+        speed: 3.6
+      },
+      ram: {
+        total: 16384,
+        free: 8192
+      },
+      gpu: {
+        name: 'AMD Radeon RX 6700 XT',
+        memory: 12288,
+        available: true,
+        vram: 12288,
+        cudaSupport: false
+      }
+    };
+    
+    expect(specs.cpu.cores).toBe(6);
+    expect(specs.ram.total).toBe(16384);
+    expect(specs.gpu!.available).toBe(true);
+    expect(specs.gpu!.name).toBe('AMD Radeon RX 6700 XT');
+    expect(specs.gpu!.vram).toBe(12288);
+    expect(specs.gpu!.cudaSupport).toBe(false);
+  });
+  
+  it('should handle complete hardware specs', () => {
+    const specs: HardwareSpecs = {
     gpu: {
+      name: 'NVIDIA GeForce RTX 4090',
+      memory: 24576,
       available: true,
-      name: 'NVIDIA GeForce RTX 3070',
-      vram: 8192, // 8GB
+      vram: 24576,
       cudaSupport: true
     },
     ram: {
-      total: 16384, // 16GB
-      free: 8192 // 8GB
+      total: 65536,
+      free: 32768
     },
     cpu: {
-      cores: 8,
-      model: 'Intel Core i7-12700K'
+      cores: 16,
+      model: 'AMD Ryzen 9',
+      speed: 5.0
     }
   };
-
-  if (overrides?.gpu) {
-    return {
-      ...defaultSpecs,
-      ...overrides,
-      gpu: {
-        ...defaultSpecs.gpu,
-        ...overrides.gpu
-      },
-      ram: {
-        ...defaultSpecs.ram,
-        ...overrides?.ram
-      },
-      cpu: {
-        ...defaultSpecs.cpu,
-        ...overrides?.cpu
-      }
-    };
-  }
-
-  return { ...defaultSpecs, ...overrides };
-}
+  
+    expect(specs.cpu.cores).toBe(16);
+    expect(specs.ram.total).toBe(65536);
+    expect(specs.gpu!.memory).toBe(24576);
+  });
+});

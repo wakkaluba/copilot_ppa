@@ -87,14 +87,16 @@ let ModelStateManager = (() => {
             __runInitializers(_classThis, _classExtraInitializers);
         }
         logger;
+        persistence;
         stateMap = new Map();
         stateHistory = new Map();
         outputChannel;
         maxHistorySize = 1000;
         storageKey = 'model-states';
-        constructor(logger) {
+        constructor(logger, persistence) {
             super();
             this.logger = logger;
+            this.persistence = persistence;
             this.outputChannel = vscode.window.createOutputChannel('Model State');
             this.loadPersistedStates();
         }
@@ -129,19 +131,6 @@ let ModelStateManager = (() => {
                 transitions: this.getStateHistory(modelId)
             };
         }
-        trackStateTransition(modelId, oldState, newState) {
-            const history = this.stateHistory.get(modelId) || [];
-            const transition = {
-                from: oldState || 'initial',
-                to: newState,
-                timestamp: Date.now()
-            };
-            history.push(transition);
-            if (history.length > this.maxHistorySize) {
-                history.shift(); // Remove oldest entry
-            }
-            this.stateHistory.set(modelId, history);
-        }
         emitStateChange(modelId, state) {
             this.emit('stateChanged', { modelId, state });
         }
@@ -152,7 +141,7 @@ let ModelStateManager = (() => {
                     state,
                     history: this.getStateHistory(id)
                 }));
-                await vscode.workspace.getConfiguration().update(this.storageKey, stateData, vscode.ConfigurationTarget.Global);
+                await this.persistence.saveData(this.storageKey, stateData);
             }
             catch (error) {
                 this.handleError('Failed to persist states', error);
@@ -160,7 +149,7 @@ let ModelStateManager = (() => {
         }
         async loadPersistedStates() {
             try {
-                const stateData = vscode.workspace.getConfiguration().get(this.storageKey) || [];
+                const stateData = await this.persistence.loadData(this.storageKey) || [];
                 for (const data of stateData) {
                     if (data.modelId && data.state) {
                         this.stateMap.set(data.modelId, data.state);
@@ -173,6 +162,19 @@ let ModelStateManager = (() => {
             catch (error) {
                 this.handleError('Failed to load persisted states', error);
             }
+        }
+        trackStateTransition(modelId, oldState, newState) {
+            const history = this.stateHistory.get(modelId) || [];
+            const transition = {
+                from: oldState || 'initial',
+                to: newState,
+                timestamp: Date.now()
+            };
+            history.push(transition);
+            if (history.length > this.maxHistorySize) {
+                history.shift(); // Remove oldest entry
+            }
+            this.stateHistory.set(modelId, history);
         }
         logStateChange(modelId, oldState, newState) {
             this.outputChannel.appendLine('\nModel State Change:');

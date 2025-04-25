@@ -1,20 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
     function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
     var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
@@ -49,28 +33,13 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
     return useValue ? value : void 0;
 };
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelOptimizer = void 0;
-const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
 const events_1 = require("events");
+/**
+ * Service for optimizing model performance and resource usage
+ */
 let ModelOptimizer = (() => {
     let _classDecorators = [(0, inversify_1.injectable)()];
     let _classDescriptor;
@@ -87,202 +56,139 @@ let ModelOptimizer = (() => {
             __runInitializers(_classThis, _classExtraInitializers);
         }
         logger;
-        outputChannel;
-        optimizationHistory = new Map();
-        systemInfo;
         constructor(logger) {
             super();
             this.logger = logger;
-            this.outputChannel = vscode.window.createOutputChannel('Model Optimization');
+            this.logger.info('ModelOptimizer initialized');
         }
+        /**
+         * Optimize a model based on current metrics
+         */
         async optimizeModel(modelId, currentMetrics) {
             try {
-                await this.ensureSystemInfo();
-                const result = await this.generateOptimization(modelId, currentMetrics);
-                this.trackOptimizationResult(modelId, result);
+                this.logger.info(`Starting optimization for model ${modelId}`);
+                // Validate input
+                if (!modelId) {
+                    throw new Error('Model ID is required');
+                }
+                if (!currentMetrics) {
+                    throw new Error('Current metrics are required for optimization');
+                }
+                // Analyze metrics and generate optimization recommendations
+                const result = this.analyzeMetrics(modelId, currentMetrics);
+                if (result.success) {
+                    this.emit('optimization.success', {
+                        modelId,
+                        recommendations: result.recommendations
+                    });
+                    this.logger.info(`Model ${modelId} optimization successful`, result);
+                }
+                else {
+                    this.emit('optimization.failure', {
+                        modelId,
+                        error: result.error
+                    });
+                    this.logger.warn(`Model ${modelId} optimization failed: ${result.error}`);
+                }
                 return result;
             }
             catch (error) {
-                this.handleError('Failed to optimize model', error);
-                throw error;
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                this.logger.error(`Error optimizing model ${modelId}`, error);
+                this.emit('optimization.error', { modelId, error });
+                return {
+                    success: false,
+                    modelId,
+                    metrics: {
+                        latency: 0,
+                        throughput: 0,
+                        errorRate: 0,
+                        costEfficiency: 0
+                    },
+                    recommendations: {},
+                    error: errorMessage
+                };
             }
         }
-        async generateOptimization(modelId, metrics) {
-            const history = this.optimizationHistory.get(modelId) || [];
-            // Analyze performance patterns
-            const patterns = this.analyzePerformancePatterns(metrics, history);
-            // Generate optimization parameters
-            const parameters = await this.generateOptimizedParameters(patterns);
-            // Predict improvements
-            const predictedMetrics = this.predictPerformanceMetrics(metrics, parameters);
-            return {
-                parameters,
-                metrics: predictedMetrics,
-                recommendation: this.generateRecommendation(patterns, parameters),
-                confidence: this.calculateConfidence(patterns, history)
-            };
-        }
-        analyzePerformancePatterns(metrics, history) {
-            const patterns = {
-                responseTimePattern: this.analyzeResponseTimePattern(metrics, history),
-                throughputPattern: this.analyzeThroughputPattern(metrics, history),
-                errorRatePattern: this.analyzeErrorRatePattern(metrics, history)
-            };
-            this.logPatternAnalysis(patterns);
-            return patterns;
-        }
-        async generateOptimizedParameters(patterns) {
-            const parameters = {};
-            // Adjust batch size based on throughput pattern
-            if (patterns.throughputPattern < 0.7) {
-                parameters.batchSize = this.calculateOptimalBatchSize();
+        /**
+         * Analyze metrics and generate optimization recommendations
+         */
+        analyzeMetrics(modelId, metrics) {
+            try {
+                // Extract metrics
+                const responseTime = metrics.averageResponseTime || 0;
+                const throughput = metrics.requestRate || 0;
+                const errorRate = metrics.errorRate || 0;
+                // Default result
+                const result = {
+                    success: true,
+                    modelId,
+                    metrics: {
+                        latency: responseTime,
+                        throughput,
+                        errorRate,
+                        costEfficiency: this.calculateCostEfficiency(responseTime, throughput, errorRate)
+                    },
+                    recommendations: {}
+                };
+                // High latency optimization
+                if (responseTime > 500) {
+                    result.recommendations.batchSize = Math.max(1, Math.floor((responseTime / 500) * 4));
+                    result.recommendations.maxTokens = 1024;
+                    result.recommendations.quantization = 'int8';
+                }
+                // Low latency, can potentially improve quality
+                else if (responseTime < 100) {
+                    result.recommendations.temperature = 0.7;
+                    result.recommendations.topP = 0.9;
+                }
+                // Error rate optimization
+                if (errorRate > 0.05) {
+                    result.recommendations.temperature = 0.3;
+                    result.recommendations.maxTokens = 2048;
+                }
+                // Throughput optimization
+                if (throughput > 100) {
+                    result.recommendations.batchSize = 8;
+                    result.recommendations.quantization = 'int8';
+                    result.recommendations.pruning = 0.3;
+                }
+                return result;
             }
-            // Adjust context length based on response time pattern
-            if (patterns.responseTimePattern > 1.2) {
-                parameters.contextLength = this.calculateOptimalContextLength();
+            catch (error) {
+                this.logger.error(`Error analyzing metrics for model ${modelId}`, error);
+                return {
+                    success: false,
+                    modelId,
+                    metrics: {
+                        latency: 0,
+                        throughput: 0,
+                        errorRate: 0,
+                        costEfficiency: 0
+                    },
+                    recommendations: {},
+                    error: error instanceof Error ? error.message : 'Unknown error during metrics analysis'
+                };
             }
-            // Adjust cache size based on memory availability
-            parameters.cacheSize = this.calculateOptimalCacheSize();
-            return parameters;
         }
-        predictPerformanceMetrics(current, parameters) {
-            return {
-                averageResponseTime: this.predictResponseTime(current.averageResponseTime, parameters),
-                tokenThroughput: this.predictThroughput(current.tokenThroughput, parameters),
-                errorRate: current.errorRate,
-                totalRequests: current.totalRequests,
-                totalTokens: current.totalTokens,
-                lastUsed: current.lastUsed
-            };
-        }
-        predictResponseTime(current, parameters) {
-            let predicted = current;
-            if (parameters.batchSize) {
-                predicted *= 0.9; // Estimated 10% improvement
+        /**
+         * Calculate cost efficiency score
+         */
+        calculateCostEfficiency(latency, throughput, errorRate) {
+            // Simple cost efficiency formula: throughput / (latency * (1 + errorRate))
+            // Higher is better, normalized to 0-100 scale
+            if (latency <= 0 || throughput <= 0) {
+                return 0;
             }
-            if (parameters.contextLength) {
-                predicted *= 0.95; // Estimated 5% improvement
-            }
-            return predicted;
+            const rawScore = throughput / (latency * (1 + errorRate));
+            return Math.min(100, Math.max(0, rawScore * 100));
         }
-        predictThroughput(current, parameters) {
-            let predicted = current;
-            if (parameters.batchSize) {
-                predicted *= 1.2; // Estimated 20% improvement
-            }
-            if (parameters.cacheSize) {
-                predicted *= 1.1; // Estimated 10% improvement
-            }
-            return predicted;
-        }
-        calculateOptimalBatchSize() {
-            if (!this.systemInfo) {
-                return 1;
-            }
-            // Calculate based on available memory and CPU cores
-            const memoryFactor = this.systemInfo.totalMemoryGB / 8; // Base on 8GB reference
-            const coreFactor = this.systemInfo.cpuCores / 4; // Base on 4 cores reference
-            return Math.max(1, Math.min(32, Math.floor(Math.min(memoryFactor, coreFactor) * 8)));
-        }
-        calculateOptimalContextLength() {
-            if (!this.systemInfo) {
-                return 2048;
-            }
-            // Calculate based on available memory
-            const memoryFactor = this.systemInfo.totalMemoryGB / 16; // Base on 16GB reference
-            return Math.max(2048, Math.min(8192, Math.floor(memoryFactor * 4096)));
-        }
-        calculateOptimalCacheSize() {
-            if (!this.systemInfo) {
-                return 1024;
-            }
-            // Calculate based on available memory
-            const memoryMB = this.systemInfo.totalMemoryGB * 1024;
-            return Math.max(1024, Math.min(8192, Math.floor(memoryMB * 0.1))); // Use up to 10% of memory
-        }
-        generateRecommendation(patterns, parameters) {
-            const recommendations = [];
-            if (parameters.batchSize) {
-                recommendations.push(`Adjust batch size to ${parameters.batchSize} for improved throughput`);
-            }
-            if (parameters.contextLength) {
-                recommendations.push(`Set context length to ${parameters.contextLength} for better response times`);
-            }
-            if (parameters.cacheSize) {
-                recommendations.push(`Configure cache size to ${parameters.cacheSize}MB for improved performance`);
-            }
-            return recommendations.join('. ');
-        }
-        calculateConfidence(patterns, history) {
-            // Base confidence on pattern strength and history
-            const patternConfidence = Object.values(patterns).reduce((acc, val) => acc + Math.abs(1 - val), 0) / 3;
-            const historyConfidence = Math.min(1, history.length / 10); // Max confidence after 10 optimizations
-            return (patternConfidence + historyConfidence) / 2;
-        }
-        analyzeResponseTimePattern(metrics, history) {
-            if (history.length === 0) {
-                return 1;
-            }
-            const previous = history[history.length - 1].metrics.averageResponseTime;
-            return metrics.averageResponseTime / previous;
-        }
-        analyzeThroughputPattern(metrics, history) {
-            if (history.length === 0) {
-                return 1;
-            }
-            const previous = history[history.length - 1].metrics.tokenThroughput;
-            return metrics.tokenThroughput / previous;
-        }
-        analyzeErrorRatePattern(metrics, history) {
-            if (history.length === 0) {
-                return 1;
-            }
-            const previous = history[history.length - 1].metrics.errorRate;
-            return metrics.errorRate / previous;
-        }
-        async ensureSystemInfo() {
-            if (this.systemInfo) {
-                return;
-            }
-            this.systemInfo = await this.getSystemInfo();
-        }
-        async getSystemInfo() {
-            return {
-                totalMemoryGB: 16, // Example value
-                freeDiskSpaceGB: 100, // Example value
-                cpuCores: 8, // Example value
-                cudaAvailable: false
-            };
-        }
-        trackOptimizationResult(modelId, result) {
-            const history = this.optimizationHistory.get(modelId) || [];
-            history.push(result);
-            this.optimizationHistory.set(modelId, history);
-            this.logOptimizationResult(modelId, result);
-        }
-        logPatternAnalysis(patterns) {
-            this.outputChannel.appendLine('\nPerformance Pattern Analysis:');
-            Object.entries(patterns).forEach(([key, value]) => {
-                this.outputChannel.appendLine(`${key}: ${value.toFixed(2)}`);
-            });
-        }
-        logOptimizationResult(modelId, result) {
-            this.outputChannel.appendLine('\nOptimization Result:');
-            this.outputChannel.appendLine(`Model: ${modelId}`);
-            this.outputChannel.appendLine(`Parameters: ${JSON.stringify(result.parameters, null, 2)}`);
-            this.outputChannel.appendLine(`Recommendation: ${result.recommendation}`);
-            this.outputChannel.appendLine(`Confidence: ${(result.confidence * 100).toFixed(1)}%`);
-        }
-        handleError(message, error) {
-            this.logger.error('[ModelOptimizer]', message, error);
-            this.emit('error', error);
-            this.outputChannel.appendLine(`\nError: ${message}`);
-            this.outputChannel.appendLine(error.stack || error.message);
-        }
+        /**
+         * Dispose of resources
+         */
         dispose() {
-            this.outputChannel.dispose();
             this.removeAllListeners();
-            this.optimizationHistory.clear();
+            this.logger.info('ModelOptimizer disposed');
         }
     };
     return ModelOptimizer = _classThis;

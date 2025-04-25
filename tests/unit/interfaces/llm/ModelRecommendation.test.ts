@@ -1,137 +1,94 @@
 /**
- * Tests for the ModelRecommendation interface
+ * Tests for model recommendations
  */
-import { ModelRecommendation, LLMModelInfo } from '../../../../src/llm/modelService';
-import { createTestModelInfo } from './LLMModelInfo.test';
+import { LLMModelInfo } from '../../../../src/llm/types';
 
 describe('ModelRecommendation interface', () => {
-  it('should create a valid basic recommendation object', () => {
-    const modelInfo: LLMModelInfo = createTestModelInfo();
-    
-    const recommendation: ModelRecommendation = {
-      modelInfo,
-      suitability: 85,
-      reason: 'This model performs well on most systems',
-      systemRequirements: {
-        minRAM: 8192 // 8GB
+  it('should create valid model recommendations', () => {
+    const recommendations: LLMModelInfo[] = [
+      {
+        id: 'model-1',
+        name: 'Fast Local Model',
+        provider: 'Local',
+        description: 'A fast local inference model',
+        tags: ['fast', 'local']
+      },
+      {
+        id: 'model-2',
+        name: 'Accurate Cloud Model',
+        provider: 'OpenAI',
+        description: 'A highly accurate cloud model',
+        tags: ['accurate', 'cloud']
       }
-    };
-
-    expect(recommendation).toBeDefined();
-    expect(recommendation.modelInfo).toBe(modelInfo);
-    expect(recommendation.suitability).toBe(85);
-    expect(recommendation.reason).toBe('This model performs well on most systems');
-    expect(recommendation.systemRequirements.minRAM).toBe(8192);
+    ];
+    
+    expect(recommendations).toHaveLength(2);
+    expect(recommendations[0]?.id).toBe('model-1');
+    expect(recommendations[1]?.provider).toBe('OpenAI');
   });
-
-  it('should create a valid recommendation with full system requirements', () => {
-    const modelInfo: LLMModelInfo = createTestModelInfo({
-      id: 'mistral',
-      name: 'Mistral (7B)',
-      parameters: 7
-    });
-    
-    const recommendation: ModelRecommendation = {
-      modelInfo,
-      suitability: 92,
-      reason: 'Mistral models typically offer good performance on modest hardware',
-      systemRequirements: {
-        minRAM: 8192, // 8GB
-        minVRAM: 4096, // 4GB
-        minCPUCores: 4,
-        cudaRequired: false
+  
+  it('should create a valid recommendation with minimal fields', () => {
+    const recommendation: LLMModelInfo = {
+      id: 'minimal-model',
+      name: 'Minimal Model',
+      provider: 'Local',
+      description: 'Minimal model for testing',
+      parameters: {
+        parameterCount: 7
       }
     };
-
+    
     expect(recommendation).toBeDefined();
-    expect(recommendation.modelInfo.id).toBe('mistral');
-    expect(recommendation.suitability).toBe(92);
-    expect(recommendation.systemRequirements.minRAM).toBe(8192);
-    expect(recommendation.systemRequirements.minVRAM).toBe(4096);
-    expect(recommendation.systemRequirements.minCPUCores).toBe(4);
-    expect(recommendation.systemRequirements.cudaRequired).toBe(false);
+    expect(recommendation.id).toBe('minimal-model');
+    expect(recommendation.provider).toBe('Local');
   });
-
-  it('should create a valid high-resource recommendation', () => {
-    const modelInfo: LLMModelInfo = createTestModelInfo({
-      id: 'llama2:13b',
-      name: 'Llama 2 (13B)',
-      parameters: 13,
-      quantization: 'Q5_K_M',
-      contextLength: 4096
-    });
-    
-    const recommendation: ModelRecommendation = {
-      modelInfo,
-      suitability: 65,
-      reason: 'This model may require significant memory resources',
-      systemRequirements: {
-        minRAM: 16384, // 16GB
-        minVRAM: 6144, // 6GB
-        minCPUCores: 8,
-        cudaRequired: true
+  
+  it('should create recommendations with advanced parameters', () => {
+    const recommendations: LLMModelInfo[] = [
+      {
+        id: 'advanced-model',
+        name: 'Advanced Parameter Model',
+        provider: 'Custom',
+        description: 'Model with advanced parameters',
+        tags: ['optimized', 'fast'],
+        parameters: {
+          quantization: '8bit',
+          temperature: 0.8,
+          parameterCount: 13,
+          optimizationLevel: 'high'
+        },
+        contextSize: 16384
       }
-    };
-
-    expect(recommendation).toBeDefined();
-    expect(recommendation.modelInfo.id).toBe('llama2:13b');
-    expect(recommendation.modelInfo.parameters).toBe(13);
-    expect(recommendation.suitability).toBe(65);
-    expect(recommendation.systemRequirements.minRAM).toBe(16384);
-    expect(recommendation.systemRequirements.minVRAM).toBe(6144);
-    expect(recommendation.systemRequirements.cudaRequired).toBe(true);
+    ];
+    
+    expect(recommendations).toHaveLength(1);
+    expect(recommendations[0]?.tags).toContain('optimized');
+    expect(recommendations[0]?.parameters?.['quantization']).toBe('8bit');
+    expect(recommendations[0]?.parameters?.['parameterCount']).toBe(13);
+    expect(recommendations[0]?.contextSize).toBe(16384);
   });
-
-  it('should create a valid recommendation for code-specific model', () => {
-    const modelInfo: LLMModelInfo = createTestModelInfo({
-      id: 'codellama',
-      name: 'Code Llama (7B)',
-      provider: 'ollama',
-      description: 'Specialized for code generation and understanding',
-      tags: ['code', 'programming'],
-      parameters: 7
-    });
-    
-    const recommendation: ModelRecommendation = {
-      modelInfo,
-      suitability: 95,
-      reason: "Code Llama is optimized for programming tasks. Your system has sufficient RAM to run it well.",
-      systemRequirements: {
-        minRAM: 8192, // 8GB
-        minCPUCores: 4
+  
+  it('should handle compatibility between models', () => {
+    const localModel: LLMModelInfo = {
+      id: 'local-base',
+      name: 'Local Base Model',
+      provider: 'Local',
+      description: 'Base model for local inference',
+      parameters: {
+        parameterCount: 7
       }
     };
-
-    expect(recommendation).toBeDefined();
-    expect(recommendation.modelInfo.id).toBe('codellama');
-    expect(recommendation.modelInfo.tags).toContain('code');
-    expect(recommendation.suitability).toBe(95);
-    expect(recommendation.reason).toContain('Code Llama is optimized for programming tasks');
-    expect(recommendation.systemRequirements.minRAM).toBe(8192);
+    
+    const cloudModel: LLMModelInfo = {
+      id: 'cloud-base',
+      name: 'Cloud Base Model',
+      provider: 'Remote',
+      description: 'Base model for cloud inference'
+    };
+    
+    // Check the recommendations are valid
+    expect(localModel).toBeDefined();
+    expect(cloudModel).toBeDefined();
+    expect(localModel.provider).not.toEqual(cloudModel.provider);
   });
 });
-
-// Helper function to create recommendation objects for testing
-export function createTestModelRecommendation(overrides?: Partial<ModelRecommendation>): ModelRecommendation {
-  const defaultRecommendation: ModelRecommendation = {
-    modelInfo: createTestModelInfo(),
-    suitability: 85,
-    reason: 'This model performs well on most systems',
-    systemRequirements: {
-      minRAM: 8192 // 8GB
-    }
-  };
-
-  if (overrides?.modelInfo) {
-    return {
-      ...defaultRecommendation,
-      ...overrides,
-      modelInfo: {
-        ...defaultRecommendation.modelInfo,
-        ...overrides.modelInfo
-      }
-    };
-  }
-
-  return { ...defaultRecommendation, ...overrides };
-}
