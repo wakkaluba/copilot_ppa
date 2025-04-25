@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AsyncOptimizer = void 0;
+const logger_1 = require("../utils/logger");
 const performanceProfiler_1 = require("./performanceProfiler");
 /**
  * Class to optimize asynchronous operations by providing

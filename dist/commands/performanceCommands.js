@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerPerformanceCommands = registerPerformanceCommands;
 const vscode = __importStar(require("vscode"));
 const performanceManager_1 = require("../performance/performanceManager");
+const logger_1 = require("../utils/logger");
 /**
  * Register all performance-related commands
  */

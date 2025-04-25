@@ -37,6 +37,7 @@ exports.SecurityManager = void 0;
 const vscode = __importStar(require("vscode"));
 const SecurityWebviewService_1 = require("../services/security/SecurityWebviewService");
 const SecurityScanService_1 = require("../services/security/SecurityScanService");
+const logger_1 = require("../utils/logger");
 class SecurityManager {
     context;
     static instance;
@@ -163,7 +164,28 @@ class SecurityManager {
         }
     }
     async showIssueDetails(issueId) {
-        // Implementation for showing detailed issue information
+        if (!this.panel || !this.lastResult) {
+            return;
+        }
+        try {
+            const issue = this.lastResult.issues.find(issue => issue.id === issueId);
+            if (!issue) {
+                this.logger.warn(`Issue with ID ${issueId} not found`);
+                this.showErrorMessage(`Issue with ID ${issueId} not found`);
+                return;
+            }
+            // Get detailed information about the issue
+            const detailedInfo = await this.scanService.getIssueDetails(issueId);
+            // Send the detailed information to the webview
+            this.panel.webview.postMessage({
+                command: 'showIssueDetails',
+                issue: detailedInfo
+            });
+        }
+        catch (error) {
+            this.logger.error(`Error showing issue details for ${issueId}`, error);
+            this.showErrorMessage('Failed to retrieve issue details');
+        }
     }
     showErrorMessage(message) {
         if (this.panel) {

@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnifiedChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
+const logger_1 = require("../utils/logger");
 const themeManager_1 = require("../services/ui/themeManager");
 class UnifiedChatViewProvider {
     extensionUri;

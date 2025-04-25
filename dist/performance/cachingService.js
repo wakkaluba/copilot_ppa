@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CachingService = void 0;
+const logger_1 = require("../utils/logger");
 /**
  * CachingService provides a general-purpose caching mechanism for operations
  * that are expensive to compute but rarely change

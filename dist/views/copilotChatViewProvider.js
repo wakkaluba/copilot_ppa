@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const copilotChatIntegration_1 = require("../copilot/copilotChatIntegration");
+const logger_1 = require("../utils/logger");
 /**
  * Provides a custom view that integrates with Copilot Chat
  */

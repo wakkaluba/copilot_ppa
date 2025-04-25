@@ -16,7 +16,7 @@ export enum LogLevel {
 /**
  * Log entry interface
  */
-export interface ILogEntry {
+export interface LogEntry {
     timestamp: string;
     level: LogLevel;
     message: string;
@@ -26,25 +26,36 @@ export interface ILogEntry {
 /**
  * Logger interface
  */
-export interface ILogger {
-    log: (message: string, details?: unknown) => void;
-    info: (message: string, details?: unknown) => void;
-    warn: (message: string, details?: unknown) => void;
-    error: (message: string, details?: unknown) => void;
+export interface Logger {
+    debug(message: string, details?: unknown): void;
+    info(message: string, details?: unknown): void;
+    warn(message: string, details?: unknown): void;
+    error(message: string, details?: unknown): void;
 }
 
 /**
  * Logger class for Copilot PPA extension
  */
-export class Logger implements ILogger {
+export class LoggerImpl implements Logger {
+    private static instance: LoggerImpl;
     private _outputChannel: vscode.OutputChannel;
     private _logLevel: LogLevel;
     private _logToFile: boolean;
     private _logFilePath: string;
-    private _logEntries: ILogEntry[] = [];
+    private _logEntries: LogEntry[] = [];
     private _maxInMemoryLogs: number;
     
-    constructor() {
+    /**
+     * Gets the singleton instance of the logger
+     */
+    public static getInstance(): LoggerImpl {
+        if (!LoggerImpl.instance) {
+            LoggerImpl.instance = new LoggerImpl();
+        }
+        return LoggerImpl.instance;
+    }
+    
+    private constructor() {
         this._outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         
         // Read configuration
@@ -148,7 +159,7 @@ export class Logger implements ILogger {
     /**
      * Get all log entries
      */
-    public getLogEntries(): ILogEntry[] {
+    public getLogEntries(): LogEntry[] {
         return [...this._logEntries];
     }
     
@@ -232,7 +243,7 @@ export class Logger implements ILogger {
         this._outputChannel.appendLine(formattedMessage);
         
         // Create log entry
-        const logEntry: ILogEntry = {
+        const logEntry: LogEntry = {
             timestamp,
             level,
             message,
@@ -259,5 +270,13 @@ export class Logger implements ILogger {
                 this._outputChannel.appendLine(`[ERROR] Failed to write to log file: ${error}`);
             }
         }
+    }
+}
+
+// Export the Logger interface as a namespace with a getInstance method
+// This allows us to use Logger.getInstance() while maintaining the interface
+export namespace Logger {
+    export function getInstance(): Logger {
+        return LoggerImpl.getInstance();
     }
 }

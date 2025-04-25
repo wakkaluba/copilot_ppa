@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityScanService = void 0;
+const logger_1 = require("../../utils/logger");
 const security_1 = require("../../types/security");
 const codeScanner_1 = require("../../security/codeScanner");
 const dependencyScanner_1 = require("../../security/dependencyScanner");

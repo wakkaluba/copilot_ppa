@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LoggerImpl = exports.LogLevel = void 0;
+exports.Logger = exports.LoggerImpl = exports.LogLevel = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -52,12 +52,22 @@ var LogLevel;
  * Logger class for Copilot PPA extension
  */
 class LoggerImpl {
+    static instance;
     _outputChannel;
     _logLevel;
     _logToFile;
     _logFilePath;
     _logEntries = [];
     _maxInMemoryLogs;
+    /**
+     * Gets the singleton instance of the logger
+     */
+    static getInstance() {
+        if (!LoggerImpl.instance) {
+            LoggerImpl.instance = new LoggerImpl();
+        }
+        return LoggerImpl.instance;
+    }
     constructor() {
         this._outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         // Read configuration
@@ -247,4 +257,13 @@ class LoggerImpl {
     }
 }
 exports.LoggerImpl = LoggerImpl;
+// Export the Logger interface as a namespace with a getInstance method
+// This allows us to use Logger.getInstance() while maintaining the interface
+var Logger;
+(function (Logger) {
+    function getInstance() {
+        return LoggerImpl.getInstance();
+    }
+    Logger.getInstance = getInstance;
+})(Logger || (exports.Logger = Logger = {}));
 //# sourceMappingURL=logger.js.map

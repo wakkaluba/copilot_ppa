@@ -39,6 +39,7 @@ const CopilotWebviewContentService_1 = require("./services/CopilotWebviewContent
 const CopilotWebviewStateManager_1 = require("./services/CopilotWebviewStateManager");
 const CopilotConnectionManager_1 = require("./services/CopilotConnectionManager");
 const CopilotWebviewMessageHandler_1 = require("./services/CopilotWebviewMessageHandler");
+const logger_1 = require("../utils/logger");
 const themeManager_1 = require("../services/ui/themeManager");
 /**
  * Panel that provides a webview interface for Copilot and LLM interactions
