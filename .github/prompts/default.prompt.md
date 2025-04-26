@@ -173,10 +173,10 @@ reorganize zzzbuild\finished.md
 # credentials to use, when accessing these websites
 
 ## github
-- username: <username>
-- password: <password>
+- username: wakkaluba
+- password: Bl4ckB3rr!!
 - token: <token>
-- email: <email>
+- email: wakkaluba@gmail.com
 - ssh-key: <ssh-key>
 
 ## 

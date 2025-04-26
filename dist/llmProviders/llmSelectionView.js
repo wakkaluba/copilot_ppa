@@ -686,7 +686,8 @@ class LLMSelectionView {
                     await this.modelsManager.downloadOllamaModel(message.modelId);
                 }
                 catch (error) {
-                    vscode.window.showErrorMessage(`Failed to download model: ${error.message}`);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    vscode.window.showErrorMessage(`Failed to download model: ${errorMessage}`);
                 }
                 break;
             case 'downloadLmStudioModel':
@@ -694,7 +695,8 @@ class LLMSelectionView {
                     await this.modelsManager.downloadLmStudioModel(message.modelId);
                 }
                 catch (error) {
-                    vscode.window.showErrorMessage(`Failed to download model: ${error.message}`);
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    vscode.window.showErrorMessage(`Failed to download model: ${errorMessage}`);
                 }
                 break;
             case 'openHuggingFace':

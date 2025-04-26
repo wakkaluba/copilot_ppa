@@ -52,6 +52,7 @@ class CodeSecurityScanner {
     webviewMap = new Map();
     messageQueue = [];
     isProcessing = false;
+    issueCache = new Map();
     constructor(context) {
         this.patternService = new SecurityPatternService_1.SecurityPatternService();
         this.analyzerService = new SecurityAnalyzerService_1.SecurityAnalyzerService(this.patternService);
@@ -69,10 +70,27 @@ class CodeSecurityScanner {
         const document = await vscode.workspace.openTextDocument(fileUri);
         const result = await this.analyzerService.scanDocument(document);
         this.diagnosticService.report(fileUri, result.diagnostics);
+        // Cache the issues for later retrieval
+        result.issues.forEach(issue => {
+            this.issueCache.set(issue.id, issue);
+        });
         return { issues: result.issues, scannedFiles: 1 };
     }
     async scanWorkspace(progressCallback) {
-        return this.analyzerService.scanWorkspace(progressCallback);
+        const result = await this.analyzerService.scanWorkspace(progressCallback);
+        // Cache the issues for later retrieval
+        result.issues.forEach(issue => {
+            this.issueCache.set(issue.id, issue);
+        });
+        return result;
+    }
+    /**
+     * Get detailed information about a specific security issue
+     * @param issueId The ID of the issue to retrieve details for
+     * @returns The security issue details, or undefined if not found
+     */
+    async getIssueDetails(issueId) {
+        return this.issueCache.get(issueId);
     }
     async showSecurityReport(result) {
         const panel = vscode.window.createWebviewPanel('securityIssuesReport', 'Code Security Issues Report', vscode.ViewColumn.One, { enableScripts: true });
@@ -131,6 +149,7 @@ class CodeSecurityScanner {
         this.webviewMap.clear();
         this.messageQueue = [];
         this.isProcessing = false;
+        this.issueCache.clear();
     }
 }
 exports.CodeSecurityScanner = CodeSecurityScanner;

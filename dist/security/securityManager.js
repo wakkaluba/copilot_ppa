@@ -90,14 +90,15 @@ class SecurityManager {
                     vscode.Uri.joinPath(this.context.extensionUri, 'media')
                 ]
             });
-            this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview, this.lastResult);
-            this.registerWebviewMessageHandlers();
-            this.panel.onDidDispose(() => {
-                this.panel = undefined;
-                this.dispose();
-            }, null, this.disposables);
-            if (!this.lastResult) {
-                await this.runScan();
+            if (this.panel) {
+                this.panel.webview.html = this.webviewService.generateWebviewContent(this.panel.webview, this.lastResult);
+                this.registerWebviewMessageHandlers();
+                this.panel.onDidDispose(() => {
+                    this.panel = undefined;
+                }, null, this.disposables);
+                if (!this.lastResult) {
+                    await this.runScan();
+                }
             }
         }
         catch (error) {
@@ -177,10 +178,12 @@ class SecurityManager {
             // Get detailed information about the issue
             const detailedInfo = await this.scanService.getIssueDetails(issueId);
             // Send the detailed information to the webview
-            this.panel.webview.postMessage({
-                command: 'showIssueDetails',
-                issue: detailedInfo
-            });
+            if (this.panel) {
+                this.panel.webview.postMessage({
+                    command: 'showIssueDetails',
+                    issue: detailedInfo
+                });
+            }
         }
         catch (error) {
             this.logger.error(`Error showing issue details for ${issueId}`, error);
@@ -202,8 +205,6 @@ class SecurityManager {
         }
         this.scanService.dispose();
         this.disposables.forEach(d => d.dispose());
-        this.disposables.length = 0;
-        SecurityManager.instance = undefined;
     }
 }
 exports.SecurityManager = SecurityManager;

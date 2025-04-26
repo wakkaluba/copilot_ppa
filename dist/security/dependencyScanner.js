@@ -48,6 +48,7 @@ class DependencyScanner {
     vulnerabilityService;
     scanService;
     reportService;
+    vulnerabilityCache = new Map();
     constructor(context) {
         this.logger = logger_1.Logger.getInstance();
         this.vulnerabilityService = new VulnerabilityService_1.VulnerabilityService();
@@ -71,6 +72,12 @@ class DependencyScanner {
                 cancellable: true
             }, async (progress, token) => {
                 const result = await this.scanService.scanWorkspace();
+                // Cache vulnerabilities for later retrieval
+                result.vulnerabilities.forEach(vuln => {
+                    vuln.vulnerabilityInfo.forEach(info => {
+                        this.vulnerabilityCache.set(info.id, info);
+                    });
+                });
                 if (!silent) {
                     this.reportService.updateStatusBar(result.hasVulnerabilities, result.vulnerabilities.length);
                 }
@@ -81,6 +88,15 @@ class DependencyScanner {
             this.logger.error('Error scanning workspace dependencies', error);
             throw error;
         }
+    }
+    /**
+     * Get detailed information about a specific vulnerability
+     * @param vulnId The ID of the vulnerability to retrieve details for
+     * @returns Detailed vulnerability information, or undefined if not found
+     */
+    async getVulnerabilityDetails(vulnId) {
+        return this.vulnerabilityCache.get(vulnId) ||
+            await this.vulnerabilityService.getVulnerabilityDetails(vulnId);
     }
     /**
      * Shows a detailed vulnerability report
@@ -97,6 +113,7 @@ class DependencyScanner {
     }
     dispose() {
         this.reportService.dispose();
+        this.vulnerabilityCache.clear();
     }
 }
 exports.DependencyScanner = DependencyScanner;

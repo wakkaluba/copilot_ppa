@@ -6,7 +6,7 @@ import { SecurityScanResult } from '../types/security';
 
 export class SecurityManager implements vscode.Disposable {
     private static instance: SecurityManager;
-    private panel?: vscode.WebviewPanel;
+    private panel: vscode.WebviewPanel | undefined;
     private readonly logger: Logger;
     private readonly webviewService: SecurityWebviewService;
     private readonly scanService: SecurityScanService;
@@ -71,20 +71,21 @@ export class SecurityManager implements vscode.Disposable {
                 }
             );
 
-            this.panel.webview.html = this.webviewService.generateWebviewContent(
-                this.panel.webview,
-                this.lastResult
-            );
+            if (this.panel) {
+                this.panel.webview.html = this.webviewService.generateWebviewContent(
+                    this.panel.webview,
+                    this.lastResult
+                );
 
-            this.registerWebviewMessageHandlers();
+                this.registerWebviewMessageHandlers();
 
-            this.panel.onDidDispose(() => {
-                this.panel = undefined;
-                this.dispose();
-            }, null, this.disposables);
+                this.panel.onDidDispose(() => {
+                    this.panel = undefined;
+                }, null, this.disposables);
 
-            if (!this.lastResult) {
-                await this.runScan();
+                if (!this.lastResult) {
+                    await this.runScan();
+                }
             }
 
         } catch (error) {
@@ -98,12 +99,15 @@ export class SecurityManager implements vscode.Disposable {
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
             try {
+                let issueId;
+                
                 switch (message.command) {
                     case 'refresh':
                         await this.runScan();
                         break;
                     case 'showDetails':
-                        await this.showIssueDetails(message.issueId);
+                        issueId = message.issueId;
+                        await this.showIssueDetails(issueId);
                         break;
                     default:
                         this.logger.warn(`Unknown command received: ${message.command}`);
@@ -151,7 +155,32 @@ export class SecurityManager implements vscode.Disposable {
     }
 
     private async showIssueDetails(issueId: string): Promise<void> {
-        // Implementation for showing detailed issue information
+        if (!this.panel || !this.lastResult) {
+            return;
+        }
+
+        try {
+            const issue = this.lastResult.issues.find(issue => issue.id === issueId);
+            if (!issue) {
+                this.logger.warn(`Issue with ID ${issueId} not found`);
+                this.showErrorMessage(`Issue with ID ${issueId} not found`);
+                return;
+            }
+
+            // Get detailed information about the issue
+            const detailedInfo = await this.scanService.getIssueDetails(issueId);
+
+            // Send the detailed information to the webview
+            if (this.panel) {
+                this.panel.webview.postMessage({
+                    command: 'showIssueDetails',
+                    issue: detailedInfo
+                });
+            }
+        } catch (error) {
+            this.logger.error(`Error showing issue details for ${issueId}`, error);
+            this.showErrorMessage('Failed to retrieve issue details');
+        }
     }
 
     private showErrorMessage(message: string): void {
@@ -171,7 +200,5 @@ export class SecurityManager implements vscode.Disposable {
 
         this.scanService.dispose();
         this.disposables.forEach(d => d.dispose());
-        this.disposables.length = 0;
-        SecurityManager.instance = undefined;
     }
 }
