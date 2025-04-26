@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { PromptManager } from './PromptManager';
 import { ContextManager } from './ContextManager';
 import { CommandParser } from './CommandParser';
-import { ConversationManager } from './ConversationManager';
+import { ConversationManager } from './conversationManager';
 
 export class CoreAgent {
     private static instance: CoreAgent;

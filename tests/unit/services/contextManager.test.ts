@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { describe, expect, test, beforeEach, jest, afterEach } from '@jest/globals';
 import { ContextManager } from '../../../src/services/ContextManager';
 import { ConversationHistory } from '../../../src/services/ConversationHistory';
-import { ConversationManager } from '../../../src/services/ConversationManager';
+import { ConversationManager } from '../../../src/services/conversationManager';
 import { PromptManager } from '../../../src/services/PromptManager';
 
 // Mock the dependencies

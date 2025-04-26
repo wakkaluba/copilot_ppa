@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { ContextManager } from '../../src/services/ContextManager';
-import { ConversationManager } from '../../src/services/ConversationManager';
+import { ConversationManager } from '../../src/services/conversationManager';
 import { LLMProviderManager } from '../../src/llm/llmProviderManager';
 import { SnippetManager } from '../../src/services/snippetManager';
 import { createMockExtensionContext } from '../helpers/mockHelpers';

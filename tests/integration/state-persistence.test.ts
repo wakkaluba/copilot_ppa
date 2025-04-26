@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ConversationManager } from '../../src/services/ConversationManager';
+import { ConversationManager } from '../../src/services/conversationManager';
 import { ContextManager } from '../../src/services/ContextManager';
 import { LLMProviderManager } from '../../src/llm/llmProviderManager';
 import { ModelManager } from '../../src/models/modelManager';

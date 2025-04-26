@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
 
 console.log('Starting import fix script...');
 
@@ -20,16 +19,21 @@ const importFixMap = {
 };
 
 // Get all TypeScript files
-function getAllFiles(dir) {
-  try {
-    const files = glob.sync(path.join(dir, '**/*.{ts,tsx,js,jsx}'), {
-      ignore: ['**/node_modules/**', '**/out/**', '**/dist/**', '**/build/**', '**/.git/**']
-    });
-    return files;
-  } catch (error) {
-    console.error('Error getting files:', error);
-    return [];
-  }
+function getAllFiles(dir, fileList = []) {
+  const files = fs.readdirSync(dir);
+
+  files.forEach(file => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+
+    if (stat.isDirectory() && !filePath.includes('node_modules') && !filePath.includes('.git')) {
+      fileList = getAllFiles(filePath, fileList);
+    } else if ((file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')) {
+      fileList.push(filePath);
+    }
+  });
+
+  return fileList;
 }
 
 // Fix imports in all TypeScript files

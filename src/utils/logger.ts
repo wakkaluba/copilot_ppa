@@ -211,7 +211,7 @@ export class LoggerImpl implements Logger {
         // Format message for output
         const formattedTimestamp = new Date(timestamp).toISOString();
         let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
-        let context: Record<string, unknown> | undefined;
+        let context?: Record<string, unknown>;
         
         if (error) {
             let errorStr = '';

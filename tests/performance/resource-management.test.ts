@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { ContextManager } from '../../src/services/ContextManager';
-import { ConversationManager } from '../../src/services/ConversationManager';
+import { ConversationManager } from '../../src/services/conversationManager';
 import { LLMProviderManager } from '../../src/llm/llmProviderManager';
 import { ModelManager } from '../../src/models/modelManager';
 import { PerformanceManager } from '../../src/performance/performanceManager';

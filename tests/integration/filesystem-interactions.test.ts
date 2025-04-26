@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ContextManager } from '../../src/services/ContextManager';
-import { ConversationManager } from '../../src/services/ConversationManager';
+import { ConversationManager } from '../../src/services/conversationManager';
 import { WorkspaceManager } from '../../src/services/WorkspaceManager';
 import { FileSystemService } from '../../src/services/FileSystemService';
 
