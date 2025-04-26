@@ -1,6 +1,4 @@
-import * as vscode from 'vscode';
-
-// Mock VS Code API
+// Mock VS Code API (no import needed since we're mocking the module)
 jest.mock('vscode', () => {
   return {
     window: {
