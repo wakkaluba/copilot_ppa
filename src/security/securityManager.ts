@@ -6,7 +6,7 @@ import { SecurityScanResult } from '../types/security';
 
 export class SecurityManager implements vscode.Disposable {
     private static instance: SecurityManager;
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private readonly logger: Logger;
     private readonly webviewService: SecurityWebviewService;
     private readonly scanService: SecurityScanService;

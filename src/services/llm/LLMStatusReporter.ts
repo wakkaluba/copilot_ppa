@@ -9,8 +9,8 @@ export class LLMStatusReporter {
     private static instance: LLMStatusReporter;
     private readonly statusBarItem: vscode.StatusBarItem;
     private readonly outputChannel: vscode.OutputChannel;
-    private currentProvider: string | undefined;
-    private currentModel: ModelInfo | undefined;
+    private currentProvider?: string;
+    private currentModel?: ModelInfo;
 
     private constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(

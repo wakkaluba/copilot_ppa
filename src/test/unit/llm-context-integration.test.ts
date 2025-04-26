@@ -39,7 +39,7 @@ describe('LLM and Context Integration', () => {
             id: conversationId,
             title: 'Test Conversation',
             messages: [
-                { role: 'user', content: 'Initial message', timestamp: Date.now() - 1000 }
+                { role: 'user', content: 'Initial message', timestamp: new Date() - 1000 }
             ],
             created: Date.now() - 1000,
             updated: Date.now()
@@ -84,9 +84,9 @@ describe('LLM and Context Integration', () => {
             id: conversationId,
             title: 'History Test',
             messages: [
-                { role: 'user', content: 'What is TypeScript?', timestamp: Date.now() - 3000 },
-                { role: 'assistant', content: 'TypeScript is a programming language...', timestamp: Date.now() - 2000 },
-                { role: 'user', content: 'How do I use interfaces?', timestamp: Date.now() - 1000 }
+                { role: 'user', content: 'What is TypeScript?', timestamp: new Date() - 3000 },
+                { role: 'assistant', content: 'TypeScript is a programming language...', timestamp: new Date() - 2000 },
+                { role: 'user', content: 'How do I use interfaces?', timestamp: new Date() - 1000 }
             ],
             created: Date.now() - 3000,
             updated: Date.now() - 1000
@@ -132,7 +132,7 @@ describe('LLM and Context Integration', () => {
         const longHistory = Array.from({ length: 20 }, (_, i) => ({
             role: i % 2 === 0 ? 'user' : 'assistant',
             content: `Message ${i}: ${'X'.repeat(100)}`,
-            timestamp: Date.now() - (20 - i) * 1000
+            timestamp: new Date() - (20 - i) * 1000
         }));
         
         // Setup conversation with long history

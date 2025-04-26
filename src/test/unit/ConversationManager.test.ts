@@ -90,13 +90,13 @@ describe('ConversationManager', () => {
         const update1 = conversationManager.addMessage({
             role: 'user',
             content: 'Message 1',
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         const update2 = conversationManager.addMessage({
             role: 'user',
             content: 'Message 2',
-            timestamp: Date.now()
+            timestamp: new Date()
         });
 
         await Promise.all([update1, update2]);
@@ -120,8 +120,8 @@ describe('ConversationManager', () => {
             id: 'conv1',
             title: 'First Conv',
             messages: [
-                { role: 'user', content: 'Message 1', timestamp: Date.now() - 3000 },
-                { role: 'assistant', content: 'Response 1', timestamp: Date.now() - 2000 }
+                { role: 'user', content: 'Message 1', timestamp: new Date() - 3000 },
+                { role: 'assistant', content: 'Response 1', timestamp: new Date() - 2000 }
             ],
             created: Date.now() - 3000,
             updated: Date.now() - 2000
@@ -131,8 +131,8 @@ describe('ConversationManager', () => {
             id: 'conv2',
             title: 'Second Conv',
             messages: [
-                { role: 'user', content: 'Message 2', timestamp: Date.now() - 1000 },
-                { role: 'assistant', content: 'Response 2', timestamp: Date.now() }
+                { role: 'user', content: 'Message 2', timestamp: new Date() - 1000 },
+                { role: 'assistant', content: 'Response 2', timestamp: new Date() }
             ],
             created: Date.now() - 1000,
             updated: Date.now()

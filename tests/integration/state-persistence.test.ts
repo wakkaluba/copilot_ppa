@@ -137,7 +137,7 @@ describe('State Persistence Tests', () => {
                 {
                     id: 'old-format-1',
                     messages: [
-                        { role: 'user', content: 'Old message', timestamp: Date.now() - 1000 }
+                        { role: 'user', content: 'Old message', timestamp: new Date() - 1000 }
                     ],
                     metadata: {
                         context: {

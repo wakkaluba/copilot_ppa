@@ -7,7 +7,7 @@ import { ToggleService } from '../services/ui/ToggleService';
  * Provides a burger menu with quick access to command toggles
  */
 export class QuickAccessMenu {
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private readonly webviewService: WebviewService;
     private readonly toggleService: ToggleService;
     

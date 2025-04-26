@@ -185,7 +185,7 @@ export class PerformanceManager implements vscode.Disposable {
             this.handleDocumentChange(document)
         );
         
-        this.fileMonitorService.onActiveEditorChanged((editor: vscode.TextEditor | undefined) => {
+        this.fileMonitorService.onActiveEditorChanged((editor?: vscode.TextEditor) => {
             if (editor) {
                 this.analyzeFile(editor.document).catch(error => {
                     this.logger.error('Failed to analyze active editor:', error);

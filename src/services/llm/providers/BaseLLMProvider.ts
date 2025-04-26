@@ -23,9 +23,9 @@ export enum ProviderState {
 
 export interface ProviderStatus {
     state: ProviderState;
-    activeModel: string | undefined;
-    error: Error | undefined;
-    lastHealthCheck: HealthCheckResult | undefined;
+    activeModel?: string;
+    error?: Error;
+    lastHealthCheck?: HealthCheckResult;
 }
 
 export interface HealthCheckResult {
@@ -84,7 +84,7 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             this.handleHealthCheckFailure(result);
             return result;
@@ -141,7 +141,7 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
         this.emit('stateChanged', {
             providerId: this.id,
             state,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -151,7 +151,7 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
         this.emit('error', {
             providerId: this.id,
             error,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 

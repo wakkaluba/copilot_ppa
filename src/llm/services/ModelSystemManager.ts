@@ -35,7 +35,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
             ]);
 
             const metrics: SystemMetrics = {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 resources: resourceUsage,
                 processes: processMetrics
             };
@@ -125,7 +125,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
                     pid,
                     cpuUsagePercent: parseFloat(cpu),
                     memoryBytes: parseInt(memory, 10),
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 };
             } else {
                 const { stdout } = await execAsync(`ps -p ${pid} -o %cpu,%mem,rss`);
@@ -135,7 +135,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
                     pid,
                     cpuUsagePercent: parseFloat(cpu),
                     memoryBytes: parseInt(rss, 10) * 1024, // Convert KB to bytes
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 };
             }
         } catch {

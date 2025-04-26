@@ -50,6 +50,7 @@ class LoggerImpl {
     _logFilePath;
     _logEntries = [];
     _maxInMemoryLogs;
+    _source = 'Logger'; // Added source property
     /**
      * Gets the singleton instance of the logger
      */
@@ -199,45 +200,45 @@ class LoggerImpl {
     /**
      * Internal log method
      */
-    log(level, message, details) {
+    log(level, message, error) {
         // Only log if level is greater than or equal to configured level
         if (level < this._logLevel) {
             return;
         }
-        const timestamp = Date.now(); // Use numeric timestamp as per the standard interface
+        const timestamp = Date.now();
         const levelName = this.logLevelToString(level);
         // Format message for output
         const formattedTimestamp = new Date(timestamp).toISOString();
         let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
         let context;
-        if (details) {
-            let detailsStr = '';
+        if (error) {
+            let errorStr = '';
             // Properly format details based on type
-            if (details instanceof Error) {
-                detailsStr = details.stack || details.toString();
-                context = { error: details.message, stack: details.stack };
+            if (error instanceof Error) {
+                errorStr = error.stack || error.toString();
+                context = { error: error.message, stack: error.stack };
             }
-            else if (typeof details === 'object') {
+            else if (typeof error === 'object') {
                 try {
-                    detailsStr = JSON.stringify(details, null, 2);
-                    context = details;
+                    errorStr = JSON.stringify(error, null, 2);
+                    context = error;
                 }
                 catch (e) {
-                    detailsStr = String(details);
-                    context = { value: String(details) };
+                    errorStr = String(error);
+                    context = { value: String(error) };
                 }
             }
             else {
-                detailsStr = String(details);
-                context = { value: detailsStr };
+                errorStr = String(error);
+                context = { value: errorStr };
             }
-            formattedMessage += `\n${detailsStr}`;
+            formattedMessage += `\n${errorStr}`;
         }
         // Log to output channel
         this._outputChannel.appendLine(formattedMessage);
         // Create log entry using the standardized interface
         const logEntry = {
-            timestamp,
+            timestamp: new Date(timestamp), // Use Date object as per the interface requirement
             level,
             message,
             context
@@ -258,6 +259,10 @@ class LoggerImpl {
                 this._outputChannel.appendLine(`[ERROR] Failed to write to log file: ${error}`);
             }
         }
+    }
+    // Getter for source property
+    get source() {
+        return this._source;
     }
 }
 exports.LoggerImpl = LoggerImpl;

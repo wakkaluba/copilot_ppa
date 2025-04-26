@@ -40,7 +40,7 @@ export class ModelTokenizer extends EventEmitter implements vscode.Disposable {
                 tokenCount: tokens.length,
                 text,
                 metadata: {
-                    timestamp: Date.now(),
+                    timestamp: new Date(),
                     modelId: options.modelId,
                     truncated: false
                 }

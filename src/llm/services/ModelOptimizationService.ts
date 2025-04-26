@@ -180,7 +180,7 @@ export class ModelOptimizationService extends EventEmitter implements vscode.Dis
         
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             strategy,
             metrics: newMetrics,
             improvements,
@@ -228,7 +228,7 @@ export class ModelOptimizationService extends EventEmitter implements vscode.Dis
             cpuUsage: metrics.cpuUsage,
             gpuUsage: metrics.gpuUsage,
             errorRate: metrics.errorRate,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
     }
 

@@ -58,7 +58,7 @@ export class LLMRequestQueueManager extends EventEmitter {
             id,
             request,
             priority,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         const queue = this.queues.get(priority);

@@ -3,8 +3,8 @@ import { IRepositoryProvider, RepositoryOptions, Repository } from './IRepositor
 import { Bitbucket } from 'bitbucket';
 
 export class BitbucketProvider implements IRepositoryProvider {
-    private bitbucket: Bitbucket | undefined;
-    private workspace: string | undefined;
+    private bitbucket?: Bitbucket;
+    private workspace?: string;
     name = 'Bitbucket';
 
     constructor() {

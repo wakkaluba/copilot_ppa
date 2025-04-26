@@ -15,7 +15,7 @@ export class MemoryPerformanceMonitor {
         this.totalOptimizationTime += optimizationTime;
         
         const metrics: MemoryMetrics = {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             heapUsed,
             cacheSizeEntries,
             optimizationCount: this.metrics.length + 1,

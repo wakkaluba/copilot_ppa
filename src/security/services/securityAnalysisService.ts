@@ -16,7 +16,7 @@ export class SecurityAnalysisService implements ISecurityAnalysisService {
     private readonly scanner: CodeSecurityScanner;
     private readonly disposables: vscode.Disposable[] = [];
     private readonly _onAnalysisComplete = new EventEmitter<SecurityScanResult>();
-    private analysisTimeout: NodeJS.Timeout | undefined;
+    private analysisTimeout?: NodeJS.Timeout;
     private diagnosticCollection: vscode.DiagnosticCollection;
     private issueCache = new Map<string, SecurityIssue[]>();
 
@@ -42,7 +42,7 @@ export class SecurityAnalysisService implements ISecurityAnalysisService {
     public async scanActiveFile(): Promise<SecurityScanResult> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            return { issues: [], scannedFiles: 0, timestamp: Date.now() };
+            return { issues: [], scannedFiles: 0, timestamp: new Date() };
         }
         const result = await this.scanner.scanFile(editor.document.uri);
         this._onAnalysisComplete.emit(result);

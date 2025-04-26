@@ -69,7 +69,7 @@ export class ModelEvaluationService extends EventEmitter {
 
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             scores: {
                 performance: performanceScore,
                 reliability: reliabilityScore,

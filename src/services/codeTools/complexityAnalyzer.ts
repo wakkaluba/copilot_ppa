@@ -326,7 +326,7 @@ export class DependencyAnalyzer {
         return node.type ? node.type.getText() : 'any';
     }
 
-    private isParameter(node: ts.Node, parent: ts.Node | undefined): boolean {
+    private isParameter(node: ts.Node, parent?: ts.Node): boolean {
         if (!parent) {return false;}
         return ts.isParameter(parent) && parent.name === node;
     }

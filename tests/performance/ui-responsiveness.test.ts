@@ -67,7 +67,7 @@ describe('UI Responsiveness Tests', () => {
                 data: {
                     id: `item-${i}`,
                     content: `Test content ${i}`,
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 }
             });
 
@@ -94,7 +94,7 @@ describe('UI Responsiveness Tests', () => {
             title: `Test Item ${i}`,
             description: 'A'.repeat(1000), // 1KB of text per item
             metadata: {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 category: i % 5,
                 tags: Array(10).fill(null).map((_, j) => `tag-${j}`)
             }
@@ -155,7 +155,7 @@ describe('UI Responsiveness Tests', () => {
                     data: {
                         id: `op-${i}`,
                         operationType: type,
-                        timestamp: Date.now()
+                        timestamp: new Date()
                     }
                 });
 
@@ -194,7 +194,7 @@ describe('UI Responsiveness Tests', () => {
                     id: `item-${k}`,
                     value: Math.random() * 1000,
                     metadata: {
-                        timestamp: Date.now(),
+                        timestamp: new Date(),
                         category: k % 5,
                         tags: Array(5).fill(null).map((_, l) => `tag-${l}`)
                     }

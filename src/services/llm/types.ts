@@ -74,9 +74,9 @@ export enum ProviderState {
 
 export interface ProviderStatus {
     state: ProviderState;
-    activeModel: string | undefined;
-    error: Error | undefined;
-    lastHealthCheck: HealthCheckResult | undefined;
+    activeModel?: string;
+    error?: Error;
+    lastHealthCheck?: HealthCheckResult;
 }
 
 export interface LLMProvider extends EventEmitter {

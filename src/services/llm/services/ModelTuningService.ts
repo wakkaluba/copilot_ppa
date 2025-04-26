@@ -58,7 +58,7 @@ export class ModelTuningService extends EventEmitter {
         
         let bestResult: TuningResult = {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             parameters: this.getInitialParameters(request),
             improvements: {},
             confidence: 0
@@ -72,7 +72,7 @@ export class ModelTuningService extends EventEmitter {
             if (confidence > bestResult.confidence) {
                 bestResult = {
                     modelId,
-                    timestamp: Date.now(),
+                    timestamp: new Date(),
                     parameters,
                     improvements,
                     confidence

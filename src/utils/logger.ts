@@ -25,6 +25,7 @@ export class LoggerImpl implements Logger {
     private _logFilePath: string;
     private _logEntries: LogEntry[] = [];
     private _maxInMemoryLogs: number;
+    private _source: string = 'Logger'; // Added source property
     
     /**
      * Gets the singleton instance of the logger
@@ -86,28 +87,28 @@ export class LoggerImpl implements Logger {
      * Log a debug message
      */
     public debug(message: string, details?: unknown): void {
-        this.log(LogLevel.DEBUG, message, details);
+        this.log(LogLevel.DEBUG, message, details as Error | undefined);
     }
     
     /**
      * Log an info message
      */
     public info(message: string, details?: unknown): void {
-        this.log(LogLevel.INFO, message, details);
+        this.log(LogLevel.INFO, message, details as Error | undefined);
     }
     
     /**
      * Log a warning message
      */
     public warn(message: string, details?: unknown): void {
-        this.log(LogLevel.WARN, message, details);
+        this.log(LogLevel.WARN, message, details as Error | undefined);
     }
     
     /**
      * Log an error message
      */
     public error(message: string, details?: unknown): void {
-        this.log(LogLevel.ERROR, message, details);
+        this.log(LogLevel.ERROR, message, details as Error | undefined);
     }
     
     /**
@@ -198,13 +199,13 @@ export class LoggerImpl implements Logger {
     /**
      * Internal log method
      */
-    private log(level: LogLevel, message: string, details?: unknown): void {
+    private log(level: LogLevel, message: string, error?: Error): void {
         // Only log if level is greater than or equal to configured level
         if (level < this._logLevel) {
             return;
         }
         
-        const timestamp = Date.now(); // Use numeric timestamp as per the standard interface
+        const timestamp = Date.now();
         const levelName = this.logLevelToString(level);
         
         // Format message for output
@@ -212,27 +213,27 @@ export class LoggerImpl implements Logger {
         let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
         let context: Record<string, unknown> | undefined;
         
-        if (details) {
-            let detailsStr = '';
+        if (error) {
+            let errorStr = '';
             
             // Properly format details based on type
-            if (details instanceof Error) {
-                detailsStr = details.stack || details.toString();
-                context = { error: details.message, stack: details.stack };
-            } else if (typeof details === 'object') {
+            if (error instanceof Error) {
+                errorStr = error.stack || error.toString();
+                context = { error: error.message, stack: error.stack };
+            } else if (typeof error === 'object') {
                 try {
-                    detailsStr = JSON.stringify(details, null, 2);
-                    context = details as Record<string, unknown>;
+                    errorStr = JSON.stringify(error, null, 2);
+                    context = error as Record<string, unknown>;
                 } catch (e) {
-                    detailsStr = String(details);
-                    context = { value: String(details) };
+                    errorStr = String(error);
+                    context = { value: String(error) };
                 }
             } else {
-                detailsStr = String(details);
-                context = { value: detailsStr };
+                errorStr = String(error);
+                context = { value: errorStr };
             }
             
-            formattedMessage += `\n${detailsStr}`;
+            formattedMessage += `\n${errorStr}`;
         }
         
         // Log to output channel
@@ -240,7 +241,7 @@ export class LoggerImpl implements Logger {
         
         // Create log entry using the standardized interface
         const logEntry: LogEntry = {
-            timestamp,
+            timestamp: new Date(timestamp), // Use Date object as per the interface requirement
             level,
             message,
             context
@@ -266,6 +267,11 @@ export class LoggerImpl implements Logger {
                 this._outputChannel.appendLine(`[ERROR] Failed to write to log file: ${error}`);
             }
         }
+    }
+    
+    // Getter for source property
+    get source(): string {
+        return this._source;
     }
 }
 

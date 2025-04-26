@@ -53,7 +53,7 @@ export class SecurityReportService implements vscode.Disposable {
             codeResult,
             dependencyResult,
             recommendationsResult,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         this.lastReport = { uri: panel.webview.html, type: 'full' };
     }

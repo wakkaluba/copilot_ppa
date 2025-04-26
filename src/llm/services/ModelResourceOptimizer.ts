@@ -46,7 +46,7 @@ export class ModelResourceOptimizer extends EventEmitter {
             
             const result: OptimizationResult = {
                 modelId,
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 recommendations,
                 metrics,
                 confidence: this.calculateConfidence(recommendations)

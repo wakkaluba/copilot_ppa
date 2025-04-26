@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { WorkspaceManager } from '../../src/services/WorkspaceManager';
 import { TestWorkspace } from '../helpers/TestWorkspace';
-import { Logger } from '../../src/utils/Logger';
+import { Logger } from '../../src/utils/logger';
 import { FileType } from 'vscode';
 
 interface MockLogger extends Logger {

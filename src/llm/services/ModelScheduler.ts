@@ -55,7 +55,7 @@ export class ModelScheduler implements vscode.Disposable {
             id: crypto.randomUUID(),
             modelId,
             priority,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             timeoutMs,
             status: 'pending',
             payload

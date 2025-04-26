@@ -59,7 +59,7 @@ export class ModelAutoScalingService extends EventEmitter implements vscode.Disp
     private async executeScaling(modelId: string, decision: ScalingDecision): Promise<void> {
         try {
             const scalingEvent = {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 type: decision.scaleUp ? 'scaleUp' : 'scaleDown',
                 reason: decision.reason,
                 metrics: decision.metrics

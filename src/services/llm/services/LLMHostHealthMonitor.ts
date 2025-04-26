@@ -77,7 +77,7 @@ export class LLMHostHealthMonitor extends EventEmitter {
         return {
             cpuUsage: Math.random() * 100,
             memoryUsage: Math.random() * 100,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
     }
 

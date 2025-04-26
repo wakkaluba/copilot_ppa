@@ -62,7 +62,7 @@ export class LLMChatHistoryService extends EventEmitter {
             this.emit(ChatEvent.HistorySaved, {
                 sessionId,
                 messageId: message.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
         } catch (error) {
@@ -85,7 +85,7 @@ export class LLMChatHistoryService extends EventEmitter {
 
             this.emit(ChatEvent.HistorySaved, {
                 sessionId: session.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
         } catch (error) {
@@ -107,7 +107,7 @@ export class LLMChatHistoryService extends EventEmitter {
                 this.sessions.set(sessionId, session);
                 this.emit(ChatEvent.HistoryLoaded, {
                     sessionId,
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 });
             }
             return session;
@@ -131,7 +131,7 @@ export class LLMChatHistoryService extends EventEmitter {
 
             this.emit(ChatEvent.HistoryDeleted, {
                 sessionId,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
         } catch (error) {

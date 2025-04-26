@@ -116,6 +116,6 @@ export function createMockMessage(role: 'user' | 'assistant' | 'system' = 'user'
     return {
         role,
         content,
-        timestamp: Date.now()
+        timestamp: new Date()
     };
 }

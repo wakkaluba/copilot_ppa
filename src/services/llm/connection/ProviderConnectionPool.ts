@@ -66,13 +66,13 @@ export class ProviderConnectionPool {
                     return {
                         isHealthy: true,
                         latency: Date.now() - start,
-                        timestamp: Date.now()
+                        timestamp: new Date()
                     };
                 } catch (error) {
                     return {
                         isHealthy: false,
                         latency: -1,
-                        timestamp: Date.now(),
+                        timestamp: new Date(),
                         error: error instanceof Error ? error : new Error(String(error))
                     };
                 }
@@ -84,7 +84,7 @@ export class ProviderConnectionPool {
         return {
             isHealthy: healthy.length > 0,
             latency: healthy.reduce((sum, r) => sum + r.latency, 0) / healthy.length,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             details: {
                 totalConnections: this.connections.length,
                 healthyConnections: healthy.length,

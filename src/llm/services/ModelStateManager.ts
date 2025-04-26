@@ -51,7 +51,7 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
         return {
             modelId,
             state,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             transitions: this.getStateHistory(modelId)
         };
     }
@@ -93,14 +93,14 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
 
     private trackStateTransition(
         modelId: string, 
-        oldState: ModelLifecycleState | undefined, 
+        oldState?: ModelLifecycleState, 
         newState: ModelLifecycleState
     ): void {
         const history = this.stateHistory.get(modelId) || [];
         const transition: StateTransition = {
             from: oldState || 'initial',
             to: newState,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         history.push(transition);
@@ -114,7 +114,7 @@ export class ModelStateManager extends EventEmitter implements vscode.Disposable
 
     private logStateChange(
         modelId: string, 
-        oldState: ModelLifecycleState | undefined, 
+        oldState?: ModelLifecycleState, 
         newState: ModelLifecycleState
     ): void {
         this.outputChannel.appendLine('\nModel State Change:');

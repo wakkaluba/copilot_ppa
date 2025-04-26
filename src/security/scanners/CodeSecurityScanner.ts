@@ -12,7 +12,7 @@ export class CodeSecurityScanner {
         let scannedFiles = 0;
 
         if (!workspaceFolders) {
-            return { issues, scannedFiles: 0, timestamp: Date.now() };
+            return { issues, scannedFiles: 0, timestamp: new Date() };
         }
 
         for (const folder of workspaceFolders) {
@@ -33,7 +33,7 @@ export class CodeSecurityScanner {
         return {
             issues,
             scannedFiles,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
     }
 

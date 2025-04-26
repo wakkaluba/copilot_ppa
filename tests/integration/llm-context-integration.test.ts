@@ -184,7 +184,7 @@ describe('LLM Provider and Context Manager Integration', () => {
         });
 
         // Simulate streaming that will fail
-        let error: Error | undefined;
+        let error?: Error;
         try {
             await ollamaProvider.streamCompletion(
                 'codellama',

@@ -19,7 +19,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitProviderInit(providerId: string): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.Initialized
         };
         this.emit(ProviderEvent.Initialized, eventData);
@@ -28,7 +28,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitProviderConnect(providerId: string): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.Connected
         };
         this.emit(ProviderEvent.Connected, eventData);
@@ -37,7 +37,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitProviderDisconnect(providerId: string, reason?: string): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.Disconnected,
             metadata: { reason }
         };
@@ -47,7 +47,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitProviderError(providerId: string, error: Error): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.Error,
             error
         };
@@ -57,7 +57,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitHealthCheck(providerId: string, isHealthy: boolean, metrics?: ProviderMetrics): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.HealthCheck,
             metadata: { isHealthy, metrics }
         };
@@ -67,7 +67,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitRequestStart(providerId: string, requestId: string): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.RequestStart,
             metadata: { requestId }
         };
@@ -82,7 +82,7 @@ export class ProviderEventEmitter extends EventEmitter {
     ): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.RequestComplete,
             metadata: { requestId, duration, tokenUsage }
         };
@@ -97,7 +97,7 @@ export class ProviderEventEmitter extends EventEmitter {
     ): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.RequestError,
             error,
             metadata: { requestId, duration }
@@ -108,7 +108,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitProviderDestroy(providerId: string): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.Destroyed
         };
         this.emit(ProviderEvent.Destroyed, eventData);
@@ -117,7 +117,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitConfigChange(providerId: string, changes: Record<string, any>): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.ConfigChanged,
             metadata: { changes }
         };
@@ -127,7 +127,7 @@ export class ProviderEventEmitter extends EventEmitter {
     public emitMetricsUpdate(providerId: string, metrics: ProviderMetrics): void {
         const eventData: ProviderEventData = {
             providerId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type: ProviderEvent.MetricsUpdate,
             metadata: { metrics }
         };

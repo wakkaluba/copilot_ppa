@@ -9,8 +9,8 @@ interface StoredUserPreferences {
 
 export class UserPreferences implements IUserPreferences {
     private readonly _context: vscode.ExtensionContext;
-    private _preferredLanguage: string | undefined;
-    private _preferredFramework: string | undefined;
+    private _preferredLanguage?: string;
+    private _preferredFramework?: string;
     private _languageUsage: Record<string, number> = {};
     private readonly _storageKey = 'userProgrammingPreferences';
 

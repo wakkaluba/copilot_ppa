@@ -60,7 +60,7 @@ export class JSDocTSDocIntegration {
      */
     private async generateSymbolDocumentation(
         node: ts.Node,
-        existingDoc: string | undefined,
+        existingDoc?: string,
         options: JSDocTSDocGenerationOptions
     ): Promise<string> {
         const nodeType = this.getNodeType(node);
@@ -207,7 +207,7 @@ export class JSDocTSDocIntegration {
     private buildDocumentationPrompt(
         nodeType: JSDocNodeType | TSDocNodeType,
         symbolInfo: Record<string, any>,
-        existingDoc: string | undefined,
+        existingDoc?: string,
         options: JSDocTSDocGenerationOptions
     ): string {
         let prompt = `Generate ${options.style || 'jsdoc'} documentation for:\n`;

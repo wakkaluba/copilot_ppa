@@ -3,7 +3,7 @@ import { IRepositoryProvider, RepositoryOptions, Repository } from './IRepositor
 import { Gitlab } from '@gitbeaker/node';
 
 export class GitLabProvider implements IRepositoryProvider {
-    private gitlab: Gitlab | undefined;
+    private gitlab?: Gitlab;
     name = 'GitLab';
 
     constructor() {

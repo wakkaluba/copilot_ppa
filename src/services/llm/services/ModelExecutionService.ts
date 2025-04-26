@@ -75,7 +75,7 @@ export class ModelExecutionService extends EventEmitter {
 
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             execution,
             resources: this.calculateResourceAllocation(execution),
             performance: this.calculatePerformanceMetrics(execution, metrics),

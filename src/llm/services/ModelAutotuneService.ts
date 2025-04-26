@@ -126,7 +126,7 @@ export class ModelAutotuneService extends EventEmitter implements vscode.Disposa
 
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             parameters,
             metrics: {
                 latency: benchmark.metrics.averageLatency,

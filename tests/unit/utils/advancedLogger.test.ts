@@ -226,7 +226,7 @@ describe('AdvancedLogger', () => {
 
     // Verify it's a copy by modifying it
     logs.push({
-      timestamp: Date.now(),
+      timestamp: new Date(),
       level: LogLevel.INFO,
       message: 'New message'
     });

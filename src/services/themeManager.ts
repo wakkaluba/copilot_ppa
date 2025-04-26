@@ -10,7 +10,7 @@ export interface Theme {
 }
 
 export class ThemeManager extends EventEmitter implements vscode.Disposable {
-    private currentTheme: Theme | undefined;
+    private currentTheme?: Theme;
     private customThemes: Map<string, Theme> = new Map();
     private disposables: vscode.Disposable[] = [];
     private context: vscode.ExtensionContext;

@@ -109,7 +109,7 @@ export class LLMCacheService {
     const cacheFilePath = this.getCacheFilePath(cacheKey);
     
     const cacheEntry: CacheEntry = {
-      timestamp: Date.now(),
+      timestamp: new Date(),
       response
     };
     

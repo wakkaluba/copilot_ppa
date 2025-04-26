@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkspaceManager = void 0;
 const vscode = __importStar(require("vscode"));
-const Logger_1 = require("../utils/Logger");
+const logger_1 = require("../utils/logger"); // Fixed lowercase import
 /**
  * Manages workspace-related operations such as file reading/writing
  * and directory listing.
@@ -44,7 +44,7 @@ class WorkspaceManager {
     static instance;
     logger;
     constructor() {
-        this.logger = Logger_1.Logger.getInstance();
+        this.logger = logger_1.Logger.getInstance();
     }
     /**
      * Gets the singleton instance of WorkspaceManager

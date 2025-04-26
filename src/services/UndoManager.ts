@@ -39,7 +39,7 @@ export class UndoManager {
         const record: ChangeRecord = {
             filePath,
             originalContent,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type
         };
 

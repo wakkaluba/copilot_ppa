@@ -493,7 +493,7 @@ export class BuildToolsManager {
                 outputDirs = [selectedDir[0].fsPath];
             }
             
-            let dirToAnalyze: string | undefined;
+            let dirToAnalyze?: string;
             if (outputDirs.length === 1) {
                 dirToAnalyze = outputDirs[0];
             } else {

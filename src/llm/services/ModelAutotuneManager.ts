@@ -70,7 +70,7 @@ export class ModelAutotuneManager extends EventEmitter implements vscode.Disposa
 
             const result: OptimizationResult = {
                 modelId: model.id,
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 bestConfiguration: bestParams,
                 score: bestScore,
                 metrics: await this.gatherOptimizationMetrics(model, bestParams)
@@ -152,7 +152,7 @@ export class ModelAutotuneManager extends EventEmitter implements vscode.Disposa
             p95Latency: benchmark.metrics.p95Latency,
             tokensPerSecond: benchmark.metrics.tokensPerSecond,
             memoryUsage: benchmark.metrics.maxRss,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
     }
 

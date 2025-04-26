@@ -3,7 +3,7 @@ import { IRepositoryProvider, RepositoryOptions, Repository } from './IRepositor
 import { Octokit } from '@octokit/rest';
 
 export class GitHubProvider implements IRepositoryProvider {
-    private octokit: Octokit | undefined;
+    private octokit?: Octokit;
     name = 'GitHub';
 
     constructor() {

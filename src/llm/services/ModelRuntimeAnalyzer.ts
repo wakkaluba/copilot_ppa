@@ -116,7 +116,7 @@ export class ModelRuntimeAnalyzer extends EventEmitter implements vscode.Disposa
         ]);
 
         return {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             performance: {
                 responseTime: performanceMetrics?.averageResponseTime || 0,
                 throughput: performanceMetrics?.tokenThroughput || 0,

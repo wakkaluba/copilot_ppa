@@ -55,7 +55,7 @@ export class LLMProviderRegistry extends EventEmitter {
 
         this.emit(ProviderEvent.Registered, {
             providerId: provider.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -71,7 +71,7 @@ export class LLMProviderRegistry extends EventEmitter {
 
         this.emit(ProviderEvent.Unregistered, {
             providerId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -110,7 +110,7 @@ export class LLMProviderRegistry extends EventEmitter {
         this.emit(ProviderEvent.StateChanged, {
             providerId,
             state,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 

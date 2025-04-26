@@ -86,7 +86,7 @@ suite('ContextOptimizer Tests', () => {
         const messages = Array(20).fill(null).map((_, i) => ({
             role: i % 2 === 0 ? 'user' : 'assistant',
             content: `Message ${i}`,
-            timestamp: Date.now() + i * 1000
+            timestamp: new Date() + i * 1000
         }));
 
         const window = contextOptimizer.slideContextWindow(messages, 10);

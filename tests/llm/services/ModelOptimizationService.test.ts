@@ -62,7 +62,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 90,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const performanceMetrics = {
@@ -91,7 +91,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const performanceMetrics = {
@@ -120,7 +120,7 @@ describe('ModelOptimizationService', () => {
                 cpuUsage: 70,
                 gpuUsage: 30,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const performanceMetrics = {
@@ -148,7 +148,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const promise1 = optimizationService.optimizeModel(modelId, metrics);
@@ -166,7 +166,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             await optimizationService.optimizeModel(modelId, metrics);
@@ -184,7 +184,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const error = new Error('Optimization failed');
@@ -206,7 +206,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const result = await optimizationService.optimizeModel(modelId, metrics);
@@ -223,7 +223,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             const result = await optimizationService.optimizeModel(modelId, metrics);
@@ -249,7 +249,7 @@ describe('ModelOptimizationService', () => {
                 memoryUsage: 60,
                 cpuUsage: 70,
                 errorRate: 0.1,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
 
             await optimizationService.optimizeModel(modelId, metrics);

@@ -144,7 +144,7 @@ export class LLMModelValidator {
      * Validate hardware requirements
      */
     private validateHardwareRequirements(
-        actual: HardwareRequirements | undefined,
+        actual?: HardwareRequirements,
         required: HardwareRequirements
     ): { errors: ModelValidationError[]; warnings: string[] } {
         const result = { errors: [] as ModelValidationError[], warnings: [] as string[] };
@@ -201,7 +201,7 @@ export class LLMModelValidator {
      * Validate supported formats
      */
     private validateFormats(
-        actual: string[] | undefined,
+        actual?: string[],
         required: string[]
     ): boolean {
         if (!actual) {return false;}
@@ -249,7 +249,7 @@ export class LLMModelValidator {
     /**
      * Check version compatibility
      */
-    private checkVersion(actual: string | undefined, required: string): boolean {
+    private checkVersion(actual?: string, required: string): boolean {
         if (!actual) {return false;}
 
         const [actualMajor, actualMinor = 0] = actual.split('.').map(Number);
@@ -277,8 +277,8 @@ export class LLMModelValidator {
      * Check hardware compatibility between models
      */
     private checkHardwareCompatibility(
-        hwA: HardwareRequirements | undefined,
-        hwB: HardwareRequirements | undefined
+        hwA?: HardwareRequirements,
+        hwB?: HardwareRequirements
     ): { isCompatible: boolean; conflicts: string[] } {
         const result = { isCompatible: true, conflicts: [] as string[] };
 

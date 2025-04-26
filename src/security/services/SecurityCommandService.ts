@@ -124,8 +124,8 @@ export class SecurityCommandService implements vscode.Disposable {
                 progress.report({ message: "Analyzing current security state..." });
                 const result = await this.recommendationSvc.generate();
                 await this.reportSvc.showFullReport(
-                    { issues: [], scannedFiles: 0, timestamp: Date.now() },
-                    { vulnerabilities: [], totalDependencies: 0, hasVulnerabilities: false, timestamp: Date.now() },
+                    { issues: [], scannedFiles: 0, timestamp: new Date() },
+                    { vulnerabilities: [], totalDependencies: 0, hasVulnerabilities: false, timestamp: new Date() },
                     result
                 );
             } catch (error) {

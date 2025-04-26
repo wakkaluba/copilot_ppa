@@ -89,7 +89,7 @@ describe('Component Performance', () => {
             await historyMock.addMessage(conversationId, {
                 role: i % 2 === 0 ? 'user' : 'assistant',
                 content: `Message ${i}`,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             
             // Simulate delay between messages
@@ -103,7 +103,7 @@ describe('Component Performance', () => {
             messages: Array.from({ length: 5 }, (_, i) => ({
                 role: i % 2 === 0 ? 'user' : 'assistant',
                 content: `Message ${i}`,
-                timestamp: Date.now() - (5 - i) * 1000 // Each message 1 second apart
+                timestamp: new Date() - (5 - i) * 1000 // Each message 1 second apart
             })),
             created: Date.now() - 5000,
             updated: Date.now()

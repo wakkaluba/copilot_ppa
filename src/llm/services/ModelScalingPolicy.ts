@@ -40,8 +40,8 @@ export interface ScalingDecision {
     action: 'scale_up' | 'scale_down' | 'no_action';
     reason: string;
     metrics: ScalingMetrics;
-    rule: ScalingRule | undefined;
-    replicas: number | undefined;
+    rule?: ScalingRule;
+    replicas?: number;
     resources: {
         cpu?: string;
         memory?: string;
@@ -225,7 +225,7 @@ export class ModelScalingPolicy extends EventEmitter {
     ): ScalingDecision {
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             action,
             reason,
             metrics,

@@ -15,5 +15,6 @@ export interface LogEntry {
     level: LogLevel;
     message: string;
     timestamp: Date;
+    context?: Record<string, unknown>;
     additionalData?: any[];
 }

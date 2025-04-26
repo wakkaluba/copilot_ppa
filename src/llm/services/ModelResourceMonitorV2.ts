@@ -137,7 +137,7 @@ export class ModelResourceMonitorV2 extends EventEmitter implements vscode.Dispo
         ]);
 
         return {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             cpu: {
                 usage: systemMetrics.resources.cpuUsagePercent,
                 temperature: hardwareInfo.cpu?.temperature

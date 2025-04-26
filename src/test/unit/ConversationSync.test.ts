@@ -82,7 +82,7 @@ suite('ConversationSync Tests', () => {
         const checkpoint1 = {
             id: 'checkpoint-1',
             state: { progress: 50 },
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         await conversationSync.createCheckpoint('convo-4', checkpoint1);

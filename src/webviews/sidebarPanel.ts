@@ -41,7 +41,7 @@ export class SidebarPanel {
     SidebarPanel.currentPanel = new SidebarPanel(panel, extensionUri);
   }
 
-  private static currentPanel: SidebarPanel | undefined;
+  private static currentPanel?: SidebarPanel;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;

@@ -53,7 +53,7 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
         this.emit('providerChanged', {
             provider: provider.getName(),
             status: this.status,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         return true;
@@ -171,7 +171,7 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
         const event: ConnectionEvent = {
             provider: this.provider?.getName(),
             status,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         
         if (error) {

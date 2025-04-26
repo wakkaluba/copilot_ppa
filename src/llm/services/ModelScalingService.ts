@@ -268,7 +268,7 @@ export class ModelScalingService extends EventEmitter {
         return {
             id: operationId,
             modelId: params.modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             status: params.status,
             action: params.action,
             currentReplicas: params.currentReplicas,

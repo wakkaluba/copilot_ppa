@@ -161,8 +161,8 @@ describe('ContextManager', () => {
                 created: Date.now(),
                 updated: Date.now(),
                 messages: [
-                    { role: 'user', content: 'Help me understand this code', timestamp: Date.now() },
-                    { role: 'assistant', content: 'This is a function that adds two numbers', timestamp: Date.now() }
+                    { role: 'user', content: 'Help me understand this code', timestamp: new Date() },
+                    { role: 'assistant', content: 'This is a function that adds two numbers', timestamp: new Date() }
                 ]
             });
             
@@ -194,7 +194,7 @@ describe('ContextManager', () => {
             const message = {
                 role: 'user',
                 content: 'Help me write a React component in TypeScript',
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             
             contextManager.addMessage(message);
@@ -207,7 +207,7 @@ describe('ContextManager', () => {
             const message = {
                 role: 'user',
                 content: 'How do I create a Django model in Python?',
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             
             contextManager.addMessage(message);
@@ -220,13 +220,13 @@ describe('ContextManager', () => {
             const message1 = {
                 role: 'user',
                 content: 'Help with TypeScript',
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             
             const message2 = {
                 role: 'user',
                 content: 'General question',
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             
             contextManager.addMessage(message1);
@@ -243,7 +243,7 @@ describe('ContextManager', () => {
             contextManager.addMessage({ 
                 role: 'user',
                 content: 'Test message',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             
             await contextManager.clearAllContextData();

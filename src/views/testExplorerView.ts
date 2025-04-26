@@ -6,8 +6,8 @@ import { TestExplorerService } from './services/TestExplorerService';
  * Tree data provider for the test explorer view
  */
 export class TestExplorerProvider implements vscode.TreeDataProvider<TestItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<TestItem | undefined> = new vscode.EventEmitter<TestItem | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<TestItem | undefined> = this._onDidChangeTreeData.event;
+    private _onDidChangeTreeData?: vscode.EventEmitter<TestItem> = new vscode.EventEmitter<TestItem | undefined>();
+    readonly onDidChangeTreeData?: vscode.Event<TestItem> = this._onDidChangeTreeData.event;
 
     private service: TestExplorerService;
 

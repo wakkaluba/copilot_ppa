@@ -64,7 +64,7 @@ export class ModelMetricsManager extends EventEmitter implements vscode.Disposab
     private addMetricsSnapshot(modelId: string, metrics: ModelPerformanceMetrics): void {
         const history = this.metricsHistory.get(modelId) || [];
         history.push({
-            timestamp: Date.now(),
+            timestamp: new Date(),
             metrics: { ...metrics }
         });
         this.metricsHistory.set(modelId, history);

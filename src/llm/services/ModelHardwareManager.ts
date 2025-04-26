@@ -67,7 +67,7 @@ export class ModelHardwareManager extends EventEmitter implements vscode.Disposa
             ]);
 
             const metrics: HardwareMetrics = {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 gpu: gpuMetrics,
                 system: systemMetrics
             };

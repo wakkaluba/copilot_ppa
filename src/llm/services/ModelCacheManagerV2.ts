@@ -187,7 +187,7 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     private async saveToDisk(filePath: string, value: LLMModelInfo): Promise<void> {
         const data = {
             data: value,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         await fs.promises.writeFile(
@@ -299,7 +299,7 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     private findLRUKey(): string | undefined {
-        let lruKey: string | undefined;
+        let lruKey?: string;
         let lruTime = Infinity;
 
         for (const [key, item] of this.memoryCache.entries()) {
@@ -313,7 +313,7 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     private findOldestDiskKey(): string | undefined {
-        let oldestKey: string | undefined;
+        let oldestKey?: string;
         let oldestTime = Infinity;
 
         for (const [key, filePath] of this.diskCache.entries()) {

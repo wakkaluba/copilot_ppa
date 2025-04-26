@@ -29,7 +29,7 @@ export class ModelProvisioningService implements Disposable {
                 modelId,
                 instance,
                 allocation,
-                timestamp: Date.now()
+                timestamp: new Date()
             } as ProvisioningEvent);
 
             return instance;
@@ -115,7 +115,7 @@ export class ModelProvisioningService implements Disposable {
 
             this._provisioningEmitter.emit('modelDeprovisioned', {
                 modelId,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         } catch (error) {
             this._logger.error('Failed to deprovision model', { modelId, error });

@@ -34,7 +34,7 @@ export interface CopilotApiResponse {
  */
 export class CopilotIntegrationService {
     private readonly extensionContext: vscode.ExtensionContext;
-    private copilotExtension: vscode.Extension<any> | undefined;
+    private copilotExtension?: vscode.Extension<any>;
     private isInitialized: boolean = false;
 
     /**

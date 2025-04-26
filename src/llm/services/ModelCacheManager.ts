@@ -136,7 +136,7 @@ export class ModelCacheManager extends EventEmitter implements vscode.Disposable
 
         this.memoryCache.set(key, {
             model,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             size
         });
 
@@ -148,7 +148,7 @@ export class ModelCacheManager extends EventEmitter implements vscode.Disposable
         
         await fs.promises.writeFile(
             filePath,
-            JSON.stringify({ model, timestamp: Date.now() }),
+            JSON.stringify({ model, timestamp: new Date() }),
             'utf8'
         );
 

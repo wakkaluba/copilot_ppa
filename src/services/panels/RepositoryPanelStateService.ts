@@ -4,7 +4,7 @@ export interface PanelState {
     isAccessEnabled: boolean;
     lastProvider?: string;
     lastCreatedRepo?: string;
-    errorMessage: string | undefined;
+    errorMessage?: string;
 }
 
 export class RepositoryPanelStateService {
@@ -33,7 +33,7 @@ export class RepositoryPanelStateService {
         this.eventEmitter.emit('stateChanged', this.state);
     }
 
-    public setErrorMessage(message: string | undefined): void {
+    public setErrorMessage(message?: string): void {
         this.state.errorMessage = message;
         this.eventEmitter.emit('stateChanged', this.state);
     }

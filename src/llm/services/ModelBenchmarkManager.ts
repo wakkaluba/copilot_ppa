@@ -55,7 +55,7 @@ export class ModelBenchmarkManager extends EventEmitter implements vscode.Dispos
 
             const result: BenchmarkResult = {
                 modelId: model.id,
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 metrics,
                 systemInfo: await this.getSystemInfo()
             };
@@ -186,7 +186,7 @@ export class ModelBenchmarkManager extends EventEmitter implements vscode.Dispos
             cpuCores: require('os').cpus().length,
             totalMemory: require('os').totalmem(),
             nodeVersion: process.version,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
     }
 

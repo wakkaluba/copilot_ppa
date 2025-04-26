@@ -101,7 +101,7 @@ export class ModelOptimizationService extends EventEmitter {
         const iterations = request.maxIterations || 5;
         let bestResult: OptimizationResult = {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             allocation: this.calculateResourceAllocation(metrics),
             improvements: {},
             confidence: 0
@@ -120,7 +120,7 @@ export class ModelOptimizationService extends EventEmitter {
             if (confidence > bestResult.confidence) {
                 bestResult = {
                     modelId,
-                    timestamp: Date.now(),
+                    timestamp: new Date(),
                     allocation,
                     improvements,
                     confidence

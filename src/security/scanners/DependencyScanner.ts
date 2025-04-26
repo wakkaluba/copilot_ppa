@@ -51,7 +51,7 @@ export class DependencyScanner implements vscode.Disposable {
                         vulnerabilityInfo: vulnInfo,
                         fixAvailable: vuln.fixAvailable || false,
                         fixedVersion: vuln.fixAvailable?.version,
-                        timestamp: Date.now()
+                        timestamp: new Date()
                     });
                 }
             }
@@ -68,7 +68,7 @@ export class DependencyScanner implements vscode.Disposable {
                         vulnerabilityInfo: vulns,
                         fixAvailable: vulns.some(v => v.patchedVersions?.length > 0),
                         fixedVersion: vulns[0]?.patchedVersions?.[0],
-                        timestamp: Date.now()
+                        timestamp: new Date()
                     });
                 }
             }

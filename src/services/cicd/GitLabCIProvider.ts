@@ -4,7 +4,7 @@ import { Gitlab } from '@gitbeaker/node';
 import * as yaml from 'yaml';
 
 export class GitLabCIProvider implements ICICDProvider {
-    private gitlab: Gitlab | undefined;
+    private gitlab?: Gitlab;
     name = 'GitLab CI/CD';
 
     constructor() {

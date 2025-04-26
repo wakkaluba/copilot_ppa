@@ -7,7 +7,7 @@ import { InteractiveShell } from './interactiveShell';
  * Webview panel for enhanced terminal command generation
  */
 export class CommandGenerationWebview {
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private context: vscode.ExtensionContext;
     private aiHelper: AITerminalHelper;
     private interactiveShell: InteractiveShell;

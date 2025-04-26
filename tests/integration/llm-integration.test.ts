@@ -51,7 +51,7 @@ describe('LLM Model Integration', () => {
                 modelId: 'test-model',
                 action: 'scale_up',
                 reason: 'Test scaling',
-                timestamp: Date.now()
+                timestamp: new Date()
             }),
             dispose: jest.fn(),
         } as any;

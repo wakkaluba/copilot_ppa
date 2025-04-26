@@ -15,7 +15,7 @@ export class LogFormatterService {
     ): LogEntry {
         // Return with correct typing to satisfy exactOptionalPropertyTypes
         const entry: LogEntry = {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             level,
             message,
             context

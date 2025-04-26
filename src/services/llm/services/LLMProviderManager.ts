@@ -92,7 +92,7 @@ export class LLMProviderManager extends EventEmitter {
 
         this.emit(ProviderEvent.Initialized, {
             providerId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
 
         return providerId;

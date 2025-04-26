@@ -35,7 +35,7 @@ describe('Model Scaling System', () => {
                 action: 'no_action',
                 reason: 'Current capacity is sufficient',
                 modelId: 'test-model',
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 metrics: {} as ScalingMetrics,
                 rule: undefined,
                 replicas: undefined,
@@ -89,7 +89,7 @@ describe('Model Scaling System', () => {
         test('should scale up when load exceeds threshold', async () => {
             // Setup high load scenario
             await metricsService.updateMetrics('test-model', {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 performance: {
                     responseTime: 500,
                     throughput: 50,
@@ -119,7 +119,7 @@ describe('Model Scaling System', () => {
                 action: 'scale_up',
                 reason: 'High CPU and memory utilization',
                 modelId: 'test-model',
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 metrics: {} as ScalingMetrics,
                 rule: undefined,
                 replicas: 1,
@@ -138,7 +138,7 @@ describe('Model Scaling System', () => {
         test('should scale down when load is low', async () => {
             // Setup low load scenario
             await metricsService.updateMetrics('test-model', {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 performance: {
                     responseTime: 100,
                     throughput: 20,
@@ -168,7 +168,7 @@ describe('Model Scaling System', () => {
                 action: 'scale_down',
                 reason: 'Low resource utilization',
                 modelId: 'test-model',
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 metrics: {} as ScalingMetrics,
                 rule: undefined,
                 replicas: 1,
@@ -191,7 +191,7 @@ describe('Model Scaling System', () => {
             
             // Setup metrics with resource constraints
             await metricsService.updateMetrics(modelId, {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 performance: {
                     responseTime: 300,
                     throughput: 25,

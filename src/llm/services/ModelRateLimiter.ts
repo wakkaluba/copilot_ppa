@@ -159,7 +159,7 @@ export class ModelRateLimiter extends EventEmitter implements vscode.Disposable 
                 reject(new Error('Rate limit request timeout'));
             }, timeout);
 
-            queue.push({ id: requestId, timestamp: Date.now(), resolve, reject, timeoutId });
+            queue.push({ id: requestId, timestamp: new Date(), resolve, reject, timeoutId });
             this.logQueueUpdate(modelId, queue.length);
         });
     }

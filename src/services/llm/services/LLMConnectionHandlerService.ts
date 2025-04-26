@@ -7,7 +7,7 @@ export class LLMConnectionHandlerService extends EventEmitter {
     private _currentState: ConnectionState = ConnectionState.DISCONNECTED;
     private _activeProvider: LLMProvider | null = null;
     private _activeConnection: ILLMConnectionProvider | null = null;
-    private _lastError: Error | undefined;
+    private _lastError?: Error;
     private readonly options: LLMConnectionOptions;
 
     constructor(options: Partial<LLMConnectionOptions> = {}) {

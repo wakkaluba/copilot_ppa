@@ -210,7 +210,7 @@ export class ThemeManager implements IThemeService {
 }
 
 // Singleton instance
-let themeManager: ThemeManager | undefined;
+let themeManager?: ThemeManager;
 
 /**
  * Initialize the theme manager

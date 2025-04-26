@@ -22,7 +22,7 @@ export class ConnectionPoolManager extends EventEmitter {
             this.emit('healthCheck', {
                 providerId,
                 health,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }, 30000); // Check every 30 seconds
         
@@ -39,7 +39,7 @@ export class ConnectionPoolManager extends EventEmitter {
         this.emit('connectionStateChanged', {
             providerId,
             state: ProviderConnectionState.Active,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         return connection;
@@ -53,7 +53,7 @@ export class ConnectionPoolManager extends EventEmitter {
         this.emit('connectionStateChanged', {
             providerId,
             state: ProviderConnectionState.Available,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     

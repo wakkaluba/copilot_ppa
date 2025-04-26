@@ -171,7 +171,7 @@ export class ComplexityAnalysisCommand {
     /**
      * Handle editor change event to update decorations
      */
-    private async handleEditorChange(editor: vscode.TextEditor | undefined): Promise<void> {
+    private async handleEditorChange(editor?: vscode.TextEditor): Promise<void> {
         // Clear existing decorations
         this.clearDecorations();
         

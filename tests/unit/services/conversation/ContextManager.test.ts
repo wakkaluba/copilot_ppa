@@ -48,7 +48,7 @@ describe('ContextManager', () => {
             id: '123',
             role: 'user',
             content: 'Test message in typescript using react',
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         it('should add message and extract preferences', () => {
@@ -73,7 +73,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Help me with this Python code',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             expect(contextManager.getPreferredLanguage()).toBe('python');
@@ -84,14 +84,14 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'JavaScript code',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             contextManager.addMessage({
                 id: '2',
                 role: 'user',
                 content: 'More JavaScript',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const frequentLangs = contextManager.getFrequentLanguages(1);
@@ -106,7 +106,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Open the file test.ts',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const extensions = contextManager.getRecentFileExtensions();
@@ -118,7 +118,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Look in the src/components directory',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const dirs = contextManager.getRecentDirectories();
@@ -130,7 +130,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Name it like test.component.ts',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const patterns = contextManager.getFileNamingPatterns();
@@ -145,7 +145,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Help with TypeScript React component in src/components',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const contextString = contextManager.buildContextString();
@@ -162,7 +162,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Help with React components',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const suggestions = contextManager.generateSuggestions('component');
@@ -175,7 +175,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'Help with React state management',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             const suggestions = contextManager.generateSuggestions('state');
@@ -190,7 +190,7 @@ describe('ContextManager', () => {
                 id: '1',
                 role: 'user',
                 content: 'TypeScript React code',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             await contextManager.clearAllContextData();

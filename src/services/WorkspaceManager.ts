@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Logger } from '../utils/Logger';
+import { Logger } from '../utils/logger'; // Fixed lowercase import
 
 /**
  * Manages workspace-related operations such as file reading/writing

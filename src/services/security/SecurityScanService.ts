@@ -24,7 +24,7 @@ export class SecurityScanService {
             ]);
 
             return {
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 issues: codeResult.issues,
                 scannedFiles: codeResult.scannedFiles || 0,
                 summary: this.generateSummary(codeResult.issues, dependencyResult.vulnerabilities),

@@ -45,7 +45,7 @@ describe('ConversationMemory', () => {
                     id: '1',
                     role: 'user',
                     content: 'Test message 1',
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 }
             ];
             (mockContext.globalState.get as jest.Mock).mockReturnValue(testMessages);
@@ -68,7 +68,7 @@ describe('ConversationMemory', () => {
             id: '1',
             role: 'user',
             content: 'Test message',
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         beforeEach(async () => {
@@ -114,7 +114,7 @@ describe('ConversationMemory', () => {
             id: String(i),
             role: 'user',
             content: `Message ${i}`,
-            timestamp: Date.now() + i
+            timestamp: new Date() + i
         }));
 
         beforeEach(async () => {
@@ -152,7 +152,7 @@ describe('ConversationMemory', () => {
                 id: '1',
                 role: 'user',
                 content: 'Test message',
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         });
 

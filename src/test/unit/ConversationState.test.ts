@@ -120,7 +120,7 @@ suite('ConversationState Tests', () => {
 
     test('should manage context snapshots', () => {
         const snapshot = {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             focus: 'debugging',
             context: { languageId: 'typescript' }
         };

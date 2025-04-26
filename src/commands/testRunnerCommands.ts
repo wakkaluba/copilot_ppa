@@ -235,8 +235,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command: string | undefined;
-            let tool: string | undefined;
+            let command?: string;
+            let tool?: string;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {
@@ -321,8 +321,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command: string | undefined;
-            let tool: string | undefined;
+            let command?: string;
+            let tool?: string;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {
@@ -430,8 +430,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command: string | undefined;
-            let tool: string | undefined;
+            let command?: string;
+            let tool?: string;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {

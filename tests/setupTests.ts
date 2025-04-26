@@ -82,7 +82,7 @@ jest.mock('vscode', () => ({
             dispose: jest.fn()
         }),
         activeTextEditor: undefined,
-        onDidChangeActiveTextEditor: createMockEventEmitter<vscode.TextEditor | undefined>().event,
+        onDidChangeActiveTextEditor?: createMockEventEmitter<vscode.TextEditor>().event,
         onDidChangeVisibleTextEditors: createMockEventEmitter<vscode.TextEditor[]>().event
     },
     languages: {

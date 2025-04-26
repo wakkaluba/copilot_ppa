@@ -4,7 +4,7 @@ import { SnippetManager, ConversationSnippet } from '../services/snippetManager'
 export class SnippetsPanelProvider {
     public static readonly viewType = 'copilotPPA.snippetsPanel';
     
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private snippetManager: SnippetManager;
     private disposables: vscode.Disposable[] = [];
     

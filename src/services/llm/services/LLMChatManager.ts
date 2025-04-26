@@ -67,7 +67,7 @@ export class LLMChatManager extends EventEmitter {
 
         this.emit(ChatEvent.SessionCreated, {
             sessionId: session.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
 
         return session;
@@ -90,7 +90,7 @@ export class LLMChatManager extends EventEmitter {
             id: crypto.randomUUID(),
             role: options.role || ChatRole.User,
             content,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             metadata: {}
         };
 
@@ -154,7 +154,7 @@ export class LLMChatManager extends EventEmitter {
             id: crypto.randomUUID(),
             role: ChatRole.Assistant,
             content: response.content,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             metadata: {
                 responseTime,
                 tokenCount: response.usage?.totalTokens ?? null
@@ -187,7 +187,7 @@ export class LLMChatManager extends EventEmitter {
 
         this.emit(ChatEvent.SessionEnded, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -206,7 +206,7 @@ export class LLMChatManager extends EventEmitter {
 
         this.emit(ChatEvent.SessionResumed, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
 
         return session;
@@ -252,7 +252,7 @@ export class LLMChatManager extends EventEmitter {
         this.emit(ChatEvent.Error, {
             sessionId: session.id,
             error: session.metadata.lastError,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -278,7 +278,7 @@ export class LLMChatManager extends EventEmitter {
         this.emit(ChatEvent.MessageHandled, {
             sessionId,
             messageId: message.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 
@@ -297,7 +297,7 @@ export class LLMChatManager extends EventEmitter {
 
         this.emit(ChatEvent.HistoryCleared, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
 

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 export class CodeOverviewWebview {
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
 
     public show(symbols: vscode.DocumentSymbol[], language: string): void {
         if (this.panel) {

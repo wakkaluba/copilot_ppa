@@ -154,7 +154,7 @@ export class ModelMetricsService extends EventEmitter {
                 totalTokens,
                 promptTokens: totalPromptTokens,
                 completionTokens: totalCompletionTokens,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
         } catch (error) {
             this.logger.error(`Error calculating aggregate metrics for model ${modelId}`, error);

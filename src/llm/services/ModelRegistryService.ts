@@ -25,7 +25,7 @@ export class ModelRegistryService implements Disposable {
             this._registryEmitter.emit('modelRegistered', {
                 modelId,
                 info,
-                timestamp: Date.now()
+                timestamp: new Date()
             } as ModelRegistrationEvent);
         } catch (error) {
             this._logger.error('Failed to register model', { modelId, error });
@@ -45,7 +45,7 @@ export class ModelRegistryService implements Disposable {
             this._registryEmitter.emit('dependencyAdded', {
                 modelId,
                 dependency,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         } catch (error) {
             this._logger.error('Failed to add dependency', { modelId, error });

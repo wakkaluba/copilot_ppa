@@ -113,7 +113,7 @@ export class LLMRequestExecutionService extends EventEmitter {
 
             this.emit(LLMRequestEvent.Started, {
                 requestId: requestInfo.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
 
             // Set up timeout
@@ -164,7 +164,7 @@ export class LLMRequestExecutionService extends EventEmitter {
         
         this.emit(LLMRequestEvent.Aborted, {
             requestId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         return true;

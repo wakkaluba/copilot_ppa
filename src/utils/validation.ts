@@ -84,7 +84,7 @@ export class ConfigValidator {
     }
 
     // Utility validation methods
-    private static validateNumberInRange(field: string, value: number | undefined, min: number, max: number): void {
+    private static validateNumberInRange(field: string, value?: number, min: number, max: number): void {
         if (value !== undefined) {
             if (typeof value !== 'number' || value < min || value > max) {
                 throw new Error(`${field} must be a number between ${min} and ${max}`);
@@ -92,7 +92,7 @@ export class ConfigValidator {
         }
     }
 
-    private static validatePositiveInteger(field: string, value: number | undefined): void {
+    private static validatePositiveInteger(field: string, value?: number): void {
         if (value !== undefined) {
             if (!Number.isInteger(value) || value <= 0) {
                 throw new Error(`${field} must be a positive integer`);
@@ -100,7 +100,7 @@ export class ConfigValidator {
         }
     }
 
-    private static validateStringArray(field: string, value: string[] | undefined): void {
+    private static validateStringArray(field: string, value?: string[]): void {
         if (value !== undefined) {
             if (!Array.isArray(value) || !value.every(item => typeof item === 'string')) {
                 throw new Error(`${field} must be an array of strings`);
@@ -108,7 +108,7 @@ export class ConfigValidator {
         }
     }
 
-    private static validateRequiredString(field: string, value: string | undefined): void {
+    private static validateRequiredString(field: string, value?: string): void {
         if (!value || typeof value !== 'string' || value.trim().length === 0) {
             throw new Error(`${field} is required and must be a non-empty string`);
         }

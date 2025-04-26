@@ -157,7 +157,7 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
         
         let text = '';
         let tooltip = '';
-        let color: string | undefined;
+        let color?: string;
         
         switch (status) {
             case ConnectionStatus.Connected:

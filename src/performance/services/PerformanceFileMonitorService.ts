@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 type DocumentCallback = (document: vscode.TextDocument) => void;
-type EditorCallback = (editor: vscode.TextEditor | undefined) => void;
+type EditorCallback = (editor?: vscode.TextEditor) => void;
 
 export class PerformanceFileMonitorService implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[] = [];
@@ -66,7 +66,7 @@ export class PerformanceFileMonitorService implements vscode.Disposable {
         });
     }
 
-    private notifyEditorChanged(editor: vscode.TextEditor | undefined): void {
+    private notifyEditorChanged(editor?: vscode.TextEditor): void {
         this.editorCallbacks.forEach(callback => {
             try {
                 callback(editor);

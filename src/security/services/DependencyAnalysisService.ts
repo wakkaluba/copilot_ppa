@@ -12,7 +12,7 @@ export class DependencyAnalysisService implements IDependencyAnalysisService {
             return {
                 vulnerabilities: [],
                 hasVulnerabilities: false,
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 totalDependencies: 0
             };
         }
@@ -34,7 +34,7 @@ export class DependencyAnalysisService implements IDependencyAnalysisService {
         return {
             vulnerabilities,
             hasVulnerabilities: vulnerabilities.length > 0,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             totalDependencies: await this.countTotalDependencies()
         };
     }

@@ -51,7 +51,7 @@ describe('Component Interactions', () => {
         await historyMock.addMessage(conversationId, {
             role: 'user',
             content: testMessage,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         sinon.assert.calledWith(
@@ -72,7 +72,7 @@ describe('Component Interactions', () => {
         await historyMock.addMessage(conversationId, {
             role: 'assistant',
             content: assistantResponse,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         sinon.assert.calledWith(
@@ -107,7 +107,7 @@ describe('Component Interactions', () => {
         await historyMock.addMessage(conversationId, {
             role: 'user',
             content: 'This will trigger an error',
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         // 2. Try to generate response (will fail)
@@ -127,7 +127,7 @@ describe('Component Interactions', () => {
         await historyMock.addMessage(conversationId, {
             role: 'assistant',
             content: recoveryResult.result,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         sinon.assert.calledWith(
@@ -173,7 +173,7 @@ describe('Component Interactions', () => {
         await historyMock.addMessage(conversationId, {
             role: 'user',
             content: 'What does this function do?',
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         
         // Generate response with context

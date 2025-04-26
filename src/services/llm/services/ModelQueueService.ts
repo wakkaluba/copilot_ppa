@@ -50,7 +50,7 @@ export class ModelQueueService extends EventEmitter {
             const queuedRequest = {
                 ...request,
                 id: request.id || crypto.randomUUID(),
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 priority
             };
 

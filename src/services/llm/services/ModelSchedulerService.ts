@@ -70,7 +70,7 @@ export class ModelSchedulerService extends EventEmitter {
 
         return {
             modelId,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             schedule,
             resources: this.calculateResourceAllocation(schedule),
             efficiency: this.calculateEfficiencyScore(schedule, metrics),

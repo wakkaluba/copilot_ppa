@@ -6,7 +6,7 @@ import { getCurrentProvider } from '../llm/providerManager';
  * Provides functionality for simplifying code using LLM-based analysis
  */
 export class CodeSimplifier {
-    private llmProvider: LLMProvider | undefined;
+    private llmProvider?: LLMProvider;
 
     constructor() {
         this.llmProvider = getCurrentProvider();

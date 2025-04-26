@@ -79,7 +79,7 @@ export class SnippetManager {
             id: this.generateMessageId(),
             role: 'assistant',
             content,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
 
         const snippet: ConversationSnippet = {

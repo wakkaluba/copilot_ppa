@@ -110,8 +110,8 @@ describe('ContextManager', () => {
       created: Date.now(),
       updated: Date.now(),
       messages: [
-        { role: 'user', content: 'Help me understand this code', timestamp: Date.now() },
-        { role: 'assistant', content: 'This is a function that adds two numbers', timestamp: Date.now() }
+        { role: 'user', content: 'Help me understand this code', timestamp: new Date() },
+        { role: 'assistant', content: 'This is a function that adds two numbers', timestamp: new Date() }
       ]
     });
     
@@ -243,9 +243,9 @@ describe('ContextManager', () => {
   describe('Topic Extraction and Context Building', () => {
     test('should extract topics from conversation messages', () => {
       const messages = [
-        { role: 'user', content: 'Help with TypeScript interfaces', timestamp: Date.now() },
-        { role: 'assistant', content: 'Here\'s how to define interfaces', timestamp: Date.now() },
-        { role: 'user', content: 'How to use generics?', timestamp: Date.now() }
+        { role: 'user', content: 'Help with TypeScript interfaces', timestamp: new Date() },
+        { role: 'assistant', content: 'Here\'s how to define interfaces', timestamp: new Date() },
+        { role: 'user', content: 'How to use generics?', timestamp: new Date() }
       ];
 
       const topics = (contextManager as any).extractTopics(messages);

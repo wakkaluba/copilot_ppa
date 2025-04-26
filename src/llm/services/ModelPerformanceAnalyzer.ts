@@ -97,7 +97,7 @@ export class ModelPerformanceAnalyzer extends EventEmitter {
         const modelMetrics = await this.metricsManager.getMetrics(modelId);
 
         return {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             responseTime: modelMetrics.averageResponseTime,
             tokensPerSecond: modelMetrics.tokensPerSecond,
             requestsPerMinute: modelMetrics.requestsPerMinute,

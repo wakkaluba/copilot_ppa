@@ -7,7 +7,7 @@ import { ChatMessage, ChatStreamEvent } from '../models/interfaces/chat';
 export class EnhancedChatProvider {
     private contextManager: ContextManager;
     private llmProvider: LLMProvider;
-    private view: vscode.WebviewView | undefined;
+    private view?: vscode.WebviewView;
     private isStreaming: boolean = false;
     private offlineCache: Map<string, ChatMessage[]> = new Map();
     private readonly maxRetries: number = 3;
@@ -103,7 +103,7 @@ export class EnhancedChatProvider {
             id: uuidv4(),
             role: 'user',
             content: content,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         
         this.contextManager.appendMessage(userMessage);
@@ -151,7 +151,7 @@ export class EnhancedChatProvider {
                 id: uuidv4(),
                 role: 'assistant',
                 content: currentResponse,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             
             this.contextManager.appendMessage(assistantMessage);
@@ -174,7 +174,7 @@ export class EnhancedChatProvider {
             id: uuidv4(),
             role: 'system',
             content: 'Currently offline. Message saved and will be processed when connection is restored.',
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         
         this.contextManager.appendMessage(offlineMessage);
@@ -188,7 +188,7 @@ export class EnhancedChatProvider {
             id: uuidv4(),
             role: 'system',
             content: `Error: ${errorMessage}\nPlease try again or check your connection.`,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         
         this.contextManager.appendMessage(errorResponse);

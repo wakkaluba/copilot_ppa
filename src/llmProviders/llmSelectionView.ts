@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { LLMModelsManager, LLMModel } from './llmModels';
 
 export class LLMSelectionView {
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private context: vscode.ExtensionContext;
     private modelsManager: LLMModelsManager;
 

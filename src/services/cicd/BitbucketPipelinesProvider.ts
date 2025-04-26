@@ -4,8 +4,8 @@ import { Logger } from '../../services/logger';
 import { retry } from '../utils/retry';
 
 export class BitbucketPipelinesProvider implements ICICDProvider {
-    private bitbucket: any | undefined;
-    private workspace: string | undefined;
+    private bitbucket?: any;
+    private workspace?: string;
     private connectionState: ConnectionState = 'disconnected';
     private readonly logger = new Logger('BitbucketPipelinesProvider');
     private disposables: vscode.Disposable[] = [];

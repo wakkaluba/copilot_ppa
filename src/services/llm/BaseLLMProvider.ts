@@ -16,9 +16,9 @@ import { formatProviderError } from './connectionUtils';
  */
 export abstract class BaseLLMProvider extends EventEmitter implements ILLMConnectionProvider {
     protected connectionState: ConnectionState = ConnectionState.DISCONNECTED;
-    protected currentModel: ModelInfo | undefined;
+    protected currentModel?: ModelInfo;
     protected readonly metricsTracker: ConnectionMetricsTracker;
-    protected lastError: Error | undefined;
+    protected lastError?: Error;
 
     constructor(protected readonly name: string) {
         super();

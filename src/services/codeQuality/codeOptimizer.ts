@@ -119,7 +119,7 @@ export class CodeOptimizer {
         }
     }
 
-    private handleEditorChange(editor: vscode.TextEditor | undefined): void {
+    private handleEditorChange(editor?: vscode.TextEditor): void {
         try {
             if (editor && this.shouldOptimize(editor.document)) {
                 this.analyzeFile(editor.document.uri.fsPath)

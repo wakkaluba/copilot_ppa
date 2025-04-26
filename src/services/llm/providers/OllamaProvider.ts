@@ -71,7 +71,7 @@ export class OllamaProvider extends BaseLLMProvider {
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
         }
     }

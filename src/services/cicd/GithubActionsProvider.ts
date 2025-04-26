@@ -4,7 +4,7 @@ import { Octokit } from '@octokit/rest';
 import * as yaml from 'yaml';
 
 export class GitHubActionsProvider implements ICICDProvider {
-    private octokit: Octokit | undefined;
+    private octokit?: Octokit;
     name = 'GitHub Actions';
     
     constructor() {

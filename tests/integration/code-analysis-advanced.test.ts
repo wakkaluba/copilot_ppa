@@ -203,7 +203,7 @@ describe('Advanced Code Analysis', () => {
 
     test('analyzes code quality trends over time', async () => {
         const codeVersions = Array(10).fill(null).map((_, version) => ({
-            timestamp: Date.now() - version * 86400000, // Daily intervals
+            timestamp: new Date() - version * 86400000, // Daily intervals
             files: [
                 {
                     path: '/src/main.ts',

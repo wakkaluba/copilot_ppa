@@ -15,11 +15,11 @@ export interface Session {
 
 export class LLMSessionManager extends EventEmitter implements vscode.Disposable {
     private sessions: Map<string, Session> = new Map();
-    private activeSessionId: string | undefined;
+    private activeSessionId?: string;
     private readonly connectionManager: LLMConnectionManager;
     private readonly hostManager: LLMHostManager;
     private sessionTimeout: number = 3600000; // 1 hour
-    private sessionCheckInterval: NodeJS.Timer | undefined;
+    private sessionCheckInterval?: NodeJS.Timer;
     
     constructor(connectionManager: LLMConnectionManager, hostManager: LLMHostManager) {
         super();
@@ -237,7 +237,7 @@ export class LLMSessionManager extends EventEmitter implements vscode.Disposable
             model: session.config.model,
             options: session.config.parameters,
             priority: 'normal', // Default priority
-            timestamp: Date.now(),
+            timestamp: new Date(),
             status: 'pending'
         };
         
@@ -249,7 +249,7 @@ export class LLMSessionManager extends EventEmitter implements vscode.Disposable
             session.messages.push({
                 prompt,
                 response: response.content,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             
             // Update token count if available

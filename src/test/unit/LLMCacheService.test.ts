@@ -39,7 +39,7 @@ suite('LLMCacheService Tests', () => {
             // Setup cache file
             testHelper.fsStubs.existsSync.withArgs(cacheFilePath).returns(true);
             testHelper.fsStubs.readFileSync.withArgs(cacheFilePath, 'utf8').returns(JSON.stringify({
-                timestamp: Date.now() - (61 * 60 * 1000), // 61 minutes ago (expired)
+                timestamp: new Date() - (61 * 60 * 1000), // 61 minutes ago (expired)
                 response: 'cached response'
             }));
 
@@ -56,7 +56,7 @@ suite('LLMCacheService Tests', () => {
             // Setup cache file
             testHelper.fsStubs.existsSync.withArgs(cacheFilePath).returns(true);
             testHelper.fsStubs.readFileSync.withArgs(cacheFilePath, 'utf8').returns(JSON.stringify({
-                timestamp: Date.now() - (30 * 60 * 1000), // 30 minutes ago (valid)
+                timestamp: new Date() - (30 * 60 * 1000), // 30 minutes ago (valid)
                 response: 'cached response'
             }));
 
@@ -87,14 +87,14 @@ suite('LLMCacheService Tests', () => {
             testHelper.fsStubs.readFileSync
                 .withArgs(path.join('/fake/extension/path/cache', 'valid.json'), 'utf8')
                 .returns(JSON.stringify({
-                    timestamp: Date.now() - (30 * 60 * 1000),
+                    timestamp: new Date() - (30 * 60 * 1000),
                     response: 'valid'
                 }));
 
             testHelper.fsStubs.readFileSync
                 .withArgs(path.join('/fake/extension/path/cache', 'expired.json'), 'utf8')
                 .returns(JSON.stringify({
-                    timestamp: Date.now() - (61 * 60 * 1000),
+                    timestamp: new Date() - (61 * 60 * 1000),
                     response: 'expired'
                 }));
 

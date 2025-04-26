@@ -74,7 +74,7 @@ export class GitHubApiService {
             // Cache results
             this.codeExamplesCache.set(cacheKey, {
                 examples: response.data.items,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             
             return response.data.items;
