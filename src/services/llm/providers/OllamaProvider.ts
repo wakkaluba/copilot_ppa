@@ -1,48 +1,43 @@
 import axios, { AxiosInstance } from 'axios';
-import { BaseLLMProvider } from './BaseLLMProvider';
+import { BaseLLMProvider, ProviderCapabilities, HealthCheckResult, ProviderState } from './BaseLLMProvider';
 import {
     LLMModelInfo,
     LLMMessage,
     LLMRequestOptions,
     LLMResponse,
     LLMStreamEvent,
-    ProviderCapabilities,
-    ProviderConfig,
-    ProviderState,
-    HealthCheckResult
-} from '../types';
+} from '../../../llm/types';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
 import { ModelError, ProviderError, RequestError } from '../errors';
 
 interface OllamaModelInfo {
     name: string;
-    modified_at: string;
-    size: number;
+    id: string;
     digest: string;
+    size: number;
     details: {
         format: string;
         family: string;
-        families: string[];
-        parameter_size: string;
-        quantization_level: string;
+        families?: string[];
+        parameter_size?: string;
+        quantization_level?: string;
+        capabilities?: string[];
     };
+    license?: string;
 }
 
 interface OllamaGenerateRequest {
     model: string;
     prompt: string;
-    system?: string;
-    template?: string;
-    context?: number[];
+    system?: string | undefined;
     options?: {
-        temperature?: number;
-        top_p?: number;
-        top_k?: number;
-        repeat_penalty?: number;
-        seed?: number;
-        stop?: string[];
-        num_predict?: number;
-    };
-    stream?: boolean;
+        temperature?: number | null;
+        num_predict?: number | null;
+        top_k?: number | null;
+        presence_penalty?: number | null;
+        frequency_penalty?: number | null;
+        stop?: string[] | null;
+    } | undefined;
 }
 
 export class OllamaProvider extends BaseLLMProvider {
@@ -50,36 +45,41 @@ export class OllamaProvider extends BaseLLMProvider {
     private modelDetails = new Map<string, OllamaModelInfo>();
 
     constructor(config: ProviderConfig) {
-        super('ollama', 'Ollama', config);
+        super(
+            'ollama',
+            'Ollama',
+            config
+        );
         this.client = axios.create({
             baseURL: config.apiEndpoint,
-            timeout: config.connection?.timeout || 30000
+            timeout: config.requestTimeout || 30000
         });
     }
 
     protected async performHealthCheck(): Promise<HealthCheckResult> {
-        const start = Date.now();
         try {
-            await this.client.get('/api/tags');
+            const startTime = Date.now();
+            await this.client.get('/api/health');
+            const endTime = Date.now();
             return {
                 isHealthy: true,
-                latency: Date.now() - start,
-                timestamp: Date.now()
+                latency: endTime - startTime,
+                timestamp: endTime
             };
         } catch (error) {
             return {
                 isHealthy: false,
-                latency: Date.now() - start,
-                timestamp: Date.now(),
-                error: error instanceof Error ? error : new Error(String(error))
+                error: error instanceof Error ? error : new Error(String(error)),
+                latency: 0,
+                timestamp: Date.now()
             };
         }
     }
 
     public async isAvailable(): Promise<boolean> {
         try {
-            const result = await this.healthCheck();
-            return result.isHealthy;
+            await this.client.get('/api/health');
+            return true;
         } catch {
             return false;
         }
@@ -95,9 +95,7 @@ export class OllamaProvider extends BaseLLMProvider {
                 throw new ProviderError('Ollama service is not available', this.id);
             }
 
-            // Load initial model list
             await this.refreshModels();
-            
             this.setState(ProviderState.Active);
         } catch (error) {
             this.setError(error instanceof Error ? error : new Error(String(error)));
@@ -121,10 +119,11 @@ export class OllamaProvider extends BaseLLMProvider {
                 this.modelDetails.set(model.name, model);
             }
         } catch (error) {
+            const errorString = error instanceof Error ? error.message : String(error);
             throw new ProviderError(
                 'Failed to fetch models',
                 this.id,
-                error instanceof Error ? error : undefined
+                errorString
             );
         }
     }
@@ -144,39 +143,12 @@ export class OllamaProvider extends BaseLLMProvider {
         return this.convertModelInfo(modelId, info);
     }
 
-    private convertModelInfo(modelId: string, info: OllamaModelInfo): LLMModelInfo {
-        return {
-            id: modelId,
-            name: info.name,
-            provider: this.id,
-            contextLength: 4096, // Default, could be specified in model details
-            parameters: {
-                format: info.details.format,
-                family: info.details.family,
-                size: this.parseParameterSize(info.details.parameter_size)
-            },
-            version: info.digest
-        };
-    }
-
-    private parseParameterSize(size?: string): number | undefined {
-        if (!size) {return undefined;}
-        const match = size.match(/(\d+)([BM])/);
-        if (!match) {return undefined;}
-        
-        const [, num, unit] = match;
-        const base = parseInt(num, 10);
-        return unit === 'B' ? base * 1e9 : base * 1e6;
-    }
-
     public async getCapabilities(): Promise<ProviderCapabilities> {
         return {
-            supportsStreaming: true,
-            supportsCancellation: false,
-            supportsModelSwitch: true,
             maxContextLength: 4096,
-            supportedModels: Array.from(this.modelDetails.keys()),
-            supportedFeatures: ['chat', 'completion']
+            supportsChatCompletion: true,
+            supportsStreaming: true,
+            supportsSystemPrompts: true
         };
     }
 
@@ -190,30 +162,33 @@ export class OllamaProvider extends BaseLLMProvider {
             const request: OllamaGenerateRequest = {
                 model,
                 prompt,
-                system: systemPrompt,
-                options: {
-                    temperature: options?.temperature,
-                    num_predict: options?.maxTokens,
-                    stop: options?.stop
-                }
+                ...(systemPrompt && { system: systemPrompt }),
+                ...(options && {
+                    options: {
+                        ...(options.temperature !== undefined && { temperature: options.temperature }),
+                        ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
+                        ...(options.topK !== undefined && { top_k: options.topK }),
+                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
+                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
+                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                    }
+                })
             };
 
             const response = await this.client.post('/api/generate', request);
             return {
                 content: response.data.response,
                 usage: {
-                    promptTokens: response.data.prompt_eval_count,
-                    completionTokens: response.data.eval_count,
-                    totalTokens: response.data.prompt_eval_count + response.data.eval_count
+                    promptTokens: response.data.prompt_eval_count || 0,
+                    completionTokens: response.data.eval_count || 0,
+                    totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
                 }
             };
         } catch (error) {
             throw new RequestError(
                 'Generation failed',
                 this.id,
-                'completion',
-                error?.response?.status,
-                error instanceof Error ? error : undefined
+                error instanceof Error ? error : new Error(String(error))
             );
         }
     }
@@ -223,20 +198,8 @@ export class OllamaProvider extends BaseLLMProvider {
         messages: LLMMessage[],
         options?: LLMRequestOptions
     ): Promise<LLMResponse> {
-        // Format messages into a prompt
-        const formattedPrompt = messages.map(msg => 
-            `${msg.role}: ${msg.content}`
-        ).join('\n');
-
-        // Extract system message if present
-        const systemMessage = messages.find(msg => msg.role === 'system');
-
-        return this.generateCompletion(
-            model,
-            formattedPrompt,
-            systemMessage?.content,
-            options
-        );
+        const prompt = this.formatChatMessages(messages);
+        return this.generateCompletion(model, prompt, undefined, options);
     }
 
     public async streamCompletion(
@@ -250,13 +213,17 @@ export class OllamaProvider extends BaseLLMProvider {
             const request: OllamaGenerateRequest = {
                 model,
                 prompt,
-                system: systemPrompt,
-                options: {
-                    temperature: options?.temperature,
-                    num_predict: options?.maxTokens,
-                    stop: options?.stop
-                },
-                stream: true
+                ...(systemPrompt && { system: systemPrompt }),
+                ...(options && {
+                    options: {
+                        ...(options.temperature !== undefined && { temperature: options.temperature }),
+                        ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
+                        ...(options.topK !== undefined && { top_k: options.topK }),
+                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
+                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
+                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                    }
+                })
             };
 
             const response = await this.client.post('/api/generate', request, {
@@ -268,17 +235,15 @@ export class OllamaProvider extends BaseLLMProvider {
                 if (callback) {
                     callback({
                         content: data.response,
-                        isComplete: data.done
+                        done: data.done
                     });
                 }
             }
         } catch (error) {
             throw new RequestError(
-                'Stream generation failed',
+                'Streaming failed',
                 this.id,
-                'stream',
-                error?.response?.status,
-                error instanceof Error ? error : undefined
+                error instanceof Error ? error : new Error(String(error))
             );
         }
     }
@@ -289,18 +254,41 @@ export class OllamaProvider extends BaseLLMProvider {
         options?: LLMRequestOptions,
         callback?: (event: LLMStreamEvent) => void
     ): Promise<void> {
-        const formattedPrompt = messages.map(msg => 
-            `${msg.role}: ${msg.content}`
+        const prompt = this.formatChatMessages(messages);
+        await this.streamCompletion(model, prompt, undefined, options, callback);
+    }
+
+    private convertModelInfo(modelId: string, info: OllamaModelInfo): LLMModelInfo {
+        return {
+            id: modelId,
+            name: info.name,
+            provider: this.id,
+            maxContextLength: 4096, // Default for most Ollama models
+            parameters: {
+                format: info.details.format,
+                family: info.details.family,
+                size: this.parseParameterSize(info.details.parameter_size)
+            },
+            features: info.details.capabilities || [],
+            metadata: {
+                quantization: info.details.quantization_level,
+                license: info.license
+            }
+        };
+    }
+
+    private parseParameterSize(size?: string): number | undefined {
+        if (!size) return undefined;
+        const match = size.match(/(\d+)([BM])/);
+        if (!match) return undefined;
+        const [, num, unit] = match;
+        if (!num) return undefined;
+        return unit === 'B' ? parseInt(num, 10) : parseInt(num, 10) / 1000;
+    }
+
+    private formatChatMessages(messages: LLMMessage[]): string {
+        return messages.map(msg => 
+            `${msg.role === 'assistant' ? 'Assistant' : 'User'}: ${msg.content}`
         ).join('\n');
-
-        const systemMessage = messages.find(msg => msg.role === 'system');
-
-        return this.streamCompletion(
-            model,
-            formattedPrompt,
-            systemMessage?.content,
-            options,
-            callback
-        );
     }
 }

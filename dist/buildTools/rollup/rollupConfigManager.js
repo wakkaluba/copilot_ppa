@@ -1,16 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RollupConfigManager = void 0;
+const services_1 = require("./services");
 class RollupConfigManager {
     configDetector;
     configAnalyzer;
     optimizationService;
     logger;
-    constructor(configDetector, configAnalyzer, optimizationService, logger) {
-        this.configDetector = configDetector;
-        this.configAnalyzer = configAnalyzer;
-        this.optimizationService = optimizationService;
-        this.logger = logger;
+    constructor(configDetectorOrLogger, configAnalyzer, optimizationService, loggerParam) {
+        // Handle single logger constructor case
+        if (arguments.length === 1 && 'debug' in configDetectorOrLogger) {
+            this.logger = configDetectorOrLogger;
+            this.configDetector = new services_1.RollupConfigDetector();
+            this.configAnalyzer = new services_1.RollupConfigAnalyzer();
+            this.optimizationService = new services_1.RollupOptimizationService();
+        }
+        else {
+            // Handle full constructor case
+            this.configDetector = configDetectorOrLogger;
+            this.configAnalyzer = configAnalyzer;
+            this.optimizationService = optimizationService;
+            this.logger = loggerParam;
+        }
     }
     /**
      * Detects rollup configuration files in the given directory

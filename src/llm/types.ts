@@ -81,6 +81,20 @@ export interface LLMRequestEvent {
     details?: unknown;
 }
 
+export interface LLMStreamEvent {
+    content: string;
+    isComplete?: boolean;
+    error?: LLMResponseError;
+    timestamp?: number;
+    tokenCount?: number;
+}
+
+// Add LLMMessage interface to match the one in services/llm/types.ts
+export interface LLMMessage {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
 // Model-related types
 export enum ModelEvents {
     // Evaluation events
@@ -157,6 +171,7 @@ export interface ProviderCapabilities {
 
 // Basic interface for LLM providers
 export interface LLMProvider {
+    id: string; // Added id property to match what LLMProviderManager expects
     getName(): string;
     getCapabilities(): ProviderCapabilities;
     isAvailable(): Promise<boolean>;
@@ -164,4 +179,69 @@ export interface LLMProvider {
     completePrompt(request: LLMRequest): Promise<LLMResponse>;
     streamPrompt?(request: LLMRequest): AsyncIterable<LLMResponse>;
     cancelRequest(requestId: string): Promise<boolean>;
+    connect(): Promise<void>;
+    disconnect(): Promise<void>;
+    generateCompletion(model: string, prompt: string, systemPrompt?: string, options?: LLMRequestOptions): Promise<LLMResponse>;
+    streamCompletion(model: string, prompt: string, systemPrompt?: string, options?: LLMRequestOptions, callback?: (event: LLMStreamEvent) => void): Promise<void>;
+    
+    // Add missing methods that the LLMProviderManager expects
+    generateChatCompletion(model: string, messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse>;
+    streamChatCompletion(model: string, messages: LLMMessage[], options?: LLMRequestOptions, callback?: (event: LLMStreamEvent) => void): Promise<void>;
+    
+    setOfflineMode(enabled: boolean): void;
+    cacheResponse?(prompt: string, response: LLMResponse): Promise<void>;
+    useCachedResponse?(prompt: string): Promise<LLMResponse | null>;
+    isConnected(): boolean;
+}
+
+export interface LLMPromptOptions {
+    temperature?: number;
+    maxTokens?: number;
+    language?: string;
+    context?: string;
+    formatOptions?: {
+        style?: string;
+        format?: string;
+        language?: string;
+    };
+}
+
+export interface LLMModelInfo {
+    id: string;
+    name: string;
+    provider: string;
+    description?: string;
+    contextSize?: number;
+    parameters?: Record<string, any>;
+    tags?: string[];
+    version?: string;
+    capabilities?: string[];
+    quantization?: string;
+    license?: string;
+    minMemoryGB?: number;
+    recommendedMemoryGB?: number;
+    cudaSupport?: boolean;
+}
+
+export interface ModelRequirements {
+    minRAM: number;  // in MB
+    minCPU: number;  // in MHz
+    minDisk: number; // in MB
+    gpu?: {
+        required: boolean;
+        minVRAM?: number;
+    };
+}
+
+export interface SystemInfo {
+    totalRAM: number;    // in MB
+    availableRAM: number;
+    cpuSpeed: number;    // in MHz
+    cpuCores: number;
+    totalDisk: number;   // in MB
+    freeDisk: number;
+    gpu?: {
+        name: string;
+        vram: number;    // in MB
+    };
 }

@@ -1,10 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebpackOptimizationService = void 0;
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class WebpackOptimizationService {
     logger;
     constructor(logger) {
-        this.logger = logger;
+        this.logger = logger || new NoOpLogger();
     }
     /**
      * Generates optimization suggestions for a webpack configuration

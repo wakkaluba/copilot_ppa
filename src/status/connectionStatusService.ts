@@ -1,6 +1,14 @@
 import * as vscode from 'vscode';
 import { LLMHostManager, HostStatus } from '../services/llm/LLMHostManager';
 import { LLMConnectionManager, ConnectionStatus } from '../services/llm/LLMConnectionManager';
+import { EventEmitter } from 'events';
+
+export enum ConnectionState {
+    Disconnected = 0,
+    Connecting = 1,
+    Connected = 2,
+    Error = 3
+}
 
 export interface StatusInfo {
     status: ConnectionStatus;
@@ -11,50 +19,87 @@ export interface StatusInfo {
     details?: Record<string, any>;
 }
 
-export class ConnectionStatusService implements vscode.Disposable {
+export class ConnectionStatusService extends EventEmitter implements vscode.Disposable {
     private statusBarItem: vscode.StatusBarItem;
     private currentStatus: StatusInfo;
     private hostManager: LLMHostManager;
     private connectionManager: LLMConnectionManager;
     private disposables: vscode.Disposable[] = [];
-    
+    private _state: ConnectionState = ConnectionState.Disconnected;
+    private _activeModelName: string = '';
+    private _providerName: string = '';
+    private _stateChangeEmitter = new vscode.EventEmitter<ConnectionState>();
+
     constructor(hostManager: LLMHostManager, connectionManager: LLMConnectionManager) {
+        super();
         this.hostManager = hostManager;
         this.connectionManager = connectionManager;
         
-        // Initialize with disconnected status
         this.currentStatus = {
             status: ConnectionStatus.Disconnected,
             lastUpdate: Date.now()
         };
         
-        // Create status bar item
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this.statusBarItem.command = 'localLlmAgent.connect'; // Command to trigger when clicked
+        this.statusBarItem.command = 'copilot-ppa.toggleLLMConnection';
         this.updateStatusBar();
         this.statusBarItem.show();
         
-        // Set up event listeners
         this.registerEventListeners();
     }
-    
+
+    get state(): ConnectionState {
+        return this._state;
+    }
+
+    get activeModelName(): string {
+        return this._activeModelName;
+    }
+
+    get providerName(): string {
+        return this._providerName;
+    }
+
+    get onDidChangeState(): vscode.Event<ConnectionState> {
+        return this._stateChangeEmitter.event;
+    }
+
+    public setState(state: ConnectionState, info?: any): void {
+        this._state = state;
+        this._stateChangeEmitter.fire(state);
+        this.updateStatusBar();
+    }
+
+    public showNotification(message: string, type: 'info' | 'warning' | 'error' = 'info'): void {
+        switch (type) {
+            case 'warning':
+                vscode.window.showWarningMessage(message);
+                break;
+            case 'error':
+                vscode.window.showErrorMessage(message);
+                break;
+            default:
+                vscode.window.showInformationMessage(message);
+        }
+    }
+
     private registerEventListeners(): void {
         // Listen for connection status changes
-        const connectionListener = this.connectionManager.on('statusChanged', (event) => {
+        this.connectionManager.on('statusChanged', (event) => {
             this.updateConnectionStatus();
         });
         
         // Listen for host status changes
-        const hostStatusListener = this.hostManager.on('hostStatusChanged', (host) => {
+        this.hostManager.on('hostStatusChanged', (host) => {
             this.updateHostStatus(host.id);
         });
         
         // Listen for host availability changes
-        const hostAvailableListener = this.hostManager.on('hostBecameAvailable', (host) => {
+        this.hostManager.on('hostBecameAvailable', (host) => {
             this.updateHostStatus(host.id);
         });
         
-        const hostUnavailableListener = this.hostManager.on('hostBecameUnavailable', (host) => {
+        this.hostManager.on('hostBecameUnavailable', (host) => {
             this.updateHostStatus(host.id);
         });
     }
@@ -150,9 +195,7 @@ export class ConnectionStatusService implements vscode.Disposable {
     
     dispose(): void {
         this.statusBarItem.dispose();
-        
-        // Dispose all registered event listeners
+        this._stateChangeEmitter.dispose();
         this.disposables.forEach(d => d.dispose());
-        this.disposables = [];
     }
 }

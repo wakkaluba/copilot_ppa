@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMConnectionHandlerService = void 0;
 const events_1 = require("events");
+const types_1 = require("../types");
 const errors_1 = require("../errors");
 class LLMConnectionHandlerService extends events_1.EventEmitter {
     _currentState = types_1.ConnectionState.DISCONNECTED;

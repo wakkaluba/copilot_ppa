@@ -36,8 +36,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebpackConfigDetector = void 0;
 const glob = __importStar(require("glob"));
 const path = __importStar(require("path"));
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class WebpackConfigDetector {
-    logger;
     configPatterns = [
         'webpack.config.js',
         'webpack.*.config.js',
@@ -48,8 +56,9 @@ class WebpackConfigDetector {
         '*webpack.config.ts',
         '*webpack*.ts'
     ];
+    logger;
     constructor(logger) {
-        this.logger = logger;
+        this.logger = logger || new NoOpLogger();
     }
     /**
      * Detects webpack configuration files in the given directory

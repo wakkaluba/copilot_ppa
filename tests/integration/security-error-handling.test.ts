@@ -9,12 +9,20 @@ describe('Security and Error Handling Integration', () => {
     let securityManager: SecurityManager;
     let workspaceManager: WorkspaceManager;
     let performanceManager: PerformanceManager;
+    let mockContext: vscode.ExtensionContext;
 
     beforeEach(() => {
+        // Create mock extension context
+        mockContext = {
+            subscriptions: [],
+            extensionPath: '/test/path',
+            // Add other required context properties...
+        } as unknown as vscode.ExtensionContext;
+
         llmManager = LLMProviderManager.getInstance();
-        securityManager = new SecurityManager();
-        workspaceManager = new WorkspaceManager();
-        performanceManager = new PerformanceManager();
+        securityManager = SecurityManager.getInstance(mockContext);
+        workspaceManager = WorkspaceManager.getInstance();
+        performanceManager = PerformanceManager.getInstance(mockContext);
     });
 
     test('handles security policy violations gracefully', async () => {

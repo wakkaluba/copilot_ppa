@@ -1,17 +1,34 @@
 import { EventEmitter } from 'events';
 import {
     LLMProvider,
-    ProviderConfig,
-    ProviderEvent,
-    ProviderMetrics,
-    LLMResponse,
-    LLMMessage,
     LLMRequestOptions,
-    LLMStreamEvent
-} from '../types';
+    LLMResponse,
+    LLMStreamEvent,
+    LLMMessage
+} from '../../../llm/types';
 import { ConnectionPoolManager } from './ConnectionPoolManager';
 import { ProviderFactory, ProviderType } from '../providers/ProviderFactory';
 import { ConfigurationError, ProviderError } from '../errors';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
+import { LLMConnectionManager } from '../LLMConnectionManager';
+import { LLMHostManager } from '../LLMHostManager';
+import { ConnectionStatusService } from '../../../status/connectionStatusService';
+
+// Define missing types locally until we resolve the type conflicts
+export enum ProviderEvent {
+    Initialized = 'provider:initialized',
+    Removed = 'provider:removed',
+    StatusChanged = 'provider:statusChanged',
+    MetricsUpdated = 'provider:metricsUpdated'
+}
+
+export interface ProviderMetrics {
+    requestCount: number;
+    errorCount: number;
+    averageLatency: number;
+    successRate: number;
+    lastUsed: number;
+}
 
 interface ProviderMetricsData {
     requestCount: number;
@@ -26,18 +43,24 @@ export class LLMProviderManager extends EventEmitter {
     private metrics = new Map<string, ProviderMetricsData>();
     private activeProviders = new Set<string>();
     private defaultProviderId?: string;
+    private connectionManager: LLMConnectionManager;
+    private hostManager: LLMHostManager;
+    private connectionStatus: ConnectionStatusService;
 
-    private constructor() {
+    constructor(
+        connectionManager: LLMConnectionManager,
+        hostManager: LLMHostManager,
+        connectionStatus: ConnectionStatusService
+    ) {
         super();
+        this.connectionManager = connectionManager;
+        this.hostManager = hostManager;
+        this.connectionStatus = connectionStatus;
         this.connectionPool = new ConnectionPoolManager();
     }
 
-    public static getInstance(): LLMProviderManager {
-        if (!LLMProviderManager.instance) {
-            LLMProviderManager.instance = new LLMProviderManager();
-        }
-        return LLMProviderManager.instance;
-    }
+    // Remove the static getInstance method that conflicts with the new constructor
+    // The ServiceRegistry will manage the instance lifecycle
 
     public async initializeProvider(
         type: ProviderType,

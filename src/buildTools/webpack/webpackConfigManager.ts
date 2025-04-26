@@ -8,12 +8,51 @@ import { ILogger } from '../../services/logging/ILogger';
 import { BuildToolConfigManager, ValidationResult } from '../types';
 
 export class WebpackConfigManager implements BuildToolConfigManager {
+    private readonly configDetector: WebpackConfigDetector;
+    private readonly configAnalyzer: WebpackConfigAnalyzer;
+    private readonly optimizationService: WebpackOptimizationService;
+    private readonly logger: ILogger;
+
+    /**
+     * Create a WebpackConfigManager with a logger only, defaults will be used for other dependencies
+     * @param logger The logger to use
+     */
+    constructor(logger: ILogger);
+    
+    /**
+     * Create a WebpackConfigManager with all dependencies explicitly provided
+     * @param configDetector The config detector service
+     * @param configAnalyzer The config analyzer service
+     * @param optimizationService The optimization service
+     * @param logger The logger to use
+     */
     constructor(
-        private readonly configDetector: WebpackConfigDetector,
-        private readonly configAnalyzer: WebpackConfigAnalyzer,
-        private readonly optimizationService: WebpackOptimizationService,
-        private readonly logger: ILogger
-    ) {}
+        configDetector: WebpackConfigDetector, 
+        configAnalyzer: WebpackConfigAnalyzer,
+        optimizationService: WebpackOptimizationService,
+        logger: ILogger
+    );
+
+    constructor(
+        configDetectorOrLogger: WebpackConfigDetector | ILogger,
+        configAnalyzer?: WebpackConfigAnalyzer,
+        optimizationService?: WebpackOptimizationService,
+        loggerParam?: ILogger
+    ) {
+        // Handle single logger constructor case
+        if (arguments.length === 1 && 'debug' in configDetectorOrLogger) {
+            this.logger = configDetectorOrLogger;
+            this.configDetector = new WebpackConfigDetector();
+            this.configAnalyzer = new WebpackConfigAnalyzer();
+            this.optimizationService = new WebpackOptimizationService();
+        } else {
+            // Handle full constructor case
+            this.configDetector = configDetectorOrLogger as WebpackConfigDetector;
+            this.configAnalyzer = configAnalyzer!;
+            this.optimizationService = optimizationService!;
+            this.logger = loggerParam!;
+        }
+    }
 
     /**
      * Detects webpack configuration files in the given directory

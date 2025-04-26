@@ -19,84 +19,12 @@ describe('Resource Management and Performance', () => {
         // Create mock extension context
         mockContext = createMockExtensionContext();
         
-        // Mock the required implementations
-        jest.spyOn(ContextManager, 'getInstance').mockImplementation(() => {
-            return {
-                initialize: jest.fn().mockResolvedValue(undefined),
-                getContext: jest.fn().mockReturnValue({
-                    activeFile: 'test.ts',
-                    selectedCode: 'interface Test { prop: string; }',
-                    codeLanguage: 'typescript'
-                }),
-                updateContext: jest.fn().mockResolvedValue(undefined),
-                buildPrompt: jest.fn().mockImplementation((id, promptText) => {
-                    return Promise.resolve(`System: Test\n\nUser: ${promptText}`);
-                }),
-                dispose: jest.fn()
-            } as unknown as ContextManager;
-        });
-        
-        jest.spyOn(ConversationManager, 'getInstance').mockImplementation(() => {
-            const conversations = new Map();
-            
-            return {
-                initialize: jest.fn().mockResolvedValue(undefined),
-                startNewConversation: jest.fn().mockImplementation((title) => {
-                    const id = `conversation-${Date.now()}`;
-                    conversations.set(id, { 
-                        id, 
-                        title, 
-                        messages: [] 
-                    });
-                    return Promise.resolve({ id, title });
-                }),
-                addMessage: jest.fn().mockImplementation((role, content) => {
-                    return Promise.resolve();
-                }),
-                getConversation: jest.fn().mockImplementation((id) => {
-                    return Promise.resolve(conversations.get(id) || { id, messages: [] });
-                }),
-                dispose: jest.fn()
-            } as unknown as ConversationManager;
-        });
-        
-        jest.spyOn(LLMProviderManager, 'getInstance').mockImplementation(() => {
-            return {
-                getActiveProvider: jest.fn().mockReturnValue({
-                    generateCompletion: jest.fn().mockImplementation(() => 
-                        Promise.resolve({
-                            content: 'Test completion response',
-                            model: 'test-model',
-                            usage: { promptTokens: 5, completionTokens: 10, totalTokens: 15 }
-                        })
-                    ),
-                    isConnected: jest.fn().mockReturnValue(true)
-                })
-            } as unknown as LLMProviderManager;
-        });
-        
-        jest.spyOn(PerformanceManager, 'getInstance').mockImplementation(() => {
-            return {
-                initialize: jest.fn().mockResolvedValue(undefined),
-                setEnabled: jest.fn(),
-                getMetrics: jest.fn().mockResolvedValue({
-                    responseTime: 100,
-                    operationsCount: 10,
-                    tokensProcessed: 1000,
-                    averageTokensPerOperation: 100
-                }),
-                dispose: jest.fn()
-            } as unknown as PerformanceManager;
-        });
-        
-        jest.spyOn(ModelManager.prototype, 'initialize').mockResolvedValue(undefined);
-
-        // Initialize components
+        // Mock the required implementations and get instances
         contextManager = ContextManager.getInstance(mockContext);
-        conversationManager = ConversationManager.getInstance(mockContext);
+        conversationManager = ConversationManager.getInstance();
         llmProviderManager = LLMProviderManager.getInstance();
-        modelManager = new ModelManager();
-        performanceManager = PerformanceManager.getInstance();
+        modelManager = new ModelManager(); // This one doesn't use singleton pattern
+        performanceManager = PerformanceManager.getInstance(mockContext);
     });
 
     afterEach(() => {

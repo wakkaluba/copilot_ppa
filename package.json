@@ -1810,6 +1810,7 @@
     "eslint": "^8.57.0",
     "glob": "^10.3.10",
     "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "mocha": "^10.3.0",
     "node-cache": "^5.1.2",
     "nyc": "^15.1.0",

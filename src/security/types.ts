@@ -1,56 +1,11 @@
 import * as vscode from 'vscode';
-import { SecuritySeverity } from '../types/security';
 
-export interface SecurityAnalysisResult {
-    codeResult: SecurityScanResult;
-    dependencyResult: DependencyScanResult;
-    recommendationsResult: RecommendationResult;
-    overallRiskScore: number;
-    riskLevel: RiskLevel;
-    timestamp: number;
-}
-
-export interface SecurityScanResult {
-    issues: SecurityIssue[];
-    scannedFiles: number;
-    timestamp: number;
-}
-
-export interface DependencyScanResult {
-    vulnerabilities: DependencyVulnerability[];
-    totalDependencies: number;
-    hasVulnerabilities: boolean;
-    timestamp: number;
-}
-
-export interface RecommendationResult {
-    recommendations: SecurityRecommendation[];
-    analysisSummary: {
-        critical: number;
-        high: number;
-        medium: number;
-        low: number;
-    };
-}
-
-export interface SecuritySummary {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-}
-
-export interface SecurityRecommendation {
-    id: string;
-    title: string;
-    description: string;
-    severity: SecuritySeverity;
-    type: 'code' | 'dependency' | 'configuration';
-    implementation?: string;
-    packageSuggestion?: {
-        name: string;
-        flags?: string;
-    };
+export enum SecuritySeverity {
+    Critical = 'critical',
+    High = 'high',
+    Medium = 'medium',
+    Low = 'low',
+    Info = 'info'
 }
 
 export interface SecurityIssue {
@@ -58,68 +13,83 @@ export interface SecurityIssue {
     name: string;
     description: string;
     severity: SecuritySeverity;
-    location: {
-        file: string;
-        line: number;
-        column: number;
+    filePath?: string;
+    lineNumber?: number;
+    columnNumber?: number;
+    hasFix: boolean;
+    recommendation: string;
+    category: SecurityCategory;
+    cwe?: string;
+}
+
+export enum SecurityCategory {
+    Injection = 'injection',
+    XSS = 'xss',
+    PathTraversal = 'pathTraversal',
+    Authentication = 'authentication',
+    Authorization = 'authorization',
+    Encryption = 'encryption',
+    Configuration = 'configuration',
+    Validation = 'validation',
+    Other = 'other'
+}
+
+export interface SecurityAnalysisResult {
+    issues: SecurityIssue[];
+    timestamp: Date;
+    summary: {
+        critical: number;
+        high: number;
+        medium: number;
+        low: number;
+        info: number;
+        total: number;
     };
-    code?: string;
-    recommendation?: string;
-    ruleId?: string;
-    documentation?: string;
+    fixableCount: number;
 }
 
-export interface SecurityAction {
-    type: 'fix' | 'install' | 'update' | 'remove';
-    description: string;
-    data: any;
+export interface SecurityScanOptions {
+    includeDependencies?: boolean;
+    includeNodeModules?: boolean;
+    severity?: SecuritySeverity;
+    fastScan?: boolean;
+    categories?: SecurityCategory[];
 }
 
-export interface DependencyVulnerability {
-    name: string;
-    version: string;
-    vulnerabilityInfo: {
-        id: string;
-        title: string;
-        description: string;
-        severity: SecuritySeverity;
-        cvss?: number;
-        fixedIn?: string;
-    }[];
+export interface SecurityReportOptions {
+    includeRecommendations?: boolean;
+    includeFix?: boolean;
+    format?: 'json' | 'html' | 'markdown';
+    outputPath?: string;
 }
 
-export interface VulnerabilityInfo {
+export interface SecurityViewOptions {
+    showInEditor?: boolean;
+    groupBySeverity?: boolean;
+    groupByCategory?: boolean;
+    sortByLocation?: boolean;
+}
+
+export interface SecurityProvider {
     id: string;
-    title: string;
+    name: string;
     description: string;
-    severity: SecuritySeverity;
-    recommendation?: string;
+    scanFiles(options: SecurityScanOptions): Promise<SecurityAnalysisResult>;
+    generateReport(result: SecurityAnalysisResult, options: SecurityReportOptions): Promise<string>;
+    applyFix?(issue: SecurityIssue): Promise<boolean>;
 }
 
-/**
- * Security severity levels
- */
-export type SecuritySeverity = 'critical' | 'high' | 'medium' | 'low';
-
-/**
- * Overall risk levels
- */
-export type RiskLevel = 'high' | 'medium' | 'low';
-
-/**
- * Progress reporter function type
- */
-export type ProgressReporter = (message: string) => void;
-
-export interface ISecurityAnalysisService extends vscode.Disposable {
-    scanWorkspace(): Promise<SecurityScanResult>;
-    scanFile(document: vscode.TextDocument): Promise<SecurityIssue[]>;
+export interface SecurityCodeActionProvider {
+    provideFixes(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[];
+    registerCodeActionProvider(): vscode.Disposable;
 }
 
-export interface IDependencyAnalysisService extends vscode.Disposable {
-    scanDependencies(): Promise<DependencyScanResult>;
+export interface SecurityDiagnosticProvider {
+    provideDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[];
+    registerDiagnosticCollection(): vscode.DiagnosticCollection;
 }
 
-export interface IRecommendationService extends vscode.Disposable {
-    generate(): Promise<RecommendationResult>;
+export interface SecurityHoverProvider {
+    provideHover(document: vscode.TextDocument, position: vscode.Position): vscode.Hover | undefined;
+    registerHoverProvider(): vscode.Disposable;
 }

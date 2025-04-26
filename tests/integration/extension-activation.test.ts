@@ -83,10 +83,10 @@ describe('Extension Activation Integration Test', () => {
                 extensionKind: 1 // ExtensionKind.UI
             },
             languageModelAccessInformation: {
-                endpoint: "https://mock-endpoint.com",
-                authHeader: "mock-auth-header"
+                onDidChange: jest.fn(),
+                canSendRequest: jest.fn((chat: vscode.LanguageModelChat) => true)
             }
-        };
+        } as unknown as vscode.ExtensionContext;
 
         jest.clearAllMocks();
     });

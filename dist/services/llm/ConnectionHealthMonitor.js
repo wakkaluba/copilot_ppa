@@ -4,7 +4,6 @@ exports.ConnectionHealthMonitor = void 0;
 const events_1 = require("events");
 const ConnectionMetricsTracker_1 = require("./ConnectionMetricsTracker");
 const ConnectionRetryHandler_1 = require("./ConnectionRetryHandler");
-const types_1 = require("./types");
 /**
  * Default health check configuration
  */

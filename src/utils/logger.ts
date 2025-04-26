@@ -2,26 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-
-/**
- * Log level enum
- */
-export enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3
-}
-
-/**
- * Log entry interface
- */
-export interface LogEntry {
-    timestamp: string;
-    level: LogLevel;
-    message: string;
-    details?: unknown;
-}
+import { LogEntry, LogLevel } from '../types/logging';
 
 /**
  * Logger interface
@@ -93,6 +74,14 @@ export class LoggerImpl implements Logger {
         }
     }
     
+    /**
+     * Set the logging level
+     * @param level The log level to set
+     */
+    public setLogLevel(level: LogLevel): void {
+        this._logLevel = level;
+    }
+
     /**
      * Log a debug message
      */
@@ -215,25 +204,32 @@ export class LoggerImpl implements Logger {
             return;
         }
         
-        const timestamp = new Date().toISOString();
+        const timestamp = Date.now(); // Use numeric timestamp as per the standard interface
         const levelName = this.logLevelToString(level);
         
         // Format message for output
-        let formattedMessage = `[${timestamp}] [${levelName}] ${message}`;
+        const formattedTimestamp = new Date(timestamp).toISOString();
+        let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
+        let context: Record<string, unknown> | undefined;
+        
         if (details) {
             let detailsStr = '';
             
             // Properly format details based on type
             if (details instanceof Error) {
                 detailsStr = details.stack || details.toString();
+                context = { error: details.message, stack: details.stack };
             } else if (typeof details === 'object') {
                 try {
                     detailsStr = JSON.stringify(details, null, 2);
+                    context = details as Record<string, unknown>;
                 } catch (e) {
                     detailsStr = String(details);
+                    context = { value: String(details) };
                 }
             } else {
                 detailsStr = String(details);
+                context = { value: detailsStr };
             }
             
             formattedMessage += `\n${detailsStr}`;
@@ -242,12 +238,12 @@ export class LoggerImpl implements Logger {
         // Log to output channel
         this._outputChannel.appendLine(formattedMessage);
         
-        // Create log entry
+        // Create log entry using the standardized interface
         const logEntry: LogEntry = {
             timestamp,
             level,
             message,
-            details
+            context
         };
         
         // Add to in-memory logs

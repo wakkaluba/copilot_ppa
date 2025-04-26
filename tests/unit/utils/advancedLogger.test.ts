@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { describe, expect, test, beforeEach, jest, afterEach } from '@jest/globals';
 import { AdvancedLogger } from '../../../src/utils/advancedLogger';
-import { LogLevel } from '../../../src/utils/logger';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { LogLevel } from '../../../src/types/logging';
 
 // Interface definitions first
 interface MockWriteStream {
@@ -24,14 +22,22 @@ interface MockOutputChannel extends vscode.OutputChannel {
 }
 
 // Create mock configuration
-const mockConfig = {
+const mockConfig: { [key: string]: any } = {
   'copilot-ppa.logger.level': 'info',
-  'copilot-ppa.logger.logToFile': false,
-  'copilot-ppa.logger.logFilePath': '',
-  'copilot-ppa.logger.maxSize': 5,
-  'copilot-ppa.logger.maxFiles': 3,
-  'copilot-ppa.logger.maxInMemoryLogs': 10000
+  'copilot-ppa.logger.logToFile': true,
+  'copilot-ppa.logger.logFilePath': '/mock/log/path.log',
+  'copilot-ppa.logger.maxSize': 10 * 1024 * 1024,
+  'copilot-ppa.logger.maxFiles': 5,
+  'copilot-ppa.logger.maxInMemoryLogs': 1000,
 };
+
+jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+  get: (key: string, defaultValue?: any) => {
+    const fullKey = `copilot-ppa.logger.${key}`;
+    return mockConfig[fullKey] ?? defaultValue;
+  },
+  update: jest.fn(),
+} as any);
 
 // Mock fs module
 jest.mock('fs', () => {

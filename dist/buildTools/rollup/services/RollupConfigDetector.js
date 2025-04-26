@@ -36,8 +36,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RollupConfigDetector = void 0;
 const glob = __importStar(require("glob"));
 const path = __importStar(require("path"));
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class RollupConfigDetector {
-    logger;
     configPatterns = [
         'rollup.config.js',
         'rollup.*.config.js',
@@ -50,8 +58,9 @@ class RollupConfigDetector {
         'rollup.config.mjs',
         'rollup.*.config.mjs'
     ];
+    logger;
     constructor(logger) {
-        this.logger = logger;
+        this.logger = logger || new NoOpLogger();
     }
     /**
      * Detects rollup configuration files in the given directory

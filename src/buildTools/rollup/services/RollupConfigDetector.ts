@@ -5,6 +5,16 @@ import { ConfigValidationError } from '../errors/ConfigValidationError';
 import { IRollupConfigDetector } from '../types';
 import * as fs from 'fs';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class RollupConfigDetector implements IRollupConfigDetector {
     private readonly configPatterns = [
         'rollup.config.js',
@@ -19,7 +29,11 @@ export class RollupConfigDetector implements IRollupConfigDetector {
         'rollup.*.config.mjs'
     ];
 
-    constructor(private readonly logger: ILogger) {}
+    private readonly logger: ILogger;
+
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+    }
 
     /**
      * Detects rollup configuration files in the given directory

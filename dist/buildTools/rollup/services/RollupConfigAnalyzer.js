@@ -36,10 +36,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RollupConfigAnalyzer = void 0;
 const fs = __importStar(require("fs"));
 const ConfigValidationError_1 = require("../errors/ConfigValidationError");
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class RollupConfigAnalyzer {
     logger;
     constructor(logger) {
-        this.logger = logger;
+        this.logger = logger || new NoOpLogger();
     }
     /**
      * Analyzes a Rollup configuration file

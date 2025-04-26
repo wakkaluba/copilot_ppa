@@ -2,8 +2,22 @@ import * as fs from 'fs';
 import { ILogger } from '../../../services/logging/ILogger';
 import { WebpackConfigAnalysis, WebpackEntry, WebpackLoader, WebpackOutput, WebpackPlugin } from '../types';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class WebpackConfigAnalyzer {
-    constructor(private readonly logger: ILogger) {}
+    private readonly logger: ILogger;
+
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+    }
 
     /**
      * Analyzes a webpack configuration file
@@ -26,7 +40,9 @@ export class WebpackConfigAnalyzer {
                 loaders,
                 plugins,
                 content,
-                optimizationSuggestions: []  // Will be filled by OptimizationService
+                optimizationSuggestions: [],  // Will be filled by OptimizationService
+                errors: [],
+                warnings: []
             };
         } catch (error) {
             this.logger.error('Error analyzing webpack config:', error);

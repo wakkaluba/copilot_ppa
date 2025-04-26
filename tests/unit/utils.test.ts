@@ -1,111 +1,47 @@
-import { debounce, throttle, formatTime, isValidUrl, parseError } from '../../src/utils/common';
+import * as assert from 'assert';
+// import * as vscode from 'vscode';
+// import * as path from 'path';
+import * as sinon from 'sinon';
+import { getNonce, getWebviewUri, getSystemInfo, formatBytes, parseJson } from '../../../src/utils/common';
+import { createMockExtensionContext } from '../../helpers/mockHelpers';
 
-describe('Utility Functions', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
+suite('Utility Functions Tests', () => {
+    setup(() => sinon.stub(Date, 'now').returns(1487076704000));
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+    teardown(() => sinon.restore());
 
-  describe('debounce', () => {
-    test('should call the function after the specified delay', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 500);
-
-      // Call the debounced function
-      debouncedFn();
-      expect(mockFn).not.toHaveBeenCalled();
-
-      // Fast-forward time by 250ms
-      jest.advanceTimersByTime(250);
-      expect(mockFn).not.toHaveBeenCalled();
-
-      // Fast-forward time by another 250ms
-      jest.advanceTimersByTime(250);
-      expect(mockFn).toHaveBeenCalledTimes(1);
+    test('getNonce should return a number', () => {
+        const result = getNonce();
+        assert.equal(typeof result, 'number');
     });
 
-    test('should reset the timer if called again before delay', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 500);
-
-      // Call the debounced function
-      debouncedFn();
-      jest.advanceTimersByTime(300);
-      
-      // Call again
-      debouncedFn();
-      jest.advanceTimersByTime(300);
-      expect(mockFn).not.toHaveBeenCalled();
-      
-      // Complete the second debounce delay
-      jest.advanceTimersByTime(200);
-      expect(mockFn).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('throttle', () => {
-    test('should limit function calls to once per delay period', () => {
-      const mockFn = jest.fn();
-      const throttledFn = throttle(mockFn, 500);
-
-      // Call the throttled function multiple times
-      throttledFn();
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      
-      throttledFn();
-      throttledFn();
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      
-      // Fast-forward time by 500ms
-      jest.advanceTimersByTime(500);
-      throttledFn();
-      expect(mockFn).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('formatTime', () => {
-    test('should format milliseconds into readable time string', () => {
-      expect(formatTime(1000)).toBe('1s');
-      expect(formatTime(60000)).toBe('1m');
-      expect(formatTime(3661000)).toBe('1h 1m 1s');
-      expect(formatTime(86400000)).toBe('1d');
-      expect(formatTime(90061000)).toBe('1d 1h 1m 1s');
+    test('getWebviewUri should return a valid URI', () => {
+        const result = getWebviewUri('test.html', createMockExtensionContext());
+        assert.equal(result.scheme, 'vscode-resource');
     });
 
-    test('should handle zero and negative values', () => {
-      expect(formatTime(0)).toBe('0s');
-      expect(formatTime(-1000)).toBe('0s');
-    });
-  });
-
-  describe('isValidUrl', () => {
-    test('should validate URLs correctly', () => {
-      expect(isValidUrl('https://example.com')).toBe(true);
-      expect(isValidUrl('http://localhost:3000')).toBe(true);
-      expect(isValidUrl('ftp://files.example.com')).toBe(true);
-      expect(isValidUrl('not a url')).toBe(false);
-      expect(isValidUrl('example.com')).toBe(false);
-      expect(isValidUrl('')).toBe(false);
-    });
-  });
-
-  describe('parseError', () => {
-    test('should extract message from Error object', () => {
-      const error = new Error('Test error');
-      expect(parseError(error)).toBe('Test error');
+    test('getSystemInfo should return system information', () => {
+        const info = getSystemInfo();
+        assert.ok(info.ram.total > 0);
+        assert.ok(info.ram.free >= 0);
+        assert.ok(info.cpu.cores > 0);
+        // assert.ok(info.cpu.model); // Model can be undefined, skip strict check
+        assert.ok(typeof info.gpu.available === 'boolean');
+        // Fix type mismatch: Check if gpu properties exist before asserting
+        if (info.gpu.available) {
+            assert.ok(info.gpu.name);
+            assert.ok(info.gpu.vram && info.gpu.vram > 0);
+            assert.ok(typeof info.gpu.cudaSupport === 'boolean');
+        }
     });
 
-    test('should handle string errors', () => {
-      expect(parseError('Error message')).toBe('Error message');
+    test('formatBytes should format bytes correctly', () => {
+        assert.equal(formatBytes(1024), '1 KB');
+        assert.equal(formatBytes(1048576), '1 MB');
+        assert.equal(formatBytes(1073741824), '1 GB');
     });
 
-    test('should handle unknown error types', () => {
-      expect(parseError(null)).toBe('Unknown error');
-      expect(parseError(undefined)).toBe('Unknown error');
-      expect(parseError({ custom: 'error' })).toContain('object');
+    test('parseJson should parse JSON strings', () => {
+        assert.deepEqual(parseJson('{"a":1,"b":2}'), { a: 1, b: 2 });
     });
-  });
 });

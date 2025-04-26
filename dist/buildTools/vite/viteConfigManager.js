@@ -36,16 +36,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ViteConfigManager = void 0;
 const fs = __importStar(require("fs"));
 const services_1 = require("./services");
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class ViteConfigManager {
     configDetector;
     configAnalyzer;
     optimizationService;
     logger;
     constructor(logger) {
-        this.logger = logger;
-        this.configDetector = new services_1.ViteConfigDetector(logger);
-        this.configAnalyzer = new services_1.ViteConfigAnalyzer(logger);
-        this.optimizationService = new services_1.ViteOptimizationService(logger);
+        this.logger = logger || new NoOpLogger();
+        this.configDetector = new services_1.ViteConfigDetector(this.logger);
+        this.configAnalyzer = new services_1.ViteConfigAnalyzer(this.logger);
+        this.optimizationService = new services_1.ViteOptimizationService(this.logger);
     }
     /**
      * Detects Vite configuration files in the given directory

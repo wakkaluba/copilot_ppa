@@ -1,4 +1,4 @@
-interface RetryOptions {
+export interface IRetryOptions {
     retries?: number;
     backoff?: boolean;
     initialDelay?: number;
@@ -7,7 +7,7 @@ interface RetryOptions {
 
 export async function retry<T>(
     fn: () => Promise<T>,
-    options: RetryOptions = {}
+    options: IRetryOptions = {}
 ): Promise<T> {
     const {
         retries = 3,

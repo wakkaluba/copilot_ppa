@@ -33,21 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Logger = exports.LoggerImpl = exports.LogLevel = void 0;
+exports.Logger = exports.LoggerImpl = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
-/**
- * Log level enum
- */
-var LogLevel;
-(function (LogLevel) {
-    LogLevel[LogLevel["DEBUG"] = 0] = "DEBUG";
-    LogLevel[LogLevel["INFO"] = 1] = "INFO";
-    LogLevel[LogLevel["WARN"] = 2] = "WARN";
-    LogLevel[LogLevel["ERROR"] = 3] = "ERROR";
-})(LogLevel || (exports.LogLevel = LogLevel = {}));
+const logging_1 = require("../types/logging");
 /**
  * Logger class for Copilot PPA extension
  */
@@ -98,28 +89,35 @@ class LoggerImpl {
         }
     }
     /**
+     * Set the logging level
+     * @param level The log level to set
+     */
+    setLogLevel(level) {
+        this._logLevel = level;
+    }
+    /**
      * Log a debug message
      */
     debug(message, details) {
-        this.log(LogLevel.DEBUG, message, details);
+        this.log(logging_1.LogLevel.DEBUG, message, details);
     }
     /**
      * Log an info message
      */
     info(message, details) {
-        this.log(LogLevel.INFO, message, details);
+        this.log(logging_1.LogLevel.INFO, message, details);
     }
     /**
      * Log a warning message
      */
     warn(message, details) {
-        this.log(LogLevel.WARN, message, details);
+        this.log(logging_1.LogLevel.WARN, message, details);
     }
     /**
      * Log an error message
      */
     error(message, details) {
-        this.log(LogLevel.ERROR, message, details);
+        this.log(logging_1.LogLevel.ERROR, message, details);
     }
     /**
      * Clear all logs
@@ -170,15 +168,15 @@ class LoggerImpl {
     stringToLogLevel(level) {
         switch (level.toLowerCase()) {
             case 'debug':
-                return LogLevel.DEBUG;
+                return logging_1.LogLevel.DEBUG;
             case 'info':
-                return LogLevel.INFO;
+                return logging_1.LogLevel.INFO;
             case 'warn':
-                return LogLevel.WARN;
+                return logging_1.LogLevel.WARN;
             case 'error':
-                return LogLevel.ERROR;
+                return logging_1.LogLevel.ERROR;
             default:
-                return LogLevel.INFO;
+                return logging_1.LogLevel.INFO;
         }
     }
     /**
@@ -186,13 +184,13 @@ class LoggerImpl {
      */
     logLevelToString(level) {
         switch (level) {
-            case LogLevel.DEBUG:
+            case logging_1.LogLevel.DEBUG:
                 return 'DEBUG';
-            case LogLevel.INFO:
+            case logging_1.LogLevel.INFO:
                 return 'INFO';
-            case LogLevel.WARN:
+            case logging_1.LogLevel.WARN:
                 return 'WARN';
-            case LogLevel.ERROR:
+            case logging_1.LogLevel.ERROR:
                 return 'ERROR';
             default:
                 return 'UNKNOWN';
@@ -206,37 +204,43 @@ class LoggerImpl {
         if (level < this._logLevel) {
             return;
         }
-        const timestamp = new Date().toISOString();
+        const timestamp = Date.now(); // Use numeric timestamp as per the standard interface
         const levelName = this.logLevelToString(level);
         // Format message for output
-        let formattedMessage = `[${timestamp}] [${levelName}] ${message}`;
+        const formattedTimestamp = new Date(timestamp).toISOString();
+        let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
+        let context;
         if (details) {
             let detailsStr = '';
             // Properly format details based on type
             if (details instanceof Error) {
                 detailsStr = details.stack || details.toString();
+                context = { error: details.message, stack: details.stack };
             }
             else if (typeof details === 'object') {
                 try {
                     detailsStr = JSON.stringify(details, null, 2);
+                    context = details;
                 }
                 catch (e) {
                     detailsStr = String(details);
+                    context = { value: String(details) };
                 }
             }
             else {
                 detailsStr = String(details);
+                context = { value: detailsStr };
             }
             formattedMessage += `\n${detailsStr}`;
         }
         // Log to output channel
         this._outputChannel.appendLine(formattedMessage);
-        // Create log entry
+        // Create log entry using the standardized interface
         const logEntry = {
             timestamp,
             level,
             message,
-            details
+            context
         };
         // Add to in-memory logs
         this._logEntries.push(logEntry);

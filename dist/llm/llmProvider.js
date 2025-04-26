@@ -1,9 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseLLMProvider = exports.LLMPromptOptions = void 0;
+exports.BaseLLMProvider = void 0;
 const offlineCache_1 = require("../offline/offlineCache");
-var types_1 = require("./types");
-Object.defineProperty(exports, "LLMPromptOptions", { enumerable: true, get: function () { return types_1.LLMPromptOptions; } });
 class BaseLLMProvider {
     offlineMode = false;
     cache;

@@ -1,27 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LLMProviderManager = void 0;
+exports.LLMProviderManager = exports.ProviderEvent = void 0;
 const events_1 = require("events");
-const types_1 = require("../types");
 const ConnectionPoolManager_1 = require("./ConnectionPoolManager");
 const ProviderFactory_1 = require("../providers/ProviderFactory");
 const errors_1 = require("../errors");
+// Define missing types locally until we resolve the type conflicts
+var ProviderEvent;
+(function (ProviderEvent) {
+    ProviderEvent["Initialized"] = "provider:initialized";
+    ProviderEvent["Removed"] = "provider:removed";
+    ProviderEvent["StatusChanged"] = "provider:statusChanged";
+    ProviderEvent["MetricsUpdated"] = "provider:metricsUpdated";
+})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
 class LLMProviderManager extends events_1.EventEmitter {
     static instance;
     connectionPool;
     metrics = new Map();
     activeProviders = new Set();
     defaultProviderId;
-    constructor() {
+    connectionManager;
+    hostManager;
+    connectionStatus;
+    constructor(connectionManager, hostManager, connectionStatus) {
         super();
+        this.connectionManager = connectionManager;
+        this.hostManager = hostManager;
+        this.connectionStatus = connectionStatus;
         this.connectionPool = new ConnectionPoolManager_1.ConnectionPoolManager();
     }
-    static getInstance() {
-        if (!LLMProviderManager.instance) {
-            LLMProviderManager.instance = new LLMProviderManager();
-        }
-        return LLMProviderManager.instance;
-    }
+    // Remove the static getInstance method that conflicts with the new constructor
+    // The ServiceRegistry will manage the instance lifecycle
     async initializeProvider(type, config) {
         const factory = ProviderFactory_1.ProviderFactory.getInstance();
         // Create initial provider instance to get ID
@@ -41,7 +50,7 @@ class LLMProviderManager extends events_1.EventEmitter {
         if (!this.defaultProviderId) {
             this.defaultProviderId = providerId;
         }
-        this.emit(types_1.ProviderEvent.Initialized, {
+        this.emit(ProviderEvent.Initialized, {
             providerId,
             timestamp: Date.now()
         });

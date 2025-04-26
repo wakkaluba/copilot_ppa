@@ -3,12 +3,51 @@ import { RollupConfigAnalyzer, RollupConfigDetector, RollupOptimizationService }
 import { ILogger } from '../../services/logging/ILogger';
 
 export class RollupConfigManager {
+    private readonly configDetector: RollupConfigDetector;
+    private readonly configAnalyzer: RollupConfigAnalyzer;
+    private readonly optimizationService: RollupOptimizationService;
+    private readonly logger: ILogger;
+
+    /**
+     * Create a RollupConfigManager with a logger only, defaults will be used for other dependencies
+     * @param logger The logger to use
+     */
+    constructor(logger: ILogger);
+    
+    /**
+     * Create a RollupConfigManager with all dependencies explicitly provided
+     * @param configDetector The config detector service
+     * @param configAnalyzer The config analyzer service
+     * @param optimizationService The optimization service
+     * @param logger The logger to use
+     */
     constructor(
-        private readonly configDetector: RollupConfigDetector,
-        private readonly configAnalyzer: RollupConfigAnalyzer,
-        private readonly optimizationService: RollupOptimizationService,
-        private readonly logger: ILogger
-    ) {}
+        configDetector: RollupConfigDetector,
+        configAnalyzer: RollupConfigAnalyzer,
+        optimizationService: RollupOptimizationService,
+        logger: ILogger
+    );
+
+    constructor(
+        configDetectorOrLogger: RollupConfigDetector | ILogger,
+        configAnalyzer?: RollupConfigAnalyzer,
+        optimizationService?: RollupOptimizationService,
+        loggerParam?: ILogger
+    ) {
+        // Handle single logger constructor case
+        if (arguments.length === 1 && 'debug' in configDetectorOrLogger) {
+            this.logger = configDetectorOrLogger;
+            this.configDetector = new RollupConfigDetector();
+            this.configAnalyzer = new RollupConfigAnalyzer();
+            this.optimizationService = new RollupOptimizationService();
+        } else {
+            // Handle full constructor case
+            this.configDetector = configDetectorOrLogger as RollupConfigDetector;
+            this.configAnalyzer = configAnalyzer!;
+            this.optimizationService = optimizationService!;
+            this.logger = loggerParam!;
+        }
+    }
 
     /**
      * Detects rollup configuration files in the given directory

@@ -35,10 +35,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebpackConfigAnalyzer = void 0;
 const fs = __importStar(require("fs"));
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger {
+    debug() { }
+    info() { }
+    warn() { }
+    error() { }
+}
 class WebpackConfigAnalyzer {
     logger;
     constructor(logger) {
-        this.logger = logger;
+        this.logger = logger || new NoOpLogger();
     }
     /**
      * Analyzes a webpack configuration file
@@ -58,7 +67,9 @@ class WebpackConfigAnalyzer {
                 loaders,
                 plugins,
                 content,
-                optimizationSuggestions: [] // Will be filled by OptimizationService
+                optimizationSuggestions: [], // Will be filled by OptimizationService
+                errors: [],
+                warnings: []
             };
         }
         catch (error) {

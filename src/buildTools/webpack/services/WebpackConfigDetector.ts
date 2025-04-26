@@ -2,6 +2,16 @@ import * as glob from 'glob';
 import * as path from 'path';
 import { ILogger } from '../../../services/logging/ILogger';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class WebpackConfigDetector {
     private readonly configPatterns = [
         'webpack.config.js',
@@ -14,7 +24,11 @@ export class WebpackConfigDetector {
         '*webpack*.ts'
     ];
 
-    constructor(private readonly logger: ILogger) {}
+    private readonly logger: ILogger;
+
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+    }
 
     /**
      * Detects webpack configuration files in the given directory

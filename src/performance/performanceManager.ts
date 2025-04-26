@@ -10,6 +10,7 @@ import { BottleneckDetector } from './bottleneckDetector';
 import { EventEmitter } from 'events';
 import { CachingService } from './cachingService';
 import { AsyncOptimizer } from './asyncOptimizer';
+import { LoggerImpl } from '../utils/logger';
 
 /**
  * Central manager for all performance-related functionality in the extension.
@@ -27,6 +28,7 @@ export class PerformanceManager implements vscode.Disposable {
     private readonly cachingService: CachingService;
     private readonly asyncOptimizer: AsyncOptimizer;
     private readonly eventEmitter: EventEmitter;
+    private readonly logger: LoggerImpl;
 
     private constructor(extensionContext: vscode.ExtensionContext) {
         this.eventEmitter = new EventEmitter();
@@ -39,10 +41,11 @@ export class PerformanceManager implements vscode.Disposable {
         this.bottleneckDetector = BottleneckDetector.getInstance();
         this.cachingService = CachingService.getInstance();
         this.asyncOptimizer = AsyncOptimizer.getInstance();
+        this.logger = new LoggerImpl();
         
         this.setupEventListeners();
         this.initializeServices().catch(error => {
-            console.error('Failed to initialize performance services:', error);
+            this.logger.error('Failed to initialize performance services:', error);
             vscode.window.showErrorMessage('Failed to initialize performance services');
         });
     }
@@ -70,7 +73,7 @@ export class PerformanceManager implements vscode.Disposable {
             
             this.eventEmitter.emit('servicesInitialized');
         } catch (error) {
-            console.error('Failed to initialize performance services:', error);
+            this.logger.error('Failed to initialize performance services:', error);
             throw error;
         }
     }
@@ -105,7 +108,7 @@ export class PerformanceManager implements vscode.Disposable {
                 return result;
             });
         } catch (error) {
-            console.error('Workspace analysis failed:', error);
+            this.logger.error('Workspace analysis failed:', error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`Workspace analysis failed: ${message}`);
             throw error;
@@ -133,7 +136,7 @@ export class PerformanceManager implements vscode.Disposable {
             }
             return result;
         } catch (error) {
-            console.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+            this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`File analysis failed: ${message}`);
             return null;
@@ -162,12 +165,12 @@ export class PerformanceManager implements vscode.Disposable {
         const cacheStats = this.cachingService.getCacheStats();
         const asyncStats = this.asyncOptimizer.getStats();
 
-        console.info('Performance Report:');
-        console.info(`Operations analyzed: ${operationStats?.length || 0}`);
-        console.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
-        console.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
-        console.info(`Cache hits: ${cacheStats.hits}, misses: ${cacheStats.misses}, evictions: ${cacheStats.evictions}`);
-        console.info(`Async operations optimized: ${asyncStats.optimizedCount}`);
+        this.logger.info('Performance Report:');
+        this.logger.info(`Operations analyzed: ${operationStats?.length || 0}`);
+        this.logger.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
+        this.logger.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
+        this.logger.info(`Cache hits: ${cacheStats.hits}, misses: ${cacheStats.misses}, evictions: ${cacheStats.evictions}`);
+        this.logger.info(`Async operations optimized: ${asyncStats.optimizedCount}`);
 
         this.eventEmitter.emit('performanceReport', {
             operationStats,
@@ -185,7 +188,7 @@ export class PerformanceManager implements vscode.Disposable {
         this.fileMonitorService.onActiveEditorChanged((editor: vscode.TextEditor | undefined) => {
             if (editor) {
                 this.analyzeFile(editor.document).catch(error => {
-                    console.error('Failed to analyze active editor:', error);
+                    this.logger.error('Failed to analyze active editor:', error);
                 });
             }
         });
@@ -193,7 +196,7 @@ export class PerformanceManager implements vscode.Disposable {
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('performance')) {
                 this.initializeServices().catch(error => {
-                    console.error('Failed to reinitialize services:', error);
+                    this.logger.error('Failed to reinitialize services:', error);
                 });
             }
         });
@@ -235,7 +238,7 @@ export class PerformanceManager implements vscode.Disposable {
 
             this.eventEmitter.emit('workspaceMetricsUpdated', result.summary);
         } catch (error) {
-            console.error('Failed to update workspace metrics:', error);
+            this.logger.error('Failed to update workspace metrics:', error);
         }
     }
 
@@ -259,7 +262,7 @@ export class PerformanceManager implements vscode.Disposable {
 
             this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: result.metrics });
         } catch (error) {
-            console.error(`Failed to update metrics for ${uri.fsPath}:`, error);
+            this.logger.error(`Failed to update metrics for ${uri.fsPath}:`, error);
         }
     }
 
@@ -279,11 +282,11 @@ export class PerformanceManager implements vscode.Disposable {
         return this.asyncOptimizer;
     }
 
-    public on(event: string, listener: (...args: any[]) => void): void {
+    public on(event: string, listener: (...args: unknown[]) => void): void {
         this.eventEmitter.on(event, listener);
     }
 
-    public off(event: string, listener: (...args: any[]) => void): void {
+    public off(event: string, listener: (...args: unknown[]) => void): void {
         this.eventEmitter.off(event, listener);
     }
 

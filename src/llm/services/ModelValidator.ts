@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
+import * as os from 'os';
 import { 
     ILogger,
     LLMModelInfo,
@@ -139,8 +140,8 @@ export class ModelValidator extends EventEmitter implements vscode.Disposable {
             // Implementation specific to getting system info
             // This would need platform-specific implementations
             this.systemRequirements = {
-                totalMemoryGB: Math.round(require('os').totalmem() / (1024 * 1024 * 1024)),
-                cpuCores: require('os').cpus().length,
+                totalMemoryGB: Math.round(os.totalmem() / (1024 * 1024 * 1024)),
+                cpuCores: os.cpus().length,
                 freeDiskSpaceGB: 100, // Placeholder - would need actual implementation
                 cudaAvailable: false, // Placeholder - would need actual implementation
                 gpuInfo: await this.getGPUInfo()

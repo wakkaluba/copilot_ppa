@@ -1,12 +1,38 @@
 import { EventEmitter } from 'events';
-import {
-    LLMProvider,
-    ProviderConfig,
-    ProviderConnectionState,
-    ProviderEvent,
-    HealthCheckResult
-} from '../types';
+import { LLMProvider } from '../../../llm/types';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
 import { ConnectionError } from '../errors';
+import { ProviderFactory, ProviderType } from '../providers/ProviderFactory';
+
+// Define missing types that were previously imported
+export enum ProviderConnectionState {
+    Disconnected = 'disconnected',
+    Connecting = 'connecting',
+    Connected = 'connected',
+    Error = 'error'
+}
+
+export enum ProviderEvent {
+    Connected = 'provider:connected',
+    Disconnected = 'provider:disconnected',
+    Error = 'provider:error',
+    HealthCheckComplete = 'provider:healthcheck'
+}
+
+export interface HealthCheckResult {
+    isHealthy: boolean;
+    latency: number;
+    timestamp: number;
+    error?: Error;
+}
+
+// Add these methods to the LLMProvider interface via augmentation
+declare module '../../../llm/types' {
+    interface LLMProvider {
+        healthCheck(): Promise<HealthCheckResult>;
+        dispose(): Promise<void>;
+    }
+}
 
 interface PooledConnection {
     provider: LLMProvider;
@@ -242,9 +268,28 @@ export class ConnectionPoolManager extends EventEmitter {
     }
 
     private async createProviderInstance(providerId: string): Promise<LLMProvider> {
-        // This would typically use ProviderFactory to create instances
-        // For now, leaving as a stub that should be implemented
-        throw new Error('createProviderInstance must be implemented');
+        // Use ProviderFactory to create provider instances
+        const factory = ProviderFactory.getInstance();
+        
+        // Since we don't have direct access to the config here,
+        // we need to use a default/minimal config.
+        // In a real implementation, this should come from a config service or cache
+        const defaultConfig: ProviderConfig = {
+            apiEndpoint: 'http://localhost:11434',  // Default for Ollama
+            id: providerId,
+            name: providerId,
+            defaultModel: 'llama2'
+        };
+        
+        // Determine the provider type
+        let providerType: ProviderType = 'ollama';
+        if (providerId.includes('llamaapi')) {
+            providerType = 'llamaapi';
+        } else if (providerId.includes('lmstudio')) {
+            providerType = 'lmstudio';
+        }
+        
+        return await factory.createProvider(providerType, defaultConfig);
     }
 
     public dispose(): void {

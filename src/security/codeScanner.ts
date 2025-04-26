@@ -18,6 +18,7 @@ export class CodeSecurityScanner {
     private readonly webviewMap = new Map<string, vscode.Webview>();
     private messageQueue: Array<() => Promise<void>> = [];
     private isProcessing = false;
+    private issueCache = new Map<string, SecurityIssue>();
 
     constructor(context: vscode.ExtensionContext) {
         this.patternService = new SecurityPatternService();
@@ -38,11 +39,33 @@ export class CodeSecurityScanner {
         const document = await vscode.workspace.openTextDocument(fileUri);
         const result = await this.analyzerService.scanDocument(document);
         this.diagnosticService.report(fileUri, result.diagnostics);
+        
+        // Cache the issues for later retrieval
+        result.issues.forEach(issue => {
+            this.issueCache.set(issue.id, issue);
+        });
+        
         return { issues: result.issues, scannedFiles: 1 };
     }
 
     public async scanWorkspace(progressCallback?: (message: string) => void): Promise<CodeScanResult> {
-        return this.analyzerService.scanWorkspace(progressCallback);
+        const result = await this.analyzerService.scanWorkspace(progressCallback);
+        
+        // Cache the issues for later retrieval
+        result.issues.forEach(issue => {
+            this.issueCache.set(issue.id, issue);
+        });
+        
+        return result;
+    }
+
+    /**
+     * Get detailed information about a specific security issue
+     * @param issueId The ID of the issue to retrieve details for
+     * @returns The security issue details, or undefined if not found
+     */
+    public async getIssueDetails(issueId: string): Promise<SecurityIssue | undefined> {
+        return this.issueCache.get(issueId);
     }
 
     public async showSecurityReport(result: CodeScanResult): Promise<void> {
@@ -116,5 +139,6 @@ export class CodeSecurityScanner {
         this.webviewMap.clear();
         this.messageQueue = [];
         this.isProcessing = false;
+        this.issueCache.clear();
     }
 }

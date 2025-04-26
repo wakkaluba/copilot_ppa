@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaProvider = void 0;
 const axios_1 = __importDefault(require("axios"));
 const BaseLLMProvider_1 = require("./BaseLLMProvider");
-const types_1 = require("../types");
 const errors_1 = require("../errors");
 class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     client;
@@ -15,32 +14,33 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         super('ollama', 'Ollama', config);
         this.client = axios_1.default.create({
             baseURL: config.apiEndpoint,
-            timeout: config.connection?.timeout || 30000
+            timeout: config.requestTimeout || 30000
         });
     }
     async performHealthCheck() {
-        const start = Date.now();
         try {
-            await this.client.get('/api/tags');
+            const startTime = Date.now();
+            await this.client.get('/api/health');
+            const endTime = Date.now();
             return {
                 isHealthy: true,
-                latency: Date.now() - start,
-                timestamp: Date.now()
+                latency: endTime - startTime,
+                timestamp: endTime
             };
         }
         catch (error) {
             return {
                 isHealthy: false,
-                latency: Date.now() - start,
-                timestamp: Date.now(),
-                error: error instanceof Error ? error : new Error(String(error))
+                error: error instanceof Error ? error : new Error(String(error)),
+                latency: 0,
+                timestamp: Date.now()
             };
         }
     }
     async isAvailable() {
         try {
-            const result = await this.healthCheck();
-            return result.isHealthy;
+            await this.client.get('/api/health');
+            return true;
         }
         catch {
             return false;
@@ -48,15 +48,14 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     }
     async connect() {
         this.validateConfig();
-        this.setState(types_1.ProviderState.Initializing);
+        this.setState(BaseLLMProvider_1.ProviderState.Initializing);
         try {
             const available = await this.isAvailable();
             if (!available) {
                 throw new errors_1.ProviderError('Ollama service is not available', this.id);
             }
-            // Load initial model list
             await this.refreshModels();
-            this.setState(types_1.ProviderState.Active);
+            this.setState(BaseLLMProvider_1.ProviderState.Active);
         }
         catch (error) {
             this.setError(error instanceof Error ? error : new Error(String(error)));
@@ -64,9 +63,9 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         }
     }
     async disconnect() {
-        this.setState(types_1.ProviderState.Deactivating);
+        this.setState(BaseLLMProvider_1.ProviderState.Deactivating);
         this.modelDetails.clear();
-        this.setState(types_1.ProviderState.Inactive);
+        this.setState(BaseLLMProvider_1.ProviderState.Inactive);
     }
     async refreshModels() {
         try {
@@ -78,7 +77,8 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             }
         }
         catch (error) {
-            throw new errors_1.ProviderError('Failed to fetch models', this.id, error instanceof Error ? error : undefined);
+            const errorString = error instanceof Error ? error.message : String(error);
+            throw new errors_1.ProviderError('Failed to fetch models', this.id, errorString);
         }
     }
     async getAvailableModels() {
@@ -92,40 +92,12 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         }
         return this.convertModelInfo(modelId, info);
     }
-    convertModelInfo(modelId, info) {
-        return {
-            id: modelId,
-            name: info.name,
-            provider: this.id,
-            contextLength: 4096, // Default, could be specified in model details
-            parameters: {
-                format: info.details.format,
-                family: info.details.family,
-                size: this.parseParameterSize(info.details.parameter_size)
-            },
-            version: info.digest
-        };
-    }
-    parseParameterSize(size) {
-        if (!size) {
-            return undefined;
-        }
-        const match = size.match(/(\d+)([BM])/);
-        if (!match) {
-            return undefined;
-        }
-        const [, num, unit] = match;
-        const base = parseInt(num, 10);
-        return unit === 'B' ? base * 1e9 : base * 1e6;
-    }
     async getCapabilities() {
         return {
-            supportsStreaming: true,
-            supportsCancellation: false,
-            supportsModelSwitch: true,
             maxContextLength: 4096,
-            supportedModels: Array.from(this.modelDetails.keys()),
-            supportedFeatures: ['chat', 'completion']
+            supportsChatCompletion: true,
+            supportsStreaming: true,
+            supportsSystemPrompts: true
         };
     }
     async generateCompletion(model, prompt, systemPrompt, options) {
@@ -133,46 +105,52 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             const request = {
                 model,
                 prompt,
-                system: systemPrompt,
-                options: {
-                    temperature: options?.temperature,
-                    num_predict: options?.maxTokens,
-                    stop: options?.stop
-                }
+                ...(systemPrompt && { system: systemPrompt }),
+                ...(options && {
+                    options: {
+                        ...(options.temperature !== undefined && { temperature: options.temperature }),
+                        ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
+                        ...(options.topK !== undefined && { top_k: options.topK }),
+                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
+                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
+                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                    }
+                })
             };
             const response = await this.client.post('/api/generate', request);
             return {
                 content: response.data.response,
                 usage: {
-                    promptTokens: response.data.prompt_eval_count,
-                    completionTokens: response.data.eval_count,
-                    totalTokens: response.data.prompt_eval_count + response.data.eval_count
+                    promptTokens: response.data.prompt_eval_count || 0,
+                    completionTokens: response.data.eval_count || 0,
+                    totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
                 }
             };
         }
         catch (error) {
-            throw new errors_1.RequestError('Generation failed', this.id, 'completion', error?.response?.status, error instanceof Error ? error : undefined);
+            throw new errors_1.RequestError('Generation failed', this.id, error instanceof Error ? error : new Error(String(error)));
         }
     }
     async generateChatCompletion(model, messages, options) {
-        // Format messages into a prompt
-        const formattedPrompt = messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-        // Extract system message if present
-        const systemMessage = messages.find(msg => msg.role === 'system');
-        return this.generateCompletion(model, formattedPrompt, systemMessage?.content, options);
+        const prompt = this.formatChatMessages(messages);
+        return this.generateCompletion(model, prompt, undefined, options);
     }
     async streamCompletion(model, prompt, systemPrompt, options, callback) {
         try {
             const request = {
                 model,
                 prompt,
-                system: systemPrompt,
-                options: {
-                    temperature: options?.temperature,
-                    num_predict: options?.maxTokens,
-                    stop: options?.stop
-                },
-                stream: true
+                ...(systemPrompt && { system: systemPrompt }),
+                ...(options && {
+                    options: {
+                        ...(options.temperature !== undefined && { temperature: options.temperature }),
+                        ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
+                        ...(options.topK !== undefined && { top_k: options.topK }),
+                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
+                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
+                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                    }
+                })
             };
             const response = await this.client.post('/api/generate', request, {
                 responseType: 'stream'
@@ -182,19 +160,50 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                 if (callback) {
                     callback({
                         content: data.response,
-                        isComplete: data.done
+                        done: data.done
                     });
                 }
             }
         }
         catch (error) {
-            throw new errors_1.RequestError('Stream generation failed', this.id, 'stream', error?.response?.status, error instanceof Error ? error : undefined);
+            throw new errors_1.RequestError('Streaming failed', this.id, error instanceof Error ? error : new Error(String(error)));
         }
     }
     async streamChatCompletion(model, messages, options, callback) {
-        const formattedPrompt = messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-        const systemMessage = messages.find(msg => msg.role === 'system');
-        return this.streamCompletion(model, formattedPrompt, systemMessage?.content, options, callback);
+        const prompt = this.formatChatMessages(messages);
+        await this.streamCompletion(model, prompt, undefined, options, callback);
+    }
+    convertModelInfo(modelId, info) {
+        return {
+            id: modelId,
+            name: info.name,
+            provider: this.id,
+            maxContextLength: 4096, // Default for most Ollama models
+            parameters: {
+                format: info.details.format,
+                family: info.details.family,
+                size: this.parseParameterSize(info.details.parameter_size)
+            },
+            features: info.details.capabilities || [],
+            metadata: {
+                quantization: info.details.quantization_level,
+                license: info.license
+            }
+        };
+    }
+    parseParameterSize(size) {
+        if (!size)
+            return undefined;
+        const match = size.match(/(\d+)([BM])/);
+        if (!match)
+            return undefined;
+        const [, num, unit] = match;
+        if (!num)
+            return undefined;
+        return unit === 'B' ? parseInt(num, 10) : parseInt(num, 10) / 1000;
+    }
+    formatChatMessages(messages) {
+        return messages.map(msg => `${msg.role === 'assistant' ? 'Assistant' : 'User'}: ${msg.content}`).join('\n');
     }
 }
 exports.OllamaProvider = OllamaProvider;

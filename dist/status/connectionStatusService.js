@@ -33,45 +33,84 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionStatusService = void 0;
+exports.ConnectionStatusService = exports.ConnectionState = void 0;
 const vscode = __importStar(require("vscode"));
 const LLMConnectionManager_1 = require("../services/llm/LLMConnectionManager");
-class ConnectionStatusService {
+const events_1 = require("events");
+var ConnectionState;
+(function (ConnectionState) {
+    ConnectionState[ConnectionState["Disconnected"] = 0] = "Disconnected";
+    ConnectionState[ConnectionState["Connecting"] = 1] = "Connecting";
+    ConnectionState[ConnectionState["Connected"] = 2] = "Connected";
+    ConnectionState[ConnectionState["Error"] = 3] = "Error";
+})(ConnectionState || (exports.ConnectionState = ConnectionState = {}));
+class ConnectionStatusService extends events_1.EventEmitter {
     statusBarItem;
     currentStatus;
     hostManager;
     connectionManager;
     disposables = [];
+    _state = ConnectionState.Disconnected;
+    _activeModelName = '';
+    _providerName = '';
+    _stateChangeEmitter = new vscode.EventEmitter();
     constructor(hostManager, connectionManager) {
+        super();
         this.hostManager = hostManager;
         this.connectionManager = connectionManager;
-        // Initialize with disconnected status
         this.currentStatus = {
             status: LLMConnectionManager_1.ConnectionStatus.Disconnected,
             lastUpdate: Date.now()
         };
-        // Create status bar item
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this.statusBarItem.command = 'localLlmAgent.connect'; // Command to trigger when clicked
+        this.statusBarItem.command = 'copilot-ppa.toggleLLMConnection';
         this.updateStatusBar();
         this.statusBarItem.show();
-        // Set up event listeners
         this.registerEventListeners();
+    }
+    get state() {
+        return this._state;
+    }
+    get activeModelName() {
+        return this._activeModelName;
+    }
+    get providerName() {
+        return this._providerName;
+    }
+    get onDidChangeState() {
+        return this._stateChangeEmitter.event;
+    }
+    setState(state, info) {
+        this._state = state;
+        this._stateChangeEmitter.fire(state);
+        this.updateStatusBar();
+    }
+    showNotification(message, type = 'info') {
+        switch (type) {
+            case 'warning':
+                vscode.window.showWarningMessage(message);
+                break;
+            case 'error':
+                vscode.window.showErrorMessage(message);
+                break;
+            default:
+                vscode.window.showInformationMessage(message);
+        }
     }
     registerEventListeners() {
         // Listen for connection status changes
-        const connectionListener = this.connectionManager.on('statusChanged', (event) => {
+        this.connectionManager.on('statusChanged', (event) => {
             this.updateConnectionStatus();
         });
         // Listen for host status changes
-        const hostStatusListener = this.hostManager.on('hostStatusChanged', (host) => {
+        this.hostManager.on('hostStatusChanged', (host) => {
             this.updateHostStatus(host.id);
         });
         // Listen for host availability changes
-        const hostAvailableListener = this.hostManager.on('hostBecameAvailable', (host) => {
+        this.hostManager.on('hostBecameAvailable', (host) => {
             this.updateHostStatus(host.id);
         });
-        const hostUnavailableListener = this.hostManager.on('hostBecameUnavailable', (host) => {
+        this.hostManager.on('hostBecameUnavailable', (host) => {
             this.updateHostStatus(host.id);
         });
     }
@@ -152,9 +191,8 @@ class ConnectionStatusService {
     }
     dispose() {
         this.statusBarItem.dispose();
-        // Dispose all registered event listeners
+        this._stateChangeEmitter.dispose();
         this.disposables.forEach(d => d.dispose());
-        this.disposables = [];
     }
 }
 exports.ConnectionStatusService = ConnectionStatusService;

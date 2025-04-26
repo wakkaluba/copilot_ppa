@@ -4,8 +4,22 @@ import { ILogger } from '../../../services/logging/ILogger';
 import { RollupConfigAnalysis, RollupInput, RollupOutput, RollupPlugin, IRollupConfigAnalyzer } from '../types';
 import { ConfigValidationError } from '../errors/ConfigValidationError';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class RollupConfigAnalyzer implements IRollupConfigAnalyzer {
-    constructor(private readonly logger: ILogger) {}
+    private readonly logger: ILogger;
+
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+    }
 
     /**
      * Analyzes a Rollup configuration file

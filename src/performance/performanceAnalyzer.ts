@@ -11,16 +11,20 @@ export class PerformanceAnalyzer {
     constructor(context: vscode.ExtensionContext) {
         this.manager = new PerformanceManager(context);
     }
-    public analyzeActiveFile() {
+    
+    public analyzeActiveFile(): Promise<PerformanceAnalysisResult> {
         return this.manager.analyzeCurrentFile();
     }
-    public analyzeWorkspace() {
+    
+    public analyzeWorkspace(): Promise<WorkspacePerformanceResult> {
         return this.manager.analyzeWorkspace();
     }
-    public showFileAnalysisReport(result: any) {
+    
+    public showFileAnalysisReport(result: PerformanceAnalysisResult): void {
         this.manager.showFileAnalysisReport(result);
     }
-    public showWorkspaceAnalysisReport(result: any) {
+    
+    public showWorkspaceAnalysisReport(result: WorkspacePerformanceResult): void {
         this.manager.showWorkspaceAnalysisReport(result);
     }
 }

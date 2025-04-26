@@ -10,6 +10,15 @@ export interface ProviderConfig {
     defaultRequestOptions?: Record<string, any>;
     timeout?: number;
     retries?: number;
+    requestTimeout?: number;
+    connection?: {
+        poolSize?: number;
+        timeout?: number;
+    };
+    healthCheck?: {
+        interval: number;
+        timeout: number;
+    };
 }
 
 export interface ModelConfig {

@@ -1,8 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionPoolManager = void 0;
+exports.ConnectionPoolManager = exports.ProviderEvent = exports.ProviderConnectionState = void 0;
 const events_1 = require("events");
 const errors_1 = require("../errors");
+const ProviderFactory_1 = require("../providers/ProviderFactory");
+// Define missing types that were previously imported
+var ProviderConnectionState;
+(function (ProviderConnectionState) {
+    ProviderConnectionState["Disconnected"] = "disconnected";
+    ProviderConnectionState["Connecting"] = "connecting";
+    ProviderConnectionState["Connected"] = "connected";
+    ProviderConnectionState["Error"] = "error";
+})(ProviderConnectionState || (exports.ProviderConnectionState = ProviderConnectionState = {}));
+var ProviderEvent;
+(function (ProviderEvent) {
+    ProviderEvent["Connected"] = "provider:connected";
+    ProviderEvent["Disconnected"] = "provider:disconnected";
+    ProviderEvent["Error"] = "provider:error";
+    ProviderEvent["HealthCheckComplete"] = "provider:healthcheck";
+})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
 class ConnectionPoolManager extends events_1.EventEmitter {
     pools = new Map();
     poolConfigs = new Map();
@@ -170,9 +186,26 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         }
     }
     async createProviderInstance(providerId) {
-        // This would typically use ProviderFactory to create instances
-        // For now, leaving as a stub that should be implemented
-        throw new Error('createProviderInstance must be implemented');
+        // Use ProviderFactory to create provider instances
+        const factory = ProviderFactory_1.ProviderFactory.getInstance();
+        // Since we don't have direct access to the config here,
+        // we need to use a default/minimal config.
+        // In a real implementation, this should come from a config service or cache
+        const defaultConfig = {
+            apiEndpoint: 'http://localhost:11434', // Default for Ollama
+            id: providerId,
+            name: providerId,
+            defaultModel: 'llama2'
+        };
+        // Determine the provider type
+        let providerType = 'ollama';
+        if (providerId.includes('llamaapi')) {
+            providerType = 'llamaapi';
+        }
+        else if (providerId.includes('lmstudio')) {
+            providerType = 'lmstudio';
+        }
+        return await factory.createProvider(providerType, defaultConfig);
     }
     dispose() {
         if (this.maintenanceTimer) {

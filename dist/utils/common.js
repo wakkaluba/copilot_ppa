@@ -33,109 +33,64 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isNullOrUndefined = isNullOrUndefined;
-exports.getNestedProperty = getNestedProperty;
-exports.safeJsonParse = safeJsonParse;
-exports.debounce = debounce;
-exports.throttle = throttle;
-exports.getHardwareSpecs = getHardwareSpecs;
+exports.getNonce = getNonce;
+exports.getWebviewUri = getWebviewUri;
+exports.getSystemInfo = getSystemInfo;
 exports.formatBytes = formatBytes;
-exports.formatTime = formatTime;
-exports.ensureDirectoryExists = ensureDirectoryExists;
-exports.uniqueArray = uniqueArray;
-exports.sleep = sleep;
-exports.clamp = clamp;
-exports.isValidUrl = isValidUrl;
-exports.parseError = parseError;
+exports.parseJson = parseJson;
+const vscode = __importStar(require("vscode"));
 const os = __importStar(require("os"));
-const fs = __importStar(require("fs"));
+const crypto_1 = require("crypto");
 /**
- * Checks if a value is null or undefined
+ * Generate a cryptographically secure nonce string
+ * @returns A random nonce string
  */
-function isNullOrUndefined(value) {
-    return value === null || value === undefined;
+function getNonce() {
+    return (0, crypto_1.randomBytes)(16).toString('base64');
 }
 /**
- * Safely gets a nested property from an object without throwing errors
+ * Convert a local path to a webview URI
+ * @param webview The webview to use for URI conversion
+ * @param extensionPath The extension path
+ * @param pathParts Path parts to join
+ * @returns A webview URI
  */
-function getNestedProperty(obj, path, defaultValue = undefined) {
-    const keys = path.split('.');
-    let current = obj;
-    for (const key of keys) {
-        if (isNullOrUndefined(current) || typeof current !== 'object') {
-            return defaultValue;
-        }
-        current = current[key];
-    }
-    return isNullOrUndefined(current) ? defaultValue : current;
+function getWebviewUri(webview, extensionPath, ...pathParts) {
+    const uri = vscode.Uri.joinPath(vscode.Uri.file(extensionPath), ...pathParts);
+    return webview.asWebviewUri(uri);
 }
 /**
- * Safely parse JSON without throwing errors
+ * Get system information including OS, memory, etc.
+ * @returns SystemInfo object
  */
-function safeJsonParse(text, defaultValue = {}) {
-    try {
-        return JSON.parse(text);
-    }
-    catch (error) {
-        return defaultValue;
-    }
-}
-/**
- * Debounce a function
- */
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        const later = () => {
-            timeout = undefined;
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+function getSystemInfo() {
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const cpuCount = os.cpus().length;
+    return {
+        platform: os.platform(),
+        arch: os.arch(),
+        release: os.release(),
+        hostname: os.hostname(),
+        totalMemoryMB: Math.floor(totalMemory / (1024 * 1024)),
+        freeMemoryMB: Math.floor(freeMemory / (1024 * 1024)),
+        usedMemoryMB: Math.floor(usedMemory / (1024 * 1024)),
+        memoryUsagePercent: Math.round((usedMemory / totalMemory) * 100),
+        cpuCount,
+        cpuModel: os.cpus()[0]?.model || 'Unknown',
+        nodeVersion: process.version
     };
 }
 /**
- * Throttle a function to limit execution frequency
- */
-function throttle(func, wait) {
-    let lastCall = 0;
-    return function (...args) {
-        const now = Date.now();
-        if (now - lastCall >= wait) {
-            lastCall = now;
-            func(...args);
-        }
-    };
-}
-/**
- * Get system hardware specifications
- */
-async function getHardwareSpecs() {
-    // Default return object with basic info we can get synchronously
-    const result = {
-        ram: {
-            total: os.totalmem() / (1024 * 1024), // Convert to MB
-            free: os.freemem() / (1024 * 1024) // Convert to MB
-        },
-        cpu: {
-            cores: os.cpus().length,
-            model: os.cpus()[0]?.model
-        },
-        gpu: {
-            available: false
-        }
-    };
-    // In a real implementation, we'd use platform-specific methods to detect GPU
-    // This is a placeholder that would be replaced with actual implementation
-    return result;
-}
-/**
- * Format bytes to a human readable string
+ * Format bytes to human-readable string
+ * @param bytes Number of bytes
+ * @param decimals Number of decimal places
+ * @returns Human-readable string representation
  */
 function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) {
+    if (bytes === 0)
         return '0 Bytes';
-    }
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -143,82 +98,17 @@ function formatBytes(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 /**
- * Format milliseconds into a human-readable time string
+ * Safely parse JSON with error handling
+ * @param text JSON string to parse
+ * @param defaultValue Default value to return if parsing fails
+ * @returns Parsed object or default value
  */
-function formatTime(ms) {
-    if (ms <= 0) {
-        return '0s';
-    }
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-    const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-    const parts = [];
-    if (days > 0) {
-        parts.push(`${days}d`);
-    }
-    if (hours > 0) {
-        parts.push(`${hours}h`);
-    }
-    if (minutes > 0) {
-        parts.push(`${minutes}m`);
-    }
-    if (seconds > 0 || parts.length === 0) {
-        parts.push(`${seconds}s`);
-    }
-    return parts.join(' ');
-}
-/**
- * Ensure a directory exists, creating it if needed
- */
-function ensureDirectoryExists(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-}
-/**
- * Get unique items from an array
- */
-function uniqueArray(array) {
-    return [...new Set(array)];
-}
-/**
- * Sleep for a specified number of milliseconds
- */
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-/**
- * Clamp a number between min and max values
- */
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-}
-/**
- * Check if a string is a valid URL
- */
-function isValidUrl(url) {
+function parseJson(text, defaultValue) {
     try {
-        new URL(url);
-        return true;
+        return JSON.parse(text);
     }
     catch (error) {
-        return false;
+        return defaultValue;
     }
-}
-/**
- * Parse error objects into string messages
- */
-function parseError(error) {
-    if (!error) {
-        return 'Unknown error';
-    }
-    if (error instanceof Error) {
-        return error.message;
-    }
-    if (typeof error === 'string') {
-        return error;
-    }
-    return `Error: ${typeof error} ${JSON.stringify(error)}`;
 }
 //# sourceMappingURL=common.js.map

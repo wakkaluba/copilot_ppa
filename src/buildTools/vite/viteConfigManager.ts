@@ -6,17 +6,27 @@ import { ViteConfigAnalysis, VitePlugin, ViteInput, ViteOutput } from './types';
 import { ViteConfigAnalyzer, ViteConfigDetector, ViteOptimizationService } from './services';
 import { ConfigValidationError } from './errors/ConfigValidationError';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class ViteConfigManager {
     private readonly configDetector: ViteConfigDetector;
     private readonly configAnalyzer: ViteConfigAnalyzer;
     private readonly optimizationService: ViteOptimizationService;
     private readonly logger: ILogger;
 
-    constructor(logger: ILogger) {
-        this.logger = logger;
-        this.configDetector = new ViteConfigDetector(logger);
-        this.configAnalyzer = new ViteConfigAnalyzer(logger);
-        this.optimizationService = new ViteOptimizationService(logger);
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+        this.configDetector = new ViteConfigDetector(this.logger);
+        this.configAnalyzer = new ViteConfigAnalyzer(this.logger);
+        this.optimizationService = new ViteOptimizationService(this.logger);
     }
 
     /**

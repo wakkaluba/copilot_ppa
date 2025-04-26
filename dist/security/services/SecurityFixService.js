@@ -35,20 +35,23 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityFixService = void 0;
 const vscode = __importStar(require("vscode"));
+const path = __importStar(require("path"));
+const fs = __importStar(require("fs/promises"));
 /**
  * Service for applying automated fixes to security issues
  */
 class SecurityFixService {
-    context;
     disposables = [];
-    constructor(context) {
-        this.context = context;
-    }
+    constructor() { }
     /**
      * Apply an automated fix for a security issue
      */
     async applyFix(issue) {
-        const document = await vscode.workspace.openTextDocument(issue.file);
+        // Ensure issue has required properties
+        if (!issue.filePath) {
+            throw new Error('Issue is missing filePath property');
+        }
+        const document = await vscode.workspace.openTextDocument(issue.filePath);
         const edit = new vscode.WorkspaceEdit();
         switch (issue.id) {
             case 'SEC001': // SQL Injection
@@ -73,12 +76,15 @@ class SecurityFixService {
         await vscode.workspace.applyEdit(edit);
     }
     async fixSqlInjection(document, issue, edit) {
-        const line = document.lineAt(issue.line);
+        if (!issue.lineNumber) {
+            throw new Error('Issue is missing lineNumber property');
+        }
+        const line = document.lineAt(issue.lineNumber - 1); // Convert to 0-based index
         const text = line.text;
         // Replace string concatenation with parameterized query
         if (text.includes('${')) {
             const queryMatch = text.match(/["'`](.*?)["'`]/);
-            if (queryMatch) {
+            if (queryMatch && queryMatch[1] !== undefined) {
                 const query = queryMatch[1];
                 const params = [...query.matchAll(/\$\{(.*?)\}/g)].map(m => m[1]);
                 const newQuery = query.replace(/\$\{.*?\}/g, '?');
@@ -88,7 +94,10 @@ class SecurityFixService {
         }
     }
     async fixXss(document, issue, edit) {
-        const line = document.lineAt(issue.line);
+        if (!issue.lineNumber) {
+            throw new Error('Issue is missing lineNumber property');
+        }
+        const line = document.lineAt(issue.lineNumber - 1); // Convert to 0-based index
         const text = line.text;
         // Replace innerHTML with textContent
         if (text.includes('innerHTML')) {
@@ -98,7 +107,7 @@ class SecurityFixService {
         // Replace document.write with safer alternatives
         else if (text.includes('document.write')) {
             const match = text.match(/document\.write\((.*)\)/);
-            if (match) {
+            if (match && match[1] !== undefined) {
                 const content = match[1];
                 const newText = text.replace(/document\.write\((.*)\)/, `document.body.appendChild(document.createTextNode(${content}))`);
                 edit.replace(document.uri, line.range, newText);
@@ -106,7 +115,10 @@ class SecurityFixService {
         }
     }
     async fixPathTraversal(document, issue, edit) {
-        const line = document.lineAt(issue.line);
+        if (!issue.lineNumber) {
+            throw new Error('Issue is missing lineNumber property');
+        }
+        const line = document.lineAt(issue.lineNumber - 1); // Convert to 0-based index
         const text = line.text;
         // Add path.normalize()
         if (text.includes('path.join')) {
@@ -115,19 +127,23 @@ class SecurityFixService {
         }
         else {
             const match = text.match(/(["'`].*?["'`])\s*\+/);
-            if (match) {
+            if (match && match[0] !== undefined && match[1] !== undefined) {
                 const newText = text.replace(match[0], `path.normalize(${match[1]} +`);
                 edit.replace(document.uri, line.range, newText + ')');
             }
         }
     }
     async fixHardcodedCredentials(document, issue, edit) {
-        const line = document.lineAt(issue.line);
+        if (!issue.lineNumber) {
+            throw new Error('Issue is missing lineNumber property');
+        }
+        const line = document.lineAt(issue.lineNumber - 1); // Convert to 0-based index
         const text = line.text;
         // Replace hardcoded credentials with environment variables
         const match = text.match(/(password|secret|token|key|api[_-]?key|access[_-]?token)\s*[:=]\s*["'`]([^"'`]+)["'`]/i);
-        if (match) {
-            const [, name, value] = match;
+        if (match && match[1] !== undefined && match[2] !== undefined) {
+            const name = match[1];
+            const value = match[2];
             const envVar = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
             // Add to .env if it doesn't exist
             await this.addToEnvFile(envVar, value);
@@ -136,7 +152,10 @@ class SecurityFixService {
         }
     }
     async fixWeakCrypto(document, issue, edit) {
-        const line = document.lineAt(issue.line);
+        if (!issue.lineNumber) {
+            throw new Error('Issue is missing lineNumber property');
+        }
+        const line = document.lineAt(issue.lineNumber - 1); // Convert to 0-based index
         const text = line.text;
         // Replace weak hashing algorithms with stronger ones
         if (text.includes('md5')) {
@@ -149,46 +168,45 @@ class SecurityFixService {
         }
     }
     async addToEnvFile(name, value) {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
+        // Implementation details
+        // Added null check for workspace folders
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
             return;
         }
-        const rootPath = workspaceFolders[0].uri.fsPath;
-        const envPath = vscode.Uri.file(`${rootPath}/.env`);
+        const envFilePath = path.join(workspaceFolder.uri.fsPath, '.env');
+        // Read existing .env file content or create a new one
+        let envContent = '';
         try {
-            const envDoc = await vscode.workspace.openTextDocument(envPath);
-            const edit = new vscode.WorkspaceEdit();
-            // Add to end of file if variable doesn't exist
-            if (!envDoc.getText().includes(name)) {
-                const lastLine = envDoc.lineCount - 1;
-                const position = new vscode.Position(lastLine, Number.MAX_VALUE);
-                edit.insert(envPath, position, `\n${name}=${value}`);
-                await vscode.workspace.applyEdit(edit);
-            }
+            envContent = await fs.readFile(envFilePath, 'utf-8');
         }
-        catch {
-            // .env doesn't exist, create it
-            const edit = new vscode.WorkspaceEdit();
-            edit.createFile(envPath, { ignoreIfExists: true });
-            edit.insert(envPath, new vscode.Position(0, 0), `${name}=${value}\n`);
-            await vscode.workspace.applyEdit(edit);
+        catch (error) {
+            // File doesn't exist, will create a new one
+        }
+        // Check if the variable already exists
+        const regex = new RegExp(`^${name}=.*`, 'm');
+        if (!regex.test(envContent)) {
+            // Add new variable
+            envContent += `\n${name}=${value}`;
+            await fs.writeFile(envFilePath, envContent.trim(), 'utf-8');
         }
     }
-    dispose() {
-        this.disposables.forEach(d => d.dispose());
-    }
-    async applyFix(issueId, filePath) {
+    /**
+     * Apply fix by issue ID and file path
+     */
+    async applyFixById(issueId, filePath) {
         try {
             const document = await vscode.workspace.openTextDocument(filePath);
-            const editor = await vscode.window.showTextDocument(document);
-            const text = document.getText();
+            // Don't store the editor to avoid unused variable
+            await vscode.window.showTextDocument(document);
             // Apply fix based on issue type
             const edit = new vscode.WorkspaceEdit();
             const range = this.findIssueRange(document, issueId);
             if (!range) {
                 return;
             }
-            const replacement = this.generateFix(issueId, document.getText(range));
+            const text = document.getText(range);
+            const replacement = this.generateFix(issueId, text);
             if (replacement) {
                 edit.replace(document.uri, range, replacement);
                 await vscode.workspace.applyEdit(edit);
@@ -201,7 +219,41 @@ class SecurityFixService {
         }
     }
     findIssueRange(document, issueId) {
-        // Implementation to find the issue range in the document
+        // Simple implementation to find potential issue lines
+        for (let i = 0; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            const text = line.text;
+            switch (issueId) {
+                case 'SEC001': // SQL Injection
+                    if (text.includes('${') && (text.includes('sql') || text.includes('query'))) {
+                        return line.range;
+                    }
+                    break;
+                case 'SEC002': // XSS
+                    if (text.includes('innerHTML') || text.includes('document.write')) {
+                        return line.range;
+                    }
+                    break;
+                case 'SEC003': // Path Traversal
+                    if ((text.includes('path.join') || text.includes('fs.')) &&
+                        (text.includes('+') || text.includes('${'))) {
+                        return line.range;
+                    }
+                    break;
+                case 'SEC004': // Hardcoded Credentials
+                    if ((text.includes('password') || text.includes('token') ||
+                        text.includes('key') || text.includes('secret')) &&
+                        (text.includes('"') || text.includes("'") || text.includes('`'))) {
+                        return line.range;
+                    }
+                    break;
+                case 'SEC005': // Weak Crypto
+                    if (text.includes('md5') || text.includes('sha1')) {
+                        return line.range;
+                    }
+                    break;
+            }
+        }
         return undefined;
     }
     generateFix(issueId, originalCode) {
@@ -209,12 +261,31 @@ class SecurityFixService {
             case 'SEC001': // SQL Injection
                 return originalCode.replace(/\$\{.*?\}/g, '?');
             case 'SEC002': // XSS
-                return originalCode.replace(/innerHTML/g, 'textContent');
+                return originalCode.replace(/innerHTML/g, 'textContent')
+                    .replace(/document\.write\((.*)\)/, 'document.body.appendChild(document.createTextNode($1))');
+            case 'SEC003': // Path Traversal
+                if (originalCode.includes('path.join')) {
+                    return originalCode.replace(/(path\.join\(.*?\))/, 'path.normalize($1)');
+                }
+                else {
+                    return `path.normalize(${originalCode})`;
+                }
+            case 'SEC004': // Hardcoded Credentials
+                const match = originalCode.match(/(password|secret|token|key|api[_-]?key|access[_-]?token)\s*[:=]\s*["'`]([^"'`]+)["'`]/i);
+                if (match && match[1] !== undefined) {
+                    const name = match[1];
+                    const envVar = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                    return originalCode.replace(/["'`]([^"'`]+)["'`]/, `process.env.${envVar}`);
+                }
+                return undefined;
             case 'SEC005': // Weak Cryptography
-                return originalCode.replace(/sha1/g, 'sha256');
+                return originalCode.replace(/md5/g, 'sha256').replace(/sha1/g, 'sha256');
             default:
                 return undefined;
         }
+    }
+    dispose() {
+        this.disposables.forEach(d => d.dispose());
     }
 }
 exports.SecurityFixService = SecurityFixService;

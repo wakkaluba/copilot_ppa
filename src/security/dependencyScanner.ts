@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { VulnerabilityService } from './services/VulnerabilityService';
 import { DependencyScanService } from './services/DependencyScanService';
 import { VulnerabilityReportService } from './services/VulnerabilityReportService';
-import { DependencyScanResult } from './types';
+import { DependencyScanResult, VulnerabilityInfo } from './types';
 import { Logger } from '../utils/logger';
 
 /**
@@ -14,6 +14,7 @@ export class DependencyScanner implements vscode.Disposable {
     private readonly vulnerabilityService: VulnerabilityService;
     private readonly scanService: DependencyScanService;
     private readonly reportService: VulnerabilityReportService;
+    private vulnerabilityCache = new Map<string, VulnerabilityInfo>();
 
     private constructor(context: vscode.ExtensionContext) {
         this.logger = Logger.getInstance();
@@ -41,6 +42,13 @@ export class DependencyScanner implements vscode.Disposable {
             }, async (progress, token) => {
                 const result = await this.scanService.scanWorkspace();
                 
+                // Cache vulnerabilities for later retrieval
+                result.vulnerabilities.forEach(vuln => {
+                    vuln.vulnerabilityInfo.forEach(info => {
+                        this.vulnerabilityCache.set(info.id, info);
+                    });
+                });
+                
                 if (!silent) {
                     this.reportService.updateStatusBar(
                         result.hasVulnerabilities,
@@ -54,6 +62,16 @@ export class DependencyScanner implements vscode.Disposable {
             this.logger.error('Error scanning workspace dependencies', error);
             throw error;
         }
+    }
+
+    /**
+     * Get detailed information about a specific vulnerability
+     * @param vulnId The ID of the vulnerability to retrieve details for
+     * @returns Detailed vulnerability information, or undefined if not found
+     */
+    public async getVulnerabilityDetails(vulnId: string): Promise<VulnerabilityInfo | undefined> {
+        return this.vulnerabilityCache.get(vulnId) || 
+               await this.vulnerabilityService.getVulnerabilityDetails(vulnId);
     }
 
     /**
@@ -71,5 +89,6 @@ export class DependencyScanner implements vscode.Disposable {
 
     public dispose(): void {
         this.reportService.dispose();
+        this.vulnerabilityCache.clear();
     }
 }

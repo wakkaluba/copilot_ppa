@@ -1,6 +1,17 @@
 import * as vscode from 'vscode';
 import { HostProcessInfo } from '../interfaces/HostTypes';
 
+export interface IHealthMetrics {
+    cpuUsage?: number;
+    memoryUsage?: number;
+    responseTime?: number;
+    uptime?: number;
+    openConnections?: number;
+    [key: string]: unknown;
+}
+
+export type ErrorContext = Record<string, unknown>;
+
 export class LLMHostErrorHandler {
     constructor(private outputChannel: vscode.OutputChannel) {}
 
@@ -24,17 +35,17 @@ export class LLMHostErrorHandler {
         this.showErrorNotification(`Failed to restart LLM Host: ${error.message}`);
     }
 
-    public handleHealthWarning(message: string, metrics: any): void {
+    public handleHealthWarning(message: string, metrics: IHealthMetrics): void {
         this.outputChannel.appendLine(`[WARNING] Health: ${message}`);
         this.outputChannel.appendLine(`Metrics: ${JSON.stringify(metrics, null, 2)}`);
     }
 
-    public handleHealthCritical(error: Error, metrics: any): void {
+    public handleHealthCritical(error: Error, metrics: IHealthMetrics): void {
         this.logError('Critical Health Error', error, metrics);
         this.showErrorNotification(`LLM Host Health Critical: ${error.message}`);
     }
 
-    private logError(type: string, error: Error, context?: any): void {
+    private logError(type: string, error: Error, context?: ErrorContext): void {
         this.outputChannel.appendLine(`[ERROR] ${type}:`);
         this.outputChannel.appendLine(error.stack || error.message);
         if (context) {

@@ -1,15 +1,12 @@
-import * as assert from 'assert';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import { ContextManager } from '../../src/services/ContextManager';
 import { ConversationManager } from '../../src/services/ConversationManager';
+import { ContextManager } from '../../src/services/ContextManager';
 import { LLMProviderManager } from '../../src/llm/llmProviderManager';
 import { ModelManager } from '../../src/models/modelManager';
 import { PerformanceManager } from '../../src/performance/performanceManager';
 import { createMockExtensionContext } from '../helpers/mockHelpers';
 
-describe('State Persistence and Data Migration', () => {
+describe('State Persistence Tests', () => {
     let contextManager: ContextManager;
     let conversationManager: ConversationManager;
     let llmProviderManager: LLMProviderManager;

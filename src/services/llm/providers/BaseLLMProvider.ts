@@ -5,20 +5,54 @@ import {
     LLMMessage,
     LLMRequestOptions,
     LLMResponse,
-    LLMStreamEvent,
-    ProviderCapabilities,
-    ProviderConfig,
-    ProviderState,
-    HealthCheckResult
-} from '../types';
-import { ProviderError, TimeoutError } from '../errors';
+    LLMStreamEvent
+} from '../../../llm/types';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
+import { ProviderError } from '../errors';
+
+// Define locally any types that aren't in the main types file
+export enum ProviderState {
+    Unknown = 'unknown',
+    Registered = 'registered',
+    Initializing = 'initializing',
+    Active = 'active',
+    Deactivating = 'deactivating',
+    Inactive = 'inactive',
+    Error = 'error'
+}
+
+export interface ProviderStatus {
+    state: ProviderState;
+    activeModel: string | undefined;
+    error: Error | undefined;
+    lastHealthCheck: HealthCheckResult | undefined;
+}
+
+export interface HealthCheckResult {
+    isHealthy: boolean;
+    latency: number;
+    timestamp: number;
+    error?: Error;
+}
+
+export interface ProviderCapabilities {
+    maxContextTokens: number;
+    streamingSupport: boolean;
+    supportedFormats: string[];
+    multimodalSupport: boolean;
+    supportsTemperature: boolean;
+    supportsTopP: boolean;
+    supportsPenalties: boolean;
+    supportsRetries: boolean;
+}
 
 export abstract class BaseLLMProvider extends EventEmitter implements LLMProvider {
     protected state: ProviderState = ProviderState.Unknown;
     protected config: ProviderConfig;
     protected currentModel?: LLMModelInfo;
     protected lastError?: Error;
-    private healthCheckTimer?: NodeJS.Timer;
+    protected lastHealthCheck?: HealthCheckResult;
+    private healthCheckTimer?: NodeJS.Timeout;
 
     constructor(
         public readonly id: string,
@@ -30,72 +64,42 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
         this.setupHealthCheck();
     }
 
-    private setupHealthCheck(): void {
-        if (this.config.healthCheck?.interval) {
-            this.healthCheckTimer = setInterval(
-                async () => {
-                    try {
-                        const result = await this.healthCheck();
-                        if (!result.isHealthy) {
-                            this.handleHealthCheckFailure(result);
-                        }
-                    } catch (error) {
-                        console.error(`Health check failed for provider ${this.id}:`, error);
-                    }
-                },
-                this.config.healthCheck.interval
-            );
-        }
-    }
-
     protected abstract performHealthCheck(): Promise<HealthCheckResult>;
 
     public async healthCheck(): Promise<HealthCheckResult> {
-        const timeout = this.config.healthCheck?.timeout || 5000;
         try {
-            const result = await Promise.race([
-                this.performHealthCheck(),
-                new Promise<never>((_, reject) => {
-                    setTimeout(() => {
-                        reject(new TimeoutError(
-                            'Health check timed out',
-                            this.id,
-                            'healthCheck',
-                            timeout
-                        ));
-                    }, timeout);
-                })
-            ]);
-            return result;
-        } catch (error) {
-            return {
-                isHealthy: false,
-                latency: -1,
-                timestamp: Date.now(),
-                error: error instanceof Error ? error : new Error(String(error))
+            const startTime = Date.now();
+            const result = await this.performHealthCheck();
+            const endTime = Date.now();
+            
+            this.lastHealthCheck = {
+                ...result,
+                latency: endTime - startTime,
+                timestamp: endTime
             };
+            
+            return this.lastHealthCheck;
+        } catch (error) {
+            const result: HealthCheckResult = {
+                isHealthy: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+                latency: 0,
+                timestamp: Date.now()
+            };
+            this.handleHealthCheckFailure(result);
+            return result;
         }
     }
 
     protected handleHealthCheckFailure(result: HealthCheckResult): void {
-        this.lastError = result.error;
-        this.emit('healthCheck', {
-            providerId: this.id,
-            result
-        });
+        this.setError(result.error || new Error('Health check failed'));
     }
 
     abstract isAvailable(): Promise<boolean>;
     abstract connect(): Promise<void>;
     abstract disconnect(): Promise<void>;
-
-    public getStatus(): ProviderState {
-        return this.state;
-    }
-
     abstract getAvailableModels(): Promise<LLMModelInfo[]>;
     abstract getModelInfo(modelId: string): Promise<LLMModelInfo>;
-
     abstract getCapabilities(): Promise<ProviderCapabilities>;
 
     abstract generateCompletion(
@@ -151,11 +155,38 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
         });
     }
 
+    public getStatus(): ProviderStatus {
+        return {
+            state: this.state,
+            activeModel: this.currentModel?.id,
+            error: this.lastError,
+            lastHealthCheck: this.lastHealthCheck
+        };
+    }
+
     public async dispose(): Promise<void> {
         if (this.healthCheckTimer) {
-            clearInterval(this.healthCheckTimer);
+            clearTimeout(this.healthCheckTimer);
         }
         await this.disconnect();
         this.removeAllListeners();
+    }
+
+    private setupHealthCheck(): void {
+        if (this.config.healthCheck?.interval) {
+            this.healthCheckTimer = setInterval(
+                async () => {
+                    try {
+                        const result = await this.healthCheck();
+                        if (!result.isHealthy) {
+                            this.handleHealthCheckFailure(result);
+                        }
+                    } catch (error) {
+                        console.error(`Health check failed for provider ${this.id}:`, error);
+                    }
+                },
+                this.config.healthCheck.interval
+            ) as unknown as NodeJS.Timeout;
+        }
     }
 }

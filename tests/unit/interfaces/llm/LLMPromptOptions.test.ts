@@ -5,10 +5,9 @@ import { SupportedLanguage } from '../../../../src/i18n';
 
 // Import the interface. Since it's declared in the multilingualPromptManager.ts file
 // but not exported, we'll recreate the interface for testing purposes
-interface LLMPromptOptions {
-  temperature?: number;
-  maxTokens?: number;
-}
+// Assuming LLMPromptOptions is now exported from a types file, e.g., ../../src/llm/types
+// If not, keep the recreated interface. Let's assume it's exported for now.
+import { LLMPromptOptions } from '../../../../src/llm/types'; // Adjust path if needed
 
 describe('LLMPromptOptions interface', () => {
   it('should create a valid empty options object', () => {
@@ -55,15 +54,19 @@ describe('LLMPromptOptions interface', () => {
     ): string => {
       // Simulate enhancing the prompt based on options
       let enhancedPrompt = prompt;
-      
+
+      if (targetLanguage) {
+          enhancedPrompt += ` (Lang: ${targetLanguage})`;
+      }
+
       if (options?.temperature) {
         enhancedPrompt += ` (Temperature: ${options.temperature})`;
       }
-      
+
       if (options?.maxTokens) {
         enhancedPrompt += ` (Max Tokens: ${options.maxTokens})`;
       }
-      
+
       return enhancedPrompt;
     };
 
@@ -74,8 +77,8 @@ describe('LLMPromptOptions interface', () => {
     };
 
     const enhancedPrompt = mockEnhancePrompt(prompt, SupportedLanguage.German, options);
-    
-    expect(enhancedPrompt).toBe('Translate this text (Temperature: 0.7) (Max Tokens: 1000)');
+
+    expect(enhancedPrompt).toBe('Translate this text (Lang: de) (Temperature: 0.7) (Max Tokens: 1000)');
   });
 });
 

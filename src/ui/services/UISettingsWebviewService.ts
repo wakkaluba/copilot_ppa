@@ -1,6 +1,6 @@
 import { Logger } from '../../utils/logger';
 
-export interface UISettingsTab {
+export interface IUISettingsTab {
     id: string;
     label: string;
     content: string;
@@ -13,7 +13,7 @@ export class UISettingsWebviewService {
         this.logger = new Logger();
     }
 
-    public generateWebviewContent(tabs: UISettingsTab[]): string {
+    public generateWebviewContent(tabs: IUISettingsTab[]): string {
         try {
             return `<!DOCTYPE html>
             <html lang="en">
@@ -128,7 +128,7 @@ export class UISettingsWebviewService {
                                 case 'selectTab':
                                     const tabToSelect = message.tab;
                                     if (tabToSelect) {
-                                        const tabEl = document.querySelector(\`.tab[data-tab="\${tabToSelect}"]\`);
+                                        const tabEl = document.querySelector(\`[data-tab="\${tabToSelect}"]\`);
                                         if (tabEl) {
                                             tabEl.click();
                                         }

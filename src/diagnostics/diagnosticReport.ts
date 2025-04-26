@@ -14,7 +14,7 @@ import { DiagnosticReportHtmlProvider } from './providers/DiagnosticReportHtmlPr
 /**
  * Interface for diagnostic report content
  */
-export interface DiagnosticReportContent {
+export interface IDiagnosticReportContent {
     timestamp: string;
     extension: {
         name: string;
@@ -24,17 +24,17 @@ export interface DiagnosticReportContent {
     system: {
         os: string;
         arch: string;
-        cpuInfo: any;
-        memoryInfo: any;
-        diskInfo: any;
-        gpuInfo: any;
+        cpuInfo: Record<string, unknown>;
+        memoryInfo: Record<string, unknown>;
+        diskInfo: Record<string, unknown>;
+        gpuInfo: Record<string, unknown>;
     };
     configuration: {
         provider: string;
         model: string;
         endpoint: string;
         cacheEnabled: boolean;
-        otherSettings: Record<string, any>;
+        otherSettings: Record<string, unknown>;
     };
     performance: {
         lastLatencyMs: number | null;
@@ -117,7 +117,7 @@ export class DiagnosticReportGenerator {
     /**
      * Generate a diagnostic report
      */
-    public async generateReport(): Promise<DiagnosticReportContent> {
+    public async generateReport(): Promise<IDiagnosticReportContent> {
         this._logger.info('Generating diagnostic report');
         
         try {
@@ -137,7 +137,7 @@ export class DiagnosticReportGenerator {
             const logs = this.logService.getRecent();
             
             // Create the report content
-            const report: DiagnosticReportContent = {
+            const report: IDiagnosticReportContent = {
                 timestamp: new Date().toISOString(),
                 extension: {
                     name: vscode.extensions.getExtension('copilot-ppa')?.packageJSON.name || 'copilot-ppa',
@@ -161,7 +161,7 @@ export class DiagnosticReportGenerator {
     /**
      * Save the report to a file
      */
-    public async saveReportToFile(report: DiagnosticReportContent): Promise<string> {
+    public async saveReportToFile(report: IDiagnosticReportContent): Promise<string> {
         try {
             const timestamp = new Date().toISOString().replace(/:/g, '-');
             const downloadsFolder = path.join(os.homedir(), 'Downloads');
@@ -184,7 +184,7 @@ export class DiagnosticReportGenerator {
     /**
      * Display the report in a webview panel
      */
-    public async displayReportInWebview(report: DiagnosticReportContent): Promise<void> {
+    public async displayReportInWebview(report: IDiagnosticReportContent): Promise<void> {
         // Create and show webview panel
         const panel = vscode.window.createWebviewPanel(
             'copilotPpaDiagnostics',

@@ -1,8 +1,22 @@
 import { ILogger } from '../../../services/logging/ILogger';
 import { WebpackEntry, WebpackLoader, WebpackOptimization, WebpackPlugin } from '../types';
 
+/**
+ * Default logger implementation that does nothing
+ */
+class NoOpLogger implements ILogger {
+    debug(): void {}
+    info(): void {}
+    warn(): void {}
+    error(): void {}
+}
+
 export class WebpackOptimizationService {
-    constructor(private readonly logger: ILogger) {}
+    private readonly logger: ILogger;
+
+    constructor(logger?: ILogger) {
+        this.logger = logger || new NoOpLogger();
+    }
 
     /**
      * Generates optimization suggestions for a webpack configuration

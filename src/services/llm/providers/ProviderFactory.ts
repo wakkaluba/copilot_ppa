@@ -1,4 +1,5 @@
-import { LLMProvider, ProviderConfig } from '../types';
+import { LLMProvider } from '../../../llm/types';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
 import { OllamaProvider } from './OllamaProvider';
 import { ConfigurationError } from '../errors';
 

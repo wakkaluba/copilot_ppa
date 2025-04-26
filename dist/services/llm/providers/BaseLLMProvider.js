@@ -1,16 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseLLMProvider = void 0;
+exports.BaseLLMProvider = exports.ProviderState = void 0;
 const events_1 = require("events");
-const types_1 = require("../types");
 const errors_1 = require("../errors");
+// Define locally any types that aren't in the main types file
+var ProviderState;
+(function (ProviderState) {
+    ProviderState["Unknown"] = "unknown";
+    ProviderState["Registered"] = "registered";
+    ProviderState["Initializing"] = "initializing";
+    ProviderState["Active"] = "active";
+    ProviderState["Deactivating"] = "deactivating";
+    ProviderState["Inactive"] = "inactive";
+    ProviderState["Error"] = "error";
+})(ProviderState || (exports.ProviderState = ProviderState = {}));
 class BaseLLMProvider extends events_1.EventEmitter {
     id;
     name;
-    state = types_1.ProviderState.Unknown;
+    state = ProviderState.Unknown;
     config;
     currentModel;
     lastError;
+    lastHealthCheck;
     healthCheckTimer;
     constructor(id, name, config) {
         super();
@@ -19,52 +30,31 @@ class BaseLLMProvider extends events_1.EventEmitter {
         this.config = config;
         this.setupHealthCheck();
     }
-    setupHealthCheck() {
-        if (this.config.healthCheck?.interval) {
-            this.healthCheckTimer = setInterval(async () => {
-                try {
-                    const result = await this.healthCheck();
-                    if (!result.isHealthy) {
-                        this.handleHealthCheckFailure(result);
-                    }
-                }
-                catch (error) {
-                    console.error(`Health check failed for provider ${this.id}:`, error);
-                }
-            }, this.config.healthCheck.interval);
-        }
-    }
     async healthCheck() {
-        const timeout = this.config.healthCheck?.timeout || 5000;
         try {
-            const result = await Promise.race([
-                this.performHealthCheck(),
-                new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new errors_1.TimeoutError('Health check timed out', this.id, 'healthCheck', timeout));
-                    }, timeout);
-                })
-            ]);
-            return result;
+            const startTime = Date.now();
+            const result = await this.performHealthCheck();
+            const endTime = Date.now();
+            this.lastHealthCheck = {
+                ...result,
+                latency: endTime - startTime,
+                timestamp: endTime
+            };
+            return this.lastHealthCheck;
         }
         catch (error) {
-            return {
+            const result = {
                 isHealthy: false,
-                latency: -1,
-                timestamp: Date.now(),
-                error: error instanceof Error ? error : new Error(String(error))
+                error: error instanceof Error ? error : new Error(String(error)),
+                latency: 0,
+                timestamp: Date.now()
             };
+            this.handleHealthCheckFailure(result);
+            return result;
         }
     }
     handleHealthCheckFailure(result) {
-        this.lastError = result.error;
-        this.emit('healthCheck', {
-            providerId: this.id,
-            result
-        });
-    }
-    getStatus() {
-        return this.state;
+        this.setError(result.error || new Error('Health check failed'));
     }
     validateConfig() {
         if (!this.config.apiEndpoint) {
@@ -81,19 +71,42 @@ class BaseLLMProvider extends events_1.EventEmitter {
     }
     setError(error) {
         this.lastError = error;
-        this.setState(types_1.ProviderState.Error);
+        this.setState(ProviderState.Error);
         this.emit('error', {
             providerId: this.id,
             error,
             timestamp: Date.now()
         });
     }
+    getStatus() {
+        return {
+            state: this.state,
+            activeModel: this.currentModel?.id,
+            error: this.lastError,
+            lastHealthCheck: this.lastHealthCheck
+        };
+    }
     async dispose() {
         if (this.healthCheckTimer) {
-            clearInterval(this.healthCheckTimer);
+            clearTimeout(this.healthCheckTimer);
         }
         await this.disconnect();
         this.removeAllListeners();
+    }
+    setupHealthCheck() {
+        if (this.config.healthCheck?.interval) {
+            this.healthCheckTimer = setInterval(async () => {
+                try {
+                    const result = await this.healthCheck();
+                    if (!result.isHealthy) {
+                        this.handleHealthCheckFailure(result);
+                    }
+                }
+                catch (error) {
+                    console.error(`Health check failed for provider ${this.id}:`, error);
+                }
+            }, this.config.healthCheck.interval);
+        }
     }
 }
 exports.BaseLLMProvider = BaseLLMProvider;
