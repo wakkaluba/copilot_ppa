@@ -107,7 +107,7 @@ export class WorkspaceManager {
         try {
             return await vscode.workspace.findFiles(include, exclude, maxResults);
         } catch (error) {
-            this.logger.error(`Failed to find files with pattern ${include}:`, error);
+            this.logger.error(`Error finding files with pattern ${include}:`, error);
             throw error;
         }
     }
@@ -120,7 +120,38 @@ export class WorkspaceManager {
         try {
             await vscode.workspace.fs.createDirectory(uri);
         } catch (error) {
-            this.logger.error(`Failed to create directory ${uri.fsPath}:`, error);
+            this.logger.error(`Error creating directory ${uri.fsPath}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param defaultValue Default value if not found
+     * @returns The configuration value or default value
+     */
+    public getConfiguration<T>(section: string, key: string): T | undefined;
+    public getConfiguration<T>(section: string, key: string, defaultValue: T): T;
+    public getConfiguration<T>(section: string, key: string, defaultValue?: T): T | undefined {
+        const config = vscode.workspace.getConfiguration(section);
+        return config.get<T>(key, defaultValue as T);
+    }
+
+    /**
+     * Update configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param value New value
+     * @param target Configuration target (default: Workspace)
+     */
+    public async updateConfiguration(section: string, key: string, value: any, target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Workspace): Promise<void> {
+        try {
+            const config = vscode.workspace.getConfiguration(section);
+            await config.update(key, value, target);
+        } catch (error) {
+            this.logger.error(`Error updating configuration ${section}.${key}:`, error);
             throw error;
         }
     }

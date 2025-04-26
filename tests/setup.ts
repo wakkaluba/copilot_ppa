@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import * as vscode from 'vscode';
+// The vscode import is required for the test environment setup
+// even though it appears unused in this file
+
 // Mock VS Code API (no import needed since we're mocking the module)
 jest.mock('vscode', () => {
   return {

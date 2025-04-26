@@ -249,7 +249,7 @@ export class KeybindingManager {
 }
 
 // Singleton instance
-let keybindingManager?: KeybindingManager;
+let keybindingManager: KeybindingManager | undefined;
 
 /**
  * Initialize the keybinding manager

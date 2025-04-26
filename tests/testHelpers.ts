@@ -38,37 +38,68 @@ export class MockEventEmitter<T> implements vscodeTypes.EventEmitter<T> {
 
 // Utility to create mock extension context
 export function createMockExtensionContext(): vscodeTypes.ExtensionContext {
-    const vscode = getVSCodeMock();
-    
-    return {
-        subscriptions: [],
-        extensionPath: '/test/path',
-        extensionUri: { fsPath: '/test/path' } as any,
-        storagePath: '/test/storage/path',
-        storageUri: { fsPath: '/test/storage/path' } as any,
-        globalStoragePath: '/test/global/storage/path',
-        globalStorageUri: { fsPath: '/test/global/storage/path' } as any,
-        logPath: '/test/log/path',
-        logUri: { fsPath: '/test/log/path' } as any,
-        extensionMode: 2, // Test mode
-        globalState: {
-            get: jest.fn(),
-            update: jest.fn(),
-            setKeysForSync: jest.fn(),
-            keys: jest.fn().mockReturnValue([])
-        } as any,
-        workspaceState: {
-            get: jest.fn(),
-            update: jest.fn(),
-            keys: jest.fn().mockReturnValue([])
-        } as any,
-        secrets: {
-            get: jest.fn(),
-            store: jest.fn(),
-            delete: jest.fn(),
-            onDidChange: jest.fn()
-        } as any,
-        environmentVariableCollection: {} as any,
-        asAbsolutePath: jest.fn(p => `/test/path/${p}`),
-    };
+  return {
+    subscriptions: [],
+    extensionPath: '/test/extension',
+    extensionUri: { 
+      scheme: 'file', 
+      path: '/test/extension',
+      authority: '',
+      query: '',
+      fragment: '',
+      fsPath: '/test/extension',
+      with: jest.fn(),
+      toJSON: jest.fn()
+    } as any,
+    storagePath: '/test/storage',
+    storageUri: {} as any,
+    globalStoragePath: '/test/globalStorage',
+    globalStorageUri: {} as any,
+    logPath: '/test/log',
+    logUri: {} as any,
+    extensionMode: 2,
+    environmentVariableCollection: {} as any,
+    asAbsolutePath: jest.fn(relativePath => `/test/extension/${relativePath}`),
+    workspaceState: {
+      get: jest.fn(),
+      update: jest.fn(),
+      keys: jest.fn().mockReturnValue([])
+    },
+    globalState: {
+      get: jest.fn(),
+      update: jest.fn(),
+      keys: jest.fn().mockReturnValue([]),
+      setKeysForSync: jest.fn()
+    },
+    secrets: {
+      get: jest.fn(),
+      store: jest.fn(),
+      delete: jest.fn(),
+      onDidChange: jest.fn()
+    },
+    extension: {
+      id: 'test.extension',
+      extensionPath: '/test/extension',
+      extensionUri: { 
+        scheme: 'file', 
+        path: '/test/extension',
+        authority: '',
+        query: '',
+        fragment: '',
+        fsPath: '/test/extension',
+        with: jest.fn(),
+        toJSON: jest.fn()
+      },
+      isActive: true,
+      packageJSON: {},
+      extensionKind: 1,
+      exports: {},
+      // Add the missing activate method
+      activate: () => Promise.resolve()
+    },
+    languageModelAccessInformation: {
+      onDidChange: jest.fn(),
+      canSendRequest: jest.fn().mockReturnValue(true)
+    }
+  };
 }

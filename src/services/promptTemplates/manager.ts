@@ -139,7 +139,7 @@ export class PromptTemplateManager {
 }
 
 // Singleton instance
-let promptTemplateManager?: PromptTemplateManager;
+let promptTemplateManager: PromptTemplateManager | undefined;
 
 /**
  * Initialize the prompt template manager

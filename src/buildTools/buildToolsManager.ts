@@ -7,6 +7,15 @@ import { ViteConfigManager } from './vite/viteConfigManager';
 import { BuildScriptOptimizer } from './buildScriptOptimizer';
 import { BundleAnalyzer } from './bundleAnalyzer';
 
+// Logger interface definition
+interface ILogger {
+    log(message: string): void;
+    error(message: string): void;
+    warn(message: string): void;
+    info(message: string): void;
+    debug(message: string, details?: unknown): void;
+}
+
 export class BuildToolsManager {
     private readonly webpackManager: WebpackConfigManager;
     private readonly rollupManager: RollupConfigManager;
@@ -493,7 +502,7 @@ export class BuildToolsManager {
                 outputDirs = [selectedDir[0].fsPath];
             }
             
-            let dirToAnalyze?: string;
+            let dirToAnalyze: string | undefined;
             if (outputDirs.length === 1) {
                 dirToAnalyze = outputDirs[0];
             } else {

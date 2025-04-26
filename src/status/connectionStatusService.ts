@@ -64,7 +64,7 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
         return this._stateChangeEmitter.event;
     }
 
-    public setState(state: ConnectionState, info?: any): void {
+    public setState(state: ConnectionState): void {
         this._state = state;
         this._stateChangeEmitter.fire(state);
         this.updateStatusBar();
@@ -157,7 +157,7 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
         
         let text = '';
         let tooltip = '';
-        let color?: string;
+        let color: vscode.ThemeColor | undefined;
         
         switch (status) {
             case ConnectionStatus.Connected:

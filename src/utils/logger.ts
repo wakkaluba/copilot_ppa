@@ -211,7 +211,7 @@ export class LoggerImpl implements Logger {
         // Format message for output
         const formattedTimestamp = new Date(timestamp).toISOString();
         let formattedMessage = `[${formattedTimestamp}] [${levelName}] ${message}`;
-        let context?: Record<string, unknown>;
+        let context: Record<string, unknown> | undefined;
         
         if (error) {
             let errorStr = '';
@@ -272,6 +272,76 @@ export class LoggerImpl implements Logger {
     // Getter for source property
     get source(): string {
         return this._source;
+    }
+
+    /**
+     * Get workspace folders
+     * @returns Array of workspace folders
+     */
+    public getWorkspaceFolders(): readonly vscode.WorkspaceFolder[] | undefined {
+        return vscode.workspace.workspaceFolders;
+    }
+
+    /**
+     * Find files in the workspace matching a pattern
+     * @param include glob pattern to match files
+     * @param exclude glob pattern to exclude files
+     * @param maxResults max number of results
+     * @returns Array of found file URIs
+     */
+    public async findFiles(include: string, exclude?: string, maxResults?: number): Promise<vscode.Uri[]> {
+        try {
+            return await vscode.workspace.findFiles(include, exclude, maxResults);
+        } catch (error) {
+            this.error(`Error finding files with pattern ${include}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a directory
+     * @param uri The URI of the directory to create
+     */
+    public async createDirectory(uri: vscode.Uri): Promise<void> {
+        try {
+            await vscode.workspace.fs.createDirectory(uri);
+        } catch (error) {
+            this.error(`Error creating directory ${uri.fsPath}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param defaultValue Default value if not found
+     * @returns The configuration value or default value
+     */
+    public getConfiguration<T>(section: string, key: string, defaultValue?: T): T | undefined {
+        const config = vscode.workspace.getConfiguration(section);
+        if (defaultValue === undefined) {
+            return config.get<T>(key);
+        } else {
+            return config.get<T>(key, defaultValue);
+        }
+    }
+
+    /**
+     * Update configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param value New value
+     * @param target Configuration target (default: Workspace)
+     */
+    public async updateConfiguration(section: string, key: string, value: any, target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Workspace): Promise<void> {
+        try {
+            const config = vscode.workspace.getConfiguration(section);
+            await config.update(key, value, target);
+        } catch (error) {
+            this.error(`Error updating configuration ${section}.${key}:`, error);
+            throw error;
+        }
     }
 }
 

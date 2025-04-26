@@ -161,7 +161,7 @@ export class CommandRegistrationService {
 }
 
 // Singleton instance
-let commandRegistrationService?: CommandRegistrationService;
+let commandRegistrationService: CommandRegistrationService | undefined;
 
 /**
  * Initialize the command registration service
