@@ -1,60 +1,60 @@
 /**
  * Tests for LogEntry interface
  */
-import { LogEntry, LogLevel } from '../../../../src/utils/logger';
+import { LogEntry, LogLevel } from '../../../../src/types/logging';
 
 describe('LogEntry interface', () => {
   it('should create a valid LogEntry with required fields', () => {
     const logEntry: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.INFO,
       message: 'Test message'
     };
 
     expect(logEntry).toBeDefined();
-    expect(logEntry.timestamp).toBe('2025-04-16T12:00:00.000Z');
+    expect(logEntry.timestamp).toEqual(new Date('2025-04-16T12:00:00.000Z'));
     expect(logEntry.level).toBe(LogLevel.INFO);
     expect(logEntry.message).toBe('Test message');
-    expect(logEntry.details).toBeUndefined();
+    expect(logEntry.context).toBeUndefined();
   });
 
   it('should create a valid LogEntry with optional details', () => {
-    const details = { key: 'value', count: 42 };
+    const context = { key: 'value', count: 42 };
     const logEntry: LogEntry = {
-      timestamp: '2025-04-16T12:01:00.000Z',
+      timestamp: new Date('2025-04-16T12:01:00.000Z'),
       level: LogLevel.ERROR,
       message: 'Error message',
-      details
+      context
     };
 
     expect(logEntry).toBeDefined();
-    expect(logEntry.timestamp).toBe('2025-04-16T12:01:00.000Z');
+    expect(logEntry.timestamp).toEqual(new Date('2025-04-16T12:01:00.000Z'));
     expect(logEntry.level).toBe(LogLevel.ERROR);
     expect(logEntry.message).toBe('Error message');
-    expect(logEntry.details).toEqual(details);
+    expect(logEntry.context).toEqual(context);
   });
 
   it('should accept different log levels', () => {
     const debugLog: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.DEBUG,
       message: 'Debug message'
     };
 
     const infoLog: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.INFO,
       message: 'Info message'
     };
 
     const warnLog: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.WARN,
       message: 'Warning message'
     };
 
     const errorLog: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.ERROR,
       message: 'Error message'
     };
@@ -66,39 +66,39 @@ describe('LogEntry interface', () => {
   });
 
   it('should accept different types of details', () => {
-    const withStringDetails: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+    const withStringContext: LogEntry = {
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.INFO,
-      message: 'Message with string details',
-      details: 'String details'
+      message: 'Message with string context',
+      context: { value: 'String details' }
     };
 
-    const withNumberDetails: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+    const withNumberContext: LogEntry = {
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.INFO,
-      message: 'Message with number details',
-      details: 42
+      message: 'Message with number context',
+      context: { value: 42 }
     };
 
-    const withArrayDetails: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+    const withArrayContext: LogEntry = {
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.INFO,
-      message: 'Message with array details',
-      details: [1, 2, 3]
+      message: 'Message with array context',
+      additionalData: [1, 2, 3]
     };
 
     const error = new Error('Test error');
-    const withErrorDetails: LogEntry = {
-      timestamp: '2025-04-16T12:00:00.000Z',
+    const withErrorContext: LogEntry = {
+      timestamp: new Date('2025-04-16T12:00:00.000Z'),
       level: LogLevel.ERROR,
-      message: 'Message with error details',
-      details: error
+      message: 'Message with error context',
+      context: { error }
     };
 
-    expect(withStringDetails.details).toBe('String details');
-    expect(withNumberDetails.details).toBe(42);
-    expect(withArrayDetails.details).toEqual([1, 2, 3]);
-    expect(withErrorDetails.details).toBe(error);
+    expect(withStringContext.context?.value).toBe('String details');
+    expect(withNumberContext.context?.value).toBe(42);
+    expect(withArrayContext.additionalData).toEqual([1, 2, 3]);
+    expect(withErrorContext.context?.error).toBe(error);
   });
 });
 
@@ -107,7 +107,7 @@ describe('LogEntry interface', () => {
  */
 export function createMockLogEntry(overrides?: Partial<LogEntry>): LogEntry {
   const defaultEntry: LogEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(),
     level: LogLevel.INFO,
     message: 'Test log message'
   };

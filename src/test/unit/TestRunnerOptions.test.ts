@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import { TestRunnerOptions } from '../../services/testRunner/testRunnerTypes';
 
-suite('TestRunnerOptions Interface Tests', () => {
-    test('validates basic options', () => {
+describe('TestRunnerOptions Interface Tests', () => {
+    it('validates basic options', () => {
         const options: TestRunnerOptions = {
             path: '/test/path',
             command: 'npm test',
@@ -20,7 +20,7 @@ suite('TestRunnerOptions Interface Tests', () => {
         assert.strictEqual(options.timeout, 5000);
     });
 
-    test('validates E2E specific options', () => {
+    it('validates E2E specific options', () => {
         const options: TestRunnerOptions = {
             configureE2E: true,
             browser: 'chrome',
@@ -32,7 +32,7 @@ suite('TestRunnerOptions Interface Tests', () => {
         assert.strictEqual(options.headless, true);
     });
 
-    test('validates performance test options', () => {
+    it('validates performance test options', () => {
         const options: TestRunnerOptions = {
             performance: {
                 iterations: 100,
@@ -48,7 +48,7 @@ suite('TestRunnerOptions Interface Tests', () => {
         assert.strictEqual(options.askForCustomCommand, true);
     });
 
-    test('accepts partial options', () => {
+    it('accepts partial options', () => {
         // Test that all properties are optional
         const minimalOptions: TestRunnerOptions = {};
         assert.strictEqual(Object.keys(minimalOptions).length, 0);
@@ -63,7 +63,7 @@ suite('TestRunnerOptions Interface Tests', () => {
         assert.strictEqual(partialOptions.configureE2E, undefined);
     });
 
-    test('combines multiple option types', () => {
+    it('combines multiple option types', () => {
         const options: TestRunnerOptions = {
             // Basic options
             path: '/test/path',

@@ -1,11 +1,25 @@
 import * as vscode from 'vscode';
-import { Theme, ThemeColors, FontSettings, UILayoutOptions, ThemeChangeEvent, UIOptionsChangeEvent, IThemeService } from './themes/interfaces';
+import { ITheme, IThemeColors, IFontSettings, IUILayoutOptions, IThemeChangeEvent, IUIOptionsChangeEvent, IThemeService } from './themes/interfaces';
 import { defaultThemes } from './themes/defaults';
 import { CSSGenerator } from './themes/cssGenerator';
 import { inject, injectable } from 'inversify';
-import { EventEmitter } from 'vscode';
 
-export { Theme, ThemeColors, FontSettings, UILayoutOptions, ThemeChangeEvent, UIOptionsChangeEvent };
+export type Theme = ITheme;
+export type ThemeColors = IThemeColors;
+export type FontSettings = IFontSettings;
+export type UILayoutOptions = IUILayoutOptions;
+export type ThemeChangeEvent = IThemeChangeEvent;
+export type UIOptionsChangeEvent = IUIOptionsChangeEvent;
+
+/**
+ * Define the IThemeStorage interface required by ThemeManager
+ */
+interface IThemeStorage {
+    getTheme(id: string): Theme | undefined;
+    saveTheme(theme: Theme): void;
+    deleteTheme(id: string): boolean;
+    getAllThemes(): Theme[];
+}
 
 /**
  * Manager for UI themes and customization
@@ -26,7 +40,7 @@ export class ThemeManager implements IThemeService {
 
     constructor(
         @inject('ExtensionContext') private readonly context: vscode.ExtensionContext,
-        @inject('ThemeStorage') private readonly storage: IThemeStorage
+        @inject('ThemeStorage') private readonly storage?: IThemeStorage
     ) {
         // Initialize with default themes
         this.registerDefaultThemes();
@@ -41,12 +55,12 @@ export class ThemeManager implements IThemeService {
         this.setupVSCodeThemeWatcher();
     }
 
-    public static getInstance(context?: vscode.ExtensionContext): ThemeManager {
+    public static getInstance(context?: vscode.ExtensionContext, storage?: IThemeStorage): ThemeManager {
         if (!ThemeManager.instance) {
             if (!context) {
                 throw new Error('Context is required when first initializing ThemeManager');
             }
-            ThemeManager.instance = new ThemeManager(context);
+            ThemeManager.instance = new ThemeManager(context, storage);
         }
         return ThemeManager.instance;
     }
@@ -210,7 +224,7 @@ export class ThemeManager implements IThemeService {
 }
 
 // Singleton instance
-let themeManager?: ThemeManager;
+let themeManager: ThemeManager | undefined;
 
 /**
  * Initialize the theme manager

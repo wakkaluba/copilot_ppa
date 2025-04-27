@@ -116,6 +116,8 @@ export interface TestResult {
         vulnerabilities: Array<{
             /** Title or ID of the vulnerability */
             id: string;
+            /** Name of the vulnerability */
+            name: string;
             /** Detailed description */
             description: string;
             /** Severity level */
@@ -141,4 +143,44 @@ export interface TestResult {
             total: number;
         };
     };
+}
+
+/**
+ * Options for static code analysis
+ */
+export interface StaticAnalysisOptions extends TestRunnerOptions {
+    /** Static analysis tool to use */
+    tool?: 'eslint' | 'prettier' | 'stylelint' | 'tslint' | 'sonarqube';
+    /** Whether to automatically fix issues if possible */
+    autoFix?: boolean;
+    /** Files or patterns to include in analysis */
+    files?: string[];
+}
+
+/**
+ * Options for code coverage analysis
+ */
+export interface CodeCoverageOptions extends TestRunnerOptions {
+    /** Code coverage tool to use */
+    tool?: 'jest' | 'nyc' | 'c8';
+    /** Minimum coverage threshold percentage (0-100) */
+    threshold?: number;
+    /** Whether to generate HTML reports */
+    html?: boolean;
+    /** Whether to generate XML reports */
+    xml?: boolean;
+    /** Files or patterns to include in coverage */
+    files?: string[];
+}
+
+/**
+ * Options for security testing
+ */
+export interface SecurityTestOptions extends TestRunnerOptions {
+    /** Security testing tool to use */
+    tool?: 'npm-audit' | 'snyk' | 'owasp-dependency-check' | 'trivy';
+    /** Minimum severity level to report */
+    severityThreshold?: 'info' | 'low' | 'medium' | 'high' | 'critical';
+    /** Whether to fail the test if vulnerabilities are found */
+    failOnVulnerabilities?: boolean;
 }

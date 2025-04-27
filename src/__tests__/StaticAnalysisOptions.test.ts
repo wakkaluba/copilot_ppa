@@ -1,4 +1,3 @@
-// filepath: d:\___coding\tools\copilot_ppa\src\__tests__\StaticAnalysisOptions.test.ts
 import { StaticAnalysisOptions, StaticAnalysisTool } from '../services/testRunner/staticAnalysisService';
 
 describe('StaticAnalysisOptions Interface', () => {
@@ -9,10 +8,10 @@ describe('StaticAnalysisOptions Interface', () => {
 
       expect(options.path).toBeUndefined();
       expect(options.tool).toBeUndefined();
-      expect(options.command).toBeUndefined();
-      expect(options.autoFix).toBeUndefined();
-      expect(options.exclude).toBeUndefined();
-      expect(options.include).toBeUndefined();
+      expect(options.files).toBeUndefined();
+      expect(options.fix).toBeUndefined();
+      expect(options.ignorePatterns).toBeUndefined();
+      expect(options.config).toBeUndefined();
       expect(options.configPath).toBeUndefined();
     });
 
@@ -20,20 +19,20 @@ describe('StaticAnalysisOptions Interface', () => {
       const options: StaticAnalysisOptions = {
         path: '/project/src',
         tool: 'eslint',
-        command: 'npx eslint --fix',
-        autoFix: true,
-        exclude: ['node_modules/**', 'dist/**'],
-        include: ['src/**/*.ts'],
-        configPath: '.eslintrc.json'
+        files: ['src/**/*.ts'],
+        fix: true,
+        ignorePatterns: ['node_modules/**', 'dist/**'],
+        configPath: '.eslintrc.json',
+        config: { rules: { 'no-console': 'error' } }
       };
 
       expect(options.path).toBe('/project/src');
       expect(options.tool).toBe('eslint');
-      expect(options.command).toBe('npx eslint --fix');
-      expect(options.autoFix).toBe(true);
-      expect(options.exclude).toEqual(['node_modules/**', 'dist/**']);
-      expect(options.include).toEqual(['src/**/*.ts']);
+      expect(options.files).toEqual(['src/**/*.ts']);
+      expect(options.fix).toBe(true);
+      expect(options.ignorePatterns).toEqual(['node_modules/**', 'dist/**']);
       expect(options.configPath).toBe('.eslintrc.json');
+      expect(options.config).toEqual({ rules: { 'no-console': 'error' } });
     });
   });
 
@@ -54,7 +53,7 @@ describe('StaticAnalysisOptions Interface', () => {
       tools.forEach(tool => {
         const options: StaticAnalysisOptions = {
           tool,
-          command: `run ${tool}`
+          config: { enabled: true }
         };
         
         expect(options.tool).toBe(tool);
@@ -67,15 +66,15 @@ describe('StaticAnalysisOptions Interface', () => {
     it('should handle various path configurations', () => {
       const options: StaticAnalysisOptions = {
         path: '/project/src',
-        include: ['src/**/*.ts', 'test/**/*.ts'],
-        exclude: ['**/*.d.ts', '**/node_modules/**']
+        files: ['src/**/*.ts', 'test/**/*.ts'],
+        ignorePatterns: ['**/*.d.ts', '**/node_modules/**']
       };
 
       expect(options.path).toBe('/project/src');
-      expect(options.include).toHaveLength(2);
-      expect(options.include).toContain('src/**/*.ts');
-      expect(options.exclude).toHaveLength(2);
-      expect(options.exclude).toContain('**/*.d.ts');
+      expect(options.files).toHaveLength(2);
+      expect(options.files).toContain('src/**/*.ts');
+      expect(options.ignorePatterns).toHaveLength(2);
+      expect(options.ignorePatterns).toContain('**/*.d.ts');
     });
 
     it('should work with Windows-style paths', () => {
@@ -95,53 +94,55 @@ describe('StaticAnalysisOptions Interface', () => {
       const options: StaticAnalysisOptions = {
         tool: 'eslint',
         configPath: '.eslintrc.json',
-        autoFix: true,
-        exclude: ['node_modules/**'],
-        include: ['src/**/*.{js,ts}']
+        fix: true,
+        ignorePatterns: ['node_modules/**'],
+        files: ['src/**/*.{js,ts}']
       };
       
       expect(options.tool).toBe('eslint');
       expect(options.configPath).toBe('.eslintrc.json');
-      expect(options.autoFix).toBe(true);
+      expect(options.fix).toBe(true);
     });
 
     it('should work with Prettier configuration', () => {
       const options: StaticAnalysisOptions = {
         tool: 'prettier',
         configPath: '.prettierrc',
-        autoFix: true,
-        include: ['**/*.{js,ts,css,md}']
+        fix: true,
+        files: ['**/*.{js,ts,css,md}']
       };
       
       expect(options.tool).toBe('prettier');
       expect(options.configPath).toBe('.prettierrc');
-      expect(options.autoFix).toBe(true);
+      expect(options.fix).toBe(true);
     });
 
     it('should work with Stylelint configuration', () => {
       const options: StaticAnalysisOptions = {
         tool: 'stylelint',
         configPath: '.stylelintrc.json',
-        include: ['**/*.{css,scss}'],
-        exclude: ['dist/**']
+        files: ['**/*.{css,scss}'],
+        ignorePatterns: ['dist/**']
       };
       
       expect(options.tool).toBe('stylelint');
       expect(options.configPath).toBe('.stylelintrc.json');
-      expect(options.include?.[0]).toBe('**/*.{css,scss}');
+      expect(options.files?.[0]).toBe('**/*.{css,scss}');
     });
 
     it('should work with custom tool configuration', () => {
       const options: StaticAnalysisOptions = {
         tool: 'custom',
-        command: './run-custom-analysis.sh',
         configPath: 'custom-analysis.config.json',
-        include: ['src/**/*']
+        files: ['src/**/*'],
+        config: {
+          command: './run-custom-analysis.sh'
+        }
       };
       
       expect(options.tool).toBe('custom');
-      expect(options.command).toBe('./run-custom-analysis.sh');
       expect(options.configPath).toBe('custom-analysis.config.json');
+      expect(options.config?.command).toBe('./run-custom-analysis.sh');
     });
   });
 
@@ -150,34 +151,34 @@ describe('StaticAnalysisOptions Interface', () => {
     it('should handle auto-fix option with different tools', () => {
       const lintOptions: StaticAnalysisOptions = {
         tool: 'eslint',
-        autoFix: true
+        fix: true
       };
-      expect(lintOptions.autoFix).toBe(true);
+      expect(lintOptions.fix).toBe(true);
 
       const formatOptions: StaticAnalysisOptions = {
         tool: 'prettier',
-        autoFix: true
+        fix: true
       };
-      expect(formatOptions.autoFix).toBe(true);
+      expect(formatOptions.fix).toBe(true);
 
       const noFixOptions: StaticAnalysisOptions = {
         tool: 'sonarqube',
-        autoFix: false
+        fix: false
       };
-      expect(noFixOptions.autoFix).toBe(false);
+      expect(noFixOptions.fix).toBe(false);
     });
 
     it('should work with auto-fix and specific paths', () => {
       const options: StaticAnalysisOptions = {
         tool: 'eslint',
-        autoFix: true,
-        include: ['src/**/*.ts'],
-        exclude: ['**/*.spec.ts']
+        fix: true,
+        files: ['src/**/*.ts'],
+        ignorePatterns: ['**/*.spec.ts']
       };
 
-      expect(options.autoFix).toBe(true);
-      expect(options.include).toContain('src/**/*.ts');
-      expect(options.exclude).toContain('**/*.spec.ts');
+      expect(options.fix).toBe(true);
+      expect(options.files).toContain('src/**/*.ts');
+      expect(options.ignorePatterns).toContain('**/*.spec.ts');
     });
   });
 });

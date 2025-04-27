@@ -77,13 +77,20 @@ export class CommandParser {
 
     private parseCommand(input: string): Command | null {
         try {
-            // Format: #command(arg1="value1", arg2="value2")
-            const match = input.match(/^#(\w+)\((.*)\)$/);
-            if (!match) {return null;}
+            // Format: /command arg1="value1" arg2="value2"
+            const match = input.match(/^\/(\w+)(?:\s+(.*))?$/);
+            if (!match) {
+                // Fallback to old format: #command(arg1="value1", arg2="value2")
+                const oldFormatMatch = input.match(/^#(\w+)\((.*)\)$/);
+                if (!oldFormatMatch) {return null;}
+                
+                const [, name, argsString] = oldFormatMatch;
+                const args = this.parseArgs(argsString);
+                return { name, args };
+            }
 
             const [, name, argsString] = match;
-            const args = this.parseArgs(argsString);
-
+            const args = argsString ? this.parseArgs(argsString) : {};
             return { name, args };
         } catch {
             return null;
@@ -107,44 +114,75 @@ export class CommandParser {
     }
 
     private parseArgs(argsString: string): Record<string, any> {
-        const args: Record<string, any> = {};
-        const matches = argsString.match(/(\w+)="([^"]*?)"/g) || [];
-
-        for (const match of matches) {
-            const [keyWithEqual, valueWithQuotes] = match.split('=');
-            if (keyWithEqual && valueWithQuotes) {
-                const key = keyWithEqual.trim();
-                const value = valueWithQuotes.replace(/^"|"$/g, '');
-                args[key] = value;
-            }
+        if (!argsString || argsString.trim() === '') {
+            return {};
         }
 
+        const args: Record<string, any> = {};
+        
+        // Match arguments in format key="value" or key=value
+        const argPairs = argsString.match(/(\w+)=(?:"([^"]*)"|(true|false|[-+]?[0-9]*\.?[0-9]+))/g) || [];
+        
+        for (const pair of argPairs) {
+            const [key, rawValue] = pair.split('=');
+            if (!key || rawValue === undefined) continue;
+            
+            let value: any;
+            
+            // Handle quoted string values
+            if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+                value = rawValue.slice(1, -1);
+            } 
+            // Handle boolean values
+            else if (rawValue === 'true' || rawValue === 'false') {
+                value = rawValue === 'true';
+            } 
+            // Handle numeric values
+            else if (!isNaN(Number(rawValue))) {
+                value = Number(rawValue);
+            } 
+            // Default to string
+            else {
+                value = rawValue;
+            }
+            
+            args[key] = value;
+        }
+        
+        // Handle simple boolean flags (key without a value)
+        const booleanFlags = argsString.match(/\b(\w+)\b(?!\s*=)/g) || [];
+        for (const flag of booleanFlags) {
+            if (!args.hasOwnProperty(flag)) {
+                args[flag] = true;
+            }
+        }
+        
         return args;
     }
 
     private async createFile(args: { path: string; content: string }): Promise<void> {
-        await this.workspaceManager.writeFile(args.path, args.content);
+        await this.workspaceManager.writeFile(vscode.Uri.file(args.path), args.content);
     }
 
     private async modifyFile(args: { path: string; changes: string }): Promise<void> {
-        const content = await this.workspaceManager.readFile(args.path);
+        const content = await this.workspaceManager.readFile(vscode.Uri.file(args.path));
         // TODO: Implement smart content merging
-        await this.workspaceManager.writeFile(args.path, args.changes);
+        await this.workspaceManager.writeFile(vscode.Uri.file(args.path), args.changes);
     }
 
     private async deleteFile(args: { path: string }): Promise<void> {
-        await this.workspaceManager.deleteFile(args.path);
+        await vscode.workspace.fs.delete(vscode.Uri.file(args.path), { recursive: true });
     }
 
-    private async analyzeCode(args: { path: string }): Promise<void> {
+    private async analyzeCode(_args: { path: string }): Promise<void> {
         // TODO: Implement code analysis
     }
 
-    private async explainCode(args: { code: string }): Promise<void> {
+    private async explainCode(_args: { code: string }): Promise<void> {
         // TODO: Implement code explanation
     }
 
-    private async suggestImprovements(args: { code: string }): Promise<void> {
+    private async suggestImprovements(_args: { code: string }): Promise<void> {
         // TODO: Implement improvement suggestions
     }
 

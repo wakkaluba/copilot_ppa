@@ -85,7 +85,7 @@ export class ConnectionStatusService extends EventEmitter implements vscode.Disp
 
     private registerEventListeners(): void {
         // Listen for connection status changes
-        this.connectionManager.on('statusChanged', (event) => {
+        this.connectionManager.on('statusChanged', (_event) => {
             this.updateConnectionStatus();
         });
         

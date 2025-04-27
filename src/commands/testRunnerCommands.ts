@@ -235,8 +235,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command?: string;
-            let tool?: string;
+            let command: string | undefined;
+            let tool: string | undefined;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {
@@ -321,8 +321,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command?: string;
-            let tool?: string;
+            let command: string | undefined;
+            let tool: string | undefined;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {
@@ -430,8 +430,8 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                 return; // User cancelled
             }
             
-            let command?: string;
-            let tool?: string;
+            let command: string | undefined;
+            let tool: string | undefined;
             
             // Configure custom command if selected
             if (toolOption.value === 'custom') {
@@ -503,7 +503,10 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                             if (selection === 'View Details') {
                                 SecurityVulnerabilityPanel.createOrShow(
                                     context.extensionUri, 
-                                    result.securityTest!.vulnerabilities,
+                                    result.securityTest!.vulnerabilities.map(v => ({
+                                        ...v,
+                                        name: v.package || v.id // Use package name as the vulnerability name or fallback to ID
+                                    })),
                                     'Security Vulnerabilities'
                                 );
                             }
@@ -514,7 +517,10 @@ export function registerTestRunnerCommands(context: vscode.ExtensionContext) {
                             if (selection === 'View Details') {
                                 SecurityVulnerabilityPanel.createOrShow(
                                     context.extensionUri, 
-                                    result.securityTest!.vulnerabilities,
+                                    result.securityTest!.vulnerabilities.map(v => ({
+                                        ...v,
+                                        name: v.package || v.id // Use package name as the vulnerability name or fallback to ID
+                                    })),
                                     'Security Vulnerabilities'
                                 );
                             }

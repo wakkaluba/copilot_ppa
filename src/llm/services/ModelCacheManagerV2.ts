@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { ILogger } from '../../common/logging';
+import { ILogger } from '../../services/logging/ILogger';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LLMModelInfo } from '../types';
@@ -41,7 +41,7 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     private readonly cleanupInterval: NodeJS.Timer;
 
     constructor(
-        @inject(ILogger) private readonly logger: ILogger,
+        @inject('ILogger') private readonly logger: ILogger,
         private readonly config: CacheConfig = {
             maxMemorySize: 1024 * 1024 * 1024, // 1GB
             maxDiskSize: 5 * 1024 * 1024 * 1024, // 5GB
@@ -259,14 +259,14 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
             const now = Date.now();
 
             // Cleanup memory cache
-            for (const [key, item] of this.memoryCache.entries()) {
+            for (const [key, item] of Array.from(this.memoryCache.entries())) {
                 if (this.isExpired(item)) {
                     await this.invalidate(key);
                 }
             }
 
             // Cleanup disk cache
-            for (const [key, filePath] of this.diskCache.entries()) {
+            for (const [key, filePath] of Array.from(this.diskCache.entries())) {
                 if (!fs.existsSync(filePath)) {
                     this.diskCache.delete(key);
                     continue;
@@ -299,10 +299,10 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     private findLRUKey(): string | undefined {
-        let lruKey?: string;
+        let lruKey: string | undefined;
         let lruTime = Infinity;
 
-        for (const [key, item] of this.memoryCache.entries()) {
+        for (const [key, item] of Array.from(this.memoryCache.entries())) {
             if (item.lastAccess < lruTime) {
                 lruTime = item.lastAccess;
                 lruKey = key;
@@ -313,10 +313,10 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     private findOldestDiskKey(): string | undefined {
-        let oldestKey?: string;
+        let oldestKey: string | undefined;
         let oldestTime = Infinity;
 
-        for (const [key, filePath] of this.diskCache.entries()) {
+        for (const [key, filePath] of Array.from(this.diskCache.entries())) {
             try {
                 const stats = fs.statSync(filePath);
                 if (stats.mtimeMs < oldestTime) {
@@ -363,7 +363,7 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     private handleError(message: string, error: Error): void {
-        this.logger.error('[ModelCacheManager]', message, error);
+        this.logger.error(`[ModelCacheManager] ${message}: ${error.message}`);
         this.emit('error', error);
         this.outputChannel.appendLine(`\nError: ${message}`);
         this.outputChannel.appendLine(error.stack || error.message);
@@ -375,7 +375,9 @@ export class ModelCacheManagerV2 extends EventEmitter implements vscode.Disposab
     }
 
     public dispose(): void {
-        clearInterval(this.cleanupInterval);
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval as NodeJS.Timeout);
+        }
         this.memoryCache.clear();
         this.diskCache.clear();
         this.outputChannel.dispose();

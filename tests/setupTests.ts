@@ -197,7 +197,7 @@ if (typeof global.performance === 'undefined') {
 
 // Override console methods to catch errors during tests
 const originalConsoleError = console.error;
-console.error = (...args: any[]) => {
+console.error = (_: any) => {
     // Uncomment the line below if you want to see error messages during tests
     // originalConsoleError(...args);
 };

@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { ILogger } from '../../utils/logger';
+import { Logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 
 export interface DeploymentConfig {
@@ -36,7 +36,7 @@ export class ModelDeploymentService extends EventEmitter {
     private deploymentCounter = 0;
 
     constructor(
-        @inject(ILogger) private readonly logger: ILogger
+        @inject('ILogger') private readonly logger: Logger
     ) {
         super();
         this.logger.info('ModelDeploymentService initialized');

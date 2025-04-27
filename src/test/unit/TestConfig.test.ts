@@ -40,8 +40,8 @@ interface TestConfig {
     };
 }
 
-suite('TestConfig Interface Tests', () => {
-    test('validates basic configuration', () => {
+describe('TestConfig Interface Tests', () => {
+    it('validates basic configuration', () => {
         const config: TestConfig = {
             testType: 'unit',
             testDir: './tests/unit',
@@ -57,7 +57,7 @@ suite('TestConfig Interface Tests', () => {
         assert.strictEqual(config.timeout, 5000);
     });
 
-    test('validates framework configuration', () => {
+    it('validates framework configuration', () => {
         const config: TestConfig = {
             testType: 'unit',
             testDir: './tests',
@@ -69,7 +69,7 @@ suite('TestConfig Interface Tests', () => {
         assert.strictEqual(config.command, 'jest --runInBand');
     });
 
-    test('validates filter options', () => {
+    it('validates filter options', () => {
         const config: TestConfig = {
             testType: 'integration',
             testDir: './tests/integration',
@@ -81,7 +81,7 @@ suite('TestConfig Interface Tests', () => {
         assert.deepStrictEqual(config.exclude, ['**/helpers/**', '**/fixtures/**']);
     });
 
-    test('validates E2E configuration', () => {
+    it('validates E2E configuration', () => {
         const config: TestConfig = {
             testType: 'e2e',
             testDir: './tests/e2e',
@@ -96,7 +96,7 @@ suite('TestConfig Interface Tests', () => {
         assert.strictEqual(config.baseUrl, 'http://localhost:3000');
     });
 
-    test('validates performance test configuration', () => {
+    it('validates performance test configuration', () => {
         const config: TestConfig = {
             testType: 'performance',
             testDir: './tests/performance',
@@ -116,7 +116,7 @@ suite('TestConfig Interface Tests', () => {
         assert.deepStrictEqual(config.performance?.metrics, ['cpu', 'memory', 'network']);
     });
 
-    test('validates coverage configuration', () => {
+    it('validates coverage configuration', () => {
         const config: TestConfig = {
             testType: 'unit',
             testDir: './tests/unit',
@@ -134,7 +134,7 @@ suite('TestConfig Interface Tests', () => {
         assert.deepStrictEqual(config.coverage?.exclude, ['**/node_modules/**', '**/*.test.ts']);
     });
 
-    test('validates combined configuration', () => {
+    it('validates combined configuration', () => {
         const config: TestConfig = {
             testType: 'e2e',
             testDir: './tests/e2e',
