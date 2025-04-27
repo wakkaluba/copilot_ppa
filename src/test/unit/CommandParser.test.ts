@@ -3,12 +3,12 @@ import * as sinon from 'sinon';
 import { CommandParser, Command } from '../../services/CommandParser';
 import { WorkspaceManager } from '../../services/WorkspaceManager';
 
-suite('CommandParser Tests', () => {
+describe('CommandParser Tests', () => {
     let commandParser: CommandParser;
     let workspaceManagerStub: sinon.SinonStubbedInstance<WorkspaceManager>;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create stub for WorkspaceManager
@@ -21,17 +21,17 @@ suite('CommandParser Tests', () => {
         commandParser = CommandParser.getInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('getInstance should return singleton instance', () => {
+    it('getInstance should return singleton instance', () => {
         const instance1 = CommandParser.getInstance();
         const instance2 = CommandParser.getInstance();
         assert.strictEqual(instance1, instance2);
     });
 
-    test('parseAndExecute should call correct handler for valid command', async () => {
+    it('parseAndExecute should call correct handler for valid command', async () => {
         // Create spy for createFile command
         const createFileSpy = sandbox.spy(commandParser as any, 'createFile');
         
@@ -46,21 +46,21 @@ suite('CommandParser Tests', () => {
         });
     });
 
-    test('parseAndExecute should throw error for invalid command format', async () => {
+    it('parseAndExecute should throw error for invalid command format', async () => {
         await assert.rejects(
             () => commandParser.parseAndExecute('not a valid command'),
             /Invalid command format/
         );
     });
 
-    test('parseAndExecute should throw error for unknown command', async () => {
+    it('parseAndExecute should throw error for unknown command', async () => {
         await assert.rejects(
             () => commandParser.parseAndExecute('#unknownCommand(arg="value")'),
             /Unknown command: unknownCommand/
         );
     });
 
-    test('registerCommand should add custom command handler', async () => {
+    it('registerCommand should add custom command handler', async () => {
         // Create a custom command handler
         const customHandler = sinon.stub().resolves();
         
@@ -77,7 +77,7 @@ suite('CommandParser Tests', () => {
         });
     });
 
-    test('createFile command should call workspaceManager.writeFile', async () => {
+    it('createFile command should call workspaceManager.writeFile', async () => {
         workspaceManagerStub.writeFile.resolves();
         
         await commandParser.parseAndExecute('#createFile(path="test.txt", content="Hello World")');
@@ -87,7 +87,7 @@ suite('CommandParser Tests', () => {
         assert.strictEqual(workspaceManagerStub.writeFile.firstCall.args[1], 'Hello World');
     });
 
-    test('modifyFile command should read and write file', async () => {
+    it('modifyFile command should read and write file', async () => {
         workspaceManagerStub.readFile.resolves('Original content');
         workspaceManagerStub.writeFile.resolves();
         
@@ -103,7 +103,7 @@ suite('CommandParser Tests', () => {
         assert.strictEqual(workspaceManagerStub.writeFile.firstCall.args[1], 'New content');
     });
 
-    test('deleteFile command should call workspaceManager.deleteFile', async () => {
+    it('deleteFile command should call workspaceManager.deleteFile', async () => {
         workspaceManagerStub.deleteFile.resolves();
         
         await commandParser.parseAndExecute('#deleteFile(path="test.txt")');
@@ -112,7 +112,7 @@ suite('CommandParser Tests', () => {
         assert.strictEqual(workspaceManagerStub.deleteFile.firstCall.args[0], 'test.txt');
     });
 
-    test('parseCommand should extract command name and arguments correctly', () => {
+    it('parseCommand should extract command name and arguments correctly', () => {
         // Access private method using type assertion
         const parseCommand = (commandParser as any).parseCommand.bind(commandParser);
         
@@ -125,7 +125,7 @@ suite('CommandParser Tests', () => {
         });
     });
 
-    test('parseCommand should return null for invalid input', () => {
+    it('parseCommand should return null for invalid input', () => {
         // Access private method using type assertion
         const parseCommand = (commandParser as any).parseCommand.bind(commandParser);
         
@@ -142,7 +142,7 @@ suite('CommandParser Tests', () => {
         }
     });
 
-    test('parseArgs should handle multiple arguments', () => {
+    it('parseArgs should handle multiple arguments', () => {
         // Access private method using type assertion
         const parseArgs = (commandParser as any).parseArgs.bind(commandParser);
         
@@ -155,7 +155,7 @@ suite('CommandParser Tests', () => {
         });
     });
 
-    test('parseArgs should handle empty arguments list', () => {
+    it('parseArgs should handle empty arguments list', () => {
         // Access private method using type assertion
         const parseArgs = (commandParser as any).parseArgs.bind(commandParser);
         

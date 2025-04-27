@@ -27,7 +27,7 @@ describe('ThemeManager', () => {
 
     describe('Theme Management', () => {
         test('should initialize with default themes', () => {
-            const themes = themeManager.getAllThemes();
+            const themes = themeManager.getThemes();
             expect(themes.length).toBeGreaterThan(0);
             expect(themes.some(t => t.id === 'default')).toBe(true);
             expect(themes.some(t => t.id === 'dark')).toBe(true);
@@ -35,7 +35,7 @@ describe('ThemeManager', () => {
         });
 
         test('should get current theme', () => {
-            const theme = themeManager.getCurrentTheme();
+            const theme = themeManager.getActiveTheme();
             expect(theme).toBeDefined();
             expect(theme.id).toBeDefined();
             expect(theme.colors).toBeDefined();
@@ -46,6 +46,7 @@ describe('ThemeManager', () => {
             const customTheme: Theme = {
                 id: 'custom1',
                 name: 'Custom Theme',
+                type: 'light',
                 isBuiltIn: false,
                 colors: {
                     primary: '#ff0000',
@@ -59,7 +60,13 @@ describe('ThemeManager', () => {
                     systemMessage: '#808080',
                     error: '#ff0000',
                     success: '#00ff00',
-                    border: '#c0c0c0'
+                    border: '#c0c0c0',
+                    buttonBackground: '#ff0000',
+                    buttonForeground: '#ffffff',
+                    buttonHoverBackground: '#cc0000',
+                    inputBackground: '#ffffff',
+                    inputForeground: '#000000',
+                    inputBorder: '#c0c0c0'
                 },
                 font: {
                     family: 'Arial',
@@ -72,11 +79,11 @@ describe('ThemeManager', () => {
             };
 
             themeManager.createCustomTheme('Custom Theme', 'default', {
-                colors: customTheme.colors,
-                font: customTheme.font
+                ...customTheme.colors,
+                ...customTheme.font
             });
 
-            const themes = themeManager.getAllThemes();
+            const themes = themeManager.getThemes();
             expect(themes.some(t => t.name === 'Custom Theme')).toBe(true);
             expect(mockGlobalState.update).toHaveBeenCalled();
         });
@@ -85,17 +92,44 @@ describe('ThemeManager', () => {
             const customTheme: Theme = {
                 id: 'custom2',
                 name: 'Custom Theme 2',
+                type: 'light',
                 isBuiltIn: false,
-                colors: {} as ThemeColors,
-                font: {} as FontSettings
+                colors: {
+                    primary: '#ff0000',
+                    secondary: '#00ff00',
+                    background: '#ffffff',
+                    foreground: '#000000',
+                    agentMessageBackground: '#f0f0f0',
+                    agentMessageForeground: '#000000',
+                    userMessageBackground: '#e0e0e0',
+                    userMessageForeground: '#000000',
+                    systemMessage: '#808080',
+                    error: '#ff0000',
+                    success: '#00ff00',
+                    border: '#c0c0c0',
+                    buttonBackground: '#ff0000',
+                    buttonForeground: '#ffffff',
+                    buttonHoverBackground: '#cc0000',
+                    inputBackground: '#ffffff',
+                    inputForeground: '#000000',
+                    inputBorder: '#c0c0c0'
+                },
+                font: {
+                    family: 'Arial',
+                    sizeInPixels: 14,
+                    lineHeight: 1.5,
+                    weight: 400,
+                    headingWeight: 700,
+                    useMonospaceForCode: true
+                }
             };
 
             themeManager.createCustomTheme('Custom Theme 2', 'default', {});
-            const beforeDelete = themeManager.getAllThemes();
+            const beforeDelete = themeManager.getThemes();
             expect(beforeDelete.some(t => t.name === 'Custom Theme 2')).toBe(true);
 
             themeManager.deleteCustomTheme('custom2');
-            const afterDelete = themeManager.getAllThemes();
+            const afterDelete = themeManager.getThemes();
             expect(afterDelete.some(t => t.name === 'Custom Theme 2')).toBe(false);
             expect(mockGlobalState.update).toHaveBeenCalled();
         });
@@ -138,8 +172,8 @@ describe('ThemeManager', () => {
         });
 
         test('should update UI layout options', () => {
-            const updates = {
-                chatInputPosition: 'top',
+            const updates: Partial<UILayoutOptions> = {
+                chatInputPosition: 'top' as const,
                 showTimestamps: false,
                 compactMode: true
             };

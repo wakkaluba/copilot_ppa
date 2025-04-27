@@ -171,7 +171,7 @@ export class CommandParser {
     }
 
     private async deleteFile(args: { path: string }): Promise<void> {
-        await vscode.workspace.fs.delete(vscode.Uri.file(args.path), { recursive: true });
+        await this.workspaceManager.deleteFile(vscode.Uri.file(args.path));
     }
 
     private async analyzeCode(_args: { path: string }): Promise<void> {

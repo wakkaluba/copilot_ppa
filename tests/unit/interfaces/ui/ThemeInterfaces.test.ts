@@ -16,6 +16,7 @@ describe('Theme interface', () => {
     const theme: Theme = {
       id: 'test-theme',
       name: 'Test Theme',
+      type: 'light',
       isBuiltIn: false,
       colors: themeColors,
       font: fontSettings
@@ -33,6 +34,7 @@ describe('Theme interface', () => {
     const theme: Theme = {
       id: 'dark',
       name: 'Dark Theme',
+      type: 'dark',
       isBuiltIn: true,
       colors: createMockThemeColors(),
       font: createMockFontSettings()
@@ -47,6 +49,7 @@ describe('Theme interface', () => {
     const theme: Theme = {
       id: 'custom-theme-1234',
       name: 'My Custom Theme',
+      type: 'light',
       isBuiltIn: false,
       colors: createMockThemeColors(),
       font: createMockFontSettings()
@@ -71,7 +74,13 @@ describe('ThemeColors interface', () => {
       systemMessage: '#6c757d',
       error: '#dc3545',
       success: '#28a745',
-      border: '#dee2e6'
+      border: '#dee2e6',
+      buttonBackground: '#007acc',
+      buttonForeground: '#ffffff',
+      buttonHoverBackground: '#0069d9',
+      inputBackground: '#ffffff',
+      inputForeground: '#333333',
+      inputBorder: '#ced4da'
     };
 
     expect(colors).toBeDefined();
@@ -95,7 +104,13 @@ describe('ThemeColors interface', () => {
       systemMessage: '#7f848e',
       error: '#e06c75',
       success: '#98c379',
-      border: '#3e4452'
+      border: '#3e4452',
+      buttonBackground: '#3b4048',
+      buttonForeground: '#abb2bf',
+      buttonHoverBackground: '#4a5058',
+      inputBackground: '#1e2227',
+      inputForeground: '#abb2bf',
+      inputBorder: '#3e4452'
     };
 
     expect(darkColors).toBeDefined();
@@ -116,7 +131,13 @@ describe('ThemeColors interface', () => {
       systemMessage: '#d4d4d4',
       error: '#f48771',
       success: '#89d185',
-      border: '#6b6b6b'
+      border: '#6b6b6b',
+      buttonBackground: '#1e1e1e',
+      buttonForeground: '#ffffff',
+      buttonHoverBackground: '#2e2e2e',
+      inputBackground: '#000000',
+      inputForeground: '#ffffff',
+      inputBorder: '#6b6b6b'
     };
 
     expect(highContrastColors).toBeDefined();
@@ -247,7 +268,13 @@ export function createMockThemeColors(): ThemeColors {
     systemMessage: '#6c757d',
     error: '#dc3545',
     success: '#28a745',
-    border: '#dee2e6'
+    border: '#dee2e6',
+    buttonBackground: '#007acc',
+    buttonForeground: '#ffffff',
+    buttonHoverBackground: '#0069d9',
+    inputBackground: '#ffffff',
+    inputForeground: '#333333',
+    inputBorder: '#ced4da'
   };
 }
 
@@ -266,6 +293,7 @@ export function createMockTheme(overrides?: Partial<Theme>): Theme {
   const defaultTheme: Theme = {
     id: 'mock-theme',
     name: 'Mock Theme',
+    type: 'light',
     isBuiltIn: false,
     colors: createMockThemeColors(),
     font: createMockFontSettings()

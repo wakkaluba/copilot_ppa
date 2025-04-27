@@ -155,4 +155,36 @@ export class WorkspaceManager {
             throw error;
         }
     }
+
+    /**
+     * Delete a file
+     * @param uri The URI of the file to delete
+     */
+    public async deleteFile(uri: vscode.Uri): Promise<void> {
+        try {
+            await vscode.workspace.fs.delete(uri);
+        } catch (error) {
+            this.logger.error(`Failed to delete file ${uri.fsPath}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * List files in a directory
+     * @param directoryPath The path of the directory to list files from
+     * @returns Array of file paths
+     */
+    public async listFiles(directoryPath: string): Promise<string[]> {
+        try {
+            const uri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders?.[0].uri || vscode.Uri.file('.'), directoryPath);
+            const entries = await this.listDirectory(uri);
+            
+            return entries
+                .filter(([_, type]) => type === vscode.FileType.File)
+                .map(([name, _]) => `${directoryPath}/${name}`);
+        } catch (error) {
+            this.logger.error(`Failed to list files in ${directoryPath}:`, error);
+            return [];
+        }
+    }
 }

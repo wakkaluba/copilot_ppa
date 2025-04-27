@@ -5,7 +5,7 @@ import { ApprovalManager, ChangePreview } from '../../services/ApprovalManager';
 import { WorkspaceManager } from '../../services/WorkspaceManager';
 import { TrustManager } from '../../services/TrustManager';
 
-suite('ApprovalManager Tests', () => {
+describe('ApprovalManager Tests', () => {
     let approvalManager: ApprovalManager;
     let workspaceManagerStub: sinon.SinonStubbedInstance<WorkspaceManager>;
     let trustManagerStub: sinon.SinonStubbedInstance<TrustManager>;
@@ -13,7 +13,7 @@ suite('ApprovalManager Tests', () => {
     let commandsStub: sinon.SinonStub;
     let sandbox: sinon.SinonSandbox;
 
-    setup(() => {
+    beforeEach(() => {
         sandbox = sinon.createSandbox();
         
         // Create stubs for dependencies
@@ -35,17 +35,17 @@ suite('ApprovalManager Tests', () => {
         approvalManager = ApprovalManager.getInstance();
     });
 
-    teardown(() => {
+    afterEach(() => {
         sandbox.restore();
     });
 
-    test('getInstance should return singleton instance', () => {
+    it('getInstance should return singleton instance', () => {
         const instance1 = ApprovalManager.getInstance();
         const instance2 = ApprovalManager.getInstance();
         assert.strictEqual(instance1, instance2);
     });
 
-    test('requestApproval should return false if trust check fails', async () => {
+    it('requestApproval should return false if trust check fails', async () => {
         // Set up trust manager to reject trust
         trustManagerStub.requireTrust.resolves(false);
         
@@ -65,7 +65,7 @@ suite('ApprovalManager Tests', () => {
         assert.strictEqual(trustManagerStub.requireTrust.firstCall.args[0], 'test.txt');
     });
 
-    test('requestApproval should show preview and confirmation dialog', async () => {
+    it('requestApproval should show preview and confirmation dialog', async () => {
         // Set up trust manager to approve trust
         trustManagerStub.requireTrust.resolves(true);
         
@@ -92,7 +92,7 @@ suite('ApprovalManager Tests', () => {
         assert.strictEqual((vscode.window.showWarningMessage as sinon.SinonStub).calledOnce, true);
     });
 
-    test('requestApproval should cancel if user cancels preview', async () => {
+    it('requestApproval should cancel if user cancels preview', async () => {
         // Set up trust manager to approve trust
         trustManagerStub.requireTrust.resolves(true);
         
@@ -116,7 +116,7 @@ suite('ApprovalManager Tests', () => {
         assert.strictEqual((vscode.window.showWarningMessage as sinon.SinonStub).called, false);
     });
 
-    test('requestApproval should show diff if user requests preview', async () => {
+    it('requestApproval should show diff if user requests preview', async () => {
         // Set up trust manager to approve trust
         trustManagerStub.requireTrust.resolves(true);
         
@@ -142,7 +142,7 @@ suite('ApprovalManager Tests', () => {
         assert.strictEqual(commandsStub.firstCall.args[0], 'vscode.diff');
     });
 
-    test('requestApproval should handle multiple changes', async () => {
+    it('requestApproval should handle multiple changes', async () => {
         // Set up trust manager to approve trust
         trustManagerStub.requireTrust.resolves(true);
         
@@ -188,7 +188,7 @@ suite('ApprovalManager Tests', () => {
         assert.ok(message.includes('1 files to delete'));
     });
     
-    test('requestApproval should return false if user cancels confirmation', async () => {
+    it('requestApproval should return false if user cancels confirmation', async () => {
         // Set up trust manager to approve trust
         trustManagerStub.requireTrust.resolves(true);
         
