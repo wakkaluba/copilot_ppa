@@ -2,13 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryPanelStateService = void 0;
 class RepositoryPanelStateService {
-    context;
-    state = {
-        repositories: [],
-        currentView: 'list',
-    };
     constructor(context) {
         this.context = context;
+        this.state = {
+            repositories: [],
+            currentView: 'list',
+        };
         this.loadState();
     }
     getState() {

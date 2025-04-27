@@ -7,21 +7,20 @@ const types_1 = require("../types");
  * Service for managing chat history, persistence, and statistics
  */
 class LLMChatHistoryService extends events_1.EventEmitter {
-    sessions = new Map();
-    options;
-    stats = {
-        totalSessions: 0,
-        totalMessages: 0,
-        averageMessagesPerSession: 0,
-        oldestSession: null,
-        newestSession: null
-    };
     constructor(options = {}) {
         super();
+        this.sessions = new Map();
+        this.stats = {
+            totalSessions: 0,
+            totalMessages: 0,
+            averageMessagesPerSession: 0,
+            oldestSession: null,
+            newestSession: null
+        };
         this.options = {
             maxHistory: options.maxHistory || 100,
             maxMessagesPerSession: options.maxMessagesPerSession || 1000,
-            pruneInterval: options.pruneInterval || 3600000, // 1 hour
+            pruneInterval: options.pruneInterval || 3600000,
             ...options
         };
         this.startPruneInterval();
@@ -44,7 +43,7 @@ class LLMChatHistoryService extends events_1.EventEmitter {
             this.emit(types_1.ChatEvent.HistorySaved, {
                 sessionId,
                 messageId: message.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {
@@ -61,7 +60,7 @@ class LLMChatHistoryService extends events_1.EventEmitter {
             this.updateStats();
             this.emit(types_1.ChatEvent.HistorySaved, {
                 sessionId: session.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {
@@ -78,7 +77,7 @@ class LLMChatHistoryService extends events_1.EventEmitter {
                 this.sessions.set(sessionId, session);
                 this.emit(types_1.ChatEvent.HistoryLoaded, {
                     sessionId,
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 });
             }
             return session;
@@ -97,7 +96,7 @@ class LLMChatHistoryService extends events_1.EventEmitter {
             this.updateStats();
             this.emit(types_1.ChatEvent.HistoryDeleted, {
                 sessionId,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {

@@ -5,13 +5,11 @@ const events_1 = require("events");
 const types_1 = require("../types");
 const errors_1 = require("../errors");
 class LLMConnectionHandlerService extends events_1.EventEmitter {
-    _currentState = types_1.ConnectionState.DISCONNECTED;
-    _activeProvider = null;
-    _activeConnection = null;
-    _lastError;
-    options;
     constructor(options = {}) {
         super();
+        this._currentState = types_1.ConnectionState.DISCONNECTED;
+        this._activeProvider = null;
+        this._activeConnection = null;
         this.options = {
             maxRetries: options.maxRetries || 3,
             initialRetryDelay: options.initialRetryDelay || 1000,

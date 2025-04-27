@@ -6,12 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GitHubApiService = void 0;
 const axios_1 = __importDefault(require("axios"));
 class GitHubApiService {
-    context;
-    baseUrl = 'https://api.github.com';
-    cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    codeExamplesCache = new Map();
     constructor(context) {
         this.context = context;
+        this.baseUrl = 'https://api.github.com';
+        this.cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        this.codeExamplesCache = new Map();
     }
     /**
      * Search for code examples on GitHub based on query
@@ -44,7 +43,7 @@ class GitHubApiService {
             // Cache results
             this.codeExamplesCache.set(cacheKey, {
                 examples: response.data.items,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             return response.data.items;
         }

@@ -4,19 +4,14 @@ exports.CoreAgent = void 0;
 const PromptManager_1 = require("./PromptManager");
 const ContextManager_1 = require("./ContextManager");
 const CommandParser_1 = require("./CommandParser");
-const ConversationManager_1 = require("./ConversationManager");
+const conversationManager_1 = require("./conversationManager");
 class CoreAgent {
-    static instance;
-    promptManager;
-    contextManager;
-    commandParser;
-    conversationManager;
-    status = 'idle';
     constructor() {
+        this.status = 'idle';
         this.promptManager = PromptManager_1.PromptManager.getInstance();
         this.contextManager = ContextManager_1.ContextManager.getInstance();
         this.commandParser = CommandParser_1.CommandParser.getInstance();
-        this.conversationManager = ConversationManager_1.ConversationManager.getInstance();
+        this.conversationManager = conversationManager_1.ConversationManager.getInstance();
     }
     static getInstance() {
         if (!this.instance) {
@@ -92,4 +87,4 @@ class CoreAgent {
     }
 }
 exports.CoreAgent = CoreAgent;
-//# sourceMappingURL=CoreAgent.js.map
+//# sourceMappingURL=coreAgent.js.map

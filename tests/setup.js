@@ -1,71 +1,138 @@
-// tests/setup.js
-
-// Set up global test environment
-process.env.NODE_ENV = 'test';
-
-// Mock vscode module since it's not available in the test environment
-jest.mock('vscode', () => {
-  return {
-    // Add all vscode APIs you need to mock
-    window: {
-      createOutputChannel: jest.fn(() => ({
-        append: jest.fn(),
-        appendLine: jest.fn(),
-        clear: jest.fn(),
-        show: jest.fn(),
-        hide: jest.fn(),
-        dispose: jest.fn()
-      })),
-      createLogOutputChannel: jest.fn(() => ({
-        append: jest.fn(),
-        appendLine: jest.fn(),
-        clear: jest.fn(),
-        show: jest.fn(),
-        hide: jest.fn(),
-        dispose: jest.fn(),
-        logLevel: 1,
-        onDidChangeLogLevel: { event: jest.fn() },
-        trace: jest.fn(),
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn()
-      })),
-      showErrorMessage: jest.fn(),
-      showInformationMessage: jest.fn(),
-      showWarningMessage: jest.fn(),
-      withProgress: jest.fn()
-    },
-    EventEmitter: class {
-      event = jest.fn();
-      fire = jest.fn();
-      dispose = jest.fn();
-    },
-    Uri: {
-      parse: jest.fn(str => ({ fsPath: str.replace('file://', '') })),
-      file: jest.fn(path => ({ fsPath: path }))
-    },
-    LogLevel: {
-      Trace: 0,
-      Debug: 1,
-      Info: 2,
-      Warning: 3,
-      Error: 4,
-      Off: 5
-    },
-    ExtensionMode: {
-      Production: 1,
-      Development: 2,
-      Test: 3
-    },
-    DiagnosticSeverity: {
-      Error: 0,
-      Warning: 1,
-      Information: 2,
-      Hint: 3
-    },
-    ProgressLocation: {
-      Notification: 15
-    }
-  };
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+// The vscode import is required for the test environment setup
+// even though it appears unused in this file
+// Mock VS Code API (no import needed since we're mocking the module)
+jest.mock('vscode', function () {
+    return {
+        window: {
+            createOutputChannel: jest.fn().mockReturnValue({
+                appendLine: jest.fn(),
+                append: jest.fn(),
+                clear: jest.fn(),
+                show: jest.fn(),
+                hide: jest.fn(),
+                dispose: jest.fn()
+            }),
+            showInformationMessage: jest.fn(),
+            showWarningMessage: jest.fn(),
+            showErrorMessage: jest.fn(),
+            withProgress: jest.fn(),
+            createWebviewPanel: jest.fn(),
+            createStatusBarItem: jest.fn().mockReturnValue({
+                text: '',
+                tooltip: '',
+                command: '',
+                show: jest.fn(),
+                hide: jest.fn(),
+                dispose: jest.fn()
+            }),
+        },
+        workspace: {
+            getConfiguration: jest.fn().mockReturnValue({
+                get: jest.fn(),
+                update: jest.fn(),
+                has: jest.fn(),
+                inspect: jest.fn()
+            }),
+            fs: {
+                readFile: jest.fn(),
+                writeFile: jest.fn(),
+                readDirectory: jest.fn(),
+                stat: jest.fn(),
+                createDirectory: jest.fn(),
+            },
+            onDidChangeConfiguration: jest.fn(),
+            findFiles: jest.fn(),
+            workspaceFolders: [],
+        },
+        commands: {
+            registerCommand: jest.fn(),
+            executeCommand: jest.fn(),
+        },
+        Uri: {
+            file: jest.fn(function (path) { return ({
+                fsPath: path,
+                scheme: 'file',
+                path: path,
+                with: jest.fn()
+            }); }),
+            parse: jest.fn(),
+        },
+        Position: jest.fn(),
+        Range: jest.fn(),
+        EventEmitter: jest.fn().mockImplementation(function () { return ({
+            event: jest.fn(),
+            fire: jest.fn()
+        }); }),
+        ViewColumn: {
+            Active: -1,
+            Beside: -2,
+            One: 1,
+            Two: 2,
+            Three: 3
+        },
+        StatusBarAlignment: {
+            Left: 1,
+            Right: 2
+        },
+        ThemeColor: jest.fn(),
+        ProgressLocation: {
+            Notification: 15
+        },
+        LogLevel: {
+            Trace: 0,
+            Debug: 1,
+            Info: 2,
+            Warning: 3,
+            Error: 4,
+            Critical: 5,
+            Off: 6
+        },
+        FileType: {
+            Unknown: 0,
+            File: 1,
+            Directory: 2,
+            SymbolicLink: 64
+        },
+        FileSystemError: {
+            FileNotFound: jest.fn(),
+            FileExists: jest.fn(),
+            FileNotADirectory: jest.fn(),
+            FileIsADirectory: jest.fn(),
+            NoPermissions: jest.fn(),
+            Unavailable: jest.fn()
+        },
+        ExtensionMode: {
+            Development: 1,
+            Test: 2,
+            Production: 3
+        },
+        EnvironmentVariableMutatorType: {
+            Replace: 1,
+            Append: 2,
+            Prepend: 3
+        },
+        EndOfLine: {
+            LF: 1,
+            CRLF: 2
+        },
+        ConfigurationTarget: {
+            Global: 1,
+            Workspace: 2,
+            WorkspaceFolder: 3
+        }
+    };
+});
+// Setup global test environment
+beforeAll(function () {
+    // Any setup before all tests
+});
+afterAll(function () {
+    // Any cleanup after all tests
+    jest.restoreAllMocks();
+});
+beforeEach(function () {
+    // Reset mocks before each test
+    jest.clearAllMocks();
 });

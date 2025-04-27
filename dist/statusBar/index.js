@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupStatusBar = setupStatusBar;
+exports.setupStatusBar = void 0;
 const ServiceRegistry_1 = require("../services/ServiceRegistry");
 const connectionStatus_1 = require("./connectionStatus");
 const providerStatus_1 = require("./providerStatus");
@@ -15,4 +15,5 @@ function setupStatusBar(context, registry) {
     const providerStatusBar = new providerStatus_1.ProviderStatusBar(providerManager, themeManager, displaySettings);
     context.subscriptions.push(connectionStatusBar, providerStatusBar);
 }
+exports.setupStatusBar = setupStatusBar;
 //# sourceMappingURL=index.js.map

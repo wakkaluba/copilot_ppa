@@ -3,11 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationManager = void 0;
 const WorkspaceManager_1 = require("./WorkspaceManager");
 class ConversationManager {
-    static instance;
-    workspaceManager;
-    currentConversation = null;
-    historyPath = 'conversations';
     constructor() {
+        this.currentConversation = null;
+        this.historyPath = 'conversations';
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
     }
     static getInstance() {
@@ -33,7 +31,7 @@ class ConversationManager {
         const message = {
             role,
             content,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         this.currentConversation.messages.push(message);
         this.currentConversation.updated = Date.now();

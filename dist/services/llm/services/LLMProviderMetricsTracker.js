@@ -4,9 +4,12 @@ exports.LLMProviderMetricsTracker = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class LLMProviderMetricsTracker extends events_1.EventEmitter {
-    metrics = new Map();
-    lastResponseTimes = new Map();
-    maxResponseTimeHistory = 100;
+    constructor() {
+        super(...arguments);
+        this.metrics = new Map();
+        this.lastResponseTimes = new Map();
+        this.maxResponseTimeHistory = 100;
+    }
     /**
      * Initialize metrics tracking for a provider
      */

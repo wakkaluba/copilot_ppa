@@ -2,13 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MemoryPerformanceMonitor = void 0;
 class MemoryPerformanceMonitor {
-    static METRICS_LIMIT = 1000;
-    metrics = [];
-    totalOptimizationTime = 0;
+    constructor() {
+        this.metrics = [];
+        this.totalOptimizationTime = 0;
+    }
     recordMetrics(heapUsed, cacheSizeEntries, optimizationTime) {
         this.totalOptimizationTime += optimizationTime;
         const metrics = {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             heapUsed,
             cacheSizeEntries,
             optimizationCount: this.metrics.length + 1,
@@ -41,4 +42,5 @@ Memory Optimization Performance Report:
     }
 }
 exports.MemoryPerformanceMonitor = MemoryPerformanceMonitor;
+MemoryPerformanceMonitor.METRICS_LIMIT = 1000;
 //# sourceMappingURL=memoryMetrics.js.map

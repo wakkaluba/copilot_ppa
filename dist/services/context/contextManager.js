@@ -2,9 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextManager = void 0;
 class ContextManager {
-    messages = [];
-    maxContextLength = 4096;
-    constructor() { }
+    constructor() {
+        this.messages = [];
+        this.maxContextLength = 4096;
+    }
     appendMessage(message) {
         this.messages.push(message);
         this.trimContextIfNeeded();

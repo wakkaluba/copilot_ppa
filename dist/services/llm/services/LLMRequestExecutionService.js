@@ -7,11 +7,14 @@ const types_1 = require("../types");
  * Service for executing LLM requests with proper queuing and rate limiting
  */
 class LLMRequestExecutionService extends events_1.EventEmitter {
-    activeRequests = new Map();
-    requestQueue = [];
-    maxConcurrentRequests = 3;
-    requestTimeout = 30000;
-    processingQueue = false;
+    constructor() {
+        super(...arguments);
+        this.activeRequests = new Map();
+        this.requestQueue = [];
+        this.maxConcurrentRequests = 3;
+        this.requestTimeout = 30000;
+        this.processingQueue = false;
+    }
     /**
      * Execute an LLM request
      */
@@ -87,7 +90,7 @@ class LLMRequestExecutionService extends events_1.EventEmitter {
             this.activeRequests.set(requestInfo.id, requestInfo);
             this.emit(types_1.LLMRequestEvent.Started, {
                 requestId: requestInfo.id,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             // Set up timeout
             const timeoutId = setTimeout(() => {
@@ -131,7 +134,7 @@ class LLMRequestExecutionService extends events_1.EventEmitter {
         this.activeRequests.delete(requestId);
         this.emit(types_1.LLMRequestEvent.Aborted, {
             requestId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         return true;
     }

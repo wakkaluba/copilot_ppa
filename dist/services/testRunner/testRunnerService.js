@@ -12,13 +12,6 @@ const PerformanceTestService_1 = require("./services/PerformanceTestService");
  * Service for running various types of tests within the VS Code environment
  */
 class TestRunnerService {
-    unitService;
-    integrationService;
-    e2eService;
-    performanceService;
-    staticService;
-    coverageService;
-    securityService;
     constructor() {
         this.unitService = new UnitTestService_1.UnitTestService();
         this.integrationService = new IntegrationTestService_1.IntegrationTestService();

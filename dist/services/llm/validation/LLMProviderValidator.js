@@ -2,10 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderValidator = void 0;
 class LLMProviderValidator {
-    static REQUIRED_CONFIG_FIELDS = [
-        'apiEndpoint',
-        'connection'
-    ];
     validateConfig(config) {
         const errors = [];
         // Check required fields
@@ -168,4 +164,8 @@ class LLMProviderValidator {
     }
 }
 exports.LLMProviderValidator = LLMProviderValidator;
+LLMProviderValidator.REQUIRED_CONFIG_FIELDS = [
+    'apiEndpoint',
+    'connection'
+];
 //# sourceMappingURL=LLMProviderValidator.js.map

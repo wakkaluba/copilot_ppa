@@ -8,13 +8,13 @@ var HostStatus;
     HostStatus["Available"] = "available";
     HostStatus["Unavailable"] = "unavailable";
     HostStatus["Error"] = "error";
-})(HostStatus || (exports.HostStatus = HostStatus = {}));
+})(HostStatus = exports.HostStatus || (exports.HostStatus = {}));
 class LLMHostManager extends events_1.EventEmitter {
-    hosts = new Map();
-    checkIntervals = new Map();
-    defaultCheckInterval = 60000; // 1 minute
     constructor() {
         super();
+        this.hosts = new Map();
+        this.checkIntervals = new Map();
+        this.defaultCheckInterval = 60000; // 1 minute
     }
     /**
      * Add a new LLM host
@@ -101,7 +101,7 @@ class LLMHostManager extends events_1.EventEmitter {
             result = {
                 isAvailable,
                 latency: endTime - startTime,
-                apiVersion: "1.0", // This would come from the actual API response
+                apiVersion: "1.0",
                 supportsStreaming: true // This would be determined from the API response
             };
         }

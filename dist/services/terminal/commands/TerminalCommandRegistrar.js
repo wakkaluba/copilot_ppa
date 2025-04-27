@@ -1,91 +1,62 @@
 "use strict";
-var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
-    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
-    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
-    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
-    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
-    var _, done = false;
-    for (var i = decorators.length - 1; i >= 0; i--) {
-        var context = {};
-        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
-        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
-        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
-        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
-        if (kind === "accessor") {
-            if (result === void 0) continue;
-            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
-            if (_ = accept(result.get)) descriptor.get = _;
-            if (_ = accept(result.set)) descriptor.set = _;
-            if (_ = accept(result.init)) initializers.unshift(_);
-        }
-        else if (_ = accept(result)) {
-            if (kind === "field") initializers.unshift(_);
-            else descriptor[key] = _;
-        }
-    }
-    if (target) Object.defineProperty(target, contextIn.name, descriptor);
-    done = true;
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
-    var useValue = arguments.length > 2;
-    for (var i = 0; i < initializers.length; i++) {
-        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
-    }
-    return useValue ? value : void 0;
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TerminalCommandRegistrar = void 0;
 const inversify_1 = require("inversify");
-let TerminalCommandRegistrar = (() => {
-    let _classDecorators = [(0, inversify_1.injectable)()];
-    let _classDescriptor;
-    let _classExtraInitializers = [];
-    let _classThis;
-    var TerminalCommandRegistrar = class {
-        static { _classThis = this; }
-        static {
-            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
-            __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
-            TerminalCommandRegistrar = _classThis = _classDescriptor.value;
-            if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
-            __runInitializers(_classThis, _classExtraInitializers);
+const terminalManager_1 = require("../terminalManager");
+const interactiveShell_1 = require("../interactiveShell");
+const TerminalConfigurationService_1 = require("../services/TerminalConfigurationService");
+let TerminalCommandRegistrar = class TerminalCommandRegistrar {
+    constructor(logger, terminalManager, interactiveShell, config, aiHelper) {
+        this.logger = logger;
+        this.terminalManager = terminalManager;
+        this.interactiveShell = interactiveShell;
+        this.config = config;
+        this.aiHelper = aiHelper;
+        this.disposables = [];
+    }
+    register(context) {
+        this.registerTerminalCreation(context);
+        this.registerCommandExecution(context);
+        if (this.aiHelper) {
+            this.registerAICommands(context);
         }
-        logger;
-        terminalManager;
-        interactiveShell;
-        config;
-        aiHelper;
-        disposables = [];
-        constructor(logger, terminalManager, interactiveShell, config, aiHelper) {
-            this.logger = logger;
-            this.terminalManager = terminalManager;
-            this.interactiveShell = interactiveShell;
-            this.config = config;
-            this.aiHelper = aiHelper;
+    }
+    registerTerminalCreation(context) {
+        // ... similar to original command registration but with error handling ...
+    }
+    registerCommandExecution(context) {
+        // ... similar to original command registration but with error handling ...
+    }
+    registerAICommands(context) {
+        // ... similar to original command registration but with error handling ...
+    }
+    dispose() {
+        for (const disposable of this.disposables) {
+            disposable.dispose();
         }
-        register(context) {
-            this.registerTerminalCreation(context);
-            this.registerCommandExecution(context);
-            if (this.aiHelper) {
-                this.registerAICommands(context);
-            }
-        }
-        registerTerminalCreation(context) {
-            // ... similar to original command registration but with error handling ...
-        }
-        registerCommandExecution(context) {
-            // ... similar to original command registration but with error handling ...
-        }
-        registerAICommands(context) {
-            // ... similar to original command registration but with error handling ...
-        }
-        dispose() {
-            for (const disposable of this.disposables) {
-                disposable.dispose();
-            }
-        }
-    };
-    return TerminalCommandRegistrar = _classThis;
-})();
+    }
+};
+TerminalCommandRegistrar = __decorate([
+    (0, inversify_1.injectable)(),
+    __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
+    __param(1, (0, inversify_1.inject)(terminalManager_1.TerminalManager)),
+    __param(2, (0, inversify_1.inject)(interactiveShell_1.InteractiveShell)),
+    __param(3, (0, inversify_1.inject)(TerminalConfigurationService_1.TerminalConfigurationService)),
+    __param(4, (0, inversify_1.inject)('AITerminalHelper')),
+    __metadata("design:paramtypes", [Object, typeof (_a = typeof terminalManager_1.TerminalManager !== "undefined" && terminalManager_1.TerminalManager) === "function" ? _a : Object, typeof (_b = typeof interactiveShell_1.InteractiveShell !== "undefined" && interactiveShell_1.InteractiveShell) === "function" ? _b : Object, TerminalConfigurationService_1.TerminalConfigurationService, Object])
+], TerminalCommandRegistrar);
 exports.TerminalCommandRegistrar = TerminalCommandRegistrar;
 //# sourceMappingURL=TerminalCommandRegistrar.js.map

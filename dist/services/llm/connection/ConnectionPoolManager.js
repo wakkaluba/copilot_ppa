@@ -4,8 +4,11 @@ exports.ConnectionPoolManager = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class ConnectionPoolManager extends events_1.EventEmitter {
-    pools = new Map();
-    healthChecks = new Map();
+    constructor() {
+        super(...arguments);
+        this.pools = new Map();
+        this.healthChecks = new Map();
+    }
     async initializeProvider(providerId, config) {
         const pool = new ProviderConnectionPool(config.poolSize || 1);
         this.pools.set(providerId, pool);
@@ -22,7 +25,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
             this.emit('healthCheck', {
                 providerId,
                 health,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }, 30000); // Check every 30 seconds
         this.healthChecks.set(providerId, interval);
@@ -36,7 +39,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         this.emit('connectionStateChanged', {
             providerId,
             state: types_1.ProviderConnectionState.Active,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         return connection;
     }
@@ -49,7 +52,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         this.emit('connectionStateChanged', {
             providerId,
             state: types_1.ProviderConnectionState.Available,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     async disposeProvider(providerId) {

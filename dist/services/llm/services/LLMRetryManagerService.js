@@ -2,10 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RetryManagerService = void 0;
 class RetryManagerService {
-    retryTimeout = null;
-    maxRetries;
-    retryDelay;
     constructor(options = {}) {
+        this.retryTimeout = null;
         this.maxRetries = options.retryConfig?.maxRetries || 3;
         this.retryDelay = options.retryConfig?.retryDelay || 1000;
     }

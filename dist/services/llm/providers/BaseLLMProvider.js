@@ -13,20 +13,13 @@ var ProviderState;
     ProviderState["Deactivating"] = "deactivating";
     ProviderState["Inactive"] = "inactive";
     ProviderState["Error"] = "error";
-})(ProviderState || (exports.ProviderState = ProviderState = {}));
+})(ProviderState = exports.ProviderState || (exports.ProviderState = {}));
 class BaseLLMProvider extends events_1.EventEmitter {
-    id;
-    name;
-    state = ProviderState.Unknown;
-    config;
-    currentModel;
-    lastError;
-    lastHealthCheck;
-    healthCheckTimer;
     constructor(id, name, config) {
         super();
         this.id = id;
         this.name = name;
+        this.state = ProviderState.Unknown;
         this.config = config;
         this.setupHealthCheck();
     }
@@ -47,7 +40,7 @@ class BaseLLMProvider extends events_1.EventEmitter {
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
             this.handleHealthCheckFailure(result);
             return result;
@@ -66,7 +59,7 @@ class BaseLLMProvider extends events_1.EventEmitter {
         this.emit('stateChanged', {
             providerId: this.id,
             state,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     setError(error) {
@@ -75,7 +68,7 @@ class BaseLLMProvider extends events_1.EventEmitter {
         this.emit('error', {
             providerId: this.id,
             error,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     getStatus() {

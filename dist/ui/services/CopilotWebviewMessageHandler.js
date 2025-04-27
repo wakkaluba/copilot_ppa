@@ -2,9 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotWebviewMessageHandler = void 0;
 class CopilotWebviewMessageHandler {
-    stateManager;
-    connectionManager;
-    logger;
     constructor(stateManager, connectionManager, logger) {
         this.stateManager = stateManager;
         this.connectionManager = connectionManager;

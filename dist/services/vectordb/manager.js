@@ -15,27 +15,15 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VectorDatabaseManager = void 0;
-exports.initializeVectorDatabaseManager = initializeVectorDatabaseManager;
-exports.getVectorDatabaseManager = getVectorDatabaseManager;
+exports.getVectorDatabaseManager = exports.initializeVectorDatabaseManager = exports.VectorDatabaseManager = void 0;
 const vscode = __importStar(require("vscode"));
 const chromaProvider_1 = require("./chromaProvider");
 const faissProvider_1 = require("./faissProvider");
@@ -43,12 +31,11 @@ const faissProvider_1 = require("./faissProvider");
  * Manager for vector database providers
  */
 class VectorDatabaseManager {
-    context;
-    providers = new Map();
-    activeProvider = null;
-    isEnabled = false;
     constructor(context) {
         this.context = context;
+        this.providers = new Map();
+        this.activeProvider = null;
+        this.isEnabled = false;
         // Register providers
         this.registerProvider(new chromaProvider_1.ChromaProvider(context));
         this.registerProvider(new faissProvider_1.FaissProvider(context));
@@ -196,6 +183,7 @@ function initializeVectorDatabaseManager(context) {
     }
     return vectorDatabaseManager;
 }
+exports.initializeVectorDatabaseManager = initializeVectorDatabaseManager;
 /**
  * Get the vector database manager instance
  */
@@ -205,4 +193,5 @@ function getVectorDatabaseManager() {
     }
     return vectorDatabaseManager;
 }
+exports.getVectorDatabaseManager = getVectorDatabaseManager;
 //# sourceMappingURL=manager.js.map

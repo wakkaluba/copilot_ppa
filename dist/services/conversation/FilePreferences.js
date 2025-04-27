@@ -2,15 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilePreferences = void 0;
 class FilePreferences {
-    _context;
-    _recentExtensions = [];
-    _recentDirectories = [];
-    _namingPatterns = [];
-    _storageKey = 'fileManagementPreferences';
-    _maxExtensions = 10;
-    _maxDirectories = 5;
-    _maxPatterns = 5;
     constructor(context) {
+        this._recentExtensions = [];
+        this._recentDirectories = [];
+        this._namingPatterns = [];
+        this._storageKey = 'fileManagementPreferences';
+        this._maxExtensions = 10;
+        this._maxDirectories = 5;
+        this._maxPatterns = 5;
         this._context = context;
     }
     async initialize() {

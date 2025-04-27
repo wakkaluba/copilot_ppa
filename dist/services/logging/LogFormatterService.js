@@ -12,7 +12,7 @@ class LogFormatterService {
     createEntry(level, message, context = {}, source) {
         // Return with correct typing to satisfy exactOptionalPropertyTypes
         const entry = {
-            timestamp: Date.now(),
+            timestamp: new Date(),
             level,
             message,
             context

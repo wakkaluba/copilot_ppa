@@ -3,9 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TeamService = void 0;
 const liveShareService_1 = require("./liveShareService");
 class TeamService {
-    sessions = new Map();
-    liveShare;
     constructor() {
+        this.sessions = new Map();
         this.liveShare = new liveShareService_1.LiveShareService();
     }
     async createSession(owner) {

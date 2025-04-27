@@ -4,8 +4,6 @@ exports.LLMService = void 0;
 const llmCacheService_1 = require("../cache/llmCacheService");
 // Assuming you already have an LLMProvider interface and implementations
 class LLMService {
-    provider;
-    cacheService;
     constructor(provider) {
         this.provider = provider;
         this.cacheService = new llmCacheService_1.LLMCacheService();

@@ -6,10 +6,6 @@ const OptimizationGeneratorService_1 = require("./services/OptimizationGenerator
 const BuildScriptAnalyzerService_1 = require("./services/BuildScriptAnalyzerService");
 const UserInteractionService_1 = require("./services/UserInteractionService");
 class BuildScriptOptimizer {
-    logger;
-    generator;
-    analyzer;
-    ui;
     constructor(buildTools, loggerFactory) {
         this.logger = loggerFactory?.('BuildScriptOptimizer') ?? new logger_1.Logger('BuildScriptOptimizer');
         this.generator = new OptimizationGeneratorService_1.OptimizationGeneratorService();

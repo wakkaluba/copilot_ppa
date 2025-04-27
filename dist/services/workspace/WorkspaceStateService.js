@@ -2,11 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkspaceStateService = void 0;
 class WorkspaceStateService {
-    context;
-    storageKey = 'contextManager.workspaces';
-    workspaceContexts = new Map();
     constructor(context) {
         this.context = context;
+        this.storageKey = 'contextManager.workspaces';
+        this.workspaceContexts = new Map();
     }
     async initialize() {
         const stored = this.context.globalState.get(this.storageKey) || {};

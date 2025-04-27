@@ -10,9 +10,8 @@ const config_1 = require("../config");
  * Implementation of LLMProvider for LM Studio's OpenAI-compatible API
  */
 class LMStudioProvider {
-    name = 'LM Studio';
-    baseUrl;
     constructor(baseUrl = config_1.Config.lmStudioApiUrl) {
+        this.name = 'LM Studio';
         this.baseUrl = baseUrl;
     }
     /**

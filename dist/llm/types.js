@@ -7,7 +7,7 @@ var LLMRequestPriority;
     LLMRequestPriority["Low"] = "low";
     LLMRequestPriority["Normal"] = "normal";
     LLMRequestPriority["High"] = "high";
-})(LLMRequestPriority || (exports.LLMRequestPriority = LLMRequestPriority = {}));
+})(LLMRequestPriority = exports.LLMRequestPriority || (exports.LLMRequestPriority = {}));
 var LLMRequestStatus;
 (function (LLMRequestStatus) {
     LLMRequestStatus["Pending"] = "pending";
@@ -15,7 +15,7 @@ var LLMRequestStatus;
     LLMRequestStatus["Completed"] = "completed";
     LLMRequestStatus["Failed"] = "failed";
     LLMRequestStatus["Cancelled"] = "cancelled";
-})(LLMRequestStatus || (exports.LLMRequestStatus = LLMRequestStatus = {}));
+})(LLMRequestStatus = exports.LLMRequestStatus || (exports.LLMRequestStatus = {}));
 // Model-related types
 var ModelEvents;
 (function (ModelEvents) {
@@ -44,5 +44,5 @@ var ModelEvents;
     ModelEvents["MetricsUpdated"] = "metrics:updated";
     ModelEvents["MetricsExpired"] = "metrics:expired";
     ModelEvents["MetricsAggregated"] = "metrics:aggregated";
-})(ModelEvents || (exports.ModelEvents = ModelEvents = {}));
+})(ModelEvents = exports.ModelEvents || (exports.ModelEvents = {}));
 //# sourceMappingURL=types.js.map

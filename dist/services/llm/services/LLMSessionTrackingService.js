@@ -6,16 +6,19 @@ const events_1 = require("events");
  * Service for tracking LLM session lifecycle and metrics
  */
 class LLMSessionTrackingService extends events_1.EventEmitter {
-    activeSessions = new Map();
-    sessionHistory = [];
-    stats = {
-        totalSessions: 0,
-        successfulSessions: 0,
-        failedSessions: 0,
-        abortedSessions: 0,
-        averageSessionDuration: 0,
-        totalTokensUsed: 0
-    };
+    constructor() {
+        super(...arguments);
+        this.activeSessions = new Map();
+        this.sessionHistory = [];
+        this.stats = {
+            totalSessions: 0,
+            successfulSessions: 0,
+            failedSessions: 0,
+            abortedSessions: 0,
+            averageSessionDuration: 0,
+            totalTokensUsed: 0
+        };
+    }
     /**
      * Start a new session
      */

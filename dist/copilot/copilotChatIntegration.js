@@ -8,13 +8,6 @@ const CopilotChatParticipantService_1 = require("./services/CopilotChatParticipa
 const CopilotChatMessageHandlerService_1 = require("./services/CopilotChatMessageHandlerService");
 const CopilotChatCommandHandlerService_1 = require("./services/CopilotChatCommandHandlerService");
 class CopilotChatIntegration {
-    static instance;
-    logger;
-    copilotApiService;
-    initService;
-    participantService;
-    messageHandlerService;
-    commandHandlerService;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
         this.copilotApiService = copilotApi_1.CopilotApiService.getInstance();

@@ -3,7 +3,7 @@
  * Message renderer module for conversation panel
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.renderMessages = renderMessages;
+exports.renderMessages = void 0;
 // Import dependencies
 const htmlEscaper_1 = require("../../utils/htmlEscaper");
 /**
@@ -19,6 +19,7 @@ function renderMessages(messages) {
         return renderSingleMessage(message, index);
     }).join('');
 }
+exports.renderMessages = renderMessages;
 /**
  * Renders a single chat message as HTML
  * @param message Chat message to render

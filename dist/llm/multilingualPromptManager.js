@@ -5,32 +5,34 @@ exports.MultilingualPromptManager = void 0;
  * Manages multilingual prompts and language detection for LLM responses
  */
 class MultilingualPromptManager {
-    // Language names mapping (ISO code to full name)
-    languageNames = new Map([
-        ['en', 'English'],
-        ['es', 'Spanish'],
-        ['de', 'German'],
-        ['fr', 'French'],
-        ['it', 'Italian'],
-        ['pt', 'Portuguese'],
-        ['ja', 'Japanese'],
-        ['ko', 'Korean'],
-        ['zh', 'Chinese'],
-        ['ru', 'Russian'],
-        ['ar', 'Arabic'],
-        ['tr', 'Turkish'],
-        ['pl', 'Polish'],
-        ['nl', 'Dutch'],
-        ['sv', 'Swedish'],
-        ['no', 'Norwegian'],
-        ['fi', 'Finnish'],
-        ['da', 'Danish'],
-        ['cs', 'Czech'],
-        ['uk', 'Ukrainian'],
-        ['hu', 'Hungarian'],
-        ['th', 'Thai'],
-        ['el', 'Greek']
-    ]);
+    constructor() {
+        // Language names mapping (ISO code to full name)
+        this.languageNames = new Map([
+            ['en', 'English'],
+            ['es', 'Spanish'],
+            ['de', 'German'],
+            ['fr', 'French'],
+            ['it', 'Italian'],
+            ['pt', 'Portuguese'],
+            ['ja', 'Japanese'],
+            ['ko', 'Korean'],
+            ['zh', 'Chinese'],
+            ['ru', 'Russian'],
+            ['ar', 'Arabic'],
+            ['tr', 'Turkish'],
+            ['pl', 'Polish'],
+            ['nl', 'Dutch'],
+            ['sv', 'Swedish'],
+            ['no', 'Norwegian'],
+            ['fi', 'Finnish'],
+            ['da', 'Danish'],
+            ['cs', 'Czech'],
+            ['uk', 'Ukrainian'],
+            ['hu', 'Hungarian'],
+            ['th', 'Thai'],
+            ['el', 'Greek']
+        ]);
+    }
     /**
      * Creates a prompt that enhances the original prompt with language instructions
      * @param prompt Original prompt

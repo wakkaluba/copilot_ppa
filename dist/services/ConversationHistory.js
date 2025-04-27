@@ -3,10 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationHistory = void 0;
 const events_1 = require("events");
 class ConversationHistory extends events_1.EventEmitter {
-    conversations = new Map();
-    context;
     constructor(context) {
         super();
+        this.conversations = new Map();
         this.context = context;
         this.loadFromStorage();
     }

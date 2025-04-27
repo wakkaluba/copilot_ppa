@@ -4,16 +4,14 @@ exports.ModelStateService = void 0;
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelStateService {
-    storageOptions;
-    _stateEmitter = new events_1.EventEmitter();
-    _states = new Map();
-    _logger;
-    _persistenceInterval = null;
     constructor(storageOptions = {
         persistenceInterval: 5000,
         maxHistoryItems: 100
     }) {
         this.storageOptions = storageOptions;
+        this._stateEmitter = new events_1.EventEmitter();
+        this._states = new Map();
+        this._persistenceInterval = null;
         this._logger = logger_1.Logger.for('ModelStateService');
         this.startPersistence();
     }

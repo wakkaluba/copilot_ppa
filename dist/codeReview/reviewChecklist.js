@@ -8,10 +8,8 @@ const LoggerService_1 = require("../services/LoggerService");
  * Manages code review checklists and report generation with comprehensive error handling
  */
 class ReviewChecklist {
-    service;
-    logger;
-    disposables = [];
     constructor(context) {
+        this.disposables = [];
         this.service = new ReviewChecklistService_1.ReviewChecklistService(context);
         this.logger = LoggerService_1.LoggerService.getInstance();
     }

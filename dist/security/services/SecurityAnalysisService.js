@@ -15,23 +15,13 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityAnalysisService = void 0;
 const vscode = __importStar(require("vscode"));
@@ -40,18 +30,15 @@ const events_1 = require("events");
  * Service responsible for coordinating security analysis operations
  */
 class SecurityAnalysisService {
-    scanner;
-    disposables = [];
-    _onAnalysisComplete = new events_1.EventEmitter();
-    analysisTimeout;
-    diagnosticCollection;
-    issueCache = new Map();
     constructor(scanner) {
+        this.disposables = [];
+        this._onAnalysisComplete = new events_1.EventEmitter();
+        this.issueCache = new Map();
+        this.onAnalysisComplete = this._onAnalysisComplete.event;
         this.scanner = scanner;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('security');
         this.disposables.push(vscode.workspace.onDidChangeTextDocument(() => this.onDocumentChanged()));
     }
-    onAnalysisComplete = this._onAnalysisComplete.event;
     async scanWorkspace(progressCallback) {
         progressCallback?.("Analyzing workspace files...");
         const result = await this.scanner.scanWorkspace(progressCallback);
@@ -61,7 +48,7 @@ class SecurityAnalysisService {
     async scanActiveFile() {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            return { issues: [], scannedFiles: 0, timestamp: Date.now() };
+            return { issues: [], scannedFiles: 0, timestamp: new Date() };
         }
         const result = await this.scanner.scanFile(editor.document.uri);
         this._onAnalysisComplete.emit(result);

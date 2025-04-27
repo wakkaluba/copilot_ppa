@@ -17,11 +17,10 @@ const DEFAULT_CONFIG = {
  * Manages request queuing with priority handling and rate limiting
  */
 class LLMRequestQueueManager extends events_1.EventEmitter {
-    queues = new Map();
-    activeRequests = new Set();
-    config;
     constructor(config) {
         super();
+        this.queues = new Map();
+        this.activeRequests = new Set();
         this.config = { ...DEFAULT_CONFIG, ...config };
         this.initializeQueues();
     }
@@ -39,7 +38,7 @@ class LLMRequestQueueManager extends events_1.EventEmitter {
             id,
             request,
             priority,
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         const queue = this.queues.get(priority);
         if (!queue) {

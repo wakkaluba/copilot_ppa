@@ -166,7 +166,7 @@ class LLMResponseFormatter {
         const response = {
             content,
             format: options.format || 'text',
-            timestamp: Date.now()
+            timestamp: new Date()
         };
         if (options.includeMetadata !== false) {
             response.metadata = {

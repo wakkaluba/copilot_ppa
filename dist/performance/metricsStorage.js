@@ -2,10 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetricsStorage = void 0;
 class MetricsStorage {
-    context;
-    static STORAGE_KEY = 'performanceMetrics';
-    static MAX_HISTORY_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
-    static MAX_SAMPLES_PER_OPERATION = 1000;
     constructor(context) {
         this.context = context;
     }
@@ -61,4 +57,7 @@ class MetricsStorage {
     }
 }
 exports.MetricsStorage = MetricsStorage;
+MetricsStorage.STORAGE_KEY = 'performanceMetrics';
+MetricsStorage.MAX_HISTORY_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+MetricsStorage.MAX_SAMPLES_PER_OPERATION = 1000;
 //# sourceMappingURL=metricsStorage.js.map

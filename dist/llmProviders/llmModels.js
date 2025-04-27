@@ -6,7 +6,6 @@ const util_1 = require("util");
 const LLMModelsService_1 = require("./services/LLMModelsService");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class LLMModelsManager {
-    service;
     constructor(context) {
         this.service = new LLMModelsService_1.LLMModelsService(context);
     }

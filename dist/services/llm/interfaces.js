@@ -19,5 +19,5 @@ var ConnectionErrorCode;
     ConnectionErrorCode["CONNECTION_FAILED"] = "CONNECTION_FAILED";
     ConnectionErrorCode["INVALID_ENDPOINT"] = "INVALID_ENDPOINT";
     ConnectionErrorCode["SERVICE_UNAVAILABLE"] = "SERVICE_UNAVAILABLE";
-})(ConnectionErrorCode || (exports.ConnectionErrorCode = ConnectionErrorCode = {}));
+})(ConnectionErrorCode = exports.ConnectionErrorCode || (exports.ConnectionErrorCode = {}));
 //# sourceMappingURL=interfaces.js.map

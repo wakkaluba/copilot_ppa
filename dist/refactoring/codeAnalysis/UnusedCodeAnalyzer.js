@@ -5,7 +5,10 @@ const BaseCodeAnalyzer_1 = require("../codeAnalysis/BaseCodeAnalyzer");
 const TypeScriptAnalyzer_1 = require("./TypeScriptAnalyzer");
 const JavaScriptAnalyzer_1 = require("./JavaScriptAnalyzer");
 class UnusedCodeAnalyzer extends BaseCodeAnalyzer_1.BaseCodeAnalyzer {
-    languageAnalyzers = new Map();
+    constructor() {
+        super(...arguments);
+        this.languageAnalyzers = new Map();
+    }
     /**
      * Analyzes a document for unused code
      */

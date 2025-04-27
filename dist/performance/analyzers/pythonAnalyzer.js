@@ -3,29 +3,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PythonAnalyzer = void 0;
 const baseAnalyzer_1 = require("./baseAnalyzer");
 class PythonAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
-    thresholds = {
-        cyclomaticComplexity: [10, 20],
-        nestedBlockDepth: [3, 5],
-        functionLength: [50, 100],
-        parameterCount: [4, 7],
-        maintainabilityIndex: [65, 85],
-        commentRatio: [10, 20]
-    };
-    memoryPatterns = {
-        listComprehension: /\[.*for.*in.*\]/g,
-        generatorExpression: /\(.*for.*in.*\)/g,
-        largeContainerCreation: /(?:list|set|dict)\s*\(\s*range\s*\(\s*\d+\s*\)\s*\)/g,
-        mutableDefaultArgs: /def\s+\w+\s*\([^)]*(?:list|dict|set)\s*\(\s*\)\s*(?:,|\))/g,
-        globalVariables: /global\s+\w+/g,
-        recursiveFunction: /def\s+(\w+)[^(]*\([^)]*\):[^#]*\1\s*\(/g
-    };
-    performancePatterns = {
-        stringConcatenation: /(?:"\s*\+\s*"|'\s*\+\s*')/g,
-        listConcatenation: /for\s+\w+\s+in\s+.+:\s*\n\s+\w+\s*\+=/g,
-        nestedLoops: /for\s+\w+\s+in\s+.+:\s*\n\s+for\s+\w+\s+in\s+.+:\s*\n\s+\w+\.append/g,
-        repeatedMethodCalls: /(\w+\.\w+\([^)]*\).*){3,}/g,
-        multipleListSlicing: /\[.*\]\s*\[.*\]\s*\[.*\]/g
-    };
+    constructor() {
+        super(...arguments);
+        this.thresholds = {
+            cyclomaticComplexity: [10, 20],
+            nestedBlockDepth: [3, 5],
+            functionLength: [50, 100],
+            parameterCount: [4, 7],
+            maintainabilityIndex: [65, 85],
+            commentRatio: [10, 20]
+        };
+        this.memoryPatterns = {
+            listComprehension: /\[.*for.*in.*\]/g,
+            generatorExpression: /\(.*for.*in.*\)/g,
+            largeContainerCreation: /(?:list|set|dict)\s*\(\s*range\s*\(\s*\d+\s*\)\s*\)/g,
+            mutableDefaultArgs: /def\s+\w+\s*\([^)]*(?:list|dict|set)\s*\(\s*\)\s*(?:,|\))/g,
+            globalVariables: /global\s+\w+/g,
+            recursiveFunction: /def\s+(\w+)[^(]*\([^)]*\):[^#]*\1\s*\(/g
+        };
+        this.performancePatterns = {
+            stringConcatenation: /(?:"\s*\+\s*"|'\s*\+\s*')/g,
+            listConcatenation: /for\s+\w+\s+in\s+.+:\s*\n\s+\w+\s*\+=/g,
+            nestedLoops: /for\s+\w+\s+in\s+.+:\s*\n\s+for\s+\w+\s+in\s+.+:\s*\n\s+\w+\.append/g,
+            repeatedMethodCalls: /(\w+\.\w+\([^)]*\).*){3,}/g,
+            multipleListSlicing: /\[.*\]\s*\[.*\]\s*\[.*\]/g
+        };
+    }
     analyze(fileContent, filePath) {
         const result = this.createBaseResult(fileContent, filePath);
         const lines = fileContent.split('\n');

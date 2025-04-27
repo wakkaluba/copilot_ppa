@@ -7,19 +7,17 @@ const logger_1 = require("../utils/logger");
  * that are expensive to compute but rarely change
  */
 class CachingService {
-    static instance;
-    cache = new Map();
-    logger;
-    maxCacheSize = 100; // Default max items to store
-    cleanupIntervalId = null;
-    cacheStats = {
-        hits: 0,
-        misses: 0,
-        evictions: 0,
-        totalMemoryBytes: 0
-    };
-    CLEANUP_THRESHOLD = 0.1; // Only cleanup when 10% over limit
     constructor() {
+        this.cache = new Map();
+        this.maxCacheSize = 100; // Default max items to store
+        this.cleanupIntervalId = null;
+        this.cacheStats = {
+            hits: 0,
+            misses: 0,
+            evictions: 0,
+            totalMemoryBytes: 0
+        };
+        this.CLEANUP_THRESHOLD = 0.1; // Only cleanup when 10% over limit
         this.logger = logger_1.Logger.getInstance();
         // Start periodic cleanup every 5 minutes
         this.startCleanupInterval(5 * 60 * 1000);

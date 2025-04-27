@@ -3,11 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UndoManager = void 0;
 const WorkspaceManager_1 = require("./WorkspaceManager");
 class UndoManager {
-    static instance;
-    workspaceManager;
-    changes = new Map();
-    maxHistoryPerFile = 10;
     constructor() {
+        this.changes = new Map();
+        this.maxHistoryPerFile = 10;
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
     }
     static getInstance() {
@@ -29,7 +27,7 @@ class UndoManager {
         const record = {
             filePath,
             originalContent,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             type
         };
         const fileHistory = this.changes.get(filePath) || [];

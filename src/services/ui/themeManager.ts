@@ -1,284 +1,318 @@
 import * as vscode from 'vscode';
-import { ITheme, IThemeColors, IFontSettings, IUILayoutOptions, IThemeChangeEvent, IUIOptionsChangeEvent, IThemeService } from './themes/interfaces';
+import { ITheme, Theme, ThemeColors, FontSettings, UILayoutOptions } from './interfaces';
 import { defaultThemes } from './themes/defaults';
-import { CSSGenerator } from './themes/cssGenerator';
-import { inject, injectable } from 'inversify';
-
-export type Theme = ITheme;
-export type ThemeColors = IThemeColors;
-export type FontSettings = IFontSettings;
-export type UILayoutOptions = IUILayoutOptions;
-export type ThemeChangeEvent = IThemeChangeEvent;
-export type UIOptionsChangeEvent = IUIOptionsChangeEvent;
 
 /**
- * Define the IThemeStorage interface required by ThemeManager
+ * Manages themes for the Copilot PPA UI
  */
-interface IThemeStorage {
-    getTheme(id: string): Theme | undefined;
-    saveTheme(theme: Theme): void;
-    deleteTheme(id: string): boolean;
-    getAllThemes(): Theme[];
-}
-
-/**
- * Manager for UI themes and customization
- */
-@injectable()
-export class ThemeManager implements IThemeService {
+export class ThemeManager {
     private static instance: ThemeManager;
-    private readonly themes: Map<string, Theme> = new Map();
-    private activeThemeId: string;
-    private customSettings: UILayoutOptions;
-    private readonly disposables: vscode.Disposable[] = [];
+    private themes: Theme[] = [];
+    private activeThemeId: string = 'default';
+    private context: vscode.ExtensionContext;
+    private uiLayoutOptions: UILayoutOptions = {
+        chatInputPosition: 'bottom',
+        showTimestamps: true,
+        showAvatars: true,
+        compactMode: false,
+        expandCodeBlocks: true,
+        wordWrap: true
+    };
 
-    private readonly _onThemeChanged = new vscode.EventEmitter<ThemeChangeEvent>();
-    private readonly _onUIOptionsChanged = new vscode.EventEmitter<UIOptionsChangeEvent>();
-
-    public readonly onThemeChanged = this._onThemeChanged.event;
-    public readonly onUIOptionsChanged = this._onUIOptionsChanged.event;
-
-    constructor(
-        @inject('ExtensionContext') private readonly context: vscode.ExtensionContext,
-        @inject('ThemeStorage') private readonly storage?: IThemeStorage
-    ) {
-        // Initialize with default themes
-        this.registerDefaultThemes();
+    private constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+        this.initializeDefaultThemes();
+        this.loadCustomThemes();
+        this.loadUILayoutOptions();
         
-        // Load saved theme preference
-        this.activeThemeId = this.loadThemePreference();
+        // Register event listener for VS Code theme changes
+        vscode.window.onDidChangeActiveColorTheme(this.handleVSCodeThemeChange.bind(this));
         
-        // Load custom UI settings
-        this.customSettings = this.loadUISettings();
-        
-        // Watch for VS Code theme changes
-        this.setupVSCodeThemeWatcher();
+        // Set initial active theme based on VS Code theme
+        this.syncWithVSCodeTheme();
     }
 
-    public static getInstance(context?: vscode.ExtensionContext, storage?: IThemeStorage): ThemeManager {
+    /**
+     * Get the singleton instance of ThemeManager
+     */
+    public static getInstance(context: vscode.ExtensionContext): ThemeManager {
         if (!ThemeManager.instance) {
-            if (!context) {
-                throw new Error('Context is required when first initializing ThemeManager');
-            }
-            ThemeManager.instance = new ThemeManager(context, storage);
+            ThemeManager.instance = new ThemeManager(context);
         }
         return ThemeManager.instance;
     }
 
-    private loadThemePreference(): string {
-        return this.context.globalState.get('copilotPPA.activeTheme', 'default');
+    /**
+     * Initialize default built-in themes
+     */
+    private initializeDefaultThemes(): void {
+        this.themes = [...defaultThemes];
     }
 
-    private loadUISettings(): UILayoutOptions {
-        return this.context.globalState.get<UILayoutOptions>('copilotPPA.uiLayoutOptions', {
-            chatInputPosition: 'bottom',
-            showTimestamps: true,
-            showAvatars: true,
-            compactMode: false,
-            expandCodeBlocks: true,
-            wordWrap: true
-        });
-    }
-
-    private setupVSCodeThemeWatcher(): void {
-        vscode.window.onDidChangeActiveColorTheme(this.handleVSCodeThemeChange, this);
-    }
-
-    private handleVSCodeThemeChange(colorTheme: vscode.ColorTheme): void {
-        // Auto-switch between light and dark themes based on VS Code theme
-        if (this.activeThemeId === 'default' || this.activeThemeId === 'dark') {
-            const newThemeId = colorTheme.kind === vscode.ColorThemeKind.Light ? 'default' : 'dark';
-            if (newThemeId !== this.activeThemeId) {
-                this.setActiveTheme(newThemeId);
-            }
+    /**
+     * Load custom themes from extension storage
+     */
+    private loadCustomThemes(): void {
+        const customThemes = this.context.globalState.get<Theme[]>('copilotPPA.customThemes', []);
+        if (customThemes && Array.isArray(customThemes)) {
+            this.themes.push(...customThemes);
+        }
+        
+        // Load active theme
+        const savedThemeId = this.context.globalState.get<string>('copilotPPA.activeThemeId', 'default');
+        if (this.themes.some(t => t.id === savedThemeId)) {
+            this.activeThemeId = savedThemeId;
         }
     }
 
+    /**
+     * Load UI layout options from extension storage
+     */
+    private loadUILayoutOptions(): void {
+        const savedOptions = this.context.globalState.get<UILayoutOptions>('copilotPPA.uiLayoutOptions');
+        if (savedOptions) {
+            this.uiLayoutOptions = { ...this.uiLayoutOptions, ...savedOptions };
+        }
+    }
+
+    /**
+     * Synchronize theme with VS Code's active color theme
+     */
+    private syncWithVSCodeTheme(): void {
+        const vscodeTheme = vscode.window.activeColorTheme;
+        
+        // If VS Code theme is dark, use dark theme
+        if (vscodeTheme.kind === vscode.ColorThemeKind.Dark) {
+            this.setActiveTheme('dark');
+        } 
+        // If VS Code theme is high contrast, use high contrast theme
+        else if (vscodeTheme.kind === vscode.ColorThemeKind.HighContrast) {
+            this.setActiveTheme('high-contrast');
+        }
+        // Otherwise use the default (light) theme
+        else {
+            this.setActiveTheme('default');
+        }
+    }
+
+    /**
+     * Handle VS Code theme change event
+     */
+    private handleVSCodeThemeChange(colorTheme: vscode.ColorTheme): void {
+        this.syncWithVSCodeTheme();
+    }
+
+    /**
+     * Get all available themes
+     */
     public getThemes(): Theme[] {
-        return Array.from(this.themes.values());
+        return [...this.themes];
     }
-    
-    public getTheme(id: string): Theme | undefined {
-        return this.themes.get(id);
-    }
-    
+
+    /**
+     * Get currently active theme
+     */
     public getActiveTheme(): Theme {
-        return this.themes.get(this.activeThemeId) || this.themes.get('default')!;
+        const theme = this.themes.find(t => t.id === this.activeThemeId);
+        return theme || this.themes.find(t => t.id === 'default')!;
     }
-    
-    public setActiveTheme(id: string): boolean {
-        if (!this.themes.has(id)) {
+
+    /**
+     * Set active theme by id
+     */
+    public setActiveTheme(themeId: string): boolean {
+        if (!this.themes.some(t => t.id === themeId)) {
             return false;
         }
         
-        const previousTheme = this.getActiveTheme();
-        this.activeThemeId = id;
-        void this.context.globalState.update('copilotPPA.activeTheme', id);
-        
-        this._onThemeChanged.fire({
-            theme: this.getActiveTheme(),
-            previous: previousTheme
-        });
-        
+        this.activeThemeId = themeId;
+        this.context.globalState.update('copilotPPA.activeThemeId', themeId);
         return true;
     }
-    
-    public registerTheme(theme: Theme): void {
-        this.themes.set(theme.id, theme);
-    }
-    
-    public createCustomTheme(name: string, baseThemeId: string, customizations: Partial<ThemeColors & FontSettings>): Theme | undefined {
-        const baseTheme = this.getTheme(baseThemeId);
-        if (!baseTheme) {
-            return undefined;
-        }
+
+    /**
+     * Create a custom theme
+     */
+    public createCustomTheme(name: string, baseThemeId: string, customOptions: Partial<ThemeColors & FontSettings>): Theme {
+        // Find base theme to extend
+        const baseTheme = this.themes.find(t => t.id === baseThemeId) || this.getActiveTheme();
         
+        // Generate unique id
         const id = `custom-${Date.now()}`;
+        
+        // Create new theme by extending base theme and applying customizations
         const newTheme: Theme = {
             id,
             name,
             type: baseTheme.type,
             isBuiltIn: false,
-            colors: { ...baseTheme.colors },
-            font: { ...baseTheme.font }
+            colors: {
+                ...baseTheme.colors,
+                ...(customOptions as Partial<ThemeColors>)
+            },
+            font: {
+                ...baseTheme.font,
+                ...(customOptions as Partial<FontSettings>)
+            }
         };
         
-        // Apply customizations
-        Object.entries(customizations).forEach(([key, value]) => {
-            if (key in newTheme.colors) {
-                (newTheme.colors as any)[key] = value;
-            } else if (key in newTheme.font) {
-                (newTheme.font as any)[key] = value;
-            }
-        });
+        // Add to themes list
+        this.themes.push(newTheme);
         
-        this.registerTheme(newTheme);
-        void this.saveCustomThemes();
+        // Save custom themes
+        this.saveCustomThemes();
         
         return newTheme;
     }
-    
-    public deleteCustomTheme(id: string): boolean {
-        const theme = this.getTheme(id);
-        if (!theme || theme.isBuiltIn) {
+
+    /**
+     * Delete a custom theme
+     */
+    public deleteCustomTheme(themeId: string): boolean {
+        const themeIndex = this.themes.findIndex(t => t.id === themeId);
+        
+        if (themeIndex < 0 || this.themes[themeIndex].isBuiltIn) {
             return false;
         }
         
-        const success = this.themes.delete(id);
+        // Remove theme
+        this.themes.splice(themeIndex, 1);
         
-        // Switch to default if the deleted theme was active
-        if (success && this.activeThemeId === id) {
-            this.setActiveTheme('default');
+        // If the deleted theme was active, switch to default
+        if (this.activeThemeId === themeId) {
+            this.activeThemeId = 'default';
+            this.context.globalState.update('copilotPPA.activeThemeId', 'default');
         }
         
-        void this.saveCustomThemes();
-        return success;
+        // Save updated themes list
+        this.saveCustomThemes();
+        
+        return true;
     }
-    
+
+    /**
+     * Save custom themes to extension storage
+     */
+    private saveCustomThemes(): void {
+        const customThemes = this.themes.filter(t => !t.isBuiltIn);
+        this.context.globalState.update('copilotPPA.customThemes', customThemes);
+    }
+
+    /**
+     * Get UI layout options
+     */
     public getUILayoutOptions(): UILayoutOptions {
-        return { ...this.customSettings };
-    }
-    
-    public updateUILayoutOptions(options: Partial<UILayoutOptions>): UILayoutOptions {
-        const previousOptions = { ...this.customSettings };
-        this.customSettings = { ...this.customSettings, ...options };
-        void this.context.globalState.update('copilotPPA.uiLayoutOptions', this.customSettings);
-        
-        this._onUIOptionsChanged.fire({
-            options: this.customSettings,
-            previous: previousOptions
-        });
-        
-        return this.customSettings;
+        return { ...this.uiLayoutOptions };
     }
 
-    private registerDefaultThemes(): void {
-        // Register all default themes
-        defaultThemes.forEach(theme => this.registerTheme(theme));
-        
-        // Load any saved custom themes
-        void this.loadCustomThemes();
+    /**
+     * Update UI layout options
+     */
+    public updateUILayoutOptions(options: Partial<UILayoutOptions>): void {
+        this.uiLayoutOptions = { ...this.uiLayoutOptions, ...options };
+        this.context.globalState.update('copilotPPA.uiLayoutOptions', this.uiLayoutOptions);
     }
 
-    private async loadCustomThemes(): Promise<void> {
-        const customThemes = this.context.globalState.get<Theme[]>('copilotPPA.customThemes', []);
-        customThemes.forEach(theme => this.registerTheme(theme));
-    }
-
-    private async saveCustomThemes(): Promise<void> {
-        const customThemes = this.getThemes().filter(theme => !theme.isBuiltIn);
-        await this.context.globalState.update('copilotPPA.customThemes', customThemes);
-    }
-
+    /**
+     * Generate CSS for the active theme
+     */
     public getThemeCSS(): string {
-        return CSSGenerator.generateThemeCSS(this.getActiveTheme());
+        const theme = this.getActiveTheme();
+        const fontSize = theme.font.sizeInPixels;
+        
+        return `
+            :root {
+                --copilot-primary: ${theme.colors.primary};
+                --copilot-secondary: ${theme.colors.secondary};
+                --copilot-background: ${theme.colors.background};
+                --copilot-foreground: ${theme.colors.foreground};
+                --copilot-agent-message-bg: ${theme.colors.agentMessageBackground};
+                --copilot-agent-message-fg: ${theme.colors.agentMessageForeground};
+                --copilot-user-message-bg: ${theme.colors.userMessageBackground};
+                --copilot-user-message-fg: ${theme.colors.userMessageForeground};
+                --copilot-system-message: ${theme.colors.systemMessage};
+                --copilot-error: ${theme.colors.error};
+                --copilot-success: ${theme.colors.success};
+                --copilot-border: ${theme.colors.border};
+                --copilot-button-bg: ${theme.colors.buttonBackground};
+                --copilot-button-fg: ${theme.colors.buttonForeground};
+                --copilot-button-hover-bg: ${theme.colors.buttonHoverBackground};
+                --copilot-input-bg: ${theme.colors.inputBackground};
+                --copilot-input-fg: ${theme.colors.inputForeground};
+                --copilot-input-border: ${theme.colors.inputBorder};
+                
+                --copilot-font-family: ${theme.font.family};
+                --copilot-font-size: ${fontSize}px;
+                --copilot-line-height: ${theme.font.lineHeight};
+                --copilot-font-weight: ${theme.font.weight};
+                --copilot-heading-weight: ${theme.font.headingWeight};
+                --copilot-code-font-family: ${theme.font.useMonospaceForCode ? 
+                    'SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace' : 
+                    theme.font.family};
+            }
+        `;
     }
-    
+
+    /**
+     * Get CSS for UI layout
+     */
     public getUILayoutCSS(): string {
-        return CSSGenerator.generateLayoutCSS(this.customSettings);
-    }
-
-    public dispose(): void {
-        this.disposables.forEach(d => d.dispose());
-    }
-}
-
-// Singleton instance
-let themeManager: ThemeManager | undefined;
-
-/**
- * Initialize the theme manager
- */
-export function initializeThemeManager(context: vscode.ExtensionContext): ThemeManager {
-    themeManager = ThemeManager.getInstance(context);
-    return themeManager;
-}
-
-/**
- * Get the theme manager instance
- */
-export function getThemeManager(): ThemeManager {
-    if (!themeManager) {
-        throw new Error('Theme Manager not initialized');
-    }
-    return themeManager;
-}
-
-export class ThemeService {
-    private static instance: ThemeService;
-    
-    private constructor() {}
-
-    public static getInstance(): ThemeService {
-        if (!ThemeService.instance) {
-            ThemeService.instance = new ThemeService();
-        }
-        return ThemeService.instance;
-    }
-
-    public getCurrentTheme(): ThemeColors {
-        const colorTheme = vscode.window.activeColorTheme;
-        const isDark = colorTheme.kind === vscode.ColorThemeKind.Dark;
-
-        return {
-            primary: isDark ? '#0098ff' : '#007acc',
-            secondary: isDark ? '#abb2bf' : '#6c757d',
-            background: isDark ? '#282c34' : '#ffffff',
-            foreground: isDark ? '#abb2bf' : '#333333',
-            agentMessageBackground: isDark ? '#2c313c' : '#f1f8ff',
-            agentMessageForeground: isDark ? '#abb2bf' : '#333333',
-            userMessageBackground: isDark ? '#3b4048' : '#e9ecef',
-            userMessageForeground: isDark ? '#abb2bf' : '#333333',
-            systemMessage: isDark ? '#7f848e' : '#6c757d',
-            error: isDark ? '#e06c75' : '#dc3545',
-            success: isDark ? '#98c379' : '#28a745',
-            border: isDark ? '#3e4452' : '#dee2e6',
-            buttonBackground: isDark ? '#0098ff' : '#007acc',
-            buttonForeground: isDark ? '#ffffff' : '#ffffff',
-            buttonHoverBackground: isDark ? '#007acc' : '#005fa3',
-            inputBackground: isDark ? '#3b4048' : '#ffffff',
-            inputForeground: isDark ? '#abb2bf' : '#333333',
-            inputBorder: isDark ? '#4b5261' : '#ced4da'
-        };
+        const options = this.getUILayoutOptions();
+        const wordWrap = options.wordWrap ? 'break-word' : 'normal';
+        const messageSpacing = options.compactMode ? '0.5rem' : '1rem';
+        
+        return `
+            .copilot-container {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+            
+            .copilot-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1rem;
+            }
+            
+            .copilot-input-container {
+                order: ${options.chatInputPosition === 'bottom' ? 2 : 0};
+                padding: 1rem;
+                border-top: 1px solid var(--copilot-border);
+            }
+            
+            .copilot-message {
+                margin-bottom: ${messageSpacing};
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                word-wrap: ${wordWrap};
+            }
+            
+            .copilot-timestamp {
+                display: ${options.showTimestamps ? 'block' : 'none'};
+                font-size: 0.8rem;
+                color: var(--copilot-system-message);
+                margin-bottom: 0.25rem;
+            }
+            
+            .copilot-avatar {
+                display: ${options.showAvatars ? 'inline-block' : 'none'};
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                margin-right: 0.5rem;
+            }
+            
+            .copilot-code-block {
+                font-family: var(--copilot-code-font-family);
+                background-color: rgba(0, 0, 0, 0.1);
+                padding: 0.75rem;
+                border-radius: 0.25rem;
+                overflow-x: auto;
+                margin: 0.5rem 0;
+            }
+        `;
     }
 }
+
+// Re-export the interfaces for consumers of this module
+export { Theme, ThemeColors, FontSettings, UILayoutOptions };

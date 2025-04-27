@@ -2,11 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationMemory = void 0;
 class ConversationMemory {
-    _context;
-    _messages = [];
-    _storageKey = 'conversationMemory';
-    _maxHistorySize = 200; // Store up to 200 messages
     constructor(context) {
+        this._messages = [];
+        this._storageKey = 'conversationMemory';
+        this._maxHistorySize = 200; // Store up to 200 messages
         this._context = context;
     }
     async initialize() {

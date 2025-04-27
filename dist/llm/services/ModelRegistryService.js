@@ -4,11 +4,10 @@ exports.ModelRegistryService = void 0;
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelRegistryService {
-    _registryEmitter = new events_1.EventEmitter();
-    _registry = new Map();
-    _dependencies = new Map();
-    _logger;
     constructor() {
+        this._registryEmitter = new events_1.EventEmitter();
+        this._registry = new Map();
+        this._dependencies = new Map();
         this._logger = logger_1.Logger.for('ModelRegistryService');
     }
     async registerModel(modelId, info) {
@@ -21,7 +20,7 @@ class ModelRegistryService {
             this._registryEmitter.emit('modelRegistered', {
                 modelId,
                 info,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {
@@ -39,7 +38,7 @@ class ModelRegistryService {
             this._registryEmitter.emit('dependencyAdded', {
                 modelId,
                 dependency,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CICDError = void 0;
 class CICDError extends Error {
-    code;
     constructor(code, message) {
         super(message);
         this.code = code;

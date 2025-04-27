@@ -6,22 +6,20 @@ const events_1 = require("events");
  * Default cache configuration
  */
 const DEFAULT_CACHE_CONFIG = {
-    modelInfoTTL: 5 * 60 * 1000, // 5 minutes
-    healthCheckTTL: 30 * 1000, // 30 seconds
-    responseCacheTTL: 60 * 60 * 1000, // 1 hour
+    modelInfoTTL: 5 * 60 * 1000,
+    healthCheckTTL: 30 * 1000,
+    responseCacheTTL: 60 * 60 * 1000,
     maxCacheSize: 1000
 };
 /**
  * Manages caching for LLM-related data
  */
 class LLMCacheManager extends events_1.EventEmitter {
-    static instance;
-    modelInfoCache = new Map();
-    healthCheckCache = new Map();
-    responseCache = new Map();
-    config;
     constructor(config = {}) {
         super();
+        this.modelInfoCache = new Map();
+        this.healthCheckCache = new Map();
+        this.responseCache = new Map();
         this.config = { ...DEFAULT_CACHE_CONFIG, ...config };
         this.startCleanupInterval();
     }

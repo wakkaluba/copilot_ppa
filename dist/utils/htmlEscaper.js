@@ -3,7 +3,7 @@
  * HTML escaper utility to prevent XSS attacks
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.escapeHtml = escapeHtml;
+exports.escapeHtml = void 0;
 /**
  * Escapes HTML special characters in a string
  * @param text String to escape
@@ -20,4 +20,5 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+exports.escapeHtml = escapeHtml;
 //# sourceMappingURL=htmlEscaper.js.map

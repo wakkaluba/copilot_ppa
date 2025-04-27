@@ -12,18 +12,12 @@ var ProviderEvent;
     ProviderEvent["Removed"] = "provider:removed";
     ProviderEvent["StatusChanged"] = "provider:statusChanged";
     ProviderEvent["MetricsUpdated"] = "provider:metricsUpdated";
-})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
+})(ProviderEvent = exports.ProviderEvent || (exports.ProviderEvent = {}));
 class LLMProviderManager extends events_1.EventEmitter {
-    static instance;
-    connectionPool;
-    metrics = new Map();
-    activeProviders = new Set();
-    defaultProviderId;
-    connectionManager;
-    hostManager;
-    connectionStatus;
     constructor(connectionManager, hostManager, connectionStatus) {
         super();
+        this.metrics = new Map();
+        this.activeProviders = new Set();
         this.connectionManager = connectionManager;
         this.hostManager = hostManager;
         this.connectionStatus = connectionStatus;
@@ -52,7 +46,7 @@ class LLMProviderManager extends events_1.EventEmitter {
         }
         this.emit(ProviderEvent.Initialized, {
             providerId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         return providerId;
     }

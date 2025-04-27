@@ -15,23 +15,13 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkspaceManager = void 0;
 const vscode = __importStar(require("vscode"));
@@ -41,8 +31,6 @@ const logger_1 = require("../utils/logger"); // Fixed lowercase import
  * and directory listing.
  */
 class WorkspaceManager {
-    static instance;
-    logger;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
     }
@@ -138,7 +126,7 @@ class WorkspaceManager {
             return await vscode.workspace.findFiles(include, exclude, maxResults);
         }
         catch (error) {
-            this.logger.error(`Failed to find files with pattern ${include}:`, error);
+            this.logger.error(`Error finding files with pattern ${include}:`, error);
             throw error;
         }
     }
@@ -151,8 +139,60 @@ class WorkspaceManager {
             await vscode.workspace.fs.createDirectory(uri);
         }
         catch (error) {
-            this.logger.error(`Failed to create directory ${uri.fsPath}:`, error);
+            this.logger.error(`Error creating directory ${uri.fsPath}:`, error);
             throw error;
+        }
+    }
+    getConfiguration(section, key, defaultValue) {
+        const config = vscode.workspace.getConfiguration(section);
+        return config.get(key, defaultValue);
+    }
+    /**
+     * Update configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param value New value
+     * @param target Configuration target (default: Workspace)
+     */
+    async updateConfiguration(section, key, value, target = vscode.ConfigurationTarget.Workspace) {
+        try {
+            const config = vscode.workspace.getConfiguration(section);
+            await config.update(key, value, target);
+        }
+        catch (error) {
+            this.logger.error(`Error updating configuration ${section}.${key}:`, error);
+            throw error;
+        }
+    }
+    /**
+     * Delete a file
+     * @param uri The URI of the file to delete
+     */
+    async deleteFile(uri) {
+        try {
+            await vscode.workspace.fs.delete(uri);
+        }
+        catch (error) {
+            this.logger.error(`Failed to delete file ${uri.fsPath}:`, error);
+            throw error;
+        }
+    }
+    /**
+     * List files in a directory
+     * @param directoryPath The path of the directory to list files from
+     * @returns Array of file paths
+     */
+    async listFiles(directoryPath) {
+        try {
+            const uri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders?.[0].uri || vscode.Uri.file('.'), directoryPath);
+            const entries = await this.listDirectory(uri);
+            return entries
+                .filter(([_, type]) => type === vscode.FileType.File)
+                .map(([name, _]) => `${directoryPath}/${name}`);
+        }
+        catch (error) {
+            this.logger.error(`Failed to list files in ${directoryPath}:`, error);
+            return [];
         }
     }
 }

@@ -6,10 +6,6 @@ const UserPreferencesService_1 = require("./services/UserPreferencesService");
 const FilePreferencesService_1 = require("./services/FilePreferencesService");
 const ContextAnalysisService_1 = require("./services/ContextAnalysisService");
 class ContextManager {
-    conversationService;
-    userPreferencesService;
-    filePreferencesService;
-    analysisService;
     constructor(context) {
         this.conversationService = new ConversationMemoryService_1.ConversationMemoryService(context);
         this.userPreferencesService = new UserPreferencesService_1.UserPreferencesService(context);

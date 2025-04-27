@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ServiceRegistry = exports.Services = void 0;
-exports.initializeServices = initializeServices;
+exports.initializeServices = exports.ServiceRegistry = exports.Services = void 0;
 const LLMConnectionManager_1 = require("./llm/LLMConnectionManager");
 const LLMHostManager_1 = require("./llm/LLMHostManager");
 const LLMSessionManager_1 = require("./llm/LLMSessionManager");
@@ -24,9 +23,9 @@ exports.Services = {
     DisplaySettings: Symbol('DisplaySettings')
 };
 class ServiceRegistry {
-    static instance;
-    services = new Map();
-    constructor() { }
+    constructor() {
+        this.services = new Map();
+    }
     static getInstance() {
         if (!ServiceRegistry.instance) {
             ServiceRegistry.instance = new ServiceRegistry();
@@ -77,4 +76,5 @@ function initializeServices(context) {
     registry.register(exports.Services.ThemeManager, themeManager);
     registry.register(exports.Services.DisplaySettings, displaySettings);
 }
+exports.initializeServices = initializeServices;
 //# sourceMappingURL=ServiceRegistry.js.map

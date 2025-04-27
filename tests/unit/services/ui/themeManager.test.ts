@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ThemeManager, Theme, ThemeColors, FontSettings } from '../../../../src/services/ui/themeManager';
+import { ThemeManager, Theme, ThemeColors, FontSettings, UILayoutOptions } from '../../../../src/services/ui/themeManager';
 
 jest.mock('vscode');
 

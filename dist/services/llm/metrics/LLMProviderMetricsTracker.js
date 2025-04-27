@@ -3,8 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderMetricsTracker = void 0;
 const events_1 = require("events");
 class LLMProviderMetricsTracker extends events_1.EventEmitter {
-    metrics = new Map();
-    metricsWindow = 1000 * 60 * 60; // 1 hour window
+    constructor() {
+        super(...arguments);
+        this.metrics = new Map();
+        this.metricsWindow = 1000 * 60 * 60; // 1 hour window
+    }
     async initializeProvider(providerId) {
         this.metrics.set(providerId, {
             requestCount: 0,

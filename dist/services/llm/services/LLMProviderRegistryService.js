@@ -3,8 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMProviderRegistryService = void 0;
 const events_1 = require("events");
 class LLMProviderRegistryService extends events_1.EventEmitter {
-    providers = new Map();
-    descriptors = new Map();
+    constructor() {
+        super(...arguments);
+        this.providers = new Map();
+        this.descriptors = new Map();
+    }
     registerProvider(name, provider) {
         this.providers.set(name, provider);
         provider.on('statusChanged', (status) => {

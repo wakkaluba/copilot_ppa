@@ -1,18 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LLMConnectionError = void 0;
-exports.calculateRetryDelay = calculateRetryDelay;
-exports.testConnection = testConnection;
-exports.delay = delay;
-exports.createTimeout = createTimeout;
-exports.withTimeout = withTimeout;
+exports.withTimeout = exports.createTimeout = exports.delay = exports.testConnection = exports.calculateRetryDelay = exports.LLMConnectionError = void 0;
 const interfaces_1 = require("./interfaces");
 /**
  * Custom error class for LLM connection errors
  */
 class LLMConnectionError extends Error {
-    code;
-    cause;
     constructor(code, message, cause) {
         super(message);
         this.code = code;
@@ -29,6 +22,7 @@ function calculateRetryDelay(attempt, options) {
     // Add jitter to prevent thundering herd
     return delay + Math.random() * (delay * 0.1);
 }
+exports.calculateRetryDelay = calculateRetryDelay;
 /**
  * Test connection to an LLM endpoint
  */
@@ -46,12 +40,14 @@ async function testConnection(endpoint, timeout) {
         return false;
     }
 }
+exports.testConnection = testConnection;
 /**
  * Create a promise that resolves after the specified delay
  */
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+exports.delay = delay;
 /**
  * Create a promise that rejects after the specified timeout
  */
@@ -62,6 +58,7 @@ function createTimeout(ms) {
         }, ms);
     });
 }
+exports.createTimeout = createTimeout;
 /**
  * Execute a promise with a timeout
  */
@@ -72,4 +69,5 @@ async function withTimeout(promise, timeoutMs, operation = 'Operation') {
     ]);
     return result;
 }
+exports.withTimeout = withTimeout;
 //# sourceMappingURL=utils.js.map

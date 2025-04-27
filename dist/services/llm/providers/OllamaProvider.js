@@ -8,10 +8,9 @@ const axios_1 = __importDefault(require("axios"));
 const BaseLLMProvider_1 = require("./BaseLLMProvider");
 const errors_1 = require("../errors");
 class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
-    client;
-    modelDetails = new Map();
     constructor(config) {
         super('ollama', 'Ollama', config);
+        this.modelDetails = new Map();
         this.client = axios_1.default.create({
             baseURL: config.apiEndpoint,
             timeout: config.requestTimeout || 30000
@@ -33,7 +32,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: Date.now()
+                timestamp: new Date()
             };
         }
     }
@@ -178,7 +177,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             id: modelId,
             name: info.name,
             provider: this.id,
-            maxContextLength: 4096, // Default for most Ollama models
+            maxContextLength: 4096,
             parameters: {
                 format: info.details.format,
                 family: info.details.family,

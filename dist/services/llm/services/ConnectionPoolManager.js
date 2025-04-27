@@ -11,20 +11,19 @@ var ProviderConnectionState;
     ProviderConnectionState["Connecting"] = "connecting";
     ProviderConnectionState["Connected"] = "connected";
     ProviderConnectionState["Error"] = "error";
-})(ProviderConnectionState || (exports.ProviderConnectionState = ProviderConnectionState = {}));
+})(ProviderConnectionState = exports.ProviderConnectionState || (exports.ProviderConnectionState = {}));
 var ProviderEvent;
 (function (ProviderEvent) {
     ProviderEvent["Connected"] = "provider:connected";
     ProviderEvent["Disconnected"] = "provider:disconnected";
     ProviderEvent["Error"] = "provider:error";
     ProviderEvent["HealthCheckComplete"] = "provider:healthcheck";
-})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
+})(ProviderEvent = exports.ProviderEvent || (exports.ProviderEvent = {}));
 class ConnectionPoolManager extends events_1.EventEmitter {
-    pools = new Map();
-    poolConfigs = new Map();
-    maintenanceTimer;
     constructor() {
         super();
+        this.pools = new Map();
+        this.poolConfigs = new Map();
         this.startMaintenanceTimer();
     }
     startMaintenanceTimer() {
@@ -67,7 +66,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         this.poolConfigs.set(providerId, {
             minSize: config.connection?.poolSize || 1,
             maxSize: config.connection?.poolSize || 5,
-            idleTimeoutMs: 300000, // 5 minutes
+            idleTimeoutMs: 300000,
             acquireTimeoutMs: config.connection?.timeout || 30000
         });
         // Initialize minimum connections
@@ -192,7 +191,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         // we need to use a default/minimal config.
         // In a real implementation, this should come from a config service or cache
         const defaultConfig = {
-            apiEndpoint: 'http://localhost:11434', // Default for Ollama
+            apiEndpoint: 'http://localhost:11434',
             id: providerId,
             name: providerId,
             defaultModel: 'llama2'

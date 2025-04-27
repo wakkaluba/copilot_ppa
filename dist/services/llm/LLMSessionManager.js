@@ -5,14 +5,10 @@ const events_1 = require("events");
 const uuid_1 = require("uuid");
 const LLMConnectionManager_1 = require("./LLMConnectionManager");
 class LLMSessionManager extends events_1.EventEmitter {
-    sessions = new Map();
-    activeSessionId;
-    connectionManager;
-    hostManager;
-    sessionTimeout = 3600000; // 1 hour
-    sessionCheckInterval;
     constructor(connectionManager, hostManager) {
         super();
+        this.sessions = new Map();
+        this.sessionTimeout = 3600000; // 1 hour
         this.connectionManager = connectionManager;
         this.hostManager = hostManager;
         // Listen for connection status changes
@@ -194,8 +190,8 @@ class LLMSessionManager extends events_1.EventEmitter {
             prompt,
             model: session.config.model,
             options: session.config.parameters,
-            priority: 'normal', // Default priority
-            timestamp: Date.now(),
+            priority: 'normal',
+            timestamp: new Date(),
             status: 'pending'
         };
         try {
@@ -205,7 +201,7 @@ class LLMSessionManager extends events_1.EventEmitter {
             session.messages.push({
                 prompt,
                 response: response.content,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             // Update token count if available
             if (response.tokenUsage) {

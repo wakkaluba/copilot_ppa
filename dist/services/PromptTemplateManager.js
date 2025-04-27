@@ -2,8 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptTemplateManager = void 0;
 class PromptTemplateManager {
-    static instance;
-    templates;
     constructor() {
         this.templates = new Map();
         this.initializeDefaultTemplates();

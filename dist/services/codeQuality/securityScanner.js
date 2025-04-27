@@ -15,23 +15,13 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityScanner = void 0;
 const vscode = __importStar(require("vscode"));
@@ -40,8 +30,6 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class SecurityScanner {
-    _context;
-    _diagnosticCollection;
     constructor(context) {
         this._context = context;
         this._diagnosticCollection = vscode.languages.createDiagnosticCollection('security-issues');
@@ -71,7 +59,7 @@ class SecurityScanner {
                             if (typeof info === 'object') {
                                 issues.push({
                                     file: packageJsonPath,
-                                    line: 1, // Default to line 1 since we don't know exact line
+                                    line: 1,
                                     column: 1,
                                     severity: this.mapSeverity(info.severity || 'low'),
                                     description: `Vulnerability in dependency ${pkgName}: ${info.title || info.name}`,

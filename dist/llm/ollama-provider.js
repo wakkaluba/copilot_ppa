@@ -11,11 +11,10 @@ const llm_provider_1 = require("./llm-provider");
  * Implementation of the LLMProvider interface for Ollama
  */
 class OllamaProvider extends llm_provider_1.BaseLLMProvider {
-    name = 'Ollama';
-    client;
-    modelDetails = new Map();
     constructor(baseUrl = config_1.Config.ollamaApiUrl) {
         super();
+        this.name = 'Ollama';
+        this.modelDetails = new Map();
         this.client = axios_1.default.create({
             baseURL: baseUrl,
             timeout: 30000
@@ -220,7 +219,7 @@ class OllamaProvider extends llm_provider_1.BaseLLMProvider {
             provider: 'ollama',
             capabilities: info.details?.capabilities || [],
             parameters: this.parseParameterSize(info.details?.parameter_size),
-            contextLength: 4096, // Default for most Ollama models
+            contextLength: 4096,
             quantization: info.details?.quantization_level,
             license: info.license
         };

@@ -8,15 +8,10 @@ const performanceProfiler_1 = require("./performanceProfiler");
  * utilities for batching, throttling, and debouncing
  */
 class AsyncOptimizer {
-    static instance;
-    logger;
-    profiler;
-    pendingBatches = new Map();
-    throttleTimers = new Map();
-    debounceTimers = new Map();
-    config;
-    stats;
     constructor() {
+        this.pendingBatches = new Map();
+        this.throttleTimers = new Map();
+        this.debounceTimers = new Map();
         this.logger = logger_1.Logger.getInstance();
         this.profiler = performanceProfiler_1.PerformanceProfiler.getInstance();
         this.stats = {

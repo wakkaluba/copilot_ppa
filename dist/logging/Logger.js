@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Logger = void 0;
 const LogLevel_1 = require("./LogLevel");
 class Logger {
-    static instance;
     constructor() { }
     static getInstance() {
         if (!Logger.getInstance) {

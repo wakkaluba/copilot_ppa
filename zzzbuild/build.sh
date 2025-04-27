@@ -46,7 +46,7 @@ log "green" "Building from directory: $PROJECT_DIR"
 
 # Clean up any previous builds
 log "yellow" "Cleaning up previous builds..."
-rm -rf ./out ./dist ./.vscode-test *.vsix
+rm -rf ./dist ./.vscode-test *.vsix
 
 # Install dependencies
 log "yellow" "Installing dependencies..."
@@ -80,6 +80,12 @@ if [ $? -eq 0 ]; then
     
     if [ -n "$VSIX_FILE" ]; then
         log "green" "✅ Build successful! VSIX package created: $VSIX_FILE"
+        
+        # Move VSIX to artifacts directory
+        ARTIFACTS_DIR="$PROJECT_DIR/zzzbuild/artifacts"
+        mkdir -p "$ARTIFACTS_DIR"
+        cp "$VSIX_FILE" "$ARTIFACTS_DIR/"
+        log "green" "VSIX package copied to: $ARTIFACTS_DIR/$(basename "$VSIX_FILE")"
         
         # Installation instructions
         echo ""

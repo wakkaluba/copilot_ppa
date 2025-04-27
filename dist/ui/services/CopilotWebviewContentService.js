@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotWebviewContentService = void 0;
 class CopilotWebviewContentService {
-    themeService;
     constructor(themeService) {
         this.themeService = themeService;
     }

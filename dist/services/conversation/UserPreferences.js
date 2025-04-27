@@ -2,12 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserPreferences = void 0;
 class UserPreferences {
-    _context;
-    _preferredLanguage;
-    _preferredFramework;
-    _languageUsage = {};
-    _storageKey = 'userProgrammingPreferences';
     constructor(context) {
+        this._languageUsage = {};
+        this._storageKey = 'userProgrammingPreferences';
         this._context = context;
     }
     async initialize() {

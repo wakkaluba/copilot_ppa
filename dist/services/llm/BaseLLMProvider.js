@@ -11,14 +11,10 @@ const connectionUtils_1 = require("./connectionUtils");
  * Base class for LLM providers with common functionality
  */
 class BaseLLMProvider extends events_1.EventEmitter {
-    name;
-    connectionState = llm_1.ConnectionState.DISCONNECTED;
-    currentModel;
-    metricsTracker;
-    lastError;
     constructor(name) {
         super();
         this.name = name;
+        this.connectionState = llm_1.ConnectionState.DISCONNECTED;
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
     }
     /**

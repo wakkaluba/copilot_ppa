@@ -4,11 +4,10 @@ exports.ModelProvisioningService = void 0;
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelProvisioningService {
-    _provisioningEmitter = new events_1.EventEmitter();
-    _instances = new Map();
-    _allocations = new Map();
-    _logger;
     constructor() {
+        this._provisioningEmitter = new events_1.EventEmitter();
+        this._instances = new Map();
+        this._allocations = new Map();
         this._logger = logger_1.Logger.for('ModelProvisioningService');
     }
     async provisionModel(modelId, info) {
@@ -24,7 +23,7 @@ class ModelProvisioningService {
                 modelId,
                 instance,
                 allocation,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
             return instance;
         }
@@ -94,7 +93,7 @@ class ModelProvisioningService {
             this._allocations.delete(modelId);
             this._provisioningEmitter.emit('modelDeprovisioned', {
                 modelId,
-                timestamp: Date.now()
+                timestamp: new Date()
             });
         }
         catch (error) {

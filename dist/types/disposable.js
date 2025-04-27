@@ -2,7 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DisposableStore = void 0;
 class DisposableStore {
-    _toDispose = new Set();
+    constructor() {
+        this._toDispose = new Set();
+    }
     add(disposable) {
         this._toDispose.add(disposable);
         return disposable;

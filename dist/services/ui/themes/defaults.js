@@ -1,9 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultThemes = void 0;
-/**
- * Default theme definitions
- */
 exports.defaultThemes = [
     {
         id: 'default',
@@ -11,31 +8,31 @@ exports.defaultThemes = [
         type: 'light',
         isBuiltIn: true,
         colors: {
-            primary: '#007acc',
-            secondary: '#6c757d',
+            primary: '#0078d4',
+            secondary: '#106ebe',
             background: '#ffffff',
-            foreground: '#333333',
-            agentMessageBackground: '#f1f8ff',
-            agentMessageForeground: '#333333',
-            userMessageBackground: '#e9ecef',
-            userMessageForeground: '#333333',
-            systemMessage: '#6c757d',
-            error: '#dc3545',
-            success: '#28a745',
-            border: '#dee2e6',
-            buttonBackground: '#007acc',
+            foreground: '#323130',
+            agentMessageBackground: '#f5f5f5',
+            agentMessageForeground: '#323130',
+            userMessageBackground: '#e6f2fa',
+            userMessageForeground: '#323130',
+            systemMessage: '#797775',
+            error: '#a4262c',
+            success: '#107c10',
+            border: '#edebe9',
+            buttonBackground: '#0078d4',
             buttonForeground: '#ffffff',
-            buttonHoverBackground: '#005fa3',
+            buttonHoverBackground: '#106ebe',
             inputBackground: '#ffffff',
-            inputForeground: '#333333',
-            inputBorder: '#ced4da'
+            inputForeground: '#323130',
+            inputBorder: '#8a8886'
         },
         font: {
             family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             sizeInPixels: 14,
             lineHeight: 1.5,
             weight: 400,
-            headingWeight: 700,
+            headingWeight: 600,
             useMonospaceForCode: true
         }
     },
@@ -45,65 +42,65 @@ exports.defaultThemes = [
         type: 'dark',
         isBuiltIn: true,
         colors: {
-            primary: '#0098ff',
-            secondary: '#abb2bf',
-            background: '#282c34',
-            foreground: '#abb2bf',
-            agentMessageBackground: '#2c313c',
-            agentMessageForeground: '#abb2bf',
-            userMessageBackground: '#3b4048',
-            userMessageForeground: '#abb2bf',
-            systemMessage: '#7f848e',
-            error: '#e06c75',
-            success: '#98c379',
-            border: '#3e4452',
-            buttonBackground: '#0098ff',
+            primary: '#2ea7ff',
+            secondary: '#5fb2ec',
+            background: '#1e1e1e',
+            foreground: '#cccccc',
+            agentMessageBackground: '#2d2d2d',
+            agentMessageForeground: '#cccccc',
+            userMessageBackground: '#0e3766',
+            userMessageForeground: '#ffffff',
+            systemMessage: '#a0a0a0',
+            error: '#f48771',
+            success: '#89d185',
+            border: '#3c3c3c',
+            buttonBackground: '#2ea7ff',
             buttonForeground: '#ffffff',
-            buttonHoverBackground: '#007acc',
-            inputBackground: '#3b4048',
-            inputForeground: '#abb2bf',
-            inputBorder: '#4b5261'
+            buttonHoverBackground: '#5fb2ec',
+            inputBackground: '#3c3c3c',
+            inputForeground: '#cccccc',
+            inputBorder: '#6b6b6b'
         },
         font: {
             family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             sizeInPixels: 14,
             lineHeight: 1.5,
             weight: 400,
-            headingWeight: 700,
+            headingWeight: 600,
             useMonospaceForCode: true
         }
     },
     {
         id: 'high-contrast',
         name: 'High Contrast',
-        type: 'high-contrast',
+        type: 'dark',
         isBuiltIn: true,
         colors: {
-            primary: '#1aebff',
+            primary: '#ffff00',
             secondary: '#ffffff',
             background: '#000000',
             foreground: '#ffffff',
-            agentMessageBackground: '#1e1e1e',
+            agentMessageBackground: '#2d2d2d',
             agentMessageForeground: '#ffffff',
-            userMessageBackground: '#0e0e0e',
+            userMessageBackground: '#444444',
             userMessageForeground: '#ffffff',
             systemMessage: '#d4d4d4',
-            error: '#f48771',
-            success: '#89d185',
+            error: '#f14c4c',
+            success: '#4cd653',
             border: '#6b6b6b',
-            buttonBackground: '#1aebff',
-            buttonForeground: '#000000',
-            buttonHoverBackground: '#00c4cc',
-            inputBackground: '#0e0e0e',
+            buttonBackground: '#444444',
+            buttonForeground: '#ffffff',
+            buttonHoverBackground: '#666666',
+            inputBackground: '#2d2d2d',
             inputForeground: '#ffffff',
-            inputBorder: '#3e3e3e'
+            inputBorder: '#ffffff'
         },
         font: {
             family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             sizeInPixels: 16,
             lineHeight: 1.6,
-            weight: 500,
-            headingWeight: 800,
+            weight: 400,
+            headingWeight: 700,
             useMonospaceForCode: true
         }
     }

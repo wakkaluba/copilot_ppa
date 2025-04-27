@@ -7,18 +7,16 @@ const types_1 = require("../types");
  * Manages chat sessions, messages, and conversation flow
  */
 class LLMChatManager extends events_1.EventEmitter {
-    executionService;
-    historyService;
-    activeSessions = new Map();
-    metrics = {
-        totalSessions: 0,
-        activeSessions: 0,
-        totalMessages: 0,
-        averageResponseTime: 0,
-        errorRate: 0
-    };
     constructor(executionService, historyService) {
         super();
+        this.activeSessions = new Map();
+        this.metrics = {
+            totalSessions: 0,
+            activeSessions: 0,
+            totalMessages: 0,
+            averageResponseTime: 0,
+            errorRate: 0
+        };
         this.executionService = executionService;
         this.historyService = historyService;
         this.setupEventListeners();
@@ -47,7 +45,7 @@ class LLMChatManager extends events_1.EventEmitter {
         this.metrics.activeSessions++;
         this.emit(types_1.ChatEvent.SessionCreated, {
             sessionId: session.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         return session;
     }
@@ -63,7 +61,7 @@ class LLMChatManager extends events_1.EventEmitter {
             id: crypto.randomUUID(),
             role: options.role || types_1.ChatRole.User,
             content,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             metadata: {}
         };
         try {
@@ -116,7 +114,7 @@ class LLMChatManager extends events_1.EventEmitter {
             id: crypto.randomUUID(),
             role: types_1.ChatRole.Assistant,
             content: response.content,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             metadata: {
                 responseTime,
                 tokenCount: response.usage?.totalTokens ?? null
@@ -145,7 +143,7 @@ class LLMChatManager extends events_1.EventEmitter {
         this.metrics.activeSessions--;
         this.emit(types_1.ChatEvent.SessionEnded, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     /**
@@ -161,7 +159,7 @@ class LLMChatManager extends events_1.EventEmitter {
         this.metrics.activeSessions++;
         this.emit(types_1.ChatEvent.SessionResumed, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
         return session;
     }
@@ -199,7 +197,7 @@ class LLMChatManager extends events_1.EventEmitter {
         this.emit(types_1.ChatEvent.Error, {
             sessionId: session.id,
             error: session.metadata.lastError,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     dispose() {
@@ -221,7 +219,7 @@ class LLMChatManager extends events_1.EventEmitter {
         this.emit(types_1.ChatEvent.MessageHandled, {
             sessionId,
             messageId: message.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     /**
@@ -237,7 +235,7 @@ class LLMChatManager extends events_1.EventEmitter {
         await this.historyService.saveSession(session);
         this.emit(types_1.ChatEvent.HistoryCleared, {
             sessionId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     /**

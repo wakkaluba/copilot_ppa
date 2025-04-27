@@ -2,7 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LiveShareService = void 0;
 class LiveShareService {
-    sessions = new Map();
+    constructor() {
+        this.sessions = new Map();
+    }
     async startSharing(session) {
         const liveShare = await this.initializeLiveShare();
         this.sessions.set(session.id, liveShare);

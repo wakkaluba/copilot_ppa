@@ -6,9 +6,6 @@ const CopilotIntegrationWebviewService_1 = require("./services/CopilotIntegratio
  * WebView implementation for Copilot integration UI
  */
 class CopilotIntegrationWebview {
-    context;
-    static viewType = 'copilotIntegration.webview';
-    service;
     /**
      * Creates a new instance of the CopilotIntegrationWebview
      * @param context The extension context
@@ -32,4 +29,5 @@ class CopilotIntegrationWebview {
     }
 }
 exports.CopilotIntegrationWebview = CopilotIntegrationWebview;
+CopilotIntegrationWebview.viewType = 'copilotIntegration.webview';
 //# sourceMappingURL=copilotIntegrationWebview.js.map

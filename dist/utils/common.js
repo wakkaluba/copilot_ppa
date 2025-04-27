@@ -15,29 +15,15 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getNonce = getNonce;
-exports.getWebviewUri = getWebviewUri;
-exports.getSystemInfo = getSystemInfo;
-exports.formatBytes = formatBytes;
-exports.parseJson = parseJson;
+exports.parseJson = exports.formatBytes = exports.getSystemInfo = exports.getWebviewUri = exports.getNonce = void 0;
 const vscode = __importStar(require("vscode"));
 const os = __importStar(require("os"));
 const crypto_1 = require("crypto");
@@ -48,6 +34,7 @@ const crypto_1 = require("crypto");
 function getNonce() {
     return (0, crypto_1.randomBytes)(16).toString('base64');
 }
+exports.getNonce = getNonce;
 /**
  * Convert a local path to a webview URI
  * @param webview The webview to use for URI conversion
@@ -59,6 +46,7 @@ function getWebviewUri(webview, extensionPath, ...pathParts) {
     const uri = vscode.Uri.joinPath(vscode.Uri.file(extensionPath), ...pathParts);
     return webview.asWebviewUri(uri);
 }
+exports.getWebviewUri = getWebviewUri;
 /**
  * Get system information including OS, memory, etc.
  * @returns SystemInfo object
@@ -82,6 +70,7 @@ function getSystemInfo() {
         nodeVersion: process.version
     };
 }
+exports.getSystemInfo = getSystemInfo;
 /**
  * Format bytes to human-readable string
  * @param bytes Number of bytes
@@ -97,6 +86,7 @@ function formatBytes(bytes, decimals = 2) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+exports.formatBytes = formatBytes;
 /**
  * Safely parse JSON with error handling
  * @param text JSON string to parse
@@ -111,4 +101,5 @@ function parseJson(text, defaultValue) {
         return defaultValue;
     }
 }
+exports.parseJson = parseJson;
 //# sourceMappingURL=common.js.map

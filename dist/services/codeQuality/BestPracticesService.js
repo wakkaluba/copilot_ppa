@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BestPracticesService = void 0;
 class BestPracticesService {
-    _context;
     constructor(context) {
         this._context = context;
     }

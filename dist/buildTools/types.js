@@ -9,5 +9,5 @@ var BuildToolType;
     BuildToolType["Webpack"] = "webpack";
     BuildToolType["Rollup"] = "rollup";
     BuildToolType["Vite"] = "vite";
-})(BuildToolType || (exports.BuildToolType = BuildToolType = {}));
+})(BuildToolType = exports.BuildToolType || (exports.BuildToolType = {}));
 //# sourceMappingURL=types.js.map

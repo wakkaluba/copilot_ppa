@@ -7,12 +7,6 @@ const CopilotChatService_1 = require("./copilot/CopilotChatService");
 const CopilotSuggestionService_1 = require("./copilot/CopilotSuggestionService");
 const CopilotDataTransformer_1 = require("./copilot/CopilotDataTransformer");
 class CopilotApiService {
-    static instance;
-    logger;
-    connectionService;
-    chatService;
-    suggestionService;
-    dataTransformer;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
         this.connectionService = new CopilotConnectionService_1.CopilotConnectionService(this.logger);

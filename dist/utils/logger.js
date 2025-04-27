@@ -15,23 +15,13 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Logger = exports.LoggerImpl = void 0;
 const vscode = __importStar(require("vscode"));
@@ -43,14 +33,6 @@ const logging_1 = require("../types/logging");
  * Logger class for Copilot PPA extension
  */
 class LoggerImpl {
-    static instance;
-    _outputChannel;
-    _logLevel;
-    _logToFile;
-    _logFilePath;
-    _logEntries = [];
-    _maxInMemoryLogs;
-    _source = 'Logger'; // Added source property
     /**
      * Gets the singleton instance of the logger
      */
@@ -61,6 +43,8 @@ class LoggerImpl {
         return LoggerImpl.instance;
     }
     constructor() {
+        this._logEntries = [];
+        this._source = 'Logger'; // Added source property
         this._outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         // Read configuration
         const config = vscode.workspace.getConfiguration('copilot-ppa.logger');
@@ -238,7 +222,7 @@ class LoggerImpl {
         this._outputChannel.appendLine(formattedMessage);
         // Create log entry using the standardized interface
         const logEntry = {
-            timestamp: new Date(timestamp), // Use Date object as per the interface requirement
+            timestamp: new Date(timestamp),
             level,
             message,
             context
@@ -264,6 +248,75 @@ class LoggerImpl {
     get source() {
         return this._source;
     }
+    /**
+     * Get workspace folders
+     * @returns Array of workspace folders
+     */
+    getWorkspaceFolders() {
+        return vscode.workspace.workspaceFolders;
+    }
+    /**
+     * Find files in the workspace matching a pattern
+     * @param include glob pattern to match files
+     * @param exclude glob pattern to exclude files
+     * @param maxResults max number of results
+     * @returns Array of found file URIs
+     */
+    async findFiles(include, exclude, maxResults) {
+        try {
+            return await vscode.workspace.findFiles(include, exclude, maxResults);
+        }
+        catch (error) {
+            this.error(`Error finding files with pattern ${include}:`, error);
+            throw error;
+        }
+    }
+    /**
+     * Create a directory
+     * @param uri The URI of the directory to create
+     */
+    async createDirectory(uri) {
+        try {
+            await vscode.workspace.fs.createDirectory(uri);
+        }
+        catch (error) {
+            this.error(`Error creating directory ${uri.fsPath}:`, error);
+            throw error;
+        }
+    }
+    /**
+     * Get configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param defaultValue Default value if not found
+     * @returns The configuration value or default value
+     */
+    getConfiguration(section, key, defaultValue) {
+        const config = vscode.workspace.getConfiguration(section);
+        if (defaultValue === undefined) {
+            return config.get(key);
+        }
+        else {
+            return config.get(key, defaultValue);
+        }
+    }
+    /**
+     * Update configuration value
+     * @param section Configuration section
+     * @param key Configuration key
+     * @param value New value
+     * @param target Configuration target (default: Workspace)
+     */
+    async updateConfiguration(section, key, value, target = vscode.ConfigurationTarget.Workspace) {
+        try {
+            const config = vscode.workspace.getConfiguration(section);
+            await config.update(key, value, target);
+        }
+        catch (error) {
+            this.error(`Error updating configuration ${section}.${key}:`, error);
+            throw error;
+        }
+    }
 }
 exports.LoggerImpl = LoggerImpl;
 // Export the Logger interface as a namespace with a getInstance method
@@ -274,5 +327,5 @@ var Logger;
         return LoggerImpl.getInstance();
     }
     Logger.getInstance = getInstance;
-})(Logger || (exports.Logger = Logger = {}));
+})(Logger = exports.Logger || (exports.Logger = {}));
 //# sourceMappingURL=logger.js.map

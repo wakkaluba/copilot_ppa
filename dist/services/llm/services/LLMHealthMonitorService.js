@@ -3,15 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMHealthMonitorService = void 0;
 const events_1 = require("events");
 class LLMHealthMonitorService extends events_1.EventEmitter {
-    eventManager;
-    healthCheckCallback;
-    healthStatus = new Map();
-    checkIntervals = new Map();
-    DEFAULT_CHECK_INTERVAL = 60000; // 1 minute
     constructor(eventManager, healthCheckCallback) {
         super();
         this.eventManager = eventManager;
         this.healthCheckCallback = healthCheckCallback;
+        this.healthStatus = new Map();
+        this.checkIntervals = new Map();
+        this.DEFAULT_CHECK_INTERVAL = 60000; // 1 minute
         this.setupEventListeners();
     }
     setupEventListeners() {

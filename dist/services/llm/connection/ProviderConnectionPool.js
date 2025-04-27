@@ -2,9 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProviderConnectionPool = void 0;
 class ProviderConnectionPool {
-    connections = [];
-    maxSize;
     constructor(maxSize) {
+        this.connections = [];
         this.maxSize = maxSize;
     }
     async acquire() {
@@ -53,14 +52,14 @@ class ProviderConnectionPool {
                 return {
                     isHealthy: true,
                     latency: Date.now() - start,
-                    timestamp: Date.now()
+                    timestamp: new Date()
                 };
             }
             catch (error) {
                 return {
                     isHealthy: false,
                     latency: -1,
-                    timestamp: Date.now(),
+                    timestamp: new Date(),
                     error: error instanceof Error ? error : new Error(String(error))
                 };
             }
@@ -70,7 +69,7 @@ class ProviderConnectionPool {
         return {
             isHealthy: healthy.length > 0,
             latency: healthy.reduce((sum, r) => sum + r.latency, 0) / healthy.length,
-            timestamp: Date.now(),
+            timestamp: new Date(),
             details: {
                 totalConnections: this.connections.length,
                 healthyConnections: healthy.length,

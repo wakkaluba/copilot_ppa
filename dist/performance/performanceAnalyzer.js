@@ -6,7 +6,6 @@ const performanceManager_1 = require("./performanceManager");
  * @deprecated Use PerformanceManager from './performanceManager' instead.
  */
 class PerformanceAnalyzer {
-    manager;
     constructor(context) {
         this.manager = new performanceManager_1.PerformanceManager(context);
     }

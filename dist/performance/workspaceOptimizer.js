@@ -4,10 +4,8 @@ exports.WorkspaceOptimizer = void 0;
 const fileIndexer_1 = require("./fileIndexer");
 const chunkManager_1 = require("./chunkManager");
 class WorkspaceOptimizer {
-    indexer;
-    chunkManager;
-    MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
     constructor() {
+        this.MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
         this.indexer = new fileIndexer_1.FileIndexer();
         this.chunkManager = new chunkManager_1.ChunkManager();
     }

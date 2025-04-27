@@ -96,7 +96,10 @@ describe('CommandParser', () => {
     // Check that the command was parsed correctly
     expect(commandObj).toEqual({
       name: 'testCommand',
-      args: 'arg1="value1" arg2="value2"'
+      args: {
+        arg1: 'value1',
+        arg2: 'value2'
+      }
     });
   });
 

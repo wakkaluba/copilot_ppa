@@ -24,12 +24,12 @@ const DEFAULT_METRICS = {
  * Tracks performance metrics for LLM connections
  */
 class ConnectionMetricsTracker extends events_1.EventEmitter {
-    metrics = { ...DEFAULT_METRICS };
-    recentRequests = [];
-    MINUTE = 60 * 1000;
-    HOUR = 60 * 60 * 1000;
     constructor() {
         super();
+        this.metrics = { ...DEFAULT_METRICS };
+        this.recentRequests = [];
+        this.MINUTE = 60 * 1000;
+        this.HOUR = 60 * 60 * 1000;
         this.startPeriodicCleanup();
     }
     /**

@@ -46,11 +46,9 @@ describe('CommandParser Tests', () => {
         });
     });
 
-    it('parseAndExecute should throw error for invalid command format', async () => {
-        await assert.rejects(
-            () => commandParser.parseAndExecute('not a valid command'),
-            /Invalid command format/
-        );
+    it('parseAndExecute should return null for invalid command format', async () => {
+        const result = await commandParser.parseAndExecute('not a valid command');
+        assert.strictEqual(result, null);
     });
 
     it('parseAndExecute should throw error for unknown command', async () => {
@@ -162,5 +160,57 @@ describe('CommandParser Tests', () => {
         const result = parseArgs('');
         
         assert.deepStrictEqual(result, {});
+    });
+
+    it('parseAndExecute should handle @agent commands', async () => {
+        // Create a stub for the continueIteration method
+        const continueIterationStub = sandbox.stub().resolves();
+        
+        // Override the continueIteration method
+        (commandParser as any).continueIteration = continueIterationStub;
+        
+        // Execute the @agent Continue command
+        await commandParser.parseAndExecute('@agent Continue');
+        
+        // Verify handler was called with the correct arguments
+        assert.strictEqual(continueIterationStub.calledOnce, true);
+        assert.deepStrictEqual(continueIterationStub.firstCall.args[0], {});
+    });
+
+    it('parseAndExecute should handle @agent commands with message', async () => {
+        // Create a stub for the continueIteration method
+        const continueIterationStub = sandbox.stub().resolves();
+        
+        // Override the continueIteration method
+        (commandParser as any).continueIteration = continueIterationStub;
+        
+        // Execute the @agent Continue command with a message
+        await commandParser.parseAndExecute('@agent Continue: "Custom message"');
+        
+        // Verify handler was called with the correct arguments
+        assert.strictEqual(continueIterationStub.calledOnce, true);
+        assert.deepStrictEqual(continueIterationStub.firstCall.args[0], {
+            message: 'Custom message'
+        });
+    });
+    
+    it('parseAgentCommand should parse @agent commands correctly', () => {
+        // Access private method using type assertion
+        const parseAgentCommand = (commandParser as any).parseAgentCommand.bind(commandParser);
+        
+        // Test simple agent command
+        const result1 = parseAgentCommand('@agent Continue');
+        assert.strictEqual(result1.name, 'continue');
+        assert.deepStrictEqual(result1.args, {});
+        
+        // Test agent command with message
+        const result2 = parseAgentCommand('@agent Continue: "Hello world"');
+        assert.strictEqual(result2.name, 'continue');
+        assert.deepStrictEqual(result2.args, { message: 'Hello world' });
+        
+        // Test agent command with regular arguments
+        const result3 = parseAgentCommand('@agent Continue(delay=true)');
+        assert.strictEqual(result3.name, 'continue');
+        assert.deepStrictEqual(result3.args, { delay: true });
     });
 });

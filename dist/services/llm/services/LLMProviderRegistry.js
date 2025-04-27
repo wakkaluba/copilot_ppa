@@ -4,11 +4,10 @@ exports.LLMProviderRegistry = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class LLMProviderRegistry extends events_1.EventEmitter {
-    providers = new Map();
-    priorityQueue = [];
-    static instance;
     constructor() {
         super();
+        this.providers = new Map();
+        this.priorityQueue = [];
     }
     static getInstance() {
         if (!LLMProviderRegistry.instance) {
@@ -32,7 +31,7 @@ class LLMProviderRegistry extends events_1.EventEmitter {
         this.sortPriorityQueue();
         this.emit(types_1.ProviderEvent.Registered, {
             providerId: provider.id,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     async unregisterProvider(providerId) {
@@ -45,7 +44,7 @@ class LLMProviderRegistry extends events_1.EventEmitter {
         this.priorityQueue = this.priorityQueue.filter(id => id !== providerId);
         this.emit(types_1.ProviderEvent.Unregistered, {
             providerId,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     getProvider(providerId) {
@@ -78,7 +77,7 @@ class LLMProviderRegistry extends events_1.EventEmitter {
         this.emit(types_1.ProviderEvent.StateChanged, {
             providerId,
             state,
-            timestamp: Date.now()
+            timestamp: new Date()
         });
     }
     sortPriorityQueue() {

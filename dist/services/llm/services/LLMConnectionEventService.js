@@ -7,31 +7,26 @@ const types_1 = require("../types");
  * Service for managing LLM connection events and state transitions
  */
 class LLMConnectionEventService extends events_1.EventEmitter {
-    metricsService;
-    config;
-    currentState = 'disconnected';
-    previousState = 'disconnected';
-    stateTimestamp = Date.now();
-    modelInfo;
-    lastError;
-    stateTimeout;
-    defaultTransitionConfig = {
-        allowedTransitions: new Map([
-            ['disconnected', new Set(['connecting', 'error'])],
-            ['connecting', new Set(['connected', 'error', 'reconnecting'])],
-            ['connected', new Set(['disconnected', 'error'])],
-            ['error', new Set(['reconnecting', 'disconnected'])],
-            ['reconnecting', new Set(['connected', 'error', 'disconnected'])]
-        ]),
-        transitionTimeouts: new Map([
-            ['connecting', 30000], // 30 seconds timeout for connecting
-            ['reconnecting', 60000], // 60 seconds timeout for reconnecting
-        ])
-    };
     constructor(metricsService, config = defaultTransitionConfig) {
         super();
         this.metricsService = metricsService;
         this.config = config;
+        this.currentState = 'disconnected';
+        this.previousState = 'disconnected';
+        this.stateTimestamp = Date.now();
+        this.defaultTransitionConfig = {
+            allowedTransitions: new Map([
+                ['disconnected', new Set(['connecting', 'error'])],
+                ['connecting', new Set(['connected', 'error', 'reconnecting'])],
+                ['connected', new Set(['disconnected', 'error'])],
+                ['error', new Set(['reconnecting', 'disconnected'])],
+                ['reconnecting', new Set(['connected', 'error', 'disconnected'])]
+            ]),
+            transitionTimeouts: new Map([
+                ['connecting', 30000],
+                ['reconnecting', 60000], // 60 seconds timeout for reconnecting
+            ])
+        };
     }
     getCurrentState() {
         return this.currentState;

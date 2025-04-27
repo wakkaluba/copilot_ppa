@@ -11,7 +11,6 @@ class NoOpLogger {
     error() { }
 }
 class RollupOptimizationService {
-    logger;
     constructor(logger) {
         this.logger = logger || new NoOpLogger();
     }

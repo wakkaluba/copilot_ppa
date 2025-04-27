@@ -15,32 +15,19 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationSearchCommand = void 0;
 const vscode = __importStar(require("vscode"));
 const conversationManager_1 = require("../services/conversationManager");
 const conversationSearchService_1 = require("../services/conversationSearchService");
 class ConversationSearchCommand {
-    static commandId = 'copilotPPA.searchConversations';
-    conversationManager;
-    searchService;
     constructor(context) {
         this.conversationManager = conversationManager_1.ConversationManager.getInstance(context);
         this.searchService = conversationSearchService_1.ConversationSearchService.getInstance(this.conversationManager);
@@ -180,4 +167,5 @@ class ConversationSearchCommand {
     }
 }
 exports.ConversationSearchCommand = ConversationSearchCommand;
+ConversationSearchCommand.commandId = 'copilotPPA.searchConversations';
 //# sourceMappingURL=conversationSearchCommand.js.map

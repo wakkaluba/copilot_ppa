@@ -4,9 +4,8 @@ exports.ProviderFactory = void 0;
 const OllamaProvider_1 = require("./OllamaProvider");
 const errors_1 = require("../errors");
 class ProviderFactory {
-    static instance;
-    providerConstructors = new Map();
     constructor() {
+        this.providerConstructors = new Map();
         this.registerBuiltInProviders();
     }
     static getInstance() {

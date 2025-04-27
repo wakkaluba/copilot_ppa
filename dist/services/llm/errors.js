@@ -9,8 +9,6 @@ const interfaces_1 = require("./interfaces");
  * Base error class for LLM connection errors
  */
 class LLMConnectionError extends Error {
-    code;
-    cause;
     constructor(code, message, cause) {
         super(message);
         this.code = code;
@@ -93,14 +91,9 @@ class Error {
             Error.captureStackTrace(this, this.constructor);
         }
     }
-    message;
-    name;
-    stack;
 }
 exports.Error = Error;
 class ProviderError extends Error {
-    providerId;
-    cause;
     constructor(message, providerId, cause) {
         super(message);
         this.providerId = providerId;
@@ -110,9 +103,6 @@ class ProviderError extends Error {
 }
 exports.ProviderError = ProviderError;
 class ConnectionError extends Error {
-    providerId;
-    code;
-    cause;
     constructor(message, providerId, code, cause) {
         super(message);
         this.providerId = providerId;
@@ -123,9 +113,6 @@ class ConnectionError extends Error {
 }
 exports.ConnectionError = ConnectionError;
 class ModelError extends Error {
-    providerId;
-    modelId;
-    cause;
     constructor(message, providerId, modelId, cause) {
         super(message);
         this.providerId = providerId;
@@ -136,8 +123,6 @@ class ModelError extends Error {
 }
 exports.ModelError = ModelError;
 class ValidationError extends Error {
-    errors;
-    cause;
     constructor(message, errors, cause) {
         super(message);
         this.errors = errors;
@@ -147,9 +132,6 @@ class ValidationError extends Error {
 }
 exports.ValidationError = ValidationError;
 class ConfigurationError extends Error {
-    providerId;
-    propertyPath;
-    cause;
     constructor(message, providerId, propertyPath, cause) {
         super(message);
         this.providerId = providerId;
@@ -160,9 +142,6 @@ class ConfigurationError extends Error {
 }
 exports.ConfigurationError = ConfigurationError;
 class HealthCheckError extends Error {
-    providerId;
-    checkResult;
-    cause;
     constructor(message, providerId, checkResult, cause) {
         super(message);
         this.providerId = providerId;
@@ -173,10 +152,6 @@ class HealthCheckError extends Error {
 }
 exports.HealthCheckError = HealthCheckError;
 class RequestError extends Error {
-    providerId;
-    requestId;
-    statusCode;
-    cause;
     constructor(message, providerId, requestId, statusCode, cause) {
         super(message);
         this.providerId = providerId;
@@ -188,11 +163,6 @@ class RequestError extends Error {
 }
 exports.RequestError = RequestError;
 class TokenError extends Error {
-    providerId;
-    requestId;
-    tokenCount;
-    maxTokens;
-    cause;
     constructor(message, providerId, requestId, tokenCount, maxTokens, cause) {
         super(message);
         this.providerId = providerId;
@@ -205,10 +175,6 @@ class TokenError extends Error {
 }
 exports.TokenError = TokenError;
 class TimeoutError extends Error {
-    providerId;
-    operationType;
-    timeoutMs;
-    cause;
     constructor(message, providerId, operationType, timeoutMs, cause) {
         super(message);
         this.providerId = providerId;
