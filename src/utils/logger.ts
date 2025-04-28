@@ -7,8 +7,8 @@ export enum LogLevel {
     ERROR = 3
 }
 
-export class Logger {
-    private static instance: Logger;
+export class LoggerImpl {
+    private static instance: LoggerImpl;
     private outputChannel: vscode.OutputChannel;
     private currentLogLevel: LogLevel = LogLevel.INFO;
 
@@ -16,16 +16,16 @@ export class Logger {
         this.outputChannel = outputChannel;
     }
 
-    public static getInstance(outputChannel?: vscode.OutputChannel): Logger {
-        if (!Logger.instance && outputChannel) {
-            Logger.instance = new Logger(outputChannel);
+    public static getInstance(outputChannel?: vscode.OutputChannel): LoggerImpl {
+        if (!LoggerImpl.instance && outputChannel) {
+            LoggerImpl.instance = new LoggerImpl(outputChannel);
         }
         
-        if (!Logger.instance) {
+        if (!LoggerImpl.instance) {
             throw new Error("Logger not initialized. Provide outputChannel when getting instance for the first time.");
         }
         
-        return Logger.instance;
+        return LoggerImpl.instance;
     }
 
     public setLogLevel(level: LogLevel): void {
@@ -80,3 +80,6 @@ export class Logger {
         }
     }
 }
+
+// For backward compatibility
+export const Logger = LoggerImpl;

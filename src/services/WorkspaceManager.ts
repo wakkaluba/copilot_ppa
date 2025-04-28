@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Logger } from '../utils/logger';
+import { LoggerImpl } from '../utils/logger';
 
 /**
  * Manages workspace-related operations such as file reading/writing
@@ -8,13 +8,13 @@ import { Logger } from '../utils/logger';
  */
 export class WorkspaceManager {
     private static instance: WorkspaceManager;
-    private logger: Logger;
+    private logger: LoggerImpl;
 
     /**
      * Private constructor to enforce singleton pattern
      */
     private constructor() {
-        this.logger = Logger.getInstance();
+        this.logger = LoggerImpl.getInstance();
     }
 
     /**
@@ -55,9 +55,12 @@ export class WorkspaceManager {
         try {
             const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
             return await vscode.workspace.fs.readFile(fileUri);
-        } catch (error: unknown) {
-            this.logger.error(`Error reading file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to read file: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error reading file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to read file: ${errorMessage}`);
         }
     }
 
@@ -81,9 +84,12 @@ export class WorkspaceManager {
             
             await vscode.workspace.fs.writeFile(fileUri, data);
             await this.formatDocumentAtPath(fileUri);
-        } catch (error: unknown) {
-            this.logger.error(`Error writing file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error writing file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to write file: ${errorMessage}`);
         }
     }
 
@@ -108,9 +114,12 @@ export class WorkspaceManager {
             const content = Buffer.from(contentBuffer).toString('utf8');
             const modifiedContent = modifier(content);
             await this.writeFile(fileUri, modifiedContent);
-        } catch (error: unknown) {
-            this.logger.error(`Error modifying file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to modify file: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error modifying file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to modify file: ${errorMessage}`);
         }
     }
 
@@ -122,9 +131,12 @@ export class WorkspaceManager {
         try {
             const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
             await vscode.workspace.fs.delete(fileUri);
-        } catch (error: unknown) {
-            this.logger.error(`Error deleting file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error deleting file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to delete file: ${errorMessage}`);
         }
     }
 
@@ -140,9 +152,9 @@ export class WorkspaceManager {
             if (document.languageId !== 'plaintext') {
                 await vscode.commands.executeCommand('editor.action.formatDocument');
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             // Just log warning as formatting is not critical
-            this.logger.warn(`Format error for ${uri instanceof vscode.Uri ? uri.fsPath : uri}: ${error instanceof Error ? error.message : String(error)}`);
+            this.logger.warn(`Format error for ${uri instanceof vscode.Uri ? uri.fsPath : uri}: ${error && error.message ? error.message : String(error)}`);
         }
     }
 
@@ -181,20 +193,24 @@ export class WorkspaceManager {
             const dirUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
             const entries = await vscode.workspace.fs.readDirectory(dirUri);
             return entries;
-        } catch (error: unknown) {
-            this.logger.error(`Error listing directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to list directory: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error listing directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to list directory: ${errorMessage}`);
         }
     }
 
     /**
      * Check if file exists
-     * @param uri File URI to check
+     * @param uri File URI or path to check
      * @returns True if file exists, false otherwise
      */
-    public async fileExists(uri: vscode.Uri): Promise<boolean> {
+    public async fileExists(uri: vscode.Uri | string): Promise<boolean> {
         try {
-            await vscode.workspace.fs.stat(uri);
+            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
+            await vscode.workspace.fs.stat(fileUri);
             return true;
         } catch {
             return false;
@@ -212,14 +228,25 @@ export class WorkspaceManager {
     /**
      * Finds files matching a glob pattern
      * @param pattern Glob pattern
+     * @param excludePattern Pattern to exclude
+     * @param maxResults Maximum number of results
+     * @param token Cancellation token
      * @returns Array of matching URIs
      */
-    public async findFiles(pattern: string, exclude?: string): Promise<vscode.Uri[]> {
+    public async findFiles(
+        pattern: string, 
+        excludePattern?: string, 
+        maxResults?: number, 
+        token?: vscode.CancellationToken
+    ): Promise<vscode.Uri[]> {
         try {
-            return await vscode.workspace.findFiles(pattern, exclude);
-        } catch (error: unknown) {
-            this.logger.error(`Error finding files with pattern ${pattern}:`, error);
-            throw new Error(`Failed to find files: ${error instanceof Error ? error.message : String(error)}`);
+            return await vscode.workspace.findFiles(pattern, excludePattern, maxResults, token);
+        } catch (error: any) {
+            this.logger.error(`Error finding files with pattern ${pattern}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to find files: ${errorMessage}`);
         }
     }
 
@@ -231,9 +258,12 @@ export class WorkspaceManager {
         try {
             const dirUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
             await vscode.workspace.fs.createDirectory(dirUri);
-        } catch (error: unknown) {
-            this.logger.error(`Error creating directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
-            throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error creating directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to create directory: ${errorMessage}`);
         }
     }
 
@@ -258,9 +288,12 @@ export class WorkspaceManager {
         try {
             const config = this.getConfiguration('', resource);
             await config.update(section, value, target);
-        } catch (error: unknown) {
-            this.logger.error(`Error updating configuration ${section}:`, error);
-            throw new Error(`Failed to update configuration: ${error instanceof Error ? error.message : String(error)}`);
+        } catch (error: any) {
+            this.logger.error(`Error updating configuration ${section}:`, error as Error);
+            const errorMessage = error && typeof error === 'object' && 'message' in error 
+                ? error.message 
+                : String(error);
+            throw new Error(`Failed to update configuration: ${errorMessage}`);
         }
     }
 }
