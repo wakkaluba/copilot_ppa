@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnhancedChatProvider = void 0;
 const vscode = __importStar(require("vscode"));
@@ -33,6 +43,15 @@ class EnhancedChatProvider {
         this.maxRetries = 3;
         this.contextManager = contextManager;
         this.llmProvider = llmProvider;
+    }
+    async handleContinueIteration() {
+        if (!this.view) {
+            return;
+        }
+        this.view.webview.postMessage({
+            type: 'showContinuePrompt',
+            message: 'Continue to iterate?'
+        });
     }
     setWebview(view) {
         this.view = view;
@@ -61,6 +80,9 @@ class EnhancedChatProvider {
                     break;
                 case 'createSnippet':
                     await this.createCodeSnippet(message.code, message.language);
+                    break;
+                case 'continueIteration':
+                    await this.handleContinueIteration();
                     break;
             }
         });
@@ -107,7 +129,7 @@ class EnhancedChatProvider {
             id: (0, uuid_1.v4)(),
             role: 'user',
             content: content,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         this.contextManager.appendMessage(userMessage);
         this.sendMessagesToWebview();
@@ -118,35 +140,36 @@ class EnhancedChatProvider {
         let retryCount = 0;
         while (retryCount < this.maxRetries) {
             try {
-                await this.generateStreamingResponse(userMessage);
+                await this.generateResponse(userMessage);
+                // Show continue prompt after successful response
+                if (content.toLowerCase().includes('continue') || content.toLowerCase().includes('iterate')) {
+                    await this.handleContinueIteration();
+                }
                 break;
             }
             catch (error) {
                 retryCount++;
                 if (retryCount === this.maxRetries) {
-                    await this.handleError(error);
-                }
-                else {
-                    await this.waitBeforeRetry(retryCount);
+                    throw error;
                 }
             }
         }
     }
-    async generateStreamingResponse(userMessage) {
+    async generateResponse(userMessage) {
         this.isStreaming = true;
         this.updateStatus('Thinking...');
         let currentResponse = '';
         try {
             const context = this.contextManager.getContextString();
-            await this.llmProvider.streamCompletion(userMessage.content, { context }, (event) => {
-                currentResponse += event.content;
+            await this.llmProvider.generateResponse(userMessage.content, { context }, (content) => {
+                currentResponse += content;
                 this.updateStreamingContent(currentResponse);
             });
             const assistantMessage = {
                 id: (0, uuid_1.v4)(),
                 role: 'assistant',
                 content: currentResponse,
-                timestamp: new Date()
+                timestamp: Date.now()
             };
             this.contextManager.appendMessage(assistantMessage);
             this.sendMessagesToWebview();
@@ -166,7 +189,7 @@ class EnhancedChatProvider {
             id: (0, uuid_1.v4)(),
             role: 'system',
             content: 'Currently offline. Message saved and will be processed when connection is restored.',
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         this.contextManager.appendMessage(offlineMessage);
         this.sendMessagesToWebview();
@@ -177,7 +200,7 @@ class EnhancedChatProvider {
             id: (0, uuid_1.v4)(),
             role: 'system',
             content: `Error: ${errorMessage}\nPlease try again or check your connection.`,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         this.contextManager.appendMessage(errorResponse);
         this.sendMessagesToWebview();
@@ -207,7 +230,7 @@ class EnhancedChatProvider {
             return;
         }
         for (const message of cachedMessages) {
-            await this.generateStreamingResponse(message);
+            await this.generateResponse(message);
         }
         this.offlineCache.delete(conversationId);
     }

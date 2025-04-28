@@ -21,13 +21,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -35,12 +45,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var PerformanceAnalyzer_1;
-var _a, _b, _c, _d;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceAnalyzer = void 0;
 const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
-const ILogger_1 = require("../../logging/ILogger");
 const PerformanceMetricsService_1 = require("./services/PerformanceMetricsService");
 const PerformanceIssueService_1 = require("./services/PerformanceIssueService");
 const PerformanceReportService_1 = require("./services/PerformanceReportService");
@@ -146,14 +155,14 @@ let PerformanceAnalyzer = PerformanceAnalyzer_1 = class PerformanceAnalyzer exte
         this.removeAllListeners();
     }
 };
-PerformanceAnalyzer = PerformanceAnalyzer_1 = __decorate([
+exports.PerformanceAnalyzer = PerformanceAnalyzer;
+exports.PerformanceAnalyzer = PerformanceAnalyzer = PerformanceAnalyzer_1 = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(PerformanceMetricsService_1.PerformanceMetricsService)),
     __param(2, (0, inversify_1.inject)(PerformanceIssueService_1.PerformanceIssueService)),
     __param(3, (0, inversify_1.inject)(PerformanceReportService_1.PerformanceReportService)),
     __param(4, (0, inversify_1.inject)(PerformanceProgressService_1.PerformanceProgressService)),
-    __metadata("design:paramtypes", [typeof (_a = typeof ILogger_1.ILogger !== "undefined" && ILogger_1.ILogger) === "function" ? _a : Object, PerformanceMetricsService_1.PerformanceMetricsService, typeof (_b = typeof PerformanceIssueService_1.PerformanceIssueService !== "undefined" && PerformanceIssueService_1.PerformanceIssueService) === "function" ? _b : Object, typeof (_c = typeof PerformanceReportService_1.PerformanceReportService !== "undefined" && PerformanceReportService_1.PerformanceReportService) === "function" ? _c : Object, typeof (_d = typeof PerformanceProgressService_1.PerformanceProgressService !== "undefined" && PerformanceProgressService_1.PerformanceProgressService) === "function" ? _d : Object])
+    __metadata("design:paramtypes", [Object, PerformanceMetricsService_1.PerformanceMetricsService, typeof (_a = typeof PerformanceIssueService_1.PerformanceIssueService !== "undefined" && PerformanceIssueService_1.PerformanceIssueService) === "function" ? _a : Object, typeof (_b = typeof PerformanceReportService_1.PerformanceReportService !== "undefined" && PerformanceReportService_1.PerformanceReportService) === "function" ? _b : Object, typeof (_c = typeof PerformanceProgressService_1.PerformanceProgressService !== "undefined" && PerformanceProgressService_1.PerformanceProgressService) === "function" ? _c : Object])
 ], PerformanceAnalyzer);
-exports.PerformanceAnalyzer = PerformanceAnalyzer;
 //# sourceMappingURL=performanceAnalyzer.js.map

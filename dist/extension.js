@@ -15,15 +15,26 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deactivate = exports.activate = void 0;
+exports.activate = activate;
+exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const ServiceRegistry_1 = require("./services/ServiceRegistry");
 const commands_1 = require("./commands");
@@ -31,7 +42,7 @@ const webview_1 = require("./webview");
 const statusBar_1 = require("./statusBar");
 async function activate(context) {
     // Initialize service registry
-    (0, ServiceRegistry_1.initializeServices)(context);
+    await (0, ServiceRegistry_1.initializeServices)(context);
     const registry = ServiceRegistry_1.ServiceRegistry.getInstance();
     // Setup core extension components
     (0, commands_1.registerCommands)(context, registry);
@@ -52,10 +63,8 @@ async function activate(context) {
         serviceRegistry: registry
     };
 }
-exports.activate = activate;
 function deactivate() {
     const registry = ServiceRegistry_1.ServiceRegistry.getInstance();
     registry.dispose();
 }
-exports.deactivate = deactivate;
 //# sourceMappingURL=extension.js.map

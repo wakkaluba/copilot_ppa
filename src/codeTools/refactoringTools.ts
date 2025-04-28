@@ -4,23 +4,25 @@ import { UnusedCodeAnalyzerService } from './services/UnusedCodeAnalyzerService'
 import { CodeDiffService } from './services/CodeDiffService';
 import { RefactoringOutputService } from './services/RefactoringOutputService';
 import { LLMRefactoringService } from './services/LLMRefactoringService';
+import { EventEmitter } from '../common/eventEmitter';
 
 /**
- * Provides tools for code refactoring
+ * Provides refactoring tools for code improvements
  */
-export class RefactoringTools {
-    private readonly simplificationService: CodeSimplificationService;
-    private readonly unusedCodeAnalyzer: UnusedCodeAnalyzerService;
-    private readonly diffService: CodeDiffService;
-    private readonly outputService: RefactoringOutputService;
-    private readonly llmService: LLMRefactoringService;
-    
+export class RefactoringTools extends EventEmitter {
+    private simplificationService: CodeSimplificationService;
+    private unusedCodeAnalyzer: UnusedCodeAnalyzerService;
+    private diffService: CodeDiffService;
+    private outputService: RefactoringOutputService;
+    private llmService: LLMRefactoringService;
+
     constructor() {
+        super();
+        this.simplificationService = new CodeSimplificationService();
+        this.unusedCodeAnalyzer = new UnusedCodeAnalyzerService();
+        this.diffService = new CodeDiffService();
         this.outputService = new RefactoringOutputService();
         this.llmService = new LLMRefactoringService();
-        this.simplificationService = new CodeSimplificationService(this.llmService);
-        this.unusedCodeAnalyzer = new UnusedCodeAnalyzerService(this.llmService);
-        this.diffService = new CodeDiffService();
     }
 
     /**
@@ -96,6 +98,49 @@ export class RefactoringTools {
         }
     }
     
+    /**
+     * Refactor code using LLM in the current editor
+     * @param instructions Instructions for the refactoring
+     */
+    public async refactorWithLLM(instructions: string): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor found');
+            return;
+        }
+
+        try {
+            this.outputService.startOperation('Processing code with LLM...');
+            
+            const { text, selection } = await this.simplificationService.getEditorContent(editor);
+            const refactoredCode = await this.llmService.refactorCode(
+                text,
+                editor.document.languageId,
+                instructions
+            );
+            
+            await this.showAndApplyChanges(
+                editor.document.uri,
+                text,
+                refactoredCode,
+                "LLM Refactoring",
+                'Apply the LLM refactored code?'
+            );
+
+            this.outputService.logSuccess('Code successfully refactored');
+        } catch (error) {
+            this.outputService.logError('Error during LLM refactoring:', error);
+        }
+    }
+    
+    /**
+     * Show diff and apply changes if user confirms
+     * @param uri Document URI
+     * @param originalCode Original code
+     * @param newCode New code
+     * @param title Diff title
+     * @param prompt Confirmation prompt
+     */
     private async showAndApplyChanges(
         uri: vscode.Uri,
         originalCode: string,
@@ -103,6 +148,11 @@ export class RefactoringTools {
         title: string,
         prompt: string
     ): Promise<void> {
+        if (originalCode === newCode) {
+            this.outputService.logSuccess('No changes needed, code is already optimized');
+            return;
+        }
+        
         await this.diffService.showDiff(uri, originalCode, newCode, title);
         
         const shouldReplace = await vscode.window.showInformationMessage(prompt, 'Replace', 'Cancel');
@@ -120,7 +170,6 @@ export class RefactoringTools {
      * Dispose resources
      */
     public dispose(): void {
-        this.outputService.dispose();
-        this.diffService.dispose();
+        super.dispose(); // Call base class dispose to clean up event listeners
     }
 }

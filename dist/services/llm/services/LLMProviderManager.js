@@ -12,7 +12,7 @@ var ProviderEvent;
     ProviderEvent["Removed"] = "provider:removed";
     ProviderEvent["StatusChanged"] = "provider:statusChanged";
     ProviderEvent["MetricsUpdated"] = "provider:metricsUpdated";
-})(ProviderEvent = exports.ProviderEvent || (exports.ProviderEvent = {}));
+})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
 class LLMProviderManager extends events_1.EventEmitter {
     constructor(connectionManager, hostManager, connectionStatus) {
         super();

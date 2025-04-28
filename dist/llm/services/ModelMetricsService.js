@@ -124,7 +124,7 @@ let ModelMetricsService = class ModelMetricsService extends events_1.EventEmitte
                 modelId,
                 averageResponseTime: totalRequests > 0 ? totalResponseTime / metrics.length : 0,
                 p95ResponseTime,
-                requestRate: totalRequests / (timeRange / 1000),
+                requestRate: totalRequests / (timeRange / 1000), // Requests per second
                 errorRate: totalRequests > 0 ? totalErrors / totalRequests : 0,
                 successfulRequests: totalRequests - totalErrors,
                 failedRequests: totalErrors,
@@ -171,10 +171,10 @@ let ModelMetricsService = class ModelMetricsService extends events_1.EventEmitte
         this.logger.info('ModelMetricsService disposed');
     }
 };
-ModelMetricsService = __decorate([
+exports.ModelMetricsService = ModelMetricsService;
+exports.ModelMetricsService = ModelMetricsService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object])
 ], ModelMetricsService);
-exports.ModelMetricsService = ModelMetricsService;
 //# sourceMappingURL=ModelMetricsService.js.map

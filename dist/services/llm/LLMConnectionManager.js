@@ -9,7 +9,7 @@ var ConnectionStatus;
     ConnectionStatus["Connecting"] = "connecting";
     ConnectionStatus["Connected"] = "connected";
     ConnectionStatus["Error"] = "error";
-})(ConnectionStatus = exports.ConnectionStatus || (exports.ConnectionStatus = {}));
+})(ConnectionStatus || (exports.ConnectionStatus = ConnectionStatus = {}));
 class LLMConnectionManager extends events_1.EventEmitter {
     constructor() {
         super();

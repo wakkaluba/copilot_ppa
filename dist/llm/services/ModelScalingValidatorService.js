@@ -147,7 +147,8 @@ let ModelScalingValidatorService = class ModelScalingValidatorService extends ev
         this.emit('error', { message, error });
     }
 };
-ModelScalingValidatorService = __decorate([
+exports.ModelScalingValidatorService = ModelScalingValidatorService;
+exports.ModelScalingValidatorService = ModelScalingValidatorService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelHealthMonitorV2_1.ModelHealthMonitorV2)),
@@ -155,5 +156,4 @@ ModelScalingValidatorService = __decorate([
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, ModelHealthMonitorV2_1.ModelHealthMonitorV2,
         ModelMetricsService_1.ModelMetricsService])
 ], ModelScalingValidatorService);
-exports.ModelScalingValidatorService = ModelScalingValidatorService;
 //# sourceMappingURL=ModelScalingValidatorService.js.map

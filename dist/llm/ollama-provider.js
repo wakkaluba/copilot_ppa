@@ -219,7 +219,7 @@ class OllamaProvider extends llm_provider_1.BaseLLMProvider {
             provider: 'ollama',
             capabilities: info.details?.capabilities || [],
             parameters: this.parseParameterSize(info.details?.parameter_size),
-            contextLength: 4096,
+            contextLength: 4096, // Default for most Ollama models
             quantization: info.details?.quantization_level,
             license: info.license
         };

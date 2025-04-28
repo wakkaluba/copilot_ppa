@@ -122,12 +122,12 @@ let ModelResourceOptimizer = class ModelResourceOptimizer extends events_1.Event
         this.emit('error', { message, error });
     }
 };
-ModelResourceOptimizer = __decorate([
+exports.ModelResourceOptimizer = ModelResourceOptimizer;
+exports.ModelResourceOptimizer = ModelResourceOptimizer = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __param(2, (0, inversify_1.inject)(ModelHealthMonitor_1.ModelHealthMonitor)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, ModelMetricsService_1.ModelMetricsService, typeof (_b = typeof ModelHealthMonitor_1.ModelHealthMonitor !== "undefined" && ModelHealthMonitor_1.ModelHealthMonitor) === "function" ? _b : Object])
 ], ModelResourceOptimizer);
-exports.ModelResourceOptimizer = ModelResourceOptimizer;
 //# sourceMappingURL=ModelResourceOptimizer.js.map

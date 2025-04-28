@@ -15,128 +15,146 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Logger = void 0;
+exports.Logger = exports.LogLevel = void 0;
 const vscode = __importStar(require("vscode"));
 /**
- * Logger utility for consistent logging across the extension
+ * Log levels
+ */
+var LogLevel;
+(function (LogLevel) {
+    LogLevel[LogLevel["Debug"] = 0] = "Debug";
+    LogLevel[LogLevel["Info"] = 1] = "Info";
+    LogLevel[LogLevel["Warn"] = 2] = "Warn";
+    LogLevel[LogLevel["Error"] = 3] = "Error";
+    LogLevel[LogLevel["Off"] = 4] = "Off";
+})(LogLevel || (exports.LogLevel = LogLevel = {}));
+/**
+ * Logger class for consistent logging
  */
 class Logger {
-    constructor(channelName = 'Copilot PPA') {
-        this.logHistory = [];
-        this.maxHistorySize = 100;
-        this.outputChannel = vscode.window.createOutputChannel(channelName);
+    /**
+     * Create a new Logger instance
+     */
+    constructor() {
+        this.logLevel = LogLevel.Info;
+        this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
     }
     /**
-     * Log an informational message
-     * @param message Message to log
-     * @param context Optional context data
+     * Get the singleton instance
      */
-    info(message, context) {
-        this.log('info', message, context);
+    static getInstance() {
+        if (!Logger.instance) {
+            Logger.instance = new Logger();
+        }
+        return Logger.instance;
     }
     /**
-     * Log a warning message
-     * @param message Message to log
-     * @param context Optional context data
+     * Set the log level
      */
-    warn(message, context) {
-        this.log('warn', message, context);
-    }
-    /**
-     * Log an error message
-     * @param message Message to log
-     * @param context Optional context data
-     */
-    error(message, context) {
-        this.log('error', message, context);
+    setLogLevel(level) {
+        this.logLevel = level;
     }
     /**
      * Log a debug message
-     * @param message Message to log
-     * @param context Optional context data
      */
-    debug(message, context) {
-        this.log('debug', message, context);
+    debug(message, ...args) {
+        this.log(LogLevel.Debug, message, ...args);
     }
     /**
-     * Internal log method
-     * @param level Log level
-     * @param message Message to log
-     * @param context Optional context data
+     * Log an info message
      */
-    log(level, message, context) {
-        const entry = {
-            level,
-            message,
-            timestamp: Date.now(),
-            context
-        };
-        // Add to history
-        this.logHistory.push(entry);
-        // Trim history if needed
-        if (this.logHistory.length > this.maxHistorySize) {
-            this.logHistory = this.logHistory.slice(-this.maxHistorySize);
+    info(message, ...args) {
+        this.log(LogLevel.Info, message, ...args);
+    }
+    /**
+     * Log a warning message
+     */
+    warn(message, ...args) {
+        this.log(LogLevel.Warn, message, ...args);
+    }
+    /**
+     * Log an error message
+     */
+    error(message, ...args) {
+        this.log(LogLevel.Error, message, ...args);
+    }
+    /**
+     * Log a message with the specified level
+     */
+    log(level, message, ...args) {
+        if (level < this.logLevel) {
+            return;
         }
-        // Format and write to output channel
-        const formattedMessage = this.formatLogEntry(entry);
-        this.outputChannel.appendLine(formattedMessage);
-        // Show in console for development
-        if (level === 'error') {
+        const timestamp = new Date().toISOString();
+        const levelStr = LogLevel[level].toUpperCase();
+        let formattedMessage = `[${timestamp}] [${levelStr}] ${message}`;
+        if (args.length > 0) {
+            formattedMessage += ' ' + args
+                .map(arg => {
+                if (arg === null)
+                    return 'null';
+                if (arg === undefined)
+                    return 'undefined';
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg);
+                    }
+                    catch (e) {
+                        return String(arg);
+                    }
+                }
+                return String(arg);
+            })
+                .join(' ');
+        }
+        try {
+            this.outputChannel.appendLine(formattedMessage);
+        }
+        catch (e) {
+            console.error('Error writing to output channel:', e);
+        }
+        // Also log to console for development
+        if (level === LogLevel.Error) {
             console.error(formattedMessage);
         }
-        else if (level === 'warn') {
+        else if (level === LogLevel.Warn) {
             console.warn(formattedMessage);
+        }
+        else if (level === LogLevel.Info) {
+            console.info(formattedMessage);
         }
         else {
             console.log(formattedMessage);
         }
     }
     /**
-     * Format a log entry for display
-     * @param entry Log entry to format
-     * @returns Formatted log string
-     */
-    formatLogEntry(entry) {
-        const timestamp = new Date(entry.timestamp).toISOString();
-        const level = entry.level.toUpperCase().padEnd(5);
-        let message = `[${timestamp}] ${level} ${entry.message}`;
-        if (entry.context) {
-            try {
-                message += ` ${JSON.stringify(entry.context)}`;
-            }
-            catch (error) {
-                message += ' [Context serialization failed]';
-            }
-        }
-        return message;
-    }
-    /**
      * Show the output channel
-     * @param preserveFocus Whether to preserve focus on the current editor
      */
-    show(preserveFocus = false) {
-        this.outputChannel.show(preserveFocus);
+    show() {
+        this.outputChannel.show();
     }
     /**
-     * Get the log history
-     * @returns Array of log entries
+     * Clear the log
      */
-    getHistory() {
-        return [...this.logHistory];
-    }
-    /**
-     * Clear log history
-     */
-    clearHistory() {
-        this.logHistory = [];
+    clear() {
         this.outputChannel.clear();
     }
     /**

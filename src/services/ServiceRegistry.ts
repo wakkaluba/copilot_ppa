@@ -53,6 +53,15 @@ export class ServiceRegistry implements IServiceRegistry {
         this.services.set(serviceType, instance);
     }
 
+    async initialize(): Promise<void> {
+        // Initialize all services that have an initialize method
+        const initPromises = Array.from(this.services.values())
+            .filter(service => service && typeof service.initialize === 'function')
+            .map(service => service.initialize());
+            
+        await Promise.all(initPromises);
+    }
+
     dispose(): void {
         this.services.forEach(service => {
             if (typeof service.dispose === 'function') {
@@ -63,7 +72,7 @@ export class ServiceRegistry implements IServiceRegistry {
     }
 }
 
-export function initializeServices(context: vscode.ExtensionContext): void {
+export async function initializeServices(context: vscode.ExtensionContext): Promise<void> {
     const registry = ServiceRegistry.getInstance();
 
     // Initialize core services
@@ -93,4 +102,7 @@ export function initializeServices(context: vscode.ExtensionContext): void {
     registry.register(Services.PromptManager, promptManager);
     registry.register(Services.ThemeManager, themeManager);
     registry.register(Services.DisplaySettings, displaySettings);
+    
+    // Initialize all registered services
+    await registry.initialize();
 }

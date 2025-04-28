@@ -153,11 +153,11 @@ let ModelScheduler = class ModelScheduler {
         this.taskHistory.length = 0;
     }
 };
-ModelScheduler = __decorate([
+exports.ModelScheduler = ModelScheduler;
+exports.ModelScheduler = ModelScheduler = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(types_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelSystemManager_1.ModelSystemManager)),
     __metadata("design:paramtypes", [typeof (_a = typeof types_1.ILogger !== "undefined" && types_1.ILogger) === "function" ? _a : Object, ModelSystemManager_1.ModelSystemManager, Object])
 ], ModelScheduler);
-exports.ModelScheduler = ModelScheduler;
 //# sourceMappingURL=ModelScheduler.js.map

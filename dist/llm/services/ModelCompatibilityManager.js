@@ -21,13 +21,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -111,7 +121,7 @@ let ModelCompatibilityManager = class ModelCompatibilityManager extends events_1
     }
     inferModelRequirements(model) {
         const requirements = {
-            minRAM: 4096,
+            minRAM: 4096, // Base 4GB RAM requirement
             minCPUCores: 2 // Base 2 cores requirement
         };
         // Adjust requirements based on model parameters
@@ -181,10 +191,10 @@ let ModelCompatibilityManager = class ModelCompatibilityManager extends events_1
         this.compatibilityCache.clear();
     }
 };
-ModelCompatibilityManager = __decorate([
+exports.ModelCompatibilityManager = ModelCompatibilityManager;
+exports.ModelCompatibilityManager = ModelCompatibilityManager = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
     __metadata("design:paramtypes", [Object])
 ], ModelCompatibilityManager);
-exports.ModelCompatibilityManager = ModelCompatibilityManager;
 //# sourceMappingURL=ModelCompatibilityManager.js.map

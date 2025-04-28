@@ -11,11 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceMetricsService = void 0;
 const inversify_1 = require("inversify");
-const ILogger_1 = require("../../../logging/ILogger");
 const events_1 = require("events");
 let PerformanceMetricsService = class PerformanceMetricsService extends events_1.EventEmitter {
     constructor(logger) {
@@ -70,10 +68,10 @@ let PerformanceMetricsService = class PerformanceMetricsService extends events_1
         this.removeAllListeners();
     }
 };
-PerformanceMetricsService = __decorate([
+exports.PerformanceMetricsService = PerformanceMetricsService;
+exports.PerformanceMetricsService = PerformanceMetricsService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
-    __metadata("design:paramtypes", [typeof (_a = typeof ILogger_1.ILogger !== "undefined" && ILogger_1.ILogger) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [Object])
 ], PerformanceMetricsService);
-exports.PerformanceMetricsService = PerformanceMetricsService;
 //# sourceMappingURL=PerformanceMetricsService.js.map

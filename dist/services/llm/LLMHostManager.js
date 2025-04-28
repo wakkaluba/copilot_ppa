@@ -8,7 +8,7 @@ var HostStatus;
     HostStatus["Available"] = "available";
     HostStatus["Unavailable"] = "unavailable";
     HostStatus["Error"] = "error";
-})(HostStatus = exports.HostStatus || (exports.HostStatus = {}));
+})(HostStatus || (exports.HostStatus = HostStatus = {}));
 class LLMHostManager extends events_1.EventEmitter {
     constructor() {
         super();
@@ -101,7 +101,7 @@ class LLMHostManager extends events_1.EventEmitter {
             result = {
                 isAvailable,
                 latency: endTime - startTime,
-                apiVersion: "1.0",
+                apiVersion: "1.0", // This would come from the actual API response
                 supportsStreaming: true // This would be determined from the API response
             };
         }

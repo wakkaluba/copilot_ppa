@@ -6,9 +6,9 @@ const events_1 = require("events");
  * Default cache configuration
  */
 const DEFAULT_CACHE_CONFIG = {
-    modelInfoTTL: 5 * 60 * 1000,
-    healthCheckTTL: 30 * 1000,
-    responseCacheTTL: 60 * 60 * 1000,
+    modelInfoTTL: 5 * 60 * 1000, // 5 minutes
+    healthCheckTTL: 30 * 1000, // 30 seconds
+    responseCacheTTL: 60 * 60 * 1000, // 1 hour
     maxCacheSize: 1000
 };
 /**

@@ -14,7 +14,7 @@ var ConnectionState;
     ConnectionState["DISCONNECTED"] = "disconnected";
     ConnectionState["RECONNECTING"] = "reconnecting";
     ConnectionState["ERROR"] = "error";
-})(ConnectionState = exports.ConnectionState || (exports.ConnectionState = {}));
+})(ConnectionState || (exports.ConnectionState = ConnectionState = {}));
 /**
  * Represents the state of the LLM host
  */
@@ -24,7 +24,7 @@ var HostState;
     HostState["STARTING"] = "starting";
     HostState["RUNNING"] = "running";
     HostState["ERROR"] = "error";
-})(HostState = exports.HostState || (exports.HostState = {}));
+})(HostState || (exports.HostState = HostState = {}));
 /**
  * Default connection options
  */

@@ -1,68 +1,110 @@
 import * as vscode from 'vscode';
-import { Message } from '../models';
+import { Message, MessageType } from '../models';
+import * as crypto from 'crypto';
 
 /**
- * Service for storing and retrieving conversation messages
+ * Service for managing conversation memory
  */
 export class ConversationMemoryService {
-    private storage: Message[] = [];
-    private readonly storageKey = 'conversationHistory';
-    
-    constructor(private context: vscode.ExtensionContext) {
-        this.loadFromStorage();
-    }
-    
+    private messages: Message[] = [];
+    private context: vscode.ExtensionContext;
+    private maxHistory: number = 100;
+
     /**
-     * Add a new message to storage
+     * Create a new ConversationMemoryService
+     * @param context Extension context for state persistence
+     */
+    constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+    }
+
+    /**
+     * Initialize service
+     */
+    public async initialize(): Promise<void> {
+        // Load messages from storage
+        const storedMessages = this.context.globalState.get('conversationMemory');
+        if (storedMessages) {
+            try {
+                this.messages = JSON.parse(storedMessages as string) as Message[];
+            } catch (error) {
+                console.error('Failed to parse stored messages', error);
+                this.messages = [];
+            }
+        }
+    }
+
+    /**
+     * Add a message to memory
      * @param message Message to add
      */
-    public async addMessage(message: Message): Promise<void> {
-        this.storage.push(message);
-        await this.saveToStorage();
+    public addMessage(message: Message): void {
+        // Generate ID if not provided
+        if (!message.id) {
+            message.id = crypto.randomUUID();
+        }
+        
+        // Add timestamp if not provided
+        if (!message.timestamp) {
+            message.timestamp = Date.now();
+        }
+        
+        this.messages.push(message);
+        
+        // Limit history size
+        if (this.messages.length > this.maxHistory) {
+            this.messages = this.messages.slice(-this.maxHistory);
+        }
+        
+        // Save to storage
+        this.saveMessages();
     }
-    
+
     /**
      * Get all messages
-     * @returns Array of messages
      */
     public getMessages(): Message[] {
-        return [...this.storage];
+        return [...this.messages];
     }
-    
+
     /**
-     * Get messages within a date range
-     * @param startTime Start timestamp
-     * @param endTime End timestamp
-     * @returns Messages in range
+     * Get recent messages
+     * @param limit Maximum number of messages to return
      */
-    public getMessagesByDateRange(startTime: number, endTime: number): Message[] {
-        return this.storage.filter(
-            msg => msg.timestamp >= startTime && msg.timestamp <= endTime
+    public getRecentMessages(limit: number = 10): Message[] {
+        return this.messages.slice(-limit);
+    }
+
+    /**
+     * Get messages by date range
+     * @param startDate Start date timestamp
+     * @param endDate End date timestamp
+     */
+    public getMessagesByDateRange(startDate: number, endDate: number): Message[] {
+        return this.messages.filter(
+            msg => msg.timestamp >= startDate && msg.timestamp <= endDate
         );
     }
-    
+
     /**
      * Clear all messages
      */
     public async clearMessages(): Promise<void> {
-        this.storage = [];
-        await this.saveToStorage();
+        this.messages = [];
+        await this.saveMessages();
     }
-    
+
     /**
-     * Save messages to extension storage
+     * Clear all history (alias for clearMessages)
      */
-    private async saveToStorage(): Promise<void> {
-        await this.context.globalState.update(this.storageKey, this.storage);
+    public async clearHistory(): Promise<void> {
+        await this.clearMessages();
     }
-    
+
     /**
-     * Load messages from extension storage
+     * Save messages to storage
      */
-    private loadFromStorage(): void {
-        const saved = this.context.globalState.get<Message[]>(this.storageKey);
-        if (saved) {
-            this.storage = saved;
-        }
+    private async saveMessages(): Promise<void> {
+        await this.context.globalState.update('conversationMemory', JSON.stringify(this.messages));
     }
 }

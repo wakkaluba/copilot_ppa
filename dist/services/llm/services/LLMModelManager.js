@@ -107,8 +107,8 @@ let LLMModelManager = class LLMModelManager extends events_1.EventEmitter {
         }
     }
 };
-LLMModelManager = __decorate([
+exports.LLMModelManager = LLMModelManager;
+exports.LLMModelManager = LLMModelManager = __decorate([
     (0, inversify_1.injectable)()
 ], LLMModelManager);
-exports.LLMModelManager = LLMModelManager;
 //# sourceMappingURL=LLMModelManager.js.map

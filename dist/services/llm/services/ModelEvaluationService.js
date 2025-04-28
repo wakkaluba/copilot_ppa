@@ -151,12 +151,12 @@ let ModelEvaluationService = class ModelEvaluationService extends events_1.Event
         this.activeEvaluations.clear();
     }
 };
-ModelEvaluationService = __decorate([
+exports.ModelEvaluationService = ModelEvaluationService;
+exports.ModelEvaluationService = ModelEvaluationService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelBenchmarkManager_1.ModelBenchmarkManager)),
     __param(2, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, typeof (_b = typeof ModelBenchmarkManager_1.ModelBenchmarkManager !== "undefined" && ModelBenchmarkManager_1.ModelBenchmarkManager) === "function" ? _b : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelEvaluationService);
-exports.ModelEvaluationService = ModelEvaluationService;
 //# sourceMappingURL=ModelEvaluationService.js.map

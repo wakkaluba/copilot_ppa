@@ -13,7 +13,7 @@ var ProviderState;
     ProviderState["Deactivating"] = "deactivating";
     ProviderState["Inactive"] = "inactive";
     ProviderState["Error"] = "error";
-})(ProviderState = exports.ProviderState || (exports.ProviderState = {}));
+})(ProviderState || (exports.ProviderState = ProviderState = {}));
 class BaseLLMProvider extends events_1.EventEmitter {
     constructor(id, name, config) {
         super();

@@ -11,14 +11,14 @@ var ProviderConnectionState;
     ProviderConnectionState["Connecting"] = "connecting";
     ProviderConnectionState["Connected"] = "connected";
     ProviderConnectionState["Error"] = "error";
-})(ProviderConnectionState = exports.ProviderConnectionState || (exports.ProviderConnectionState = {}));
+})(ProviderConnectionState || (exports.ProviderConnectionState = ProviderConnectionState = {}));
 var ProviderEvent;
 (function (ProviderEvent) {
     ProviderEvent["Connected"] = "provider:connected";
     ProviderEvent["Disconnected"] = "provider:disconnected";
     ProviderEvent["Error"] = "provider:error";
     ProviderEvent["HealthCheckComplete"] = "provider:healthcheck";
-})(ProviderEvent = exports.ProviderEvent || (exports.ProviderEvent = {}));
+})(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
 class ConnectionPoolManager extends events_1.EventEmitter {
     constructor() {
         super();
@@ -66,7 +66,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         this.poolConfigs.set(providerId, {
             minSize: config.connection?.poolSize || 1,
             maxSize: config.connection?.poolSize || 5,
-            idleTimeoutMs: 300000,
+            idleTimeoutMs: 300000, // 5 minutes
             acquireTimeoutMs: config.connection?.timeout || 30000
         });
         // Initialize minimum connections
@@ -191,7 +191,7 @@ class ConnectionPoolManager extends events_1.EventEmitter {
         // we need to use a default/minimal config.
         // In a real implementation, this should come from a config service or cache
         const defaultConfig = {
-            apiEndpoint: 'http://localhost:11434',
+            apiEndpoint: 'http://localhost:11434', // Default for Ollama
             id: providerId,
             name: providerId,
             defaultModel: 'llama2'

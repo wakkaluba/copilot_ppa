@@ -15,25 +15,35 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnifiedChatViewProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const logger_1 = require("../utils/logger");
-const themeManager_1 = require("../services/ui/themeManager");
+const themeService_1 = require("../services/ui/themeService");
 class UnifiedChatViewProvider {
     constructor(extensionUri, chatManager) {
         this.extensionUri = extensionUri;
         this.chatManager = chatManager;
         this.disposables = [];
-        this.logger = logger_1.Logger.getInstance();
-        this.themeManager = themeManager_1.ThemeManager.getInstance();
+        this.logger = new logger_1.Logger('ChatView');
+        this.themeService = themeService_1.ThemeService.getInstance();
         this.setupEventListeners();
     }
     resolveWebviewView(webviewView, _context, _token) {
@@ -50,7 +60,7 @@ class UnifiedChatViewProvider {
         });
     }
     setupEventListeners() {
-        this.disposables.push(this.chatManager.onMessageHandled(() => this.updateMessages()), this.chatManager.onHistoryCleared(() => this.updateMessages()), this.chatManager.onError((event) => this.handleError(event)), this.chatManager.onConnectionStatusChanged(() => this.updateConnectionStatus()), this.themeManager.onThemeChanged(() => this.updateTheme()));
+        this.disposables.push(this.chatManager.onMessageHandled(() => this.updateMessages()), this.chatManager.onHistoryCleared(() => this.updateMessages()), this.chatManager.onError((event) => this.handleError(event)), this.chatManager.onConnectionStatusChanged(() => this.updateConnectionStatus()), this.themeService.onThemeChanged(() => this.updateTheme()));
     }
     async initializeWebview() {
         if (!this.view) {
@@ -88,6 +98,9 @@ class UnifiedChatViewProvider {
                     case 'createSnippet':
                         await this.createSnippet(message.code, message.language);
                         break;
+                    case 'continueIteration':
+                        await this.handleContinueIteration();
+                        break;
                 }
             }
             catch (error) {
@@ -95,11 +108,31 @@ class UnifiedChatViewProvider {
             }
         });
     }
+    showContinuePrompt() {
+        if (!this.view) {
+            return;
+        }
+        this.view.webview.postMessage({
+            type: 'showContinuePrompt',
+            message: 'Continue to iterate?'
+        });
+    }
+    async handleContinueIteration() {
+        if (!this.currentSession) {
+            return;
+        }
+        await this.handleMessage('Continue');
+    }
     async handleMessage(content) {
         if (!content.trim() || !this.currentSession) {
             return;
         }
         await this.chatManager.handleUserMessage(this.currentSession.id, content);
+        // Show continue prompt after certain messages
+        if (content.toLowerCase().includes('continue') ||
+            content.toLowerCase().includes('iterate')) {
+            this.showContinuePrompt();
+        }
     }
     async clearChat() {
         if (this.currentSession) {
@@ -138,7 +171,7 @@ class UnifiedChatViewProvider {
         if (!this.view) {
             return;
         }
-        const theme = this.themeManager.getCurrentTheme();
+        const theme = this.themeService.currentTheme;
         this.view.webview.postMessage({
             type: 'updateTheme',
             theme
@@ -160,7 +193,7 @@ class UnifiedChatViewProvider {
     getWebviewContent() {
         const cssUri = this.getResourceUri('chat.css');
         const jsUri = this.getResourceUri('chat.js');
-        const theme = this.themeManager.getCurrentTheme();
+        const theme = this.themeService.currentTheme;
         return `<!DOCTYPE html>
             <html>
             <head>
@@ -180,6 +213,14 @@ class UnifiedChatViewProvider {
                     </div>
 
                     <div id="messages" class="messages"></div>
+
+                    <div class="continue-prompt" style="display: none;">
+                        <div class="continue-message">Continue to iterate?</div>
+                        <div class="continue-actions">
+                            <button id="btn-continue-yes" class="btn-continue">Yes</button>
+                            <button id="btn-continue-no" class="btn-continue">No</button>
+                        </div>
+                    </div>
 
                     <div class="error-container" style="display: none;">
                         <div class="error-message"></div>

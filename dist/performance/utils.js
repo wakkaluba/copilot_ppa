@@ -3,7 +3,14 @@
  * Utility functions for the performance analyzer
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.estimateMaxNestedDepth = exports.getMetricRating = exports.formatMetricName = exports.escapeHtml = exports.extractFunctionBody = exports.findLineNumber = exports.extractCodeSnippet = exports.calculateContentHash = void 0;
+exports.calculateContentHash = calculateContentHash;
+exports.extractCodeSnippet = extractCodeSnippet;
+exports.findLineNumber = findLineNumber;
+exports.extractFunctionBody = extractFunctionBody;
+exports.escapeHtml = escapeHtml;
+exports.formatMetricName = formatMetricName;
+exports.getMetricRating = getMetricRating;
+exports.estimateMaxNestedDepth = estimateMaxNestedDepth;
 /**
  * Calculate a hash of file content using a MurmurHash3-like algorithm
  * @param content The file content to hash
@@ -46,7 +53,6 @@ function calculateContentHash(content) {
     h1 ^= h1 >>> 16;
     return String(h1 >>> 0); // Convert to unsigned 32-bit
 }
-exports.calculateContentHash = calculateContentHash;
 /**
  * Extract a snippet of code around a specific line
  * @param lines The lines of code
@@ -59,7 +65,6 @@ function extractCodeSnippet(lines, centerLine, contextLines) {
     const endLine = Math.min(lines.length - 1, centerLine + Math.ceil(contextLines / 2));
     return lines.slice(startLine, endLine + 1).join('\n');
 }
-exports.extractCodeSnippet = extractCodeSnippet;
 /**
  * Find the line number for a specific position in file content
  * @param content The file content
@@ -70,7 +75,6 @@ function findLineNumber(content, position) {
     const textBefore = content.substring(0, position);
     return textBefore.split('\n').length - 1;
 }
-exports.findLineNumber = findLineNumber;
 /**
  * Extract the function body for analysis
  * @param content The file content
@@ -100,7 +104,6 @@ function extractFunctionBody(content, position) {
     } while (bracketCount > 0 && endPos < content.length);
     return content.substring(startPos, endPos);
 }
-exports.extractFunctionBody = extractFunctionBody;
 /**
  * Escape HTML special characters
  * @param text The text to escape
@@ -114,7 +117,6 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-exports.escapeHtml = escapeHtml;
 /**
  * Format metric name for display
  * @param key The metric key
@@ -126,7 +128,6 @@ function formatMetricName(key) {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 }
-exports.formatMetricName = formatMetricName;
 /**
  * Get a rating for a metric
  * @param key The metric key
@@ -140,7 +141,7 @@ function getMetricRating(key, value) {
         nestedBlockDepth: [3, 5],
         functionLength: [100, 200],
         parameterCount: [4, 7],
-        maintainabilityIndex: [65, 85],
+        maintainabilityIndex: [65, 85], // Higher is better for this one
         commentRatio: [10, 20] // Higher is better for this one
     };
     if (!thresholds[key]) {
@@ -171,7 +172,6 @@ function getMetricRating(key, value) {
         }
     }
 }
-exports.getMetricRating = getMetricRating;
 /**
  * Estimate the maximum nested depth
  * @param content The file content
@@ -189,5 +189,4 @@ function estimateMaxNestedDepth(content) {
     }
     return maxDepth;
 }
-exports.estimateMaxNestedDepth = estimateMaxNestedDepth;
 //# sourceMappingURL=utils.js.map

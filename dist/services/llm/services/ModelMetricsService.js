@@ -124,11 +124,11 @@ let ModelMetricsService = class ModelMetricsService extends events_1.EventEmitte
         this.metrics.clear();
     }
 };
-ModelMetricsService = __decorate([
+exports.ModelMetricsService = ModelMetricsService;
+exports.ModelMetricsService = ModelMetricsService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(IStorageService_1.IStorageService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, typeof (_b = typeof IStorageService_1.IStorageService !== "undefined" && IStorageService_1.IStorageService) === "function" ? _b : Object])
 ], ModelMetricsService);
-exports.ModelMetricsService = ModelMetricsService;
 //# sourceMappingURL=ModelMetricsService.js.map

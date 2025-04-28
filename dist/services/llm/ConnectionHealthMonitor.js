@@ -8,7 +8,7 @@ const ConnectionRetryHandler_1 = require("./ConnectionRetryHandler");
  * Default health check configuration
  */
 const DEFAULT_HEALTH_CONFIG = {
-    checkIntervalMs: 30000,
+    checkIntervalMs: 30000, // 30 seconds
     timeoutMs: 5000,
     unhealthyThreshold: 3,
     healthyThreshold: 2,

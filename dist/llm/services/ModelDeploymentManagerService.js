@@ -236,7 +236,8 @@ let ModelDeploymentManagerService = class ModelDeploymentManagerService extends 
         this.logger.info('ModelDeploymentManagerService disposed');
     }
 };
-ModelDeploymentManagerService = __decorate([
+exports.ModelDeploymentManagerService = ModelDeploymentManagerService;
+exports.ModelDeploymentManagerService = ModelDeploymentManagerService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelVersioningService_1.ModelVersioningService)),
@@ -244,5 +245,4 @@ ModelDeploymentManagerService = __decorate([
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, ModelVersioningService_1.ModelVersioningService,
         ModelDeploymentService_1.ModelDeploymentService])
 ], ModelDeploymentManagerService);
-exports.ModelDeploymentManagerService = ModelDeploymentManagerService;
 //# sourceMappingURL=ModelDeploymentManagerService.js.map

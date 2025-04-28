@@ -22,6 +22,23 @@ export interface E2ETestConfig {
  * Service for detecting and configuring E2E test frameworks
  */
 export class E2ETestConfigService {
+    private static instance: E2ETestConfigService;
+
+    /**
+     * Get singleton instance of the service
+     */
+    public static getInstance(): E2ETestConfigService {
+        if (!E2ETestConfigService.instance) {
+            E2ETestConfigService.instance = new E2ETestConfigService();
+        }
+        return E2ETestConfigService.instance;
+    }
+
+    /**
+     * Private constructor to enforce singleton
+     */
+    private constructor() {}
+
     /**
      * Detect the E2E framework in use in the given workspace
      */

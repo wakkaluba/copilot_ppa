@@ -1,169 +1,125 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommandParser = void 0;
-/**
- * Parse and execute commands from text input
- */
+const WorkspaceManager_1 = require("./WorkspaceManager");
+const logger_1 = require("../utils/logger");
 class CommandParser {
     constructor(workspaceManager, logger) {
         this.commands = new Map();
-        this.agentCommands = new Map();
         this.workspaceManager = workspaceManager;
         this.logger = logger;
-        this.registerDefaultCommands();
-        this.registerDefaultAgentCommands();
+        // Register built-in commands
+        this.registerCommand('createFile', this.createFile.bind(this));
+        this.registerCommand('modifyFile', this.modifyFile.bind(this));
+        this.registerCommand('deleteFile', this.deleteFile.bind(this));
     }
-    static getInstance(workspaceManager, logger) {
+    static getInstance() {
         if (!CommandParser.instance) {
+            const workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
+            const logger = logger_1.Logger.getInstance();
             if (!workspaceManager || !logger) {
-                throw new Error('WorkspaceManager and Logger required for initial CommandParser initialization');
+                throw new Error("WorkspaceManager and Logger required for initial CommandParser initialization");
             }
             CommandParser.instance = new CommandParser(workspaceManager, logger);
         }
         return CommandParser.instance;
     }
-    // Add resetInstance method for testing purposes
-    static resetInstance() {
-        CommandParser.instance = undefined;
-    }
-    /**
-     * Register default built-in commands
-     */
-    registerDefaultCommands() {
-        this.registerCommand('createFile', async (args) => {
-            if (!args.path || !args.content) {
-                throw new Error('createFile requires path and content arguments');
-            }
-            await this.workspaceManager.writeFile(args.path, args.content);
-            return `File ${args.path} created`;
-        });
-        this.registerCommand('modifyFile', async (args) => {
-            if (!args.path || !args.find || args.replace === undefined) {
-                throw new Error('modifyFile requires path, find, and replace arguments');
-            }
-            const content = await this.workspaceManager.readFile(args.path);
-            const modified = content.replace(new RegExp(args.find, 'g'), args.replace);
-            await this.workspaceManager.writeFile(args.path, modified);
-            return `File ${args.path} modified`;
-        });
-        this.registerCommand('deleteFile', async (args) => {
-            if (!args.path) {
-                throw new Error('deleteFile requires a path argument');
-            }
-            await this.workspaceManager.deleteFile(args.path);
-            return `File ${args.path} deleted`;
-        });
-    }
-    /**
-     * Register a custom command
-     */
     registerCommand(name, handler) {
-        this.commands.set(name, handler);
+        this.commands.set(name.toLowerCase(), handler);
     }
-    /**
-     * Parse and execute a command string
-     */
-    async parseAndExecute(commandString) {
-        // First check if it's an agent command
-        const agentCommand = this.parseAgentCommand(commandString);
-        if (agentCommand) {
-            return this.executeAgentCommand(agentCommand);
+    async parseAndExecute(command) {
+        const parsedCommand = this.parseCommand(command);
+        if (!parsedCommand) {
+            throw new Error(`Invalid command format: ${command}`);
         }
-        // Otherwise treat it as a regular command
-        const parsed = this.parseCommand(commandString);
-        if (!parsed) {
+        const handler = this.commands.get(parsedCommand.name.toLowerCase());
+        if (!handler) {
+            throw new Error(`Unknown command: ${parsedCommand.name}`);
+        }
+        return await handler(parsedCommand.args);
+    }
+    parseCommand(command) {
+        try {
+            // Simple command format: commandName(arg1=value1, arg2=value2)
+            const match = command.match(/^([a-zA-Z0-9_]+)\s*\((.*)\)$/);
+            if (!match) {
+                return null;
+            }
+            const name = match[1];
+            const argsString = match[2];
+            const args = this.parseArgs(argsString);
+            return { name, args };
+        }
+        catch (error) {
+            this.logger.error(`Error parsing command: ${command}`, error instanceof Error ? error : new Error(String(error)));
             return null;
         }
-        const command = this.commands.get(parsed.name);
-        if (!command) {
-            throw new Error(`Unknown command: ${parsed.name}`);
-        }
-        // Take the first args object if it's an array
-        const argsToUse = Array.isArray(parsed.args) ? parsed.args[0] : parsed.args;
-        return await command(argsToUse);
     }
-    /**
-     * Parse a command string into name and arguments
-     */
-    parseCommand(input) {
-        // Basic command parsing regex
-        const commandMatch = input.match(/^(\w+)\s*\((.*)\)$/);
-        if (!commandMatch) {
-            return null;
-        }
-        const name = commandMatch[1];
-        const argsString = commandMatch[2];
-        return {
-            name,
-            args: this.parseArgs(argsString)
-        };
-    }
-    /**
-     * Parse arguments string into object
-     */
     parseArgs(argsString) {
+        const args = {};
         if (!argsString.trim()) {
-            return [{}];
+            return args;
         }
-        const result = {};
-        // Match key-value pairs
-        const regex = /(\w+)\s*=\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|(\w+))/g;
-        let match;
-        while ((match = regex.exec(argsString)) !== null) {
-            const key = match[1];
-            const stringValue = match[2];
-            const numValue = match[3];
-            const boolOrIdentifier = match[4];
-            if (stringValue !== undefined) {
-                result[key] = stringValue;
+        // Split by commas not inside quotes
+        const argPairs = argsString.match(/(?:[^\s,"]|"(?:\\"|[^"])*")+/g) || [];
+        for (const pair of argPairs) {
+            const parts = pair.split('=');
+            if (parts.length !== 2) {
+                continue;
             }
-            else if (numValue !== undefined) {
-                result[key] = parseFloat(numValue);
+            const key = parts[0].trim();
+            let value = parts[1].trim();
+            // Handle quoted strings
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1);
             }
-            else if (boolOrIdentifier) {
-                if (boolOrIdentifier === 'true') {
-                    result[key] = true;
-                }
-                else if (boolOrIdentifier === 'false') {
-                    result[key] = false;
-                }
-                else {
-                    result[key] = boolOrIdentifier;
-                }
+            // Handle numbers
+            else if (!isNaN(Number(value))) {
+                value = Number(value);
             }
+            // Handle booleans
+            else if (value === 'true' || value === 'false') {
+                value = value === 'true';
+            }
+            args[key] = value;
         }
-        return [result];
+        return args;
     }
-    /**
-     * Parse agent commands like @agent Continue
-     */
-    parseAgentCommand(input) {
-        const match = input.match(/@agent\s+(\w+)(?:\s*:\s*(.*))?$/i);
-        if (!match) {
-            return null;
+    // Built-in command handlers
+    async createFile(args) {
+        const { path: filePath, content } = args;
+        if (!filePath) {
+            throw new Error('File path is required');
         }
-        return match[1].toLowerCase();
+        await this.workspaceManager.writeFile(filePath, content || '');
+        this.logger.info(`Created file: ${filePath}`);
     }
-    /**
-     * Execute agent-specific commands
-     */
-    async executeAgentCommand(command) {
-        // This would be implemented to handle agent commands
-        throw new Error(`Unknown agent command: ${command}`);
+    async modifyFile(args) {
+        const { path: filePath, content, find, replace } = args;
+        if (!filePath) {
+            throw new Error('File path is required');
+        }
+        let fileContent = await this.workspaceManager.readFile(filePath);
+        if (content !== undefined) {
+            fileContent = content;
+        }
+        else if (find !== undefined && replace !== undefined) {
+            // Simple string replacement
+            fileContent = fileContent.replace(new RegExp(find, 'g'), replace);
+        }
+        await this.workspaceManager.writeFile(filePath, fileContent);
+        this.logger.info(`Modified file: ${filePath}`);
     }
-    registerDefaultAgentCommands() {
-        // Register default agent commands
-        this.agentCommands.set('help', async () => {
-            this.logger.log('Available agent commands:');
-            this.agentCommands.forEach((_, command) => {
-                this.logger.log(`- @agent ${command}`);
-            });
-        });
-        // Add other default agent commands here
-        this.agentCommands.set('clear', async () => {
-            // Clear command implementation
-            this.logger.log('Context cleared');
-        });
+    async deleteFile(args) {
+        const { path: filePath } = args;
+        if (!filePath) {
+            throw new Error('File path is required');
+        }
+        await this.workspaceManager.deleteFile(filePath);
+        this.logger.info(`Deleted file: ${filePath}`);
+    }
+    dispose() {
+        // Clean up any resources if needed
     }
 }
 exports.CommandParser = CommandParser;

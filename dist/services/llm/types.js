@@ -10,5 +10,5 @@ var ProviderState;
     ProviderState["Deactivating"] = "deactivating";
     ProviderState["Inactive"] = "inactive";
     ProviderState["Error"] = "error";
-})(ProviderState = exports.ProviderState || (exports.ProviderState = {}));
+})(ProviderState || (exports.ProviderState = ProviderState = {}));
 //# sourceMappingURL=types.js.map

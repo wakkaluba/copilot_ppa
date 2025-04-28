@@ -156,10 +156,10 @@ let ModelOptimizer = class ModelOptimizer extends events_1.EventEmitter {
         this.logger.info('ModelOptimizer disposed');
     }
 };
-ModelOptimizer = __decorate([
+exports.ModelOptimizer = ModelOptimizer;
+exports.ModelOptimizer = ModelOptimizer = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object])
 ], ModelOptimizer);
-exports.ModelOptimizer = ModelOptimizer;
 //# sourceMappingURL=ModelOptimizer.js.map

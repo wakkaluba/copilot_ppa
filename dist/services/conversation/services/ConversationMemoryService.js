@@ -1,6 +1,40 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationMemoryService = void 0;
+const crypto = __importStar(require("crypto"));
 /**
  * Service for managing conversation memory
  */
@@ -11,109 +45,85 @@ class ConversationMemoryService {
      */
     constructor(context) {
         this.messages = [];
-        this.memoryLimit = 50;
-        this.storageKey = 'conversation.history';
+        this.maxHistory = 100;
         this.context = context;
     }
     /**
-     * Initialize the conversation memory from persistent storage
+     * Initialize service
      */
     async initialize() {
-        try {
-            const storedMessages = this.context.globalState.get(this.storageKey);
-            if (storedMessages) {
-                this.messages = storedMessages;
+        // Load messages from storage
+        const storedMessages = this.context.globalState.get('conversationMemory');
+        if (storedMessages) {
+            try {
+                this.messages = JSON.parse(storedMessages);
+            }
+            catch (error) {
+                console.error('Failed to parse stored messages', error);
+                this.messages = [];
             }
         }
-        catch (error) {
-            throw new Error(`Storage error`);
-        }
     }
     /**
-     * Add a message to the conversation memory
-     * @param message The message to add
+     * Add a message to memory
+     * @param message Message to add
      */
     addMessage(message) {
-        this.messages.push(message);
-        // Trim to memory limit
-        if (this.messages.length > this.memoryLimit) {
-            this.messages = this.messages.slice(-this.memoryLimit);
+        // Generate ID if not provided
+        if (!message.id) {
+            message.id = crypto.randomUUID();
         }
-        // Persist changes
-        this.persist();
+        // Add timestamp if not provided
+        if (!message.timestamp) {
+            message.timestamp = Date.now();
+        }
+        this.messages.push(message);
+        // Limit history size
+        if (this.messages.length > this.maxHistory) {
+            this.messages = this.messages.slice(-this.maxHistory);
+        }
+        // Save to storage
+        this.saveMessages();
     }
     /**
-     * Get recent messages from conversation memory
-     * @param limit Optional limit of messages to retrieve
-     * @returns Array of recent messages
+     * Get all messages
      */
-    getRecentMessages(limit) {
-        if (!limit || limit >= this.messages.length) {
-            return [...this.messages];
-        }
+    getMessages() {
+        return [...this.messages];
+    }
+    /**
+     * Get recent messages
+     * @param limit Maximum number of messages to return
+     */
+    getRecentMessages(limit = 10) {
         return this.messages.slice(-limit);
     }
     /**
-     * Clear all messages from conversation memory
+     * Get messages by date range
+     * @param startDate Start date timestamp
+     * @param endDate End date timestamp
+     */
+    getMessagesByDateRange(startDate, endDate) {
+        return this.messages.filter(msg => msg.timestamp >= startDate && msg.timestamp <= endDate);
+    }
+    /**
+     * Clear all messages
+     */
+    async clearMessages() {
+        this.messages = [];
+        await this.saveMessages();
+    }
+    /**
+     * Clear all history (alias for clearMessages)
      */
     async clearHistory() {
-        try {
-            this.messages = [];
-            await this.persist();
-        }
-        catch (error) {
-            throw new Error(`Clear error`);
-        }
+        await this.clearMessages();
     }
     /**
-     * Set the memory limit
-     * @param limit New memory limit
+     * Save messages to storage
      */
-    setMemoryLimit(limit) {
-        if (limit < 1) {
-            throw new Error('Memory limit must be at least 1');
-        }
-        this.memoryLimit = limit;
-        // Trim if necessary
-        if (this.messages.length > this.memoryLimit) {
-            this.messages = this.messages.slice(-this.memoryLimit);
-            this.persist();
-        }
-    }
-    /**
-     * Get the total number of messages
-     */
-    getMessageCount() {
-        return this.messages.length;
-    }
-    /**
-     * Persist conversation memory to storage
-     */
-    async persist() {
-        await this.context.globalState.update(this.storageKey, this.messages);
-    }
-    /**
-     * Search messages for specific content
-     * @param query Text to search for
-     * @returns Messages that match the query
-     */
-    searchMessages(query) {
-        const lowerQuery = query.toLowerCase();
-        return this.messages.filter(message => message.content.toLowerCase().includes(lowerQuery));
-    }
-    /**
-     * Group messages by type
-     * @returns Object with arrays of messages by type
-     */
-    groupMessagesByType() {
-        const result = {};
-        for (const message of this.messages) {
-            if (!result[message.type]) {
-                result[message.type] = [];
-            }
-            result[message.type].push(message);
-        }
-        return result;
+    async saveMessages() {
+        await this.context.globalState.update('conversationMemory', JSON.stringify(this.messages));
     }
 }
 exports.ConversationMemoryService = ConversationMemoryService;

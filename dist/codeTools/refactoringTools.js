@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefactoringTools = void 0;
 const vscode = __importStar(require("vscode"));
@@ -30,16 +40,18 @@ const UnusedCodeAnalyzerService_1 = require("./services/UnusedCodeAnalyzerServic
 const CodeDiffService_1 = require("./services/CodeDiffService");
 const RefactoringOutputService_1 = require("./services/RefactoringOutputService");
 const LLMRefactoringService_1 = require("./services/LLMRefactoringService");
+const eventEmitter_1 = require("../common/eventEmitter");
 /**
- * Provides tools for code refactoring
+ * Provides refactoring tools for code improvements
  */
-class RefactoringTools {
+class RefactoringTools extends eventEmitter_1.EventEmitter {
     constructor() {
+        super();
+        this.simplificationService = new CodeSimplificationService_1.CodeSimplificationService();
+        this.unusedCodeAnalyzer = new UnusedCodeAnalyzerService_1.UnusedCodeAnalyzerService();
+        this.diffService = new CodeDiffService_1.CodeDiffService();
         this.outputService = new RefactoringOutputService_1.RefactoringOutputService();
         this.llmService = new LLMRefactoringService_1.LLMRefactoringService();
-        this.simplificationService = new CodeSimplificationService_1.CodeSimplificationService(this.llmService);
-        this.unusedCodeAnalyzer = new UnusedCodeAnalyzerService_1.UnusedCodeAnalyzerService(this.llmService);
-        this.diffService = new CodeDiffService_1.CodeDiffService();
     }
     /**
      * Initialize the refactoring tools
@@ -90,7 +102,40 @@ class RefactoringTools {
             this.outputService.logError('Error removing unused code:', error);
         }
     }
+    /**
+     * Refactor code using LLM in the current editor
+     * @param instructions Instructions for the refactoring
+     */
+    async refactorWithLLM(instructions) {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showWarningMessage('No active editor found');
+            return;
+        }
+        try {
+            this.outputService.startOperation('Processing code with LLM...');
+            const { text, selection } = await this.simplificationService.getEditorContent(editor);
+            const refactoredCode = await this.llmService.refactorCode(text, editor.document.languageId, instructions);
+            await this.showAndApplyChanges(editor.document.uri, text, refactoredCode, "LLM Refactoring", 'Apply the LLM refactored code?');
+            this.outputService.logSuccess('Code successfully refactored');
+        }
+        catch (error) {
+            this.outputService.logError('Error during LLM refactoring:', error);
+        }
+    }
+    /**
+     * Show diff and apply changes if user confirms
+     * @param uri Document URI
+     * @param originalCode Original code
+     * @param newCode New code
+     * @param title Diff title
+     * @param prompt Confirmation prompt
+     */
     async showAndApplyChanges(uri, originalCode, newCode, title, prompt) {
+        if (originalCode === newCode) {
+            this.outputService.logSuccess('No changes needed, code is already optimized');
+            return;
+        }
         await this.diffService.showDiff(uri, originalCode, newCode, title);
         const shouldReplace = await vscode.window.showInformationMessage(prompt, 'Replace', 'Cancel');
         if (shouldReplace === 'Replace') {
@@ -106,8 +151,7 @@ class RefactoringTools {
      * Dispose resources
      */
     dispose() {
-        this.outputService.dispose();
-        this.diffService.dispose();
+        super.dispose(); // Call base class dispose to clean up event listeners
     }
 }
 exports.RefactoringTools = RefactoringTools;

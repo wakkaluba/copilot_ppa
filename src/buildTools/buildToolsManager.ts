@@ -1,22 +1,15 @@
+import { EventEmitter } from '../common/eventEmitter';
 import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
+import { ILogger } from '../logging/ILogger';
 import { WebpackConfigManager } from './webpack/webpackConfigManager';
 import { RollupConfigManager } from './rollup/rollupConfigManager';
 import { ViteConfigManager } from './vite/viteConfigManager';
 import { BuildScriptOptimizer } from './buildScriptOptimizer';
 import { BundleAnalyzer } from './bundleAnalyzer';
 
-// Logger interface definition
-interface ILogger {
-    log(message: string): void;
-    error(message: string): void;
-    warn(message: string): void;
-    info(message: string): void;
-    debug(message: string, details?: unknown): void;
-}
-
-export class BuildToolsManager {
+export class BuildToolsManager extends EventEmitter {
     private readonly webpackManager: WebpackConfigManager;
     private readonly rollupManager: RollupConfigManager;
     private readonly viteManager: ViteConfigManager;
@@ -27,6 +20,7 @@ export class BuildToolsManager {
         private readonly context: vscode.ExtensionContext,
         private readonly logger: ILogger
     ) {
+        super();
         this.webpackManager = new WebpackConfigManager(logger);
         this.rollupManager = new RollupConfigManager(logger);
         this.viteManager = new ViteConfigManager();
@@ -937,5 +931,45 @@ export class BuildToolsManager {
             throw new Error('No workspace folder open.');
         }
         return workspaceFolders[0].uri.fsPath;
+    }
+
+    /**
+     * Clean up resources when manager is disposed
+     */
+    public dispose(): void {
+        // Clean up specific resources
+        if (this.webpackManager) {
+            // Safely check if dispose exists before calling it
+            if (typeof (this.webpackManager as any).dispose === 'function') {
+                (this.webpackManager as any).dispose();
+            }
+        }
+        
+        if (this.rollupManager) {
+            if (typeof (this.rollupManager as any).dispose === 'function') {
+                (this.rollupManager as any).dispose();
+            }
+        }
+        
+        if (this.viteManager) {
+            if (typeof (this.viteManager as any).dispose === 'function') {
+                (this.viteManager as any).dispose();
+            }
+        }
+        
+        if (this.buildScriptOptimizer) {
+            if (typeof (this.buildScriptOptimizer as any).dispose === 'function') {
+                (this.buildScriptOptimizer as any).dispose();
+            }
+        }
+        
+        if (this.bundleAnalyzer) {
+            if (typeof (this.bundleAnalyzer as any).dispose === 'function') {
+                (this.bundleAnalyzer as any).dispose();
+            }
+        }
+        
+        // Call base class dispose to clean up event listeners
+        super.dispose();
     }
 }

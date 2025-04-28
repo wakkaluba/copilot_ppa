@@ -41,8 +41,8 @@ let ShellConfigurationService = class ShellConfigurationService {
         }
     }
 };
-ShellConfigurationService = __decorate([
+exports.ShellConfigurationService = ShellConfigurationService;
+exports.ShellConfigurationService = ShellConfigurationService = __decorate([
     (0, inversify_1.injectable)()
 ], ShellConfigurationService);
-exports.ShellConfigurationService = ShellConfigurationService;
 //# sourceMappingURL=ShellConfigurationService.js.map

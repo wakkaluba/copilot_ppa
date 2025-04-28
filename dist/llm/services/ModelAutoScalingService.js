@@ -80,12 +80,12 @@ let ModelAutoScalingService = class ModelAutoScalingService extends events_1.Eve
         this.scalingHistory.clear();
     }
 };
-ModelAutoScalingService = __decorate([
+exports.ModelAutoScalingService = ModelAutoScalingService;
+exports.ModelAutoScalingService = ModelAutoScalingService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelHealthMonitor_1.ModelHealthMonitor)),
     __param(2, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, typeof (_b = typeof ModelHealthMonitor_1.ModelHealthMonitor !== "undefined" && ModelHealthMonitor_1.ModelHealthMonitor) === "function" ? _b : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelAutoScalingService);
-exports.ModelAutoScalingService = ModelAutoScalingService;
 //# sourceMappingURL=ModelAutoScalingService.js.map

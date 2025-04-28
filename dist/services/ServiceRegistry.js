@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initializeServices = exports.ServiceRegistry = exports.Services = void 0;
+exports.ServiceRegistry = exports.Services = void 0;
+exports.initializeServices = initializeServices;
 const LLMConnectionManager_1 = require("./llm/LLMConnectionManager");
 const LLMHostManager_1 = require("./llm/LLMHostManager");
 const LLMSessionManager_1 = require("./llm/LLMSessionManager");
@@ -42,6 +43,13 @@ class ServiceRegistry {
     register(serviceType, instance) {
         this.services.set(serviceType, instance);
     }
+    async initialize() {
+        // Initialize all services that have an initialize method
+        const initPromises = Array.from(this.services.values())
+            .filter(service => service && typeof service.initialize === 'function')
+            .map(service => service.initialize());
+        await Promise.all(initPromises);
+    }
     dispose() {
         this.services.forEach(service => {
             if (typeof service.dispose === 'function') {
@@ -52,7 +60,7 @@ class ServiceRegistry {
     }
 }
 exports.ServiceRegistry = ServiceRegistry;
-function initializeServices(context) {
+async function initializeServices(context) {
     const registry = ServiceRegistry.getInstance();
     // Initialize core services
     const hostManager = new LLMHostManager_1.LLMHostManager();
@@ -75,6 +83,7 @@ function initializeServices(context) {
     registry.register(exports.Services.PromptManager, promptManager);
     registry.register(exports.Services.ThemeManager, themeManager);
     registry.register(exports.Services.DisplaySettings, displaySettings);
+    // Initialize all registered services
+    await registry.initialize();
 }
-exports.initializeServices = initializeServices;
 //# sourceMappingURL=ServiceRegistry.js.map

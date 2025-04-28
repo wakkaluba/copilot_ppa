@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConversationListScript = exports.getConversationListStyles = exports.getConversationListHtml = void 0;
+exports.getConversationListHtml = getConversationListHtml;
+exports.getConversationListStyles = getConversationListStyles;
+exports.getConversationListScript = getConversationListScript;
 function getConversationListHtml(conversations, currentConversationId) {
     return `
     <div class="conversation-list">
@@ -62,7 +64,6 @@ function getConversationListHtml(conversations, currentConversationId) {
     </div>
     `;
 }
-exports.getConversationListHtml = getConversationListHtml;
 function getConversationListStyles() {
     return `
     .conversation-list {
@@ -160,7 +161,6 @@ function getConversationListStyles() {
     /* ...existing styles... */
     `;
 }
-exports.getConversationListStyles = getConversationListStyles;
 function getConversationListScript() {
     return `
     document.addEventListener('DOMContentLoaded', () => {
@@ -270,7 +270,6 @@ function getConversationListScript() {
     }
     `;
 }
-exports.getConversationListScript = getConversationListScript;
 function renderConversationItems(conversations, currentConversationId) {
     if (!conversations || conversations.length === 0) {
         return `

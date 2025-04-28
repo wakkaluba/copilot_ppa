@@ -15,68 +15,80 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrustManager = void 0;
 const vscode = __importStar(require("vscode"));
+const logger_1 = require("../utils/logger");
 class TrustManager {
     constructor() {
-        this.trustedWorkspaces = new Set();
-        this.initializeTrustState();
+        this.logger = logger_1.Logger.getInstance();
     }
     static getInstance() {
-        if (!this.instance) {
-            this.instance = new TrustManager();
+        if (!TrustManager.instance) {
+            TrustManager.instance = new TrustManager();
         }
-        return this.instance;
+        return TrustManager.instance;
     }
-    initializeTrustState() {
-        if (vscode.workspace.workspaceFolders) {
-            for (const folder of vscode.workspace.workspaceFolders) {
-                if (folder.uri.scheme === 'file' && vscode.workspace.isTrusted) {
-                    this.trustedWorkspaces.add(folder.uri.fsPath);
-                }
+    isWorkspaceTrusted() {
+        // In recent versions of VS Code, workspace trust is available as a property
+        if ('isTrusted' in vscode.workspace) {
+            return vscode.workspace.isTrusted;
+        }
+        // For older versions or environments where trust isn't supported
+        return true;
+    }
+    async requestWorkspaceTrust() {
+        try {
+            // If the workspace is already trusted, return true
+            if (this.isWorkspaceTrusted()) {
+                return true;
             }
-        }
-        vscode.workspace.onDidGrantWorkspaceTrust(() => {
-            this.updateTrustState(true);
-        });
-    }
-    updateTrustState(trusted) {
-        if (vscode.workspace.workspaceFolders) {
-            for (const folder of vscode.workspace.workspaceFolders) {
-                if (trusted) {
-                    this.trustedWorkspaces.add(folder.uri.fsPath);
-                }
-                else {
-                    this.trustedWorkspaces.delete(folder.uri.fsPath);
-                }
+            // If the workspace trust API is available, use it
+            // Check if the method exists on the workspace object in a type-safe way
+            const workspace = vscode.workspace;
+            if (workspace.requestWorkspaceTrust && typeof workspace.requestWorkspaceTrust === 'function') {
+                this.logger.info('Requesting workspace trust from the user');
+                const isTrusted = await workspace.requestWorkspaceTrust();
+                return isTrusted;
             }
+            // If the workspace trust API is not available, ask the user
+            const result = await vscode.window.showWarningMessage('This extension requires trust to modify workspace files. Do you trust this workspace?', 'Yes, I trust this workspace', 'No');
+            return result === 'Yes, I trust this workspace';
+        }
+        catch (error) {
+            this.logger.error('Error requesting workspace trust', error instanceof Error ? error : new Error(String(error)));
+            return false;
         }
     }
-    isPathTrusted(path) {
-        return this.trustedWorkspaces.has(path) || vscode.workspace.isTrusted;
-    }
-    // Added method that's used in the tests
-    isTrusted() {
-        return vscode.workspace.isTrusted;
-    }
-    async requireTrust(path) {
-        if (this.isPathTrusted(path)) {
+    async requireTrust(message) {
+        // If the workspace is already trusted, return true immediately
+        if (this.isWorkspaceTrusted()) {
             return true;
         }
-        const result = await vscode.window.showWarningMessage('This operation requires workspace trust. Do you want to trust this workspace?', { modal: true }, 'Trust Workspace', 'Cancel');
+        // Show a warning and ask for trust
+        const warningMessage = message ||
+            'This operation requires workspace trust. Please trust this workspace to continue.';
+        const result = await vscode.window.showWarningMessage(warningMessage, 'Trust Workspace', 'Cancel');
+        // If the user clicked "Trust Workspace", request trust
         if (result === 'Trust Workspace') {
-            // The requestWorkspaceTrust() API is not available directly in all VS Code versions
-            // Use the command instead which is more broadly supported
-            await vscode.commands.executeCommand('workbench.trust.manage');
-            return vscode.workspace.isTrusted;
+            return await this.requestWorkspaceTrust();
         }
         return false;
     }

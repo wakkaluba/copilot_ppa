@@ -13,5 +13,5 @@ var SecuritySeverity;
     SecuritySeverity["HIGH"] = "high";
     SecuritySeverity["MEDIUM"] = "medium";
     SecuritySeverity["LOW"] = "low";
-})(SecuritySeverity = exports.SecuritySeverity || (exports.SecuritySeverity = {}));
+})(SecuritySeverity || (exports.SecuritySeverity = SecuritySeverity = {}));
 //# sourceMappingURL=security.js.map

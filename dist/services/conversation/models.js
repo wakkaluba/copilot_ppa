@@ -2,15 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageType = void 0;
 /**
- * Types of messages in a conversation
+ * Message type enum
  */
 var MessageType;
 (function (MessageType) {
-    MessageType["USER"] = "user";
-    MessageType["SYSTEM"] = "system";
-    MessageType["ASSISTANT"] = "assistant";
-    MessageType["ERROR"] = "error";
-    MessageType["WARNING"] = "warning";
-    MessageType["INFO"] = "info";
-})(MessageType = exports.MessageType || (exports.MessageType = {}));
+    MessageType["User"] = "user";
+    MessageType["Assistant"] = "assistant";
+    MessageType["System"] = "system";
+})(MessageType || (exports.MessageType = MessageType = {}));
 //# sourceMappingURL=models.js.map

@@ -190,7 +190,7 @@ class LLMSessionManager extends events_1.EventEmitter {
             prompt,
             model: session.config.model,
             options: session.config.parameters,
-            priority: 'normal',
+            priority: 'normal', // Default priority
             timestamp: new Date(),
             status: 'pending'
         };

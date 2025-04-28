@@ -208,11 +208,11 @@ let ModelHealthMonitorV2 = class ModelHealthMonitorV2 extends events_1.EventEmit
         this.logger.info('ModelHealthMonitorV2 disposed');
     }
 };
-ModelHealthMonitorV2 = __decorate([
+exports.ModelHealthMonitorV2 = ModelHealthMonitorV2;
+exports.ModelHealthMonitorV2 = ModelHealthMonitorV2 = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)('HealthMonitorConfig')),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, Object])
 ], ModelHealthMonitorV2);
-exports.ModelHealthMonitorV2 = ModelHealthMonitorV2;
 //# sourceMappingURL=ModelHealthMonitorV2.js.map

@@ -6,7 +6,7 @@ import { setupStatusBar } from './statusBar';
 
 export async function activate(context: vscode.ExtensionContext) {
     // Initialize service registry
-    initializeServices(context);
+    await initializeServices(context);
     const registry = ServiceRegistry.getInstance();
 
     // Setup core extension components

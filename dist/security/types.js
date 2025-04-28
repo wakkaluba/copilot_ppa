@@ -8,7 +8,7 @@ var SecuritySeverity;
     SecuritySeverity["Medium"] = "medium";
     SecuritySeverity["Low"] = "low";
     SecuritySeverity["Info"] = "info";
-})(SecuritySeverity = exports.SecuritySeverity || (exports.SecuritySeverity = {}));
+})(SecuritySeverity || (exports.SecuritySeverity = SecuritySeverity = {}));
 var SecurityCategory;
 (function (SecurityCategory) {
     SecurityCategory["Injection"] = "injection";
@@ -20,5 +20,5 @@ var SecurityCategory;
     SecurityCategory["Configuration"] = "configuration";
     SecurityCategory["Validation"] = "validation";
     SecurityCategory["Other"] = "other";
-})(SecurityCategory = exports.SecurityCategory || (exports.SecurityCategory = {}));
+})(SecurityCategory || (exports.SecurityCategory = SecurityCategory = {}));
 //# sourceMappingURL=types.js.map

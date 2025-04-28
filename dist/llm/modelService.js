@@ -12,11 +12,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var ModelService_1;
-var _a, _b;
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelService = exports.ModelRecommendation = exports.HardwareSpecs = void 0;
 const inversify_1 = require("inversify");
-const ILogger_1 = require("../logging/ILogger");
 const vscode_1 = require("vscode");
 const types_1 = require("./types");
 Object.defineProperty(exports, "HardwareSpecs", { enumerable: true, get: function () { return types_1.HardwareSpecs; } });
@@ -153,16 +152,16 @@ let ModelService = ModelService_1 = class ModelService extends vscode_1.EventEmi
         this.removeAllListeners();
     }
 };
-ModelService = ModelService_1 = __decorate([
+exports.ModelService = ModelService;
+exports.ModelService = ModelService = ModelService_1 = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelDiscoveryService_1.ModelDiscoveryService)),
     __param(2, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __param(3, (0, inversify_1.inject)(ModelValidationService_1.ModelValidationService)),
     __param(4, (0, inversify_1.inject)(TelemetryService_1.TelemetryService)),
-    __metadata("design:paramtypes", [typeof (_a = typeof ILogger_1.ILogger !== "undefined" && ILogger_1.ILogger) === "function" ? _a : Object, ModelDiscoveryService_1.ModelDiscoveryService,
+    __metadata("design:paramtypes", [Object, ModelDiscoveryService_1.ModelDiscoveryService,
         ModelMetricsService_1.ModelMetricsService,
-        ModelValidationService_1.ModelValidationService, typeof (_b = typeof TelemetryService_1.TelemetryService !== "undefined" && TelemetryService_1.TelemetryService) === "function" ? _b : Object])
+        ModelValidationService_1.ModelValidationService, typeof (_a = typeof TelemetryService_1.TelemetryService !== "undefined" && TelemetryService_1.TelemetryService) === "function" ? _a : Object])
 ], ModelService);
-exports.ModelService = ModelService;
 //# sourceMappingURL=modelService.js.map

@@ -177,8 +177,8 @@ let ModelScalingService = class ModelScalingService extends events_1.EventEmitte
                 modelId,
                 action,
                 status: 'failed',
-                currentReplicas: 0,
-                targetReplicas: 0,
+                currentReplicas: 0, // Will be updated if available
+                targetReplicas: 0, // Will be updated if available
                 reason,
                 error: errorMessage,
                 metrics
@@ -321,7 +321,8 @@ let ModelScalingService = class ModelScalingService extends events_1.EventEmitte
         this.logger.info('ModelScalingService disposed');
     }
 };
-ModelScalingService = __decorate([
+exports.ModelScalingService = ModelScalingService;
+exports.ModelScalingService = ModelScalingService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelScalingMetricsService_1.ModelScalingMetricsService)),
@@ -333,5 +334,4 @@ ModelScalingService = __decorate([
         ModelDeploymentService_1.ModelDeploymentService,
         ModelScalingDashboardService_1.ModelScalingDashboardService])
 ], ModelScalingService);
-exports.ModelScalingService = ModelScalingService;
 //# sourceMappingURL=ModelScalingService.js.map

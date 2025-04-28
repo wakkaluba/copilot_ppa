@@ -1,284 +1,216 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { Logger } from '../utils/logger';
+import * as fs from 'fs';
+import * as path from 'path';
+import { IDisposable } from '../types';
 
-/**
- * Manages workspace-related operations such as file reading/writing
- * and directory listing.
- */
-export class WorkspaceManager {
-    private static instance: WorkspaceManager;
-    private logger: Logger;
-
-    private constructor() {
-        this.logger = Logger.getInstance();
+export class WorkspaceManager implements IDisposable {
+  private static instance: WorkspaceManager;
+  private logger: Logger;
+  
+  private constructor() {
+    this.logger = Logger.getInstance();
+  }
+  
+  public static getInstance(): WorkspaceManager {
+    if (!WorkspaceManager.instance) {
+      WorkspaceManager.instance = new WorkspaceManager();
     }
-
-    public static getInstance(customLogger?: Logger): WorkspaceManager {
-        if (!WorkspaceManager.instance) {
-            WorkspaceManager.instance = new WorkspaceManager();
-            if (customLogger) {
-                WorkspaceManager.instance.setLogger(customLogger);
-            }
-        }
-        return WorkspaceManager.instance;
+    return WorkspaceManager.instance;
+  }
+  
+  public async readFile(filePath: string): Promise<string> {
+    try {
+      const resolvedPath = this.resolveFilePath(filePath);
+      this.logger.debug(`Reading file: ${resolvedPath}`);
+      
+      const data = await fs.promises.readFile(resolvedPath, 'utf8');
+      return data;
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to read file: ${errorMessage}`);
+      throw new Error(`Failed to read file: ${errorMessage}`);
     }
-
-    /**
-     * Set logger for testing purposes
-     */
-    private setLogger(logger: Logger): void {
-        this.logger = logger;
+  }
+  
+  public async writeFile(filePath: string, content: string): Promise<void> {
+    try {
+      const resolvedPath = this.resolveFilePath(filePath);
+      this.logger.debug(`Writing to file: ${resolvedPath}`);
+      
+      // Ensure the directory exists
+      await this.createDirectory(path.dirname(resolvedPath));
+      
+      await fs.promises.writeFile(resolvedPath, content, 'utf8');
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to write to file: ${errorMessage}`);
+      throw new Error(`Failed to write to file: ${errorMessage}`);
     }
-
-    /**
-     * Read file content
-     * @param uri File URI or path to read
-     * @returns Promise with file content as Buffer
-     */
-    public async readFile(uri: vscode.Uri | string): Promise<Uint8Array> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            return await vscode.workspace.fs.readFile(fileUri);
-        } catch (error: any) {
-            this.logger.error(`Error reading file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to read file: ${errorMessage}`);
-        }
+  }
+  
+  public async deleteFile(filePath: string): Promise<void> {
+    try {
+      const resolvedPath = this.resolveFilePath(filePath);
+      this.logger.debug(`Deleting file: ${resolvedPath}`);
+      
+      await fs.promises.unlink(resolvedPath);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to delete file: ${errorMessage}`);
+      throw new Error(`Failed to delete file: ${errorMessage}`);
     }
-
-    /**
-     * Write content to a file
-     * @param uri File URI or path to write
-     * @param content Content to write
-     */
-    public async writeFile(uri: vscode.Uri | string, content: string | Uint8Array): Promise<void> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            const data = typeof content === 'string' ? Buffer.from(content) : content;
-            
-            // Ensure parent directory exists
-            try {
-                const parentDir = vscode.Uri.joinPath(fileUri, '..');
-                await vscode.workspace.fs.stat(parentDir);
-            } catch {
-                await this.createDirectory(vscode.Uri.joinPath(fileUri, '..'));
-            }
-            
-            await vscode.workspace.fs.writeFile(fileUri, data);
-            await this.formatDocumentAtPath(fileUri);
-        } catch (error: any) {
-            this.logger.error(`Error writing file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to write file: ${errorMessage}`);
-        }
+  }
+  
+  public async createDirectory(dirPath: string): Promise<void> {
+    try {
+      const resolvedPath = this.resolveFilePath(dirPath);
+      this.logger.debug(`Creating directory: ${resolvedPath}`);
+      
+      await fs.promises.mkdir(resolvedPath, { recursive: true });
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to create directory: ${errorMessage}`);
+      throw new Error(`Failed to create directory: ${errorMessage}`);
     }
-
-    /**
-     * Create a new file (alias for writeFile for CommandParser compatibility)
-     * @param uri File URI or path to create
-     * @param content Content to write
-     */
-    public async createFile(uri: vscode.Uri | string, content: string | Uint8Array): Promise<void> {
-        return this.writeFile(uri, content);
+  }
+  
+  public async listFiles(dirPath: string): Promise<string[]> {
+    try {
+      const resolvedPath = this.resolveFilePath(dirPath);
+      this.logger.debug(`Listing files in directory: ${resolvedPath}`);
+      
+      const files = await fs.promises.readdir(resolvedPath);
+      return files;
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to list files: ${errorMessage}`);
+      throw new Error(`Failed to list files: ${errorMessage}`);
     }
-
-    /**
-     * Modify existing file content
-     * @param uri File URI or path to modify
-     * @param modifier Function that takes existing content and returns modified content
-     */
-    public async modifyFile(uri: vscode.Uri | string, modifier: (content: string) => string): Promise<void> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            const contentBuffer = await this.readFile(fileUri);
-            const content = Buffer.from(contentBuffer).toString('utf8');
-            const modifiedContent = modifier(content);
-            await this.writeFile(fileUri, modifiedContent);
-        } catch (error: any) {
-            this.logger.error(`Error modifying file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to modify file: ${errorMessage}`);
-        }
+  }
+  
+  public resolveFilePath(filePath: string): string {
+    if (path.isAbsolute(filePath)) {
+      return filePath;
     }
-
-    /**
-     * Delete a file
-     * @param uri File URI or path to delete
-     */
-    public async deleteFile(uri: vscode.Uri | string): Promise<void> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            await vscode.workspace.fs.delete(fileUri);
-        } catch (error: any) {
-            this.logger.error(`Error deleting file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to delete file: ${errorMessage}`);
-        }
+    
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      throw new Error('No workspace folder is open');
     }
-
-    /**
-     * Format document if possible
-     * @param uri Document URI
-     */
-    public async formatDocumentAtPath(uri: vscode.Uri | string): Promise<void> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            const document = await vscode.workspace.openTextDocument(fileUri);
-            
-            if (document.languageId !== 'plaintext') {
-                await vscode.commands.executeCommand('editor.action.formatDocument');
-            }
-        } catch (error: any) {
-            // Just log warning as formatting is not critical
-            this.logger.warn(`Format error for ${uri instanceof vscode.Uri ? uri.fsPath : uri}: ${error && error.message ? error.message : String(error)}`);
-        }
+    
+    return path.join(workspaceFolders[0].uri.fsPath, filePath);
+  }
+  
+  public async fileExists(filePath: string): Promise<boolean> {
+    try {
+      const resolvedPath = this.resolveFilePath(filePath);
+      await fs.promises.access(resolvedPath, fs.constants.F_OK);
+      return true;
+    } catch {
+      return false;
     }
-
-    /**
-     * Converts a string path to a vscode.Uri
-     * @param filePath File path as string
-     * @returns VSCode URI object
-     */
-    public resolveFilePath(filePath: string): vscode.Uri {
-        if (!filePath) {
-            throw new Error('File path cannot be empty');
-        }
-        
-        // Handle absolute paths
-        if (path.isAbsolute(filePath)) {
-            return vscode.Uri.file(filePath);
-        }
-        
-        // Handle workspace-relative paths
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-            throw new Error('No workspace folder is open');
-        }
-        
-        // Use the first workspace folder as a base
-        return vscode.Uri.joinPath(workspaceFolders[0].uri, filePath);
+  }
+  
+  public async findFiles(pattern: string): Promise<vscode.Uri[]> {
+    try {
+      this.logger.debug(`Finding files matching pattern: ${pattern}`);
+      return await vscode.workspace.findFiles(pattern);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      throw new Error(`Failed to find files: ${errorMessage}`);
     }
-
-    /**
-     * List directory contents
-     * @param uri Directory URI or path
-     * @returns Array of file entries
-     */
-    public async listDirectory(uri: vscode.Uri | string): Promise<[string, vscode.FileType][]> {
-        try {
-            const dirUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            const entries = await vscode.workspace.fs.readDirectory(dirUri);
-            return entries;
-        } catch (error: any) {
-            this.logger.error(`Error listing directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to list directory: ${errorMessage}`);
-        }
+  }
+  
+  public getConfiguration(section: string): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration(section);
+  }
+  
+  public async updateConfiguration(section: string, value: any, target?: vscode.ConfigurationTarget): Promise<void> {
+    try {
+      const config = this.getConfiguration('');
+      await config.update(section, value, target);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      throw new Error(`Failed to update configuration: ${errorMessage}`);
     }
-
-    /**
-     * Check if file exists
-     * @param uri File URI or path to check
-     * @returns True if file exists, false otherwise
-     */
-    public async fileExists(uri: vscode.Uri | string): Promise<boolean> {
-        try {
-            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            await vscode.workspace.fs.stat(fileUri);
-            return true;
-        } catch {
-            return false;
-        }
+  }
+  
+  public async formatDocument(document: vscode.TextDocument): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('editor.action.formatDocument', document);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : String(error);
+      this.logger.error(`Failed to format document: ${errorMessage}`);
+      throw new Error(`Failed to format document: ${errorMessage}`);
     }
-
-    /**
-     * Gets workspace folders
-     * @returns Array of workspace folders or null if none
-     */
-    public getWorkspaceFolders(): readonly vscode.WorkspaceFolder[] | undefined {
-        return vscode.workspace.workspaceFolders;
+  }
+  
+  // Methods for todo operations
+  public parseTodoFile(content: string): string[] {
+    return content.split('\n');
+  }
+  
+  public async updateTodoFile(filePath: string, lines: string[]): Promise<void> {
+    const content = lines.join('\n');
+    await this.writeFile(filePath, content);
+  }
+  
+  public async moveCompletedTasks(sourceFile: string, targetFile: string): Promise<void> {
+    const sourceContent = await this.readFile(sourceFile);
+    const sourceLines = this.parseTodoFile(sourceContent);
+    
+    const completedPattern = /^\s*- \[x\]/i;
+    const completedTasks = sourceLines.filter(line => completedPattern.test(line));
+    const remainingTasks = sourceLines.filter(line => !completedPattern.test(line));
+    
+    // Read the target file if it exists
+    let targetLines: string[] = [];
+    if (await this.fileExists(targetFile)) {
+      const targetContent = await this.readFile(targetFile);
+      targetLines = this.parseTodoFile(targetContent);
     }
-
-    /**
-     * Finds files matching a glob pattern
-     * @param pattern Glob pattern
-     * @param excludePattern Pattern to exclude
-     * @param maxResults Maximum number of results
-     * @param token Cancellation token
-     * @returns Array of matching URIs
-     */
-    public async findFiles(
-        pattern: string, 
-        excludePattern?: string, 
-        maxResults?: number, 
-        token?: vscode.CancellationToken
-    ): Promise<vscode.Uri[]> {
-        try {
-            return await vscode.workspace.findFiles(pattern, excludePattern, maxResults, token);
-        } catch (error: any) {
-            this.logger.error(`Error finding files with pattern ${pattern}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to find files: ${errorMessage}`);
-        }
+    
+    // Update both files
+    await this.updateTodoFile(sourceFile, remainingTasks);
+    await this.updateTodoFile(targetFile, [...targetLines, ...completedTasks]);
+  }
+  
+  public async updateTaskStatus(filePath: string, lineNumber: number, completed: boolean): Promise<void> {
+    const content = await this.readFile(filePath);
+    const lines = this.parseTodoFile(content);
+    
+    if (lineNumber < 0 || lineNumber >= lines.length) {
+      throw new Error(`Invalid line number: ${lineNumber}`);
     }
-
-    /**
-     * Creates a directory if it doesn't exist
-     * @param uri Directory URI or path
-     */
-    public async createDirectory(uri: vscode.Uri | string): Promise<void> {
-        try {
-            const dirUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
-            await vscode.workspace.fs.createDirectory(dirUri);
-        } catch (error: any) {
-            this.logger.error(`Error creating directory ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to create directory: ${errorMessage}`);
-        }
+    
+    const line = lines[lineNumber];
+    if (completed) {
+      lines[lineNumber] = line.replace(/^\s*- \[ \]/i, '- [x]');
+    } else {
+      lines[lineNumber] = line.replace(/^\s*- \[x\]/i, '- [ ]');
     }
-
-    /**
-     * Get workspace configuration
-     * @param section Configuration section
-     * @param resource Resource URI
-     * @returns Configuration object
-     */
-    public getConfiguration(section: string, resource?: vscode.Uri): vscode.WorkspaceConfiguration {
-        return vscode.workspace.getConfiguration(section, resource);
-    }
-
-    /**
-     * Update workspace configuration
-     * @param section Configuration section
-     * @param value New value
-     * @param target Configuration target
-     * @param resource Resource URI
-     */
-    public async updateConfiguration(section: string, value: any, target?: vscode.ConfigurationTarget, resource?: vscode.Uri): Promise<void> {
-        try {
-            const config = this.getConfiguration('', resource);
-            await config.update(section, value, target);
-        } catch (error: any) {
-            this.logger.error(`Error updating configuration ${section}:`, error as Error);
-            const errorMessage = error && typeof error === 'object' && 'message' in error 
-                ? error.message 
-                : String(error);
-            throw new Error(`Failed to update configuration: ${errorMessage}`);
-        }
-    }
+    
+    await this.updateTodoFile(filePath, lines);
+  }
+  
+  public dispose(): void {
+    // Cleanup resources if needed
+  }
 }

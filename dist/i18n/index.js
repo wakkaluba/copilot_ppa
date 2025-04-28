@@ -14,7 +14,10 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.detectLanguage = exports.getCurrentLanguage = exports.localize = exports.initializeLocalization = void 0;
+exports.initializeLocalization = initializeLocalization;
+exports.localize = localize;
+exports.getCurrentLanguage = getCurrentLanguage;
+exports.detectLanguage = detectLanguage;
 const localization_1 = require("./localization");
 // Export types and classes
 __exportStar(require("./localization"), exports);
@@ -31,7 +34,6 @@ function initializeLocalization(context) {
     }
     return localizationService;
 }
-exports.initializeLocalization = initializeLocalization;
 /**
  * Get localized string by key
  * @param key The key of the string to get
@@ -45,7 +47,6 @@ function localize(key, defaultValue, params) {
     }
     return localizationService.getString(key, defaultValue, params);
 }
-exports.localize = localize;
 /**
  * Gets the current UI language
  * @returns Current language code
@@ -55,7 +56,6 @@ function getCurrentLanguage() {
     // or from the user's OS settings
     return 'en';
 }
-exports.getCurrentLanguage = getCurrentLanguage;
 /**
  * Detect language of text
  * @param text Text to analyze
@@ -67,5 +67,4 @@ function detectLanguage(text) {
     }
     return localizationService.detectLanguage(text);
 }
-exports.detectLanguage = detectLanguage;
 //# sourceMappingURL=index.js.map

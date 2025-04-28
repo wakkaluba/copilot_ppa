@@ -1,119 +1,112 @@
 import * as vscode from 'vscode';
-import { ConversationHistory } from '../../src/services/ConversationHistory';
+import { IExtensionContext } from '../../src/types';
 
-export function createMockOutputChannel() {
-    return {
-        name: 'Mock Output Channel',
-        append: jest.fn(),
-        appendLine: jest.fn(),
-        clear: jest.fn(),
-        hide: jest.fn(),
-        dispose: jest.fn(),
-        show: jest.fn()
-    };
+/**
+ * Creates a mock extension context for testing
+ */
+export function createMockExtensionContext(): IExtensionContext {
+  return {
+    subscriptions: [],
+    extensionPath: '/mock/extension/path',
+    storagePath: '/mock/storage/path',
+    globalStoragePath: '/mock/global/storage/path',
+    logPath: '/mock/log/path',
+    asAbsolutePath: (relativePath: string) => `/mock/extension/path/${relativePath}`,
+    workspaceState: {
+      get: jest.fn().mockImplementation((key, defaultValue) => defaultValue),
+      update: jest.fn().mockResolvedValue(undefined)
+    },
+    globalState: {
+      get: jest.fn().mockImplementation((key, defaultValue) => defaultValue),
+      update: jest.fn().mockResolvedValue(undefined)
+    }
+  };
 }
 
-export function createMockWebviewPanel() {
-    return {
-        viewType: 'mockWebview',
-        title: 'Mock Webview',
-        webview: {
-            html: '',
-            options: {},
-            onDidReceiveMessage: jest.fn(),
-            postMessage: jest.fn(),
-            asWebviewUri: jest.fn(uri => uri),
-            cspSource: ''
-        },
-        onDidDispose: jest.fn(),
-        onDidChangeViewState: jest.fn(),
-        reveal: jest.fn(),
-        dispose: jest.fn(),
-        visible: true,
-        active: true,
-        show: jest.fn()
-    };
+/**
+ * Creates a mock workspace folder for testing
+ */
+export function createMockWorkspaceFolder(name: string = 'test', path: string = '/test/workspace'): vscode.WorkspaceFolder {
+  return {
+    uri: { 
+      fsPath: path,
+      toString: () => path,
+      scheme: 'file',
+      path,
+      authority: '',
+      query: '',
+      fragment: '',
+      with: jest.fn().mockReturnThis()
+    } as any as vscode.Uri,
+    name,
+    index: 0
+  };
 }
 
-export function createMockExtensionContext() {
-    return {
-        subscriptions: [],
-        extensionPath: '/mock/path',
-        extensionUri: { fsPath: '/mock/path' },
-        storagePath: '/mock/storage/path',
-        globalState: {
-            get: jest.fn(),
-            update: jest.fn().mockResolvedValue(undefined),
-            keys: jest.fn().mockReturnValue([])
-        },
-        workspaceState: {
-            get: jest.fn(),
-            update: jest.fn().mockResolvedValue(undefined),
-            keys: jest.fn().mockReturnValue([])
-        },
-        secrets: {
-            get: jest.fn().mockResolvedValue(''),
-            store: jest.fn().mockResolvedValue(undefined),
-            delete: jest.fn().mockResolvedValue(undefined)
-        },
-        extensionMode: vscode.ExtensionMode.Test,
-        logPath: '/mock/log/path',
-        storageUri: { fsPath: '/mock/storage/path' },
-        globalStorageUri: { fsPath: '/mock/global/storage/path' },
-        logUri: { fsPath: '/mock/log/path' },
-        asAbsolutePath: jest.fn(relativePath => `/mock/path/${relativePath}`)
-    };
+/**
+ * Creates a mock document for testing
+ */
+export function createMockDocument(content: string = '', language: string = 'typescript'): vscode.TextDocument {
+  return {
+    uri: {
+      fsPath: '/test/document.ts',
+      scheme: 'file'
+    } as any as vscode.Uri,
+    fileName: '/test/document.ts',
+    isUntitled: false,
+    languageId: language,
+    version: 1,
+    isDirty: false,
+    isClosed: false,
+    save: jest.fn().mockResolvedValue(true),
+    eol: vscode.EndOfLine.LF,
+    lineCount: content.split('\n').length,
+    lineAt: jest.fn().mockImplementation((line) => {
+      const lines = content.split('\n');
+      return {
+        lineNumber: typeof line === 'number' ? line : line.line,
+        text: lines[typeof line === 'number' ? line : line.line] || '',
+        range: new vscode.Range(0, 0, 0, 0),
+        rangeIncludingLineBreak: new vscode.Range(0, 0, 0, 0),
+        firstNonWhitespaceCharacterIndex: 0,
+        isEmptyOrWhitespace: false
+      };
+    }),
+    offsetAt: jest.fn().mockReturnValue(0),
+    positionAt: jest.fn().mockReturnValue(new vscode.Position(0, 0)),
+    getText: jest.fn().mockReturnValue(content),
+    getWordRangeAtPosition: jest.fn().mockReturnValue(new vscode.Range(0, 0, 0, 0)),
+    validateRange: jest.fn().mockImplementation(range => range),
+    validatePosition: jest.fn().mockImplementation(position => position)
+  };
 }
 
-export function createMockConversationHistory(): ConversationHistory {
-    return {
-        conversations: new Map(),
-        context: {},
-        addMessage: jest.fn(),
-        getHistory: jest.fn().mockReturnValue([]),
-        clearHistory: jest.fn(),
-        saveConversation: jest.fn(),
-        loadConversation: jest.fn(),
-        getConversationList: jest.fn().mockResolvedValue([]),
-        loadFromStorage: jest.fn().mockResolvedValue(undefined),
-        saveToStorage: jest.fn().mockResolvedValue(undefined),
-        initialize: jest.fn().mockResolvedValue(undefined),
-        dispose: jest.fn(),
-        getConversation: jest.fn(),
-        deleteConversation: jest.fn().mockResolvedValue(undefined),
-        searchConversations: jest.fn().mockResolvedValue([]),
-        exportConversation: jest.fn().mockResolvedValue("{}"),
-        importConversation: jest.fn().mockResolvedValue({
-            id: "imported-conversation",
-            title: "Imported Conversation",
-            messages: [],
-            created: Date.now(),
-            updated: Date.now()
-        }),
-        on: jest.fn(),
-        emit: jest.fn()
-    } as ConversationHistory;
+/**
+ * Creates a mock output channel for testing
+ */
+export function createMockOutputChannel(name: string = 'Test Channel'): vscode.OutputChannel {
+  return {
+    name,
+    append: jest.fn(),
+    appendLine: jest.fn(),
+    clear: jest.fn(),
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn()
+  };
 }
 
-export function createMockDocument(content = '', language = 'typescript') {
-    return {
-        fileName: 'test.ts',
-        uri: { fsPath: '/mock/path/test.ts' },
-        getText: jest.fn().mockReturnValue(content),
-        languageId: language,
-        lineCount: content.split('\n').length,
-        lineAt: jest.fn(line => ({
-            text: content.split('\n')[line],
-            range: { start: { line }, end: { line } }
-        })),
-        save: jest.fn().mockResolvedValue(true)
-    };
-}
-
-export function createMockWorkspaceFolder() {
-    return {
-        uri: { fsPath: '/mock/workspace' },
-        name: 'mock-workspace',
-        index: 0
-    };
+/**
+ * Creates a mock conversation history
+ */
+export function createMockConversationHistory() {
+  return {
+    id: 'test-conversation',
+    getName: jest.fn().mockReturnValue('Test Conversation'),
+    getMessages: jest.fn().mockReturnValue([]),
+    addMessage: jest.fn(),
+    setName: jest.fn(),
+    save: jest.fn().mockResolvedValue(undefined),
+    load: jest.fn().mockResolvedValue(undefined)
+  };
 }

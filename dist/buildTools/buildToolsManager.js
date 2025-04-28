@@ -15,25 +15,37 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BuildToolsManager = void 0;
+const eventEmitter_1 = require("../common/eventEmitter");
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 const webpackConfigManager_1 = require("./webpack/webpackConfigManager");
 const rollupConfigManager_1 = require("./rollup/rollupConfigManager");
 const viteConfigManager_1 = require("./vite/viteConfigManager");
 const buildScriptOptimizer_1 = require("./buildScriptOptimizer");
 const bundleAnalyzer_1 = require("./bundleAnalyzer");
-class BuildToolsManager {
+class BuildToolsManager extends eventEmitter_1.EventEmitter {
     constructor(context, logger) {
+        super();
         this.context = context;
         this.logger = logger;
         this.webpackManager = new webpackConfigManager_1.WebpackConfigManager(logger);
@@ -796,6 +808,40 @@ class BuildToolsManager {
             throw new Error('No workspace folder open.');
         }
         return workspaceFolders[0].uri.fsPath;
+    }
+    /**
+     * Clean up resources when manager is disposed
+     */
+    dispose() {
+        // Clean up specific resources
+        if (this.webpackManager) {
+            // Safely check if dispose exists before calling it
+            if (typeof this.webpackManager.dispose === 'function') {
+                this.webpackManager.dispose();
+            }
+        }
+        if (this.rollupManager) {
+            if (typeof this.rollupManager.dispose === 'function') {
+                this.rollupManager.dispose();
+            }
+        }
+        if (this.viteManager) {
+            if (typeof this.viteManager.dispose === 'function') {
+                this.viteManager.dispose();
+            }
+        }
+        if (this.buildScriptOptimizer) {
+            if (typeof this.buildScriptOptimizer.dispose === 'function') {
+                this.buildScriptOptimizer.dispose();
+            }
+        }
+        if (this.bundleAnalyzer) {
+            if (typeof this.bundleAnalyzer.dispose === 'function') {
+                this.bundleAnalyzer.dispose();
+            }
+        }
+        // Call base class dispose to clean up event listeners
+        super.dispose();
     }
 }
 exports.BuildToolsManager = BuildToolsManager;

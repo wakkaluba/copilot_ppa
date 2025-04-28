@@ -23,7 +23,7 @@ class LLMConnectionEventService extends events_1.EventEmitter {
                 ['reconnecting', new Set(['connected', 'error', 'disconnected'])]
             ]),
             transitionTimeouts: new Map([
-                ['connecting', 30000],
+                ['connecting', 30000], // 30 seconds timeout for connecting
                 ['reconnecting', 60000], // 60 seconds timeout for reconnecting
             ])
         };

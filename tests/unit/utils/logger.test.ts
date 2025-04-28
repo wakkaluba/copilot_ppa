@@ -1,88 +1,141 @@
 import * as vscode from 'vscode';
-import { LoggerImpl, LogLevel } from '../../../src/utils/logger';
-import * as sinon from 'sinon';
+import { Logger, LogLevel } from '../../../src/utils/logger';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+
+// Mock vscode
+jest.mock('vscode', () => ({
+  window: {
+    createOutputChannel: jest.fn().mockReturnValue({
+      appendLine: jest.fn(),
+      show: jest.fn(),
+      clear: jest.fn(),
+      dispose: jest.fn()
+    })
+  }
+}));
 
 describe('Logger', () => {
-    let logger: LoggerImpl;
-    let mockOutputChannel: vscode.LogOutputChannel;
-    let sandbox: sinon.SinonSandbox;
-    let mockContext: vscode.ExtensionContext;
-    let getConfigurationStub: sinon.SinonStub;
+  let logger: Logger;
+  let mockOutputChannel: any;
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleInfoSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
-    beforeEach(() => {
-        sandbox = sinon.createSandbox();
-        
-        // Create mock output channel
-        mockOutputChannel = {
-            name: 'Mock Log Channel',
-            logLevel: vscode.LogLevel.Info,
-            appendLine: sandbox.stub(),
-            append: sandbox.stub(),
-            clear: sandbox.stub(),
-            hide: sandbox.stub(),
-            show: sandbox.stub(),
-            onDidChangeLogLevel: new vscode.EventEmitter<vscode.LogLevel>().event,
-            dispose: sandbox.stub(),
-            trace: sandbox.stub(),
-            debug: sandbox.stub(),
-            info: sandbox.stub(),
-            warn: sandbox.stub(),
-            error: sandbox.stub()
-        } as unknown as vscode.LogOutputChannel;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockOutputChannel = {
+      appendLine: jest.fn(),
+      show: jest.fn(),
+      clear: jest.fn(),
+      dispose: jest.fn()
+    };
+    (vscode.window.createOutputChannel as jest.Mock).mockReturnValue(mockOutputChannel);
+    
+    // Reset singleton
+    // @ts-ignore: Accessing private property
+    Logger.instance = undefined;
+    
+    logger = Logger.getInstance();
+    
+    // Spy on console methods
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  });
 
-        // Create mock context
-        mockContext = {
-            subscriptions: [],
-            extensionPath: '/test/path',
-            // ... other required context properties
-        } as unknown as vscode.ExtensionContext;
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
 
-        // Setup configuration stub for potential future use
-        getConfigurationStub = sandbox.stub(vscode.workspace, 'getConfiguration').returns({
-            get: () => LogLevel.INFO,
-            update: sandbox.stub()
-        } as any);
+  test('should log messages with correct level', () => {
+    logger.setLogLevel(LogLevel.Debug); // Set to debug to see all levels
+    
+    logger.debug('Debug message');
+    logger.info('Info message');
+    logger.warn('Warning message');
+    logger.error('Error message');
 
-        // Get logger instance and inject mocks
-        logger = LoggerImpl.getInstance();
-        // Access the private _outputChannel property - this is a bit hacky but works for tests
-        (logger as any)._outputChannel = mockOutputChannel;
-        logger.setLogLevel(LogLevel.INFO);
-        
-        // Store context for potential use in future tests
-        (logger as any)._context = mockContext;
+    // All levels should be logged when level is set to Debug
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(4);
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('[DEBUG] Debug message'));
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('[INFO] Info message'));
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('[WARN] Warning message'));
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('[ERROR] Error message'));
+
+    // Console should show all logs
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Debug message'));
+    expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Info message'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Warning message'));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error message'));
+  });
+
+  test('should respect log level settings', () => {
+    logger.setLogLevel(LogLevel.Error);
+    
+    logger.debug('Debug message');
+    logger.info('Info message');
+    logger.warn('Warning message');
+    logger.error('Error message');
+
+    // Only Error level should be logged
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(1);
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+      expect.stringContaining('[ERROR] Error message')
+    );
+  });
+
+  test('should log additional arguments', () => {
+    logger.setLogLevel(LogLevel.Debug);
+    
+    logger.info('Message with', 'multiple', 'arguments');
+    logger.info('Object argument', { key: 'value' });
+    logger.info('Number argument', 42);
+    logger.info('Boolean argument', true);
+
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(4);
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+      expect.stringContaining('Message with multiple arguments')
+    );
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+      expect.stringContaining('Object argument {"key":"value"}')
+    );
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+      expect.stringContaining('Number argument 42')
+    );
+    expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+      expect.stringContaining('Boolean argument true')
+    );
+  });
+
+  test('should handle errors when writing to output channel', () => {
+    // Mock appendLine to throw an error
+    mockOutputChannel.appendLine.mockImplementation(() => {
+      throw new Error('Test error');
     });
+    
+    // Spy on console.error specifically for this test
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+    
+    logger.info('This should handle errors');
+    
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error writing to output channel:',
+      expect.any(Error)
+    );
+    
+    errorSpy.mockRestore();
+  });
 
-    afterEach(() => {
-        sandbox.restore();
-    });
-
-    // ... rest of the tests
-    it('should log messages with correct level', () => {
-        logger.debug('Debug message');
-        logger.info('Info message');
-        logger.warn('Warning message');
-        logger.error('Error message');
-
-        expect(mockOutputChannel.debug).toHaveBeenCalledWith('Debug message');
-        expect(mockOutputChannel.info).toHaveBeenCalledWith('Info message');
-        expect(mockOutputChannel.warn).toHaveBeenCalledWith('Warning message');
-        expect(mockOutputChannel.error).toHaveBeenCalledWith('Error message');
-    });
-
-    it('should respect log level settings', () => {
-        logger.setLogLevel(LogLevel.WARN);
-        
-        logger.debug('Debug message');
-        logger.info('Info message');
-        logger.warn('Warning message');
-        logger.error('Error message');
-
-        expect(mockOutputChannel.debug).not.toHaveBeenCalled();
-        expect(mockOutputChannel.info).not.toHaveBeenCalled();
-        expect(mockOutputChannel.warn).toHaveBeenCalledWith('Warning message');
-        expect(mockOutputChannel.error).toHaveBeenCalledWith('Error message');
-    });
-
-    // ... rest of tests
+  test('should create singleton instance', () => {
+    const instance1 = Logger.getInstance();
+    const instance2 = Logger.getInstance();
+    
+    expect(instance1).toBe(instance2);
+    expect(vscode.window.createOutputChannel).toHaveBeenCalledTimes(1);
+  });
 });

@@ -172,11 +172,11 @@ let ModelOptimizationService = class ModelOptimizationService extends events_1.E
         this.activeOptimizations.clear();
     }
 };
-ModelOptimizationService = __decorate([
+exports.ModelOptimizationService = ModelOptimizationService;
+exports.ModelOptimizationService = ModelOptimizationService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelOptimizationService);
-exports.ModelOptimizationService = ModelOptimizationService;
 //# sourceMappingURL=ModelOptimizationService.js.map

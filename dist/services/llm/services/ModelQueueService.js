@@ -205,12 +205,12 @@ let ModelQueueService = class ModelQueueService extends events_1.EventEmitter {
         this.removeAllListeners();
     }
 };
-ModelQueueService = __decorate([
+exports.ModelQueueService = ModelQueueService;
+exports.ModelQueueService = ModelQueueService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelResourceOptimizer_1.ModelResourceOptimizer)),
     __param(2, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, typeof (_b = typeof ModelResourceOptimizer_1.ModelResourceOptimizer !== "undefined" && ModelResourceOptimizer_1.ModelResourceOptimizer) === "function" ? _b : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelQueueService);
-exports.ModelQueueService = ModelQueueService;
 //# sourceMappingURL=ModelQueueService.js.map

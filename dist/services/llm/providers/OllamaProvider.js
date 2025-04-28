@@ -177,7 +177,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             id: modelId,
             name: info.name,
             provider: this.id,
-            maxContextLength: 4096,
+            maxContextLength: 4096, // Default for most Ollama models
             parameters: {
                 format: info.details.format,
                 family: info.details.family,

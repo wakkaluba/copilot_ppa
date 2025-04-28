@@ -21,7 +21,7 @@ class ModelRecommendationService {
                     available: false
                 },
                 ram: {
-                    total: 16384,
+                    total: 16384, // Assume 16GB as default
                     free: 8192 // Assume 8GB free
                 },
                 cpu: {

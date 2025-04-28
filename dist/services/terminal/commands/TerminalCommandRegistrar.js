@@ -49,7 +49,8 @@ let TerminalCommandRegistrar = class TerminalCommandRegistrar {
         }
     }
 };
-TerminalCommandRegistrar = __decorate([
+exports.TerminalCommandRegistrar = TerminalCommandRegistrar;
+exports.TerminalCommandRegistrar = TerminalCommandRegistrar = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(terminalManager_1.TerminalManager)),
@@ -58,5 +59,4 @@ TerminalCommandRegistrar = __decorate([
     __param(4, (0, inversify_1.inject)('AITerminalHelper')),
     __metadata("design:paramtypes", [Object, typeof (_a = typeof terminalManager_1.TerminalManager !== "undefined" && terminalManager_1.TerminalManager) === "function" ? _a : Object, typeof (_b = typeof interactiveShell_1.InteractiveShell !== "undefined" && interactiveShell_1.InteractiveShell) === "function" ? _b : Object, TerminalConfigurationService_1.TerminalConfigurationService, Object])
 ], TerminalCommandRegistrar);
-exports.TerminalCommandRegistrar = TerminalCommandRegistrar;
 //# sourceMappingURL=TerminalCommandRegistrar.js.map

@@ -11,12 +11,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeScriptAnalyzer = void 0;
 const inversify_1 = require("inversify");
 const baseAnalyzer_1 = require("./baseAnalyzer");
-const ILogger_1 = require("../../logging/ILogger");
 const TypeScriptPatternAnalyzer_1 = require("./services/TypeScriptPatternAnalyzer");
 const TypeScriptMetricsCalculator_1 = require("./services/TypeScriptMetricsCalculator");
 let TypeScriptAnalyzer = class TypeScriptAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
@@ -186,13 +184,13 @@ let TypeScriptAnalyzer = class TypeScriptAnalyzer extends baseAnalyzer_1.BasePer
         return Math.round(totalLines / methodCount);
     }
 };
-TypeScriptAnalyzer = __decorate([
+exports.TypeScriptAnalyzer = TypeScriptAnalyzer;
+exports.TypeScriptAnalyzer = TypeScriptAnalyzer = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(TypeScriptPatternAnalyzer_1.TypeScriptPatternAnalyzer)),
     __param(2, (0, inversify_1.inject)(TypeScriptMetricsCalculator_1.TypeScriptMetricsCalculator)),
-    __metadata("design:paramtypes", [typeof (_a = typeof ILogger_1.ILogger !== "undefined" && ILogger_1.ILogger) === "function" ? _a : Object, TypeScriptPatternAnalyzer_1.TypeScriptPatternAnalyzer,
+    __metadata("design:paramtypes", [Object, TypeScriptPatternAnalyzer_1.TypeScriptPatternAnalyzer,
         TypeScriptMetricsCalculator_1.TypeScriptMetricsCalculator, Object])
 ], TypeScriptAnalyzer);
-exports.TypeScriptAnalyzer = TypeScriptAnalyzer;
 //# sourceMappingURL=typescriptAnalyzer.js.map

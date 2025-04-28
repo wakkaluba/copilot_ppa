@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDisplaySettingsScript = exports.getDisplaySettingsStyles = exports.getDisplaySettingsPanel = void 0;
+exports.getDisplaySettingsPanel = getDisplaySettingsPanel;
+exports.getDisplaySettingsStyles = getDisplaySettingsStyles;
+exports.getDisplaySettingsScript = getDisplaySettingsScript;
 function getDisplaySettingsPanel(currentSettings) {
     return `
     <div class="display-settings-panel">
@@ -71,7 +73,6 @@ function getDisplaySettingsPanel(currentSettings) {
     </div>
     `;
 }
-exports.getDisplaySettingsPanel = getDisplaySettingsPanel;
 function getDisplaySettingsStyles() {
     return `
     .display-settings-panel {
@@ -142,7 +143,6 @@ function getDisplaySettingsStyles() {
     }
     `;
 }
-exports.getDisplaySettingsStyles = getDisplaySettingsStyles;
 function getDisplaySettingsScript() {
     return `
     document.addEventListener('DOMContentLoaded', () => {
@@ -217,5 +217,4 @@ function getDisplaySettingsScript() {
     }
     `;
 }
-exports.getDisplaySettingsScript = getDisplaySettingsScript;
 //# sourceMappingURL=displaySettings.js.map

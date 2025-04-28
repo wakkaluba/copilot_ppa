@@ -33,7 +33,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.resources.cpu > 80,
                 action: 'scale_up',
                 priority: 80,
-                cooldownPeriod: 5 * 60 * 1000,
+                cooldownPeriod: 5 * 60 * 1000, // 5 minutes
                 replicas: 1
             },
             {
@@ -42,7 +42,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.resources.memory > 85,
                 action: 'scale_up',
                 priority: 85,
-                cooldownPeriod: 5 * 60 * 1000,
+                cooldownPeriod: 5 * 60 * 1000, // 5 minutes
                 replicas: 1
             },
             {
@@ -51,7 +51,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.performance.responseTime > 1000,
                 action: 'scale_up',
                 priority: 90,
-                cooldownPeriod: 3 * 60 * 1000,
+                cooldownPeriod: 3 * 60 * 1000, // 3 minutes
                 replicas: 1
             },
             {
@@ -60,7 +60,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.scaling.queueLength > 50,
                 action: 'scale_up',
                 priority: 95,
-                cooldownPeriod: 2 * 60 * 1000,
+                cooldownPeriod: 2 * 60 * 1000, // 2 minutes
                 replicas: 1
             },
             {
@@ -69,7 +69,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.resources.cpu < 20 && metrics.scaling.currentNodes > 1,
                 action: 'scale_down',
                 priority: 60,
-                cooldownPeriod: 15 * 60 * 1000,
+                cooldownPeriod: 15 * 60 * 1000, // 15 minutes
                 replicas: 1
             },
             {
@@ -78,7 +78,7 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
                 condition: (metrics) => metrics.scaling.queueLength < 5 && metrics.scaling.currentNodes > 1,
                 action: 'scale_down',
                 priority: 50,
-                cooldownPeriod: 10 * 60 * 1000,
+                cooldownPeriod: 10 * 60 * 1000, // 10 minutes
                 replicas: 1
             }
         ];
@@ -190,9 +190,9 @@ let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter 
         this.logger.info('ModelScalingPolicy disposed');
     }
 };
-ModelScalingPolicy = __decorate([
+exports.ModelScalingPolicy = ModelScalingPolicy;
+exports.ModelScalingPolicy = ModelScalingPolicy = __decorate([
     (0, inversify_1.injectable)(),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object])
 ], ModelScalingPolicy);
-exports.ModelScalingPolicy = ModelScalingPolicy;
 //# sourceMappingURL=ModelScalingPolicy.js.map

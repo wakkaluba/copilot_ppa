@@ -6,53 +6,53 @@ import { ContextAnalysisService } from './services/ContextAnalysisService';
 import { Message, MessageType } from './models';
 
 /**
- * Manages conversation context and state
+ * Manages contextual information for conversations
  */
 export class ContextManager {
     private static instance: ContextManager;
-    private conversationService: ConversationMemoryService;
-    private userPreferencesService: UserPreferencesService;
-    private filePreferencesService: FilePreferencesService;
+    private memoryService: ConversationMemoryService;
+    private userPrefsService: UserPreferencesService;
+    private filePrefsService: FilePreferencesService;
     private analysisService: ContextAnalysisService;
-    private languagePreferences: Map<string, number> = new Map();
-    private fileTypePreferences: Map<string, number> = new Map();
-    private directoryPreferences: Map<string, number> = new Map();
-    private filePatternPreferences: Map<string, number> = new Map();
-    private maxWindowSize: number = 10;
+    private activeFiles: Set<string> = new Set();
+    private context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
 
     /**
-     * Create a new ContextManager
-     * @param context Extension context for state persistence
+     * Get the singleton instance
      */
-    private constructor(context: vscode.ExtensionContext) {
-        this.conversationService = new ConversationMemoryService(context);
-        this.userPreferencesService = new UserPreferencesService(context);
-        this.filePreferencesService = new FilePreferencesService(context);
-        this.analysisService = new ContextAnalysisService();
-    }
-    
-    /**
-     * Get singleton instance of ContextManager
-     * @param context Extension context
-     */
-    public static getInstance(context: vscode.ExtensionContext): ContextManager {
-        if (!this.instance) {
-            this.instance = new ContextManager(context);
+    public static getInstance(context?: vscode.ExtensionContext): ContextManager {
+        if (!ContextManager.instance) {
+            if (!context) {
+                throw new Error('Context required for ContextManager initialization');
+            }
+            ContextManager.instance = new ContextManager(context);
         }
-        return this.instance;
+        return ContextManager.instance;
     }
 
     /**
-     * Initialize services
+     * Create a new ContextManager
+     */
+    private constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+        this.memoryService = new ConversationMemoryService(context);
+        this.userPrefsService = new UserPreferencesService(context);
+        this.filePrefsService = new FilePreferencesService(context);
+        this.analysisService = new ContextAnalysisService();
+    }
+
+    /**
+     * Initialize the context manager and its services
      */
     public async initialize(): Promise<void> {
         try {
             await Promise.all([
-                this.conversationService.initialize(),
-                this.userPreferencesService.initialize(),
-                this.filePreferencesService.initialize()
+                this.memoryService.initialize(),
+                this.userPrefsService.initialize(),
+                this.filePrefsService.initialize()
             ]);
+            this.trackActiveEditors();
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new Error(`Failed to initialize context manager: ${message}`);
@@ -60,200 +60,183 @@ export class ContextManager {
     }
 
     /**
-     * Add a message to the conversation
+     * Track currently open editor files
+     */
+    private trackActiveEditors(): void {
+        // Track currently open editors
+        if (vscode.window.activeTextEditor) {
+            this.trackFile(vscode.window.activeTextEditor.document.fileName);
+        }
+
+        // Add listener for editor changes
+        this.disposables.push(
+            vscode.window.onDidChangeActiveTextEditor(editor => {
+                if (editor) {
+                    this.trackFile(editor.document.fileName);
+                }
+            })
+        );
+    }
+
+    /**
+     * Track a file being used
+     */
+    public trackFile(filePath: string): void {
+        this.activeFiles.add(filePath);
+        
+        const extension = this.getFileExtension(filePath);
+        if (extension) {
+            this.filePrefsService.trackFileExtension(extension);
+        }
+    }
+
+    /**
+     * Extract file extension from path
+     */
+    private getFileExtension(filePath: string): string | null {
+        const matches = filePath.match(/\.([^.]+)$/);
+        return matches ? matches[1] : null;
+    }
+
+    /**
+     * Add a message for context processing
      */
     public addMessage(message: Message): void {
-        this.conversationService.addMessage(message);
         if (message.role === MessageType.User) {
-            this.analysisService.analyzeMessage(
-                message.content,
-                this.userPreferencesService,
-                this.filePreferencesService
-            );
-            this.extractLanguagePreferences(message.content);
-            this.extractFilePreferences(message.content);
+            this.processUserMessage(message);
+        } else {
+            this.processAssistantMessage(message);
         }
     }
 
     /**
-     * Extract language preferences from user input
+     * Process a user message for context
      */
-    private extractLanguagePreferences(content: string): void {
-        // Extract programming language mentions
-        const langRegex = /\b(javascript|typescript|python|java|c\+\+|ruby|go|rust|php|c#|swift)\b/gi;
-        let match;
-        
-        while ((match = langRegex.exec(content)) !== null) {
-            const lang = match[1].toLowerCase();
-            const count = this.languagePreferences.get(lang) || 0;
-            this.languagePreferences.set(lang, count + 1);
-        }
-        
-        // Extract framework mentions
-        const frameworkRegex = /\b(react|angular|vue|svelte|express|django|flask|spring|laravel)\b/gi;
-        
-        while ((match = frameworkRegex.exec(content)) !== null) {
-            const framework = match[1].toLowerCase();
-            const frameworkKey = `framework:${framework}`;
-            const count = this.languagePreferences.get(frameworkKey) || 0;
-            this.languagePreferences.set(frameworkKey, count + 1);
-        }
+    public processUserMessage(message: Message): void {
+        this.memoryService.addMessage(message);
+        this.analysisService.analyzeMessage(
+            message.content, 
+            this.userPrefsService, 
+            this.filePrefsService
+        );
     }
 
     /**
-     * Extract file preferences from user input
+     * Process an assistant message
      */
-    private extractFilePreferences(content: string): void {
-        // Extract file extensions
-        const extensionRegex = /\.(js|ts|py|java|cpp|rb|go|rs|php|cs|swift|html|css|json|md|yml|yaml|xml)\b/gi;
-        let match;
-        
-        while ((match = extensionRegex.exec(content)) !== null) {
-            const ext = match[1].toLowerCase();
-            const count = this.fileTypePreferences.get(ext) || 0;
-            this.fileTypePreferences.set(ext, count + 1);
-        }
-        
-        // Extract directory names
-        const dirRegex = /\b(src|components|services|utils|helpers|models|controllers|views|tests|config)\b/gi;
-        
-        while ((match = dirRegex.exec(content)) !== null) {
-            const dir = match[1].toLowerCase();
-            const count = this.directoryPreferences.get(dir) || 0;
-            this.directoryPreferences.set(dir, count + 1);
-        }
-        
-        // Extract file naming patterns
-        const patternRegex = /\b([a-zA-Z]+)(Controller|Service|Component|Model|Manager|Helper|Util)\b/g;
-        
-        while ((match = patternRegex.exec(content)) !== null) {
-            const pattern = match[2].toLowerCase();
-            const count = this.filePatternPreferences.get(pattern) || 0;
-            this.filePatternPreferences.set(pattern, count + 1);
-        }
+    public processAssistantMessage(message: Message): void {
+        this.memoryService.addMessage(message);
     }
 
     /**
-     * Get most frequent languages
+     * Get recent conversation history
      */
-    public getFrequentLanguages(limit: number = 3): string[] {
-        return Array.from(this.languagePreferences.entries())
-            .filter(([key]) => !key.startsWith('framework:'))
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit)
-            .map(entry => entry[0]);
+    public getRecentHistory(messageCount: number = 10): Message[] {
+        return this.memoryService.getRecentMessages(messageCount);
     }
 
     /**
-     * Get preferred language
+     * Get all conversation history
+     */
+    public getAllHistory(): Message[] {
+        return this.memoryService.getMessages();
+    }
+
+    /**
+     * Clear conversation history
+     */
+    public async clearHistory(): Promise<void> {
+        await this.memoryService.clearHistory();
+    }
+
+    /**
+     * Get user preferences
+     */
+    public getUserPreferences<T>(key: string, defaultValue?: T): T {
+        return this.userPrefsService.getPreference<T>(key, defaultValue);
+    }
+
+    /**
+     * Set user preference
+     */
+    public async setUserPreference(key: string, value: any): Promise<void> {
+        await this.userPrefsService.setPreference(key, value);
+    }
+
+    /**
+     * Get preferred programming language
      */
     public getPreferredLanguage(): string | undefined {
-        const languages = this.getFrequentLanguages(1);
-        return languages.length > 0 ? languages[0] : undefined;
+        return this.userPrefsService.getPreferredLanguage();
     }
-    
+
     /**
      * Get preferred framework
      */
     public getPreferredFramework(): string | undefined {
-        let maxCount = 0;
-        let preferred: string | undefined = undefined;
-        
-        for (const [key, count] of this.languagePreferences.entries()) {
-            if (key.startsWith('framework:') && count > maxCount) {
-                maxCount = count;
-                preferred = key.substring('framework:'.length);
-            }
-        }
-        
-        return preferred;
-    }
-    
-    /**
-     * Get recent file extensions
-     */
-    public getRecentFileExtensions(limit: number = 3): string[] {
-        return Array.from(this.fileTypePreferences.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit)
-            .map(entry => entry[0]);
-    }
-    
-    /**
-     * Get recently referenced directories
-     */
-    public getRecentDirectories(limit: number = 3): string[] {
-        return Array.from(this.directoryPreferences.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit)
-            .map(entry => entry[0]);
-    }
-    
-    /**
-     * Get file naming patterns
-     */
-    public getFileNamingPatterns(limit: number = 3): string[] {
-        return Array.from(this.filePatternPreferences.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit)
-            .map(entry => entry[0]);
+        return this.userPrefsService.getPreferredFramework();
     }
 
     /**
-     * Build context string from current state
+     * Get frequently used file extensions
+     */
+    public getPreferredFileExtensions(limit: number = 5): string[] {
+        return this.filePrefsService.getMostFrequentExtensions(limit);
+    }
+
+    /**
+     * Get active files
+     */
+    public getActiveFiles(): string[] {
+        return Array.from(this.activeFiles);
+    }
+
+    /**
+     * Get directories the user is working with
+     */
+    public getRecentDirectories(limit: number = 3): string[] {
+        return this.filePrefsService.getRecentDirectories(limit);
+    }
+
+    /**
+     * Get file naming patterns
+     */
+    public getFileNamingPatterns(): string[] {
+        return this.filePrefsService.getNamingPatterns();
+    }
+
+    /**
+     * Build context string for prompting
      */
     public buildContextString(): string {
-        const preferredLang = this.getPreferredLanguage();
-        const preferredFramework = this.getPreferredFramework();
-        const fileExtensions = this.getRecentFileExtensions();
-        const directories = this.getRecentDirectories();
-        
-        let contextString = '';
-        
-        if (preferredLang) {
-            contextString += `Preferred Language: ${preferredLang.charAt(0).toUpperCase() + preferredLang.slice(1)}\n`;
-        }
-        
-        if (preferredFramework) {
-            contextString += `Framework: ${preferredFramework.charAt(0).toUpperCase() + preferredFramework.slice(1)}\n`;
-        }
-        
-        if (fileExtensions.length > 0) {
-            contextString += `Common File Types: ${fileExtensions.join(', ')}\n`;
-        }
-        
-        if (directories.length > 0) {
-            contextString += `Project Directories: ${directories.join(', ')}\n`;
-        }
-        
-        return contextString;
+        return this.analysisService.buildContextString(
+            this.userPrefsService,
+            this.filePrefsService,
+            this.memoryService
+        );
     }
-    
+
     /**
      * Clear all context data
      */
     public async clearContext(): Promise<void> {
-        this.languagePreferences.clear();
-        this.fileTypePreferences.clear();
-        this.directoryPreferences.clear();
-        this.filePatternPreferences.clear();
-        await this.conversationService.clearMessages();
-        await this.userPreferencesService.clearPreferences();
-        await this.filePreferencesService.clearPreferences();
+        try {
+            await Promise.all([
+                this.memoryService.clearMessages(),
+                this.userPrefsService.clearPreferences(),
+                this.filePrefsService.clearPreferences()
+            ]);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to clear context data: ${message}`);
+        }
     }
 
     /**
-     * Set maximum window size for conversation history
-     */
-    public setMaxWindowSize(size: number): void {
-        this.maxWindowSize = size;
-    }
-    
-    /**
-     * Clean up resources
+     * Dispose of resources
      */
     public dispose(): void {
-        this.disposables.forEach(d => d.dispose());
+        this.disposables.forEach(disposable => disposable.dispose());
         this.disposables = [];
     }
 }

@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConversationPanelStyles = exports.getConversationPanelScript = exports.getConversationPanelHtml = exports.renderMessage = void 0;
+exports.renderMessage = renderMessage;
+exports.getConversationPanelHtml = getConversationPanelHtml;
+exports.getConversationPanelScript = getConversationPanelScript;
+exports.getConversationPanelStyles = getConversationPanelStyles;
 const htmlEscaper_1 = require("../../utils/htmlEscaper");
 // Import renderer function
 const messageRenderer_1 = require("./messageRenderer");
@@ -32,7 +35,6 @@ function renderMessage(message, index) {
     </div>
     `;
 }
-exports.renderMessage = renderMessage;
 /**
  * Generates the HTML for the conversation panel
  * @param conversation The conversation data to render
@@ -59,7 +61,6 @@ function getConversationPanelHtml(conversation) {
     </div>
     `;
 }
-exports.getConversationPanelHtml = getConversationPanelHtml;
 /**
  * Gets the JavaScript code for the conversation panel
  * @returns JavaScript as a string
@@ -178,7 +179,6 @@ function getConversationPanelScript() {
     // ...existing code...
     `;
 }
-exports.getConversationPanelScript = getConversationPanelScript;
 /**
  * Gets the CSS styles for the conversation panel
  * @returns CSS as a string
@@ -236,7 +236,6 @@ function getConversationPanelStyles() {
     // ...existing code...
     `;
 }
-exports.getConversationPanelStyles = getConversationPanelStyles;
 /**
  * Format message content by handling code blocks and escaping HTML
  * @param content Raw message content

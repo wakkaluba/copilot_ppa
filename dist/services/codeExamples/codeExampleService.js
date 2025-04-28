@@ -60,11 +60,11 @@ let CodeExampleService = class CodeExampleService {
         this.disposables.forEach(d => d.dispose());
     }
 };
-CodeExampleService = __decorate([
+exports.CodeExampleService = CodeExampleService;
+exports.CodeExampleService = CodeExampleService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)('GithubApiService')),
     __param(1, (0, inversify_1.inject)('SearchIndexService')),
     __metadata("design:paramtypes", [typeof (_a = typeof IGithubApiService !== "undefined" && IGithubApiService) === "function" ? _a : Object, typeof (_b = typeof ISearchIndexService !== "undefined" && ISearchIndexService) === "function" ? _b : Object])
 ], CodeExampleService);
-exports.CodeExampleService = CodeExampleService;
 //# sourceMappingURL=codeExampleService.js.map

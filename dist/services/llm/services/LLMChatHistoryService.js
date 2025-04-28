@@ -20,7 +20,7 @@ class LLMChatHistoryService extends events_1.EventEmitter {
         this.options = {
             maxHistory: options.maxHistory || 100,
             maxMessagesPerSession: options.maxMessagesPerSession || 1000,
-            pruneInterval: options.pruneInterval || 3600000,
+            pruneInterval: options.pruneInterval || 3600000, // 1 hour
             ...options
         };
         this.startPruneInterval();

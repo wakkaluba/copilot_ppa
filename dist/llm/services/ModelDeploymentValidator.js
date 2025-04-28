@@ -83,12 +83,12 @@ let ModelDeploymentValidator = class ModelDeploymentValidator extends events_1.E
         this.emit('error', { message, error });
     }
 };
-ModelDeploymentValidator = __decorate([
+exports.ModelDeploymentValidator = ModelDeploymentValidator;
+exports.ModelDeploymentValidator = ModelDeploymentValidator = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelHealthMonitor_1.ModelHealthMonitor)),
     __param(2, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, typeof (_b = typeof ModelHealthMonitor_1.ModelHealthMonitor !== "undefined" && ModelHealthMonitor_1.ModelHealthMonitor) === "function" ? _b : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelDeploymentValidator);
-exports.ModelDeploymentValidator = ModelDeploymentValidator;
 //# sourceMappingURL=ModelDeploymentValidator.js.map

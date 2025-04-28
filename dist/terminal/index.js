@@ -21,13 +21,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
@@ -37,7 +47,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TerminalModule = void 0;
 const vscode = __importStar(require("vscode"));
@@ -46,7 +55,6 @@ const terminalManager_1 = require("./terminalManager");
 const interactiveShell_1 = require("./interactiveShell");
 const aiTerminalHelper_1 = require("./aiTerminalHelper");
 const commandGenerationWebview_1 = require("./commandGenerationWebview");
-const ILogger_1 = require("../logging/ILogger");
 const TerminalConfigurationService_1 = require("./services/TerminalConfigurationService");
 const TerminalCommandRegistrar_1 = require("./commands/TerminalCommandRegistrar");
 __exportStar(require("./types"), exports);
@@ -113,10 +121,10 @@ let TerminalModule = class TerminalModule {
         }
     }
 };
-TerminalModule = __decorate([
+exports.TerminalModule = TerminalModule;
+exports.TerminalModule = TerminalModule = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, inject(ILogger_1.ILogger)),
-    __metadata("design:paramtypes", [typeof (_a = typeof ILogger_1.ILogger !== "undefined" && ILogger_1.ILogger) === "function" ? _a : Object, Object])
+    __metadata("design:paramtypes", [Object, Object])
 ], TerminalModule);
-exports.TerminalModule = TerminalModule;
 //# sourceMappingURL=index.js.map

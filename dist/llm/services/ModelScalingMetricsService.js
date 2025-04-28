@@ -161,10 +161,10 @@ let ModelScalingMetricsService = class ModelScalingMetricsService extends events
         this.thresholds.clear();
     }
 };
-ModelScalingMetricsService = __decorate([
+exports.ModelScalingMetricsService = ModelScalingMetricsService;
+exports.ModelScalingMetricsService = ModelScalingMetricsService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object])
 ], ModelScalingMetricsService);
-exports.ModelScalingMetricsService = ModelScalingMetricsService;
 //# sourceMappingURL=ModelScalingMetricsService.js.map

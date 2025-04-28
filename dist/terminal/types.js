@@ -10,5 +10,5 @@ var TerminalShellType;
     TerminalShellType["PowerShell"] = "powershell";
     TerminalShellType["GitBash"] = "git-bash";
     TerminalShellType["WSLBash"] = "wsl-bash";
-})(TerminalShellType = exports.TerminalShellType || (exports.TerminalShellType = {}));
+})(TerminalShellType || (exports.TerminalShellType = TerminalShellType = {}));
 //# sourceMappingURL=types.js.map

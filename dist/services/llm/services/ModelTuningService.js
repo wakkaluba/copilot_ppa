@@ -173,11 +173,11 @@ let ModelTuningService = class ModelTuningService extends events_1.EventEmitter 
         this.activeTuning.clear();
     }
 };
-ModelTuningService = __decorate([
+exports.ModelTuningService = ModelTuningService;
+exports.ModelTuningService = ModelTuningService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(logger_1.ILogger)),
     __param(1, (0, inversify_1.inject)(ModelMetricsService_1.ModelMetricsService)),
     __metadata("design:paramtypes", [typeof (_a = typeof logger_1.ILogger !== "undefined" && logger_1.ILogger) === "function" ? _a : Object, ModelMetricsService_1.ModelMetricsService])
 ], ModelTuningService);
-exports.ModelTuningService = ModelTuningService;
 //# sourceMappingURL=ModelTuningService.js.map
