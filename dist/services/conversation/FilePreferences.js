@@ -2,104 +2,60 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilePreferences = void 0;
 class FilePreferences {
-    constructor(context) {
-        this._recentExtensions = [];
-        this._recentDirectories = [];
-        this._namingPatterns = [];
-        this._storageKey = 'fileManagementPreferences';
-        this._maxExtensions = 10;
-        this._maxDirectories = 5;
-        this._maxPatterns = 5;
-        this._context = context;
+    constructor() {
+        this.fileExtensions = new Set();
+        this.directories = new Set();
+        this.filePatterns = new Set();
     }
-    async initialize() {
-        try {
-            const storedData = this._context.globalState.get(this._storageKey);
-            if (storedData) {
-                this._recentExtensions = storedData.recentExtensions || [];
-                this._recentDirectories = storedData.recentDirectories || [];
-                this._namingPatterns = storedData.namingPatterns || [];
-            }
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to initialize file preferences: ${errorMessage}`);
-        }
+    /**
+     * Add a file extension to track
+     * @param extension The file extension without dot (e.g., "ts", "js")
+     */
+    addFileExtension(extension) {
+        this.fileExtensions.add(extension.toLowerCase().replace(/^\./, ''));
     }
-    addRecentExtension(extension) {
-        // Move to front if exists, otherwise add to front
-        this._recentExtensions = [
-            extension,
-            ...this._recentExtensions.filter(ext => ext !== extension)
-        ];
-        // Keep the list within size limit
-        if (this._recentExtensions.length > this._maxExtensions) {
-            this._recentExtensions = this._recentExtensions.slice(0, this._maxExtensions);
-        }
-        this.saveToStorage().catch(error => {
-            console.error('Failed to save file preferences:', error);
-        });
+    /**
+     * Get all tracked file extensions
+     * @returns Array of file extensions
+     */
+    getFileExtensions() {
+        return Array.from(this.fileExtensions);
     }
-    getRecentExtensions(limit) {
-        return this._recentExtensions.slice(0, Math.min(limit, this._maxExtensions));
+    /**
+     * Add a directory path to track
+     * @param directory The directory path
+     */
+    addDirectory(directory) {
+        this.directories.add(directory.replace(/\\/g, '/'));
     }
-    addRecentDirectory(directory) {
-        // Move to front if exists, otherwise add to front
-        this._recentDirectories = [
-            directory,
-            ...this._recentDirectories.filter(dir => dir !== directory)
-        ];
-        // Keep the list within size limit
-        if (this._recentDirectories.length > this._maxDirectories) {
-            this._recentDirectories = this._recentDirectories.slice(0, this._maxDirectories);
-        }
-        this.saveToStorage().catch(error => {
-            console.error('Failed to save file preferences:', error);
-        });
+    /**
+     * Get all tracked directories
+     * @returns Array of directory paths
+     */
+    getDirectories() {
+        return Array.from(this.directories);
     }
-    getRecentDirectories(limit) {
-        return this._recentDirectories.slice(0, Math.min(limit, this._maxDirectories));
+    /**
+     * Add a file naming pattern to track
+     * @param pattern The file naming pattern (e.g., "component.tsx")
+     */
+    addFilePattern(pattern) {
+        this.filePatterns.add(pattern);
     }
-    addNamingPattern(pattern) {
-        if (!this._namingPatterns.includes(pattern)) {
-            this._namingPatterns.push(pattern);
-            // Keep the list within size limit
-            if (this._namingPatterns.length > this._maxPatterns) {
-                this._namingPatterns = this._namingPatterns.slice(-this._maxPatterns);
-            }
-            this.saveToStorage().catch(error => {
-                console.error('Failed to save file preferences:', error);
-            });
-        }
+    /**
+     * Get all tracked file naming patterns
+     * @returns Array of file naming patterns
+     */
+    getFilePatterns() {
+        return Array.from(this.filePatterns);
     }
-    getNamingPatterns() {
-        return [...this._namingPatterns];
-    }
-    async clearPreferences() {
-        try {
-            this._recentExtensions = [];
-            this._recentDirectories = [];
-            this._namingPatterns = [];
-            await this._context.globalState.update(this._storageKey, undefined);
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to clear file preferences: ${errorMessage}`);
-        }
-    }
-    async saveToStorage() {
-        try {
-            const data = {
-                recentExtensions: this._recentExtensions,
-                recentDirectories: this._recentDirectories,
-                namingPatterns: this._namingPatterns
-            };
-            await this._context.globalState.update(this._storageKey, data);
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to save file preferences: ${errorMessage}`);
-        }
+    /**
+     * Clear all tracked preferences
+     */
+    clear() {
+        this.fileExtensions.clear();
+        this.directories.clear();
+        this.filePatterns.clear();
     }
 }
 exports.FilePreferences = FilePreferences;

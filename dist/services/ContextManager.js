@@ -25,111 +25,209 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextManager = void 0;
 const vscode = __importStar(require("vscode"));
-const ConversationService_1 = require("./conversation/ConversationService");
-const FileStorageService_1 = require("./storage/FileStorageService");
-const WorkspaceStateService_1 = require("./workspace/WorkspaceStateService");
-/**
- * Manages context across the application with proper state management and persistence
- */
 class ContextManager {
-    constructor(context, options = {}) {
-        this.context = context;
-        this.options = options;
-        this.contextCache = new Map();
-        this.eventEmitter = new vscode.EventEmitter();
-        this.onDidChangeContext = this.eventEmitter.event;
-        this.conversationService = new ConversationService_1.ConversationService(context);
-        this.fileStorage = new FileStorageService_1.FileStorageService(context);
-        this.workspaceState = new WorkspaceStateService_1.WorkspaceStateService(context);
-        this.setupEventHandlers();
+    constructor() {
+        this.maxWindowSize = 10;
+        this.relevanceThreshold = 0.5;
+        this.disposables = [];
+        this.contexts = new Map();
+        this.disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(this.onWorkspaceFoldersChanged.bind(this)));
     }
-    static getInstance(context, options) {
-        if (!ContextManager.instance && context) {
-            ContextManager.instance = new ContextManager(context, options);
+    static getInstance() {
+        if (!ContextManager.instance) {
+            ContextManager.instance = new ContextManager();
         }
         return ContextManager.instance;
     }
-    setupEventHandlers() {
-        vscode.workspace.onDidChangeWorkspaceFolders(() => this.handleWorkspaceChange());
-        vscode.window.onDidChangeActiveTextEditor(() => this.handleActiveFileChange());
+    // For testing purposes
+    static resetInstance() {
+        ContextManager.instance = undefined;
     }
-    async initialize() {
-        try {
-            await Promise.all([
-                this.conversationService.initialize(),
-                this.fileStorage.initialize(),
-                this.workspaceState.initialize()
-            ]);
-            await this.loadPersistedContext();
+    createContext(id) {
+        const context = {
+            id,
+            messages: [],
+            preferences: {
+                language: undefined,
+                framework: undefined,
+                fileExtensions: [],
+                directories: [],
+                namingPatterns: []
+            }
+        };
+        this.contexts.set(id, context);
+        return context;
+    }
+    getContext(id) {
+        let context = this.contexts.get(id);
+        if (!context) {
+            context = this.createContext(id);
         }
-        catch (error) {
-            console.error('Failed to initialize ContextManager:', error);
-            throw new Error('Context initialization failed');
+        return context;
+    }
+    updateContext(id, update) {
+        const context = this.getContext(id);
+        if (update.messageContent) {
+            this.addMessage({
+                role: 'user',
+                content: update.messageContent,
+                timestamp: new Date()
+            });
+            // Extract preferences
+            this.extractLanguagePreferences(update.messageContent);
+            this.extractFilePreferences(update.messageContent);
+        }
+        if (update.activeFile) {
+            this.trackActiveFile(update.activeFile);
         }
     }
-    async getContext(id) {
-        if (!this.contextCache.has(id)) {
-            const persisted = await this.fileStorage.loadContext(id);
-            if (persisted) {
-                this.contextCache.set(id, persisted);
+    addMessage(message) {
+        const context = this.getContext('default');
+        context.messages.push(message);
+        // Keep only the last N messages to limit context window
+        if (context.messages.length > this.maxWindowSize) {
+            context.messages.shift();
+        }
+        // Extract preferences
+        this.extractLanguagePreferences(message.content);
+        this.extractFilePreferences(message.content);
+    }
+    extractLanguagePreferences(content) {
+        // Simplified language detection
+        const languages = [
+            { name: 'typescript', aliases: ['ts', 'typescript', 'tsx'] },
+            { name: 'javascript', aliases: ['js', 'javascript', 'jsx'] },
+            { name: 'python', aliases: ['py', 'python'] },
+            { name: 'java', aliases: ['java'] },
+            { name: 'csharp', aliases: ['c#', 'csharp', 'cs'] }
+        ];
+        for (const lang of languages) {
+            if (lang.aliases.some(alias => content.toLowerCase().includes(alias))) {
+                const context = this.getContext('default');
+                context.preferences.language = lang.name;
+                break;
             }
         }
-        return this.contextCache.get(id);
-    }
-    async updateContext(id, data) {
-        const existing = await this.getContext(id) || {};
-        const updated = { ...existing, ...data, updatedAt: Date.now() };
-        this.contextCache.set(id, updated);
-        await this.fileStorage.saveContext(id, updated);
-        this.eventEmitter.fire(updated);
-    }
-    async getWorkspaceContext(workspaceId) {
-        return this.workspaceState.getWorkspaceContext(workspaceId);
-    }
-    async updateWorkspaceContext(workspaceId, context) {
-        await this.workspaceState.updateWorkspaceContext(workspaceId, context);
-    }
-    async handleWorkspaceChange() {
-        const workspaces = vscode.workspace.workspaceFolders || [];
-        await Promise.all(workspaces.map(workspace => this.workspaceState.initializeWorkspace(workspace.uri.toString())));
-    }
-    async handleActiveFileChange() {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            const fileContext = {
-                path: editor.document.uri.toString(),
-                language: editor.document.languageId,
-                lastAccessed: Date.now()
-            };
-            await this.workspaceState.updateActiveFile(fileContext);
+        // Framework detection
+        const frameworks = [
+            { name: 'react', language: 'typescript', aliases: ['react', 'jsx', 'tsx'] },
+            { name: 'angular', language: 'typescript', aliases: ['angular', 'ng'] },
+            { name: 'vue', language: 'javascript', aliases: ['vue'] },
+            { name: 'django', language: 'python', aliases: ['django'] },
+            { name: 'laravel', language: 'php', aliases: ['laravel'] }
+        ];
+        for (const framework of frameworks) {
+            if (framework.aliases.some(alias => content.toLowerCase().includes(alias))) {
+                const context = this.getContext('default');
+                context.preferences.framework = framework.name;
+                context.preferences.language = framework.language;
+                break;
+            }
         }
     }
-    async loadPersistedContext() {
-        const contexts = await this.fileStorage.loadAllContexts();
-        contexts.forEach(({ id, data }) => this.contextCache.set(id, data));
+    extractFilePreferences(content) {
+        const context = this.getContext('default');
+        // Extract file extensions
+        const extMatch = content.match(/\.(ts|js|py|java|cs|tsx|jsx|html|css|scss|json|md|yml|yaml)\b/g);
+        if (extMatch) {
+            extMatch.forEach(ext => {
+                const cleanExt = ext.substring(1); // Remove the dot
+                if (!context.preferences.fileExtensions.includes(cleanExt)) {
+                    context.preferences.fileExtensions.push(cleanExt);
+                }
+            });
+        }
+        // Extract directories
+        const dirMatch = content.match(/(?:^|\s)(src\/\w+|src\/\w+\/\w+|\w+\/\w+)\b/g);
+        if (dirMatch) {
+            dirMatch.forEach(dir => {
+                const cleanDir = dir.trim();
+                if (!context.preferences.directories.includes(cleanDir)) {
+                    context.preferences.directories.push(cleanDir);
+                }
+            });
+        }
+        // Extract naming patterns
+        const patternMatch = content.match(/\w+\.\w+\.\w+|\w+[-_]\w+[-_]\w+/g);
+        if (patternMatch) {
+            patternMatch.forEach(pattern => {
+                if (!context.preferences.namingPatterns.includes(pattern)) {
+                    context.preferences.namingPatterns.push(pattern);
+                }
+            });
+        }
     }
-    async getAllContextMetadata() {
-        return Array.from(this.contextCache.entries()).map(([id, data]) => ({
-            id,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-            type: data.type
-        }));
+    trackActiveFile(filePath) {
+        const context = this.getContext('default');
+        const extension = filePath.split('.').pop();
+        if (extension && !context.preferences.fileExtensions.includes(extension)) {
+            context.preferences.fileExtensions.push(extension);
+        }
     }
-    async clearContext(id) {
-        this.contextCache.delete(id);
-        await this.fileStorage.deleteContext(id);
+    buildContextString() {
+        const context = this.getContext('default');
+        let contextString = '';
+        if (context.preferences.language) {
+            contextString += `Using ${context.preferences.language} language. `;
+        }
+        if (context.preferences.framework) {
+            contextString += `Working with the ${context.preferences.framework} framework. `;
+        }
+        if (context.preferences.fileExtensions.length > 0) {
+            contextString += `Working with files of types: ${context.preferences.fileExtensions.join(', ')}. `;
+        }
+        if (context.preferences.directories.length > 0) {
+            contextString += `Relevant directories: ${context.preferences.directories.join(', ')}. `;
+        }
+        return contextString;
     }
-    async clearAllContexts() {
-        this.contextCache.clear();
-        await this.fileStorage.clearAllContexts();
-        await this.workspaceState.clearAllWorkspaces();
+    generateSuggestions(input) {
+        const context = this.getContext('default');
+        const suggestions = [];
+        if (context.preferences.framework === 'react') {
+            suggestions.push('Create a new component', 'Set up React Router', 'Add state management with Redux/Context');
+        }
+        else if (context.preferences.framework === 'angular') {
+            suggestions.push('Generate a new service', 'Create a module', 'Add Angular Material');
+        }
+        else if (context.preferences.language === 'python') {
+            suggestions.push('Create a new function', 'Set up virtual environment', 'Add unit tests');
+        }
+        return suggestions;
+    }
+    async clearAllContextData() {
+        this.contexts.clear();
+    }
+    getConversationHistory() {
+        return this.getContext('default').messages;
+    }
+    setMaxWindowSize(size) {
+        this.maxWindowSize = size;
+    }
+    setRelevanceThreshold(threshold) {
+        this.relevanceThreshold = threshold;
+    }
+    getPreferredLanguage() {
+        return this.getContext('default').preferences.language;
+    }
+    getPreferredFramework() {
+        return this.getContext('default').preferences.framework;
+    }
+    getRecentFileExtensions() {
+        return this.getContext('default').preferences.fileExtensions;
+    }
+    getRecentDirectories() {
+        return this.getContext('default').preferences.directories;
+    }
+    getFileNamingPatterns() {
+        return this.getContext('default').preferences.namingPatterns;
+    }
+    onWorkspaceFoldersChanged() {
+        // Handle workspace changes
     }
     dispose() {
-        this.eventEmitter.dispose();
-        this.conversationService.dispose();
-        this.fileStorage.dispose();
-        this.workspaceState.dispose();
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
     }
 }
 exports.ContextManager = ContextManager;

@@ -1,134 +1,68 @@
 import * as vscode from 'vscode';
-import { Message, MessageType } from '../models';
+import { Message } from '../models';
 
 /**
- * Service for managing conversation memory
+ * Service for storing and retrieving conversation messages
  */
 export class ConversationMemoryService {
-    private messages: Message[] = [];
-    private memoryLimit: number = 50;
-    private context: vscode.ExtensionContext;
-    private storageKey = 'conversation.history';
-
-    /**
-     * Create a new ConversationMemoryService
-     * @param context Extension context for state persistence
-     */
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
+    private storage: Message[] = [];
+    private readonly storageKey = 'conversationHistory';
+    
+    constructor(private context: vscode.ExtensionContext) {
+        this.loadFromStorage();
     }
-
+    
     /**
-     * Initialize the conversation memory from persistent storage
+     * Add a new message to storage
+     * @param message Message to add
      */
-    public async initialize(): Promise<void> {
-        try {
-            const storedMessages = this.context.globalState.get<Message[]>(this.storageKey);
-            if (storedMessages) {
-                this.messages = storedMessages;
-            }
-        } catch (error) {
-            throw new Error(`Storage error`);
-        }
+    public async addMessage(message: Message): Promise<void> {
+        this.storage.push(message);
+        await this.saveToStorage();
     }
-
+    
     /**
-     * Add a message to the conversation memory
-     * @param message The message to add
+     * Get all messages
+     * @returns Array of messages
      */
-    public addMessage(message: Message): void {
-        this.messages.push(message);
-        
-        // Trim to memory limit
-        if (this.messages.length > this.memoryLimit) {
-            this.messages = this.messages.slice(-this.memoryLimit);
-        }
-        
-        // Persist changes
-        this.persist();
+    public getMessages(): Message[] {
+        return [...this.storage];
     }
-
+    
     /**
-     * Get recent messages from conversation memory
-     * @param limit Optional limit of messages to retrieve
-     * @returns Array of recent messages
+     * Get messages within a date range
+     * @param startTime Start timestamp
+     * @param endTime End timestamp
+     * @returns Messages in range
      */
-    public getRecentMessages(limit?: number): Message[] {
-        if (!limit || limit >= this.messages.length) {
-            return [...this.messages];
-        }
-        return this.messages.slice(-limit);
-    }
-
-    /**
-     * Clear all messages from conversation memory
-     */
-    public async clearHistory(): Promise<void> {
-        try {
-            this.messages = [];
-            await this.persist();
-        } catch (error) {
-            throw new Error(`Clear error`);
-        }
-    }
-
-    /**
-     * Set the memory limit
-     * @param limit New memory limit
-     */
-    public setMemoryLimit(limit: number): void {
-        if (limit < 1) {
-            throw new Error('Memory limit must be at least 1');
-        }
-        this.memoryLimit = limit;
-        
-        // Trim if necessary
-        if (this.messages.length > this.memoryLimit) {
-            this.messages = this.messages.slice(-this.memoryLimit);
-            this.persist();
-        }
-    }
-
-    /**
-     * Get the total number of messages
-     */
-    public getMessageCount(): number {
-        return this.messages.length;
-    }
-
-    /**
-     * Persist conversation memory to storage
-     */
-    private async persist(): Promise<void> {
-        await this.context.globalState.update(this.storageKey, this.messages);
-    }
-
-    /**
-     * Search messages for specific content
-     * @param query Text to search for
-     * @returns Messages that match the query
-     */
-    public searchMessages(query: string): Message[] {
-        const lowerQuery = query.toLowerCase();
-        return this.messages.filter(message => 
-            message.content.toLowerCase().includes(lowerQuery)
+    public getMessagesByDateRange(startTime: number, endTime: number): Message[] {
+        return this.storage.filter(
+            msg => msg.timestamp >= startTime && msg.timestamp <= endTime
         );
     }
-
+    
     /**
-     * Group messages by type
-     * @returns Object with arrays of messages by type
+     * Clear all messages
      */
-    public groupMessagesByType(): Record<MessageType, Message[]> {
-        const result: Partial<Record<MessageType, Message[]>> = {};
-        
-        for (const message of this.messages) {
-            if (!result[message.type]) {
-                result[message.type] = [];
-            }
-            result[message.type]!.push(message);
+    public async clearMessages(): Promise<void> {
+        this.storage = [];
+        await this.saveToStorage();
+    }
+    
+    /**
+     * Save messages to extension storage
+     */
+    private async saveToStorage(): Promise<void> {
+        await this.context.globalState.update(this.storageKey, this.storage);
+    }
+    
+    /**
+     * Load messages from extension storage
+     */
+    private loadFromStorage(): void {
+        const saved = this.context.globalState.get<Message[]>(this.storageKey);
+        if (saved) {
+            this.storage = saved;
         }
-        
-        return result as Record<MessageType, Message[]>;
     }
 }

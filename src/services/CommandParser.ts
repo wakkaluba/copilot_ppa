@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { WorkspaceManager } from './WorkspaceManager';
+import { Logger } from '../utils/logger';
 
 /**
  * Parse and execute commands from text input
@@ -18,6 +19,16 @@ export class CommandParser {
         this.logger = logger;
         this.registerDefaultCommands();
         this.registerDefaultAgentCommands();
+    }
+
+    /**
+     * Initialize the CommandParser with the required dependencies
+     * @param workspaceManager The workspace manager instance
+     * @param logger The logger instance
+     */
+    static initialize(workspaceManager: WorkspaceManager, logger: Logger): void {
+        CommandParser.resetInstance();
+        CommandParser.instance = new CommandParser(workspaceManager, logger);
     }
 
     static getInstance(workspaceManager?: WorkspaceManager, logger?: Logger): CommandParser {
@@ -43,18 +54,17 @@ export class CommandParser {
             if (!args.path || !args.content) {
                 throw new Error('createFile requires path and content arguments');
             }
-            await this.workspaceManager.writeFile(args.path, args.content);
+            await this.workspaceManager.createFile(args.path, args.content);
             return `File ${args.path} created`;
         });
         
         this.registerCommand('modifyFile', async (args) => {
-            if (!args.path || !args.find || args.replace === undefined) {
-                throw new Error('modifyFile requires path, find, and replace arguments');
+            if (!args.path || !args.changes === undefined) {
+                throw new Error('modifyFile requires path and changes arguments');
             }
             
             const content = await this.workspaceManager.readFile(args.path);
-            const modified = content.replace(new RegExp(args.find, 'g'), args.replace);
-            await this.workspaceManager.writeFile(args.path, modified);
+            await this.workspaceManager.modifyFile(args.path, args.changes);
             return `File ${args.path} modified`;
         });
         
@@ -160,21 +170,36 @@ export class CommandParser {
     /**
      * Parse agent commands like @agent Continue
      */
-    public parseAgentCommand(input: string): string | null {
-        const match = input.match(/@agent\s+(\w+)(?:\s*:\s*(.*))?$/i);
-        if (!match) {
+    public parseAgentCommand(input: string): { name: string; args: any } | null {
+        try {
+            // Format: @agent Command(arg1="value1", arg2="value2")
+            // Or simply: @agent Command
+            // Or with a message: @agent Command: "message"
+            const match = input.match(/^@agent\s+(\w+)(?:\((.*)\))?(?::\s*"([^"]*)")?$/i);
+            if (!match) {
+                return null;
+            }
+            
+            const [, name, argsString, message] = match;
+            const args = argsString ? this.parseArgsObject(argsString) : {};
+            
+            // If there's a message, add it to the args
+            if (message) {
+                args.message = message;
+            }
+            
+            return { name: name.toLowerCase(), args };
+        } catch (error) {
             return null;
         }
-        
-        return match[1].toLowerCase();
     }
     
     /**
      * Execute agent-specific commands
      */
-    private async executeAgentCommand(command: string): Promise<any> {
+    private async executeAgentCommand(command: { name: string; args: any }): Promise<any> {
         // This would be implemented to handle agent commands
-        throw new Error(`Unknown agent command: ${command}`);
+        throw new Error(`Unknown agent command: ${command.name}`);
     }
 
     private registerDefaultAgentCommands(): void {
@@ -191,5 +216,43 @@ export class CommandParser {
             // Clear command implementation
             this.logger.log('Context cleared');
         });
+    }
+
+    /**
+     * Parse arguments string into object (returns direct object instead of array)
+     */
+    private parseArgsObject(argsString: string): any {
+        if (!argsString || argsString.trim() === '') {
+            return {};
+        }
+        
+        const result = {};
+        
+        // Match key-value pairs
+        const regex = /(\w+)\s*=\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|(\w+))/g;
+        let match;
+        
+        while ((match = regex.exec(argsString)) !== null) {
+            const key = match[1];
+            const stringValue = match[2];
+            const numValue = match[3];
+            const boolOrIdentifier = match[4];
+            
+            if (stringValue !== undefined) {
+                result[key] = stringValue;
+            } else if (numValue !== undefined) {
+                result[key] = parseFloat(numValue);
+            } else if (boolOrIdentifier) {
+                if (boolOrIdentifier === 'true') {
+                    result[key] = true;
+                } else if (boolOrIdentifier === 'false') {
+                    result[key] = false;
+                } else {
+                    result[key] = boolOrIdentifier;
+                }
+            }
+        }
+        
+        return result;
     }
 }

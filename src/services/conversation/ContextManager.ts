@@ -26,93 +26,113 @@ export class ContextManager {
      * @param context Extension context
      */
     public static getInstance(context: vscode.ExtensionContext): ContextManager {
-        if (!ContextManager.instance) {
-            ContextManager.instance = new ContextManager(context);
+        if (!this.instance) {
+            this.instance = new ContextManager(context);
         }
-        return ContextManager.instance;
+        return this.instance;
     }
 
     /**
-     * Initialize the context manager
+     * Process user input and extract useful context
+     * @param input User input text
+     * @returns Response with context
      */
-    public async initialize(): Promise<void> {
-        try {
-            await this.conversationService.initialize();
-        } catch (error) {
-            throw new Error(`Failed to initialize context manager: ${error instanceof Error ? error.message : String(error)}`);
-        }
+    public async processInput(input: string): Promise<{ text: string; context: any }> {
+        const message: Message = {
+            id: Date.now().toString(),
+            role: MessageType.User,
+            content: input,
+            timestamp: Date.now()
+        };
+
+        await this.conversationService.addMessage(message);
+        this.extractLanguagePreferences(input);
+        this.extractFilePreferences(input);
+
+        return {
+            text: "Processed input and updated context",
+            context: this.buildContext()
+        };
     }
-    
+
     /**
-     * Add a message and extract relevant context
-     * @param message Message to add
+     * Get suggestions based on current context
+     * @param input Current input text
+     * @returns List of suggestions
      */
-    public async addMessage(message: Message): Promise<void> {
-        this.conversationService.addMessage(message);
+    public async getSuggestions(input: string): Promise<string[]> {
+        const preferredLang = this.getPreferredLanguage();
+        const preferredFramework = this.getPreferredFramework();
         
-        // Only analyze user messages for context
-        if (message.type === MessageType.USER) {
-            this.analyzeMessageForContext(message);
+        const suggestions: string[] = [];
+        
+        // Add language-specific suggestions
+        if (preferredLang) {
+            if (preferredLang === 'typescript' || preferredLang === 'javascript') {
+                suggestions.push('Create a new component');
+                suggestions.push('Write a utility function');
+                suggestions.push('Add error handling to the current code');
+            } else if (preferredLang === 'python') {
+                suggestions.push('Create a new class');
+                suggestions.push('Add unit tests');
+                suggestions.push('Optimize current function');
+            }
         }
+        
+        // Add framework-specific suggestions
+        if (preferredFramework) {
+            if (preferredFramework === 'react') {
+                suggestions.push('Add state management with Redux/Context');
+                suggestions.push('Create a custom hook');
+            } else if (preferredFramework === 'angular') {
+                suggestions.push('Generate a new service');
+                suggestions.push('Add a route guard');
+            }
+        }
+        
+        // Add generic suggestions if no specific context
+        if (suggestions.length === 0) {
+            suggestions.push('Help me optimize my code');
+            suggestions.push('Explain this code to me');
+            suggestions.push('Generate documentation');
+        }
+        
+        return suggestions;
     }
-    
+
     /**
-     * Analyze message content for context clues
-     * @param message Message to analyze
-     */
-    private analyzeMessageForContext(message: Message): void {
-        this.extractLanguagePreferences(message.content);
-        this.extractFilePreferences(message.content);
-    }
-    
-    /**
-     * Extract language preferences from message content
-     * @param content Message content
+     * Extract language preferences from user input
+     * @param content User input text
      */
     private extractLanguagePreferences(content: string): void {
-        // Look for programming language mentions
-        const languageRegex = /\b(javascript|typescript|python|java|c#|ruby|go|rust|php|swift|kotlin)\b/gi;
+        // Extract programming language mentions
+        const langRegex = /\b(javascript|typescript|python|java|c\+\+|ruby|go|rust|php|c#|swift)\b/gi;
         let match;
         
-        while ((match = languageRegex.exec(content)) !== null) {
+        while ((match = langRegex.exec(content)) !== null) {
             const lang = match[1].toLowerCase();
-            this.addLanguagePreference(lang);
+            const count = this.languagePreferences.get(lang) || 0;
+            this.languagePreferences.set(lang, count + 1);
         }
         
-        // Look for framework mentions
-        const frameworkRegex = /\b(react|angular|vue|express|django|flask|spring|dotnet|laravel)\b/gi;
+        // Extract framework mentions
+        const frameworkRegex = /\b(react|angular|vue|svelte|express|django|flask|spring|laravel)\b/gi;
         
         while ((match = frameworkRegex.exec(content)) !== null) {
             const framework = match[1].toLowerCase();
-            this.addFrameworkPreference(framework);
+            const frameworkKey = `framework:${framework}`;
+            const count = this.languagePreferences.get(frameworkKey) || 0;
+            this.languagePreferences.set(frameworkKey, count + 1);
         }
     }
-    
+
     /**
-     * Add language preference
-     * @param language Language to add
-     */
-    private addLanguagePreference(language: string): void {
-        const count = this.languagePreferences.get(language) || 0;
-        this.languagePreferences.set(language, count + 1);
-    }
-    
-    /**
-     * Add framework preference
-     * @param framework Framework to add
-     */
-    private addFrameworkPreference(framework: string): void {
-        const count = this.languagePreferences.get(`framework:${framework}`) || 0;
-        this.languagePreferences.set(`framework:${framework}`, count + 1);
-    }
-    
-    /**
-     * Extract file preferences from message content
-     * @param content Message content
+     * Extract file type preferences from user input
+     * @param content User input text
      */
     private extractFilePreferences(content: string): void {
         // Extract file extensions
-        const extensionRegex = /\.(js|ts|py|java|cs|rb|go|rs|php|swift|kt|jsx|tsx|html|css|scss)\b/gi;
+        const extensionRegex = /\.(js|ts|py|java|cpp|rb|go|rs|php|cs|swift|html|css|json|md|yml|yaml|xml)\b/gi;
         let match;
         
         while ((match = extensionRegex.exec(content)) !== null) {
@@ -121,8 +141,8 @@ export class ContextManager {
             this.fileTypePreferences.set(ext, count + 1);
         }
         
-        // Extract directory paths
-        const dirRegex = /\b(src|lib|app|components|utils|helpers|services|models|controllers)\b/gi;
+        // Extract directory names
+        const dirRegex = /\b(src|components|services|utils|helpers|models|controllers|views|tests|config)\b/gi;
         
         while ((match = dirRegex.exec(content)) !== null) {
             const dir = match[1].toLowerCase();
@@ -225,96 +245,51 @@ export class ContextManager {
     }
     
     /**
-     * Generate context-aware suggestions
-     * @param limit Number of suggestions to generate
-     * @returns Array of suggestion strings
+     * Build context string from current state
+     * @returns Context string
      */
-    public generateSuggestions(limit: number = 3): string[] {
-        const suggestions: string[] = [];
-        const preferredLanguages = this.getFrequentLanguages(2);
+    private buildContext(): string {
+        const preferredLang = this.getPreferredLanguage();
+        const preferredFramework = this.getPreferredFramework();
+        const fileExtensions = this.getRecentFileExtensions();
+        const directories = this.getRecentDirectories();
         
-        // Language-based suggestions
-        if (preferredLanguages.length > 0) {
-            suggestions.push(`Would you like to see ${preferredLanguages[0]} code examples?`);
+        let contextString = '';
+        
+        if (preferredLang) {
+            contextString += `Preferred Language: ${preferredLang.charAt(0).toUpperCase() + preferredLang.slice(1)}\n`;
         }
         
-        // Framework suggestions
-        const framework = this.getPreferredFramework();
-        if (framework) {
-            suggestions.push(`Consider using ${framework} best practices for this task.`);
+        if (preferredFramework) {
+            contextString += `Framework: ${preferredFramework.charAt(0).toUpperCase() + preferredFramework.slice(1)}\n`;
         }
         
-        // File structure suggestions
-        const topDirs = this.getRecentDirectories(1);
-        if (topDirs.length > 0) {
-            suggestions.push(`I notice you're working with ${topDirs[0]} directories. Need help organizing your files?`);
+        if (fileExtensions.length > 0) {
+            contextString += `Common File Types: ${fileExtensions.join(', ')}\n`;
         }
         
-        // Add some default suggestions if we don't have enough
-        if (suggestions.length < limit) {
-            suggestions.push("Create a new component");
-            suggestions.push("Add state management with Redux/Context");
-            suggestions.push("Set up unit testing for your code");
+        if (directories.length > 0) {
+            contextString += `Project Directories: ${directories.join(', ')}\n`;
         }
         
-        return suggestions.slice(0, limit);
+        return contextString;
     }
     
     /**
-     * Build context string for LLM prompt
-     * @returns Context string
-     */
-    public buildContextString(): string {
-        const parts: string[] = [];
-        
-        // Add language context
-        if (this.languagePreferences.size > 0) {
-            const languages = this.getFrequentLanguages(3);
-            if (languages.length > 0) {
-                parts.push(`Languages: ${languages.join(', ')}`);
-            }
-        }
-        
-        // Add framework context
-        const framework = this.getPreferredFramework();
-        if (framework) {
-            parts.push(`Framework: ${framework}`);
-        }
-        
-        // Add file types context
-        if (this.fileTypePreferences.size > 0) {
-            const fileTypes = this.getRecentFileExtensions(3);
-            if (fileTypes.length > 0) {
-                parts.push(`File types: ${fileTypes.join(', ')}`);
-            }
-        }
-        
-        // Add directory context
-        if (this.directoryPreferences.size > 0) {
-            const dirs = this.getRecentDirectories(3);
-            if (dirs.length > 0) {
-                parts.push(`Directories: ${dirs.join(', ')}`);
-            }
-        }
-        
-        return parts.join('\n');
-    }
-
-    /**
      * Clear all context data
      */
-    public async clearAllContextData(): Promise<void> {
-        try {
-            // Clear conversation history
-            await this.conversationService.clearHistory();
-            
-            // Clear context preferences
-            this.languagePreferences.clear();
-            this.fileTypePreferences.clear();
-            this.directoryPreferences.clear();
-            this.filePatternPreferences.clear();
-        } catch (error) {
-            throw new Error(`Failed to clear context data: ${error instanceof Error ? error.message : String(error)}`);
-        }
+    public async clearContext(): Promise<void> {
+        this.languagePreferences.clear();
+        this.fileTypePreferences.clear();
+        this.directoryPreferences.clear();
+        this.filePatternPreferences.clear();
+        await this.conversationService.clearMessages();
+    }
+    
+    /**
+     * Clean up resources
+     */
+    public dispose(): void {
+        // Cleanup code
     }
 }

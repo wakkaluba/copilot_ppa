@@ -103,7 +103,7 @@ class LLMCacheService {
         const cacheKey = this.generateCacheKey(prompt, model, params);
         const cacheFilePath = this.getCacheFilePath(cacheKey);
         const cacheEntry = {
-            timestamp: new Date(),
+            timestamp: Date.now(),
             response
         };
         try {

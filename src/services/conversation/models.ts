@@ -1,36 +1,19 @@
 /**
- * Types of messages in a conversation
+ * Message types in conversations
  */
 export enum MessageType {
-    USER = 'user',
-    SYSTEM = 'system',
-    ASSISTANT = 'assistant',
-    ERROR = 'error',
-    WARNING = 'warning',
-    INFO = 'info'
+    System = 'system',
+    User = 'user',
+    Assistant = 'assistant'
 }
 
 /**
- * Message in a conversation
+ * Message structure for conversations
  */
 export interface Message {
-    /**
-     * Message content
-     */
+    id: string;
+    role: MessageType;
     content: string;
-    
-    /**
-     * Message type
-     */
-    type: MessageType;
-    
-    /**
-     * Timestamp when message was created
-     */
-    timestamp: number;
-    
-    /**
-     * Optional metadata for the message
-     */
-    metadata?: Record<string, any>;
+    timestamp: number; // Using number type for timestamp
+    metadata?: Record<string, unknown>;
 }

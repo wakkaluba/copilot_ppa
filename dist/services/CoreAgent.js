@@ -1,89 +1,66 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CoreAgent = void 0;
-const PromptManager_1 = require("./PromptManager");
-const ContextManager_1 = require("./ContextManager");
-const CommandParser_1 = require("./CommandParser");
-const conversationManager_1 = require("./conversationManager");
+/**
+ * Core agent that processes user inputs and manages interactions
+ */
 class CoreAgent {
-    constructor() {
-        this.status = 'idle';
-        this.promptManager = PromptManager_1.PromptManager.getInstance();
-        this.contextManager = ContextManager_1.ContextManager.getInstance();
-        this.commandParser = CommandParser_1.CommandParser.getInstance();
-        this.conversationManager = conversationManager_1.ConversationManager.getInstance();
+    /**
+     * Create a new CoreAgent instance
+     * @param contextManager Context manager instance
+     * @param logger Logger instance
+     */
+    constructor(contextManager, logger) {
+        this.contextManager = contextManager;
+        this.logger = logger;
     }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new CoreAgent();
-        }
-        return this.instance;
-    }
+    /**
+     * Process user input and generate a response with context
+     * @param input User input text
+     * @returns Response with context information
+     */
     async processInput(input) {
         try {
-            this.status = 'processing';
-            // Get conversation context
-            const context = await this.contextManager.buildContext('current', input);
-            // Generate prompt based on input and context
-            const prompt = this.promptManager.generatePrompt('agent-task', {
-                input,
-                context: context.join('\n')
-            });
-            // Process the response (assuming LLM response is received)
-            await this.handleResponse(prompt);
-            this.status = 'idle';
+            this.logger.info(`Processing input: ${input}`);
+            const response = await this.contextManager.processInput(input);
+            return response;
         }
         catch (error) {
-            this.status = 'error';
+            this.logger.error(`Error processing input: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     }
-    async handleResponse(response) {
-        // Check for commands in response
-        if (response.includes('#')) {
-            const commands = response.match(/#\w+\([^)]+\)/g) || [];
-            for (const command of commands) {
-                await this.commandParser.parseAndExecute(command);
-            }
-        }
-        // Update conversation history
-        await this.conversationManager.addMessage('assistant', response);
-    }
-    async analyzeCode(code, context) {
-        const prompt = this.promptManager.generatePrompt('analyze-code', {
-            code,
-            context: context || ''
-        });
-        // Process with LLM and return analysis
-        return prompt; // Placeholder
-    }
-    async suggestImprovements(code) {
-        const prompt = this.promptManager.generatePrompt('suggest-improvements', {
-            code
-        });
-        // Process with LLM and return suggestions
-        return prompt; // Placeholder
-    }
-    async continueCodingIteration() {
+    /**
+     * Get suggestions based on current input
+     * @param input Current input text
+     * @returns List of suggestions
+     */
+    async getSuggestions(input) {
         try {
-            this.status = 'processing';
-            // Get the current conversation context
-            const context = await this.contextManager.buildContext('current', 'continue iteration');
-            // Generate continuation prompt
-            const prompt = this.promptManager.generatePrompt('continue-iteration', {
-                context: context.join('\n')
-            });
-            // Process the response
-            await this.handleResponse(prompt);
-            this.status = 'idle';
+            return await this.contextManager.getSuggestions(input);
         }
         catch (error) {
-            this.status = 'error';
+            this.logger.error(`Error getting suggestions: ${error instanceof Error ? error.message : String(error)}`);
+            return [];
+        }
+    }
+    /**
+     * Clear all context data
+     */
+    async clearContext() {
+        try {
+            await this.contextManager.clearContext();
+        }
+        catch (error) {
+            this.logger.error(`Error clearing context: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     }
-    getStatus() {
-        return this.status;
+    /**
+     * Dispose of resources
+     */
+    dispose() {
+        this.contextManager.dispose();
     }
 }
 exports.CoreAgent = CoreAgent;

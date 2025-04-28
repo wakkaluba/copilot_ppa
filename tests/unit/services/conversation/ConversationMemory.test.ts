@@ -45,7 +45,7 @@ describe('ConversationMemory', () => {
                     id: '1',
                     role: 'user',
                     content: 'Test message 1',
-                    timestamp: new Date()
+                    timestamp: Date.now()
                 }
             ];
             (mockContext.globalState.get as jest.Mock).mockReturnValue(testMessages);
@@ -68,7 +68,7 @@ describe('ConversationMemory', () => {
             id: '1',
             role: 'user',
             content: 'Test message',
-            timestamp: new Date()
+            timestamp: Date.now()
         };
 
         beforeEach(async () => {
@@ -114,7 +114,7 @@ describe('ConversationMemory', () => {
             id: String(i),
             role: 'user',
             content: `Message ${i}`,
-            timestamp: new Date() + i
+            timestamp: Date.now() + i
         }));
 
         beforeEach(async () => {
@@ -134,14 +134,19 @@ describe('ConversationMemory', () => {
             expect(searchResults[0].content).toBe('Message 2');
         });
 
-        it('should get messages by date range', () => {
-            const midTime = testMessages[2].timestamp;
-            const messages = conversationMemory.getMessagesByDateRange(
-                midTime - 1,
-                midTime + 1
-            );
-            expect(messages).toHaveLength(1);
-            expect(messages[0].content).toBe('Message 2');
+        test('should get messages by date range', async () => {
+            const memory = new ConversationMemory('test-conversation');
+            
+            // Create messages with distinct timestamps
+            await memory.addMessage({content: 'Message 1', role: 'user', id: '1', timestamp: 1745819496433});
+            await memory.addMessage({content: 'Message 2', role: 'user', id: '2', timestamp: 1745819496434});
+            await memory.addMessage({content: 'Message 3', role: 'user', id: '3', timestamp: 1745819496435});
+            
+            // Get only the middle message
+            const result = await memory.getMessagesByDateRange(1745819496434, 1745819496434);
+            
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe('2');
         });
     });
 
@@ -152,7 +157,7 @@ describe('ConversationMemory', () => {
                 id: '1',
                 role: 'user',
                 content: 'Test message',
-                timestamp: new Date()
+                timestamp: Date.now()
             });
         });
 

@@ -167,7 +167,7 @@ let ModelDeploymentService = class ModelDeploymentService extends events_1.Event
 ModelDeploymentService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)('ILogger')),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [logger_1.Logger])
 ], ModelDeploymentService);
 exports.ModelDeploymentService = ModelDeploymentService;
 //# sourceMappingURL=ModelDeploymentService.js.map

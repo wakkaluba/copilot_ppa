@@ -105,6 +105,32 @@ class WorkspaceManager {
         }
     }
     /**
+     * Create a new file (alias for writeFile for CommandParser compatibility)
+     * @param uri File URI or path to create
+     * @param content Content to write
+     */
+    async createFile(uri, content) {
+        return this.writeFile(uri, content);
+    }
+    /**
+     * Modify existing file content
+     * @param uri File URI or path to modify
+     * @param modifier Function that takes existing content and returns modified content
+     */
+    async modifyFile(uri, modifier) {
+        try {
+            const fileUri = uri instanceof vscode.Uri ? uri : this.resolveFilePath(uri);
+            const contentBuffer = await this.readFile(fileUri);
+            const content = Buffer.from(contentBuffer).toString('utf8');
+            const modifiedContent = modifier(content);
+            await this.writeFile(fileUri, modifiedContent);
+        }
+        catch (error) {
+            this.logger.error(`Error modifying file ${uri instanceof vscode.Uri ? uri.fsPath : uri}:`, error);
+            throw new Error(`Failed to modify file: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
      * Delete a file
      * @param uri File URI or path to delete
      */

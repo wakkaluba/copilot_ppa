@@ -38,7 +38,7 @@ export class ConversationManager {
         const message: ChatMessage = {
             role,
             content,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
 
         this.currentConversation!.messages.push(message);

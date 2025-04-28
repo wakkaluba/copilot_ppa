@@ -1,56 +1,55 @@
 {
   "name": "copilot-ppa",
   "displayName": "Copilot PPA",
-  "description": "Performance and Productivity Assistant for VS Code",
+  "description": "Copilot Personal Programming Assistant",
   "version": "0.1.0",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.60.0"
   },
   "categories": [
     "Other"
   ],
-  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:copilot-ppa.start"
+  ],
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "copilot-ppa.start",
-        "title": "Copilot PPA: Start"
+        "title": "Start Copilot PPA"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "test": "node ./dist/test/runTest.js",
-    "test:jest": "jest",
-    "fix-casing": "node tools/fix-casing.js",
-    "fix-imports": "node tools/fix-imports.js",
-    "fix-types": "node tools/fix-type-errors.js",
-    "fix-all": "npm run fix-casing && npm run fix-imports && npm run fix-types && npm run compile",
-    "clean": "rimraf dist"
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "fix-all": "node tools/fix-all.js"
   },
   "devDependencies": {
-    "@types/glob": "^7.2.0",
-    "@types/jest": "^29.5.0",
-    "@types/mocha": "^9.1.1",
-    "@types/node": "^16.11.7",
-    "@types/node-fetch": "^2.6.12",
-    "@types/sinon": "^10.0.13",
-    "@types/vscode": "^1.70.0",
-    "@typescript-eslint/eslint-plugin": "^5.30.0",
-    "@typescript-eslint/parser": "^5.30.0",
-    "eslint": "^8.18.0",
-    "glob": "^8.0.3",
+    "@jest/globals": "^29.5.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/sinon": "^10.0.15",
+    "@types/vscode": "^1.60.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
+    "eslint": "^8.39.0",
+    "glob": "^8.1.0",
     "jest": "^29.5.0",
-    "jest-mock-extended": "^3.0.5",
-    "mocha": "^10.0.0",
-    "node-fetch": "^3.3.2",
-    "rimraf": "^5.0.10",
-    "sinon": "^15.0.3",
+    "mocha": "^10.2.0",
+    "sinon": "^15.1.0",
     "ts-jest": "^29.1.0",
-    "typescript": "^4.7.4"
+    "typescript": "^5.0.4",
+    "vscode-test": "^1.6.1"
+  },
+  "dependencies": {
+    "inversify": "^6.0.1",
+    "uuid": "^9.0.0"
   }
 }

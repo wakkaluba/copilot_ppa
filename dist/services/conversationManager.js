@@ -31,7 +31,7 @@ class ConversationManager {
         const message = {
             role,
             content,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         this.currentConversation.messages.push(message);
         this.currentConversation.updated = Date.now();

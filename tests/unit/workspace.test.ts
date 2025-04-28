@@ -1,132 +1,71 @@
-import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as assert from 'assert';
+import * as sinon from 'sinon';
 import { WorkspaceManager } from '../../src/services/WorkspaceManager';
-import { TestWorkspace } from '../helpers/TestWorkspace';
 import { Logger } from '../../src/utils/logger';
-import { FileType } from 'vscode';
 
-interface MockLogger extends Logger {
-    debug: jest.Mock<void, [string, ...any[]]>;
-    info: jest.Mock<void, [string, ...any[]]>;
-    warn: jest.Mock<void, [string, ...any[]]>;
-    error: jest.Mock<void, [string | Error, ...any[]]>;
-}
+jest.mock('../../src/utils/logger');
 
-interface MockFileSystem {
-    readFile: jest.Mock<Promise<Uint8Array>, [vscode.Uri]>;
-    writeFile: jest.Mock<Promise<void>, [vscode.Uri, Uint8Array]>;
-    readDirectory: jest.Mock<Promise<[string, vscode.FileType][]>, [vscode.Uri]>;
-    stat: jest.Mock<Promise<vscode.FileStat>, [vscode.Uri]>;
-    createDirectory: jest.Mock<Promise<void>, [vscode.Uri]>;
-}
-
-interface MockWorkspaceConfiguration extends vscode.WorkspaceConfiguration {
-    get: jest.Mock<any, [string, any?]>;
-    update: jest.Mock<Promise<void>, [string, any, (vscode.ConfigurationTarget | boolean | null)?]>;
-    has: jest.Mock<boolean, [string]>;
-    inspect: jest.Mock<any, [string]>;
-}
-
-describe('Workspace Manager', () => {
+describe('WorkspaceManager Tests', () => {
     let workspaceManager: WorkspaceManager;
-    let testWorkspace: TestWorkspace;
-    let mockLogger: MockLogger;
-    let mockFs: MockFileSystem;
-    let originalWorkspaceFolders: typeof vscode.workspace.workspaceFolders;
-    let originalGetConfiguration: typeof vscode.workspace.getConfiguration;
-    let originalFindFiles: typeof vscode.workspace.findFiles;
-    let originalFs: typeof vscode.workspace.fs;
-
-    beforeEach(async () => {
-        testWorkspace = new TestWorkspace();
-        await testWorkspace.setup();
-
+    let sandbox: sinon.SinonSandbox;
+    let fsStub: sinon.SinonStubbedInstance<typeof vscode.workspace.fs>;
+    let mockLogger: jest.Mocked<Logger>;
+    
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        fsStub = sandbox.stub(vscode.workspace.fs);
+        
         mockLogger = {
             debug: jest.fn(),
             info: jest.fn(),
             warn: jest.fn(),
             error: jest.fn()
-        } as MockLogger;
-
-        originalWorkspaceFolders = vscode.workspace.workspaceFolders;
-        originalGetConfiguration = vscode.workspace.getConfiguration;
-        originalFindFiles = vscode.workspace.findFiles;
-        originalFs = vscode.workspace.fs;
-
-        mockFs = {
-            readFile: jest.fn(),
-            writeFile: jest.fn(),
-            readDirectory: jest.fn(),
-            stat: jest.fn(),
-            createDirectory: jest.fn(),
-        };
-        (vscode.workspace as any).fs = mockFs;
-
-        (vscode.workspace.findFiles as jest.Mock) = jest.fn();
-        (vscode.workspace.getConfiguration as jest.Mock) = jest.fn();
-        Object.defineProperty(vscode.workspace, 'workspaceFolders', {
-            value: [],
-            writable: true,
-            configurable: true
-        });
-
-        (WorkspaceManager as any).instance = undefined;
-        workspaceManager = WorkspaceManager.getInstance();
-        if ((workspaceManager as any).setLogger) {
-            (workspaceManager as any).setLogger(mockLogger);
-        }
+        } as unknown as jest.Mocked<Logger>;
+        
+        // Fix the Logger getInstance mock
+        (Logger.getInstance as jest.Mock) = jest.fn().mockReturnValue(mockLogger);
+        
+        workspaceManager = new WorkspaceManager();
     });
-
-    afterEach(async () => {
-        await testWorkspace.cleanup();
-        Object.defineProperty(vscode.workspace, 'workspaceFolders', {
-            value: originalWorkspaceFolders,
-            writable: false,
-            configurable: true
-        });
-        (vscode.workspace as any).getConfiguration = originalGetConfiguration;
-        (vscode.workspace as any).findFiles = originalFindFiles;
-        (vscode.workspace as any).fs = originalFs;
-
-        jest.clearAllMocks();
+    
+    afterEach(() => {
+        sandbox.restore();
     });
-
+    
     describe('File Operations', () => {
         test('reads file content', async () => {
-            const uri = vscode.Uri.file('/test/file.ts');
-            const expectedContent = 'test content';
-            mockFs.readFile.mockResolvedValue(Buffer.from(expectedContent));
-            try {
-                const content = await workspaceManager.readFile(uri);
-                expect(content).toBe(expectedContent);
-                expect(mockFs.readFile).toHaveBeenCalledWith(uri);
-            } catch (error) {
-                assert.fail(`Test failed with error: ${error}`);
-            }
+            const uri = vscode.Uri.file('/test/file.txt');
+            const content = 'Test content';
+            const buffer = Buffer.from(content, 'utf8');
+            
+            fsStub.readFile.resolves(buffer);
+            
+            const result = await workspaceManager.readFile(uri);
+            
+            assert.strictEqual(result, content);
+            sinon.assert.calledWith(fsStub.readFile, uri);
         });
-
+        
         test('writes file content', async () => {
-            const uri = vscode.Uri.file('/test/file.ts');
-            const content = 'new content';
-            mockFs.writeFile.mockResolvedValue(undefined);
-            try {
-                await workspaceManager.writeFile(uri, content);
-                expect(mockFs.writeFile).toHaveBeenCalledWith(
-                    uri,
-                    Buffer.from(content)
-                );
-            } catch (error) {
-                assert.fail(`Test failed with error: ${error}`);
-            }
+            const uri = vscode.Uri.file('/test/file.txt');
+            const content = 'New content';
+            const buffer = Buffer.from(content, 'utf8');
+            
+            fsStub.writeFile.resolves(undefined);
+            
+            await workspaceManager.writeFile(uri, content);
+            
+            sinon.assert.calledWith(fsStub.writeFile, uri, buffer);
         });
-
+        
         test('lists directory contents', async () => {
             const uri = vscode.Uri.file('/test/dir');
             const mockDirectoryContents: [string, vscode.FileType][] = [
                 ['file1.ts', vscode.FileType.File],
                 ['dir1', vscode.FileType.Directory]
             ];
-            mockFs.readDirectory.mockResolvedValue(mockDirectoryContents);
+            fsStub.readDirectory.resolves(mockDirectoryContents);
             try {
                 const contents = await workspaceManager.listDirectory(uri);
                 expect(contents).toHaveLength(2);
@@ -134,7 +73,7 @@ describe('Workspace Manager', () => {
                 expect(contents?.[0]?.[1]).toBe(vscode.FileType.File);
                 expect(contents?.[1]?.[0]).toBe('dir1');
                 expect(contents?.[1]?.[1]).toBe(vscode.FileType.Directory);
-                expect(mockFs.readDirectory).toHaveBeenCalledWith(uri);
+                expect(fsStub.readDirectory).toHaveBeenCalledWith(uri);
             } catch (error) {
                 assert.fail(`Test failed with error: ${error}`);
             }
@@ -142,13 +81,13 @@ describe('Workspace Manager', () => {
 
         test('checks file existence', async () => {
             const uri = vscode.Uri.file('/test/file.ts');
-            mockFs.stat.mockResolvedValue({
+            fsStub.stat.resolves({
                 type: vscode.FileType.File, size: 100, ctime: 0, mtime: 0
             });
             try {
                 const exists = await workspaceManager.fileExists(uri);
                 expect(exists).toBe(true);
-                expect(mockFs.stat).toHaveBeenCalledWith(uri);
+                expect(fsStub.stat).toHaveBeenCalledWith(uri);
             } catch (error) {
                 assert.fail(`Test failed with error: ${error}`);
             }
@@ -156,11 +95,11 @@ describe('Workspace Manager', () => {
 
          test('checks file non-existence', async () => {
             const uri = vscode.Uri.file('/test/nonexistent.ts');
-            mockFs.stat.mockRejectedValue(new vscode.FileSystemError(uri));
+            fsStub.stat.rejects(new vscode.FileSystemError(uri));
             try {
                 const exists = await workspaceManager.fileExists(uri);
                 expect(exists).toBe(false);
-                expect(mockFs.stat).toHaveBeenCalledWith(uri);
+                expect(fsStub.stat).toHaveBeenCalledWith(uri);
             } catch (error) {
                  assert.fail(`Test failed unexpectedly: ${error}`);
             }
@@ -204,10 +143,10 @@ describe('Workspace Manager', () => {
 
         test('creates directory', async () => {
             const uri = vscode.Uri.file('/test/newdir');
-            mockFs.createDirectory.mockResolvedValue(undefined);
+            fsStub.createDirectory.resolves(undefined);
             try {
                 await workspaceManager.createDirectory(uri);
-                expect(mockFs.createDirectory).toHaveBeenCalledWith(uri);
+                expect(fsStub.createDirectory).toHaveBeenCalledWith(uri);
             } catch (error) {
                 assert.fail(`Test failed with error: ${error}`);
             }
@@ -218,7 +157,7 @@ describe('Workspace Manager', () => {
         test('handles file read errors', async () => {
             const uri = vscode.Uri.file('/test/nonexistent.ts');
             const expectedError = new vscode.FileSystemError('File not found');
-            mockFs.readFile.mockRejectedValue(expectedError);
+            fsStub.readFile.rejects(expectedError);
 
             await expect(workspaceManager.readFile(uri)).rejects.toThrow(expectedError);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error reading file'), expectedError);
@@ -227,7 +166,7 @@ describe('Workspace Manager', () => {
         test('handles file write errors', async () => {
             const uri = vscode.Uri.file('/test/readonly.ts');
             const expectedError = new vscode.FileSystemError('Permission denied');
-            mockFs.writeFile.mockRejectedValue(expectedError);
+            fsStub.writeFile.rejects(expectedError);
 
             await expect(workspaceManager.writeFile(uri, 'content')).rejects.toThrow(expectedError);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error writing file'), expectedError);
@@ -247,7 +186,7 @@ describe('Workspace Manager', () => {
          test('handles list directory errors', async () => {
             const uri = vscode.Uri.file('/test/nodir');
             const expectedError = new vscode.FileSystemError('Directory not found');
-            mockFs.readDirectory.mockRejectedValue(expectedError);
+            fsStub.readDirectory.rejects(expectedError);
 
             await expect(workspaceManager.listDirectory(uri)).rejects.toThrow(expectedError);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error listing directory'), expectedError);
@@ -264,7 +203,7 @@ describe('Workspace Manager', () => {
          test('handles create directory errors', async () => {
             const uri = vscode.Uri.file('/test/noperm');
             const expectedError = new vscode.FileSystemError('Permission denied');
-            mockFs.createDirectory.mockRejectedValue(expectedError);
+            fsStub.createDirectory.rejects(expectedError);
 
             await expect(workspaceManager.createDirectory(uri)).rejects.toThrow(expectedError);
             expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error creating directory'), expectedError);
