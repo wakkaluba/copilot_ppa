@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ConversationHistory } from '../../src/services/ConversationHistory';
 
 export function createMockOutputChannel() {
     return {
@@ -64,15 +65,34 @@ export function createMockExtensionContext() {
     };
 }
 
-export function createMockConversationHistory() {
+export function createMockConversationHistory(): ConversationHistory {
     return {
+        conversations: new Map(),
+        context: {},
         addMessage: jest.fn(),
         getHistory: jest.fn().mockReturnValue([]),
         clearHistory: jest.fn(),
         saveConversation: jest.fn(),
         loadConversation: jest.fn(),
-        getConversationList: jest.fn().mockResolvedValue([])
-    };
+        getConversationList: jest.fn().mockResolvedValue([]),
+        loadFromStorage: jest.fn().mockResolvedValue(undefined),
+        saveToStorage: jest.fn().mockResolvedValue(undefined),
+        initialize: jest.fn().mockResolvedValue(undefined),
+        dispose: jest.fn(),
+        getConversation: jest.fn(),
+        deleteConversation: jest.fn().mockResolvedValue(undefined),
+        searchConversations: jest.fn().mockResolvedValue([]),
+        exportConversation: jest.fn().mockResolvedValue("{}"),
+        importConversation: jest.fn().mockResolvedValue({
+            id: "imported-conversation",
+            title: "Imported Conversation",
+            messages: [],
+            created: Date.now(),
+            updated: Date.now()
+        }),
+        on: jest.fn(),
+        emit: jest.fn()
+    } as ConversationHistory;
 }
 
 export function createMockDocument(content = '', language = 'typescript') {

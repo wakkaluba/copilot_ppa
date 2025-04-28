@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import { Theme, ThemeColors } from './interfaces';
+import { ITheme, ThemeColors } from '../interfaces';
 
 /**
  * Handles VS Code theme integration and color detection
  */
 export class ThemeService implements vscode.Disposable {
-    private readonly disposables: vscode.Disposable[] = [];
+    private disposables: vscode.Disposable[] = [];
 
-    constructor(private onVSCodeThemeChange: (kind: vscode.ColorThemeKind) => void) {
-        // Watch for VS Code theme changes
+    constructor() {
+        // Listen for VS Code theme changes
         this.disposables.push(
-            vscode.window.onDidChangeActiveColorTheme(theme => {
-                this.onVSCodeThemeChange(theme.kind);
+            vscode.window.onDidChangeActiveColorTheme(() => {
+                this.getCurrentVSCodeColors();
             })
         );
     }
@@ -19,44 +19,47 @@ export class ThemeService implements vscode.Disposable {
     /**
      * Get colors from the current VS Code theme
      */
-    getCurrentVSCodeColors(): ThemeColors {
-        const theme = vscode.window.activeColorTheme;
-        const getColor = (id: string, fallback: string) => {
-            const color = theme.getColor(id);
-            return color ? color.toString() : fallback;
+    public getCurrentVSCodeColors(): ThemeColors {
+        const getColor = (id: string, lightFallback: string, darkFallback: string): string => {
+            const color = vscode.workspace.getConfiguration().get<string>(`workbench.colorCustomizations.${id}`);
+            if (color) {
+                return color;
+            }
+            return vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? darkFallback : lightFallback;
         };
 
         return {
-            primary: getColor('button.background', '#007acc'),
-            secondary: getColor('descriptionForeground', '#717171'),
-            background: getColor('editor.background', '#ffffff'),
-            foreground: getColor('editor.foreground', '#333333'),
-            agentMessageBackground: getColor('editorWidget.background', '#f3f3f3'),
-            agentMessageForeground: getColor('editorWidget.foreground', '#333333'),
-            userMessageBackground: getColor('input.background', '#ffffff'),
-            userMessageForeground: getColor('input.foreground', '#333333'),
-            systemMessage: getColor('descriptionForeground', '#717171'),
-            error: getColor('errorForeground', '#dc3545'),
-            success: getColor('notificationsSuccessIcon.foreground', '#28a745'),
-            border: getColor('input.border', '#cecece'),
-            buttonBackground: getColor('button.background', '#007acc'),
-            buttonForeground: getColor('button.foreground', '#ffffff'),
-            buttonHoverBackground: getColor('button.hoverBackground', '#005fa3'),
-            inputBackground: getColor('input.background', '#ffffff'),
-            inputForeground: getColor('input.foreground', '#333333'),
-            inputBorder: getColor('input.border', '#cecece')
+            primary: getColor('button.background', '#007acc', '#0098ff'),
+            secondary: getColor('descriptionForeground', '#717171', '#abb2bf'),
+            background: getColor('editor.background', '#ffffff', '#282c34'),
+            foreground: getColor('editor.foreground', '#333333', '#abb2bf'),
+            agentMessageBackground: getColor('editorWidget.background', '#f3f3f3', '#2c313c'),
+            agentMessageForeground: getColor('editorWidget.foreground', '#333333', '#abb2bf'),
+            userMessageBackground: getColor('input.background', '#ffffff', '#3b4048'),
+            userMessageForeground: getColor('input.foreground', '#333333', '#abb2bf'),
+            systemMessage: getColor('descriptionForeground', '#717171', '#7f848e'),
+            error: getColor('errorForeground', '#dc3545', '#e06c75'),
+            success: getColor('notificationsSuccessIcon.foreground', '#28a745', '#98c379'),
+            border: getColor('input.border', '#cecece', '#3e4452'),
+            buttonBackground: getColor('button.background', '#007acc', '#0098ff'),
+            buttonForeground: getColor('button.foreground', '#ffffff', '#ffffff'),
+            buttonHoverBackground: getColor('button.hoverBackground', '#005fa3', '#007acc'),
+            inputBackground: getColor('input.background', '#ffffff', '#1e2227'),
+            inputForeground: getColor('input.foreground', '#333333', '#abb2bf'),
+            inputBorder: getColor('input.border', '#cecece', '#3e4452')
         };
     }
 
     /**
      * Create a theme based on the current VS Code theme
      */
-    createVSCodeMatchingTheme(): Theme {
+    public createVSCodeMatchingTheme(): ITheme {
         const isLight = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light;
-
+        
         return {
             id: 'vscode-theme',
             name: 'VS Code Theme',
+            type: isLight ? 'light' : 'dark',
             isBuiltIn: true,
             colors: this.getCurrentVSCodeColors(),
             font: {
@@ -70,7 +73,7 @@ export class ThemeService implements vscode.Disposable {
         };
     }
 
-    dispose(): void {
+    public dispose(): void {
         this.disposables.forEach(d => d.dispose());
     }
 }

@@ -1,67 +1,45 @@
-import type { EventEmitter as VSCodeEventEmitter, Event } from 'vscode';
+import { jest } from '@jest/globals';
+
+// Map Mocha globals to Jest
+global.suite = describe;
+global.test = it;
+global.suiteSetup = beforeAll;
+global.suiteTeardown = afterAll;
+global.setup = beforeEach;
+global.teardown = afterEach;
 
 // Mock VS Code's Event and EventEmitter
-class MockEventEmitter<T> implements VSCodeEventEmitter<T> {
+class MockEventEmitter<T> {
     private listeners = new Set<(e: T) => any>();
 
-    public event: Event<T> = (listener: (e: T) => any) => {
+    event = jest.fn((listener: (e: T) => any) => {
         this.listeners.add(listener);
         return {
             dispose: () => {
                 this.listeners.delete(listener);
             }
         };
-    };
+    });
 
-    public fire(data: T): void {
+    fire(data: T) {
         this.listeners.forEach(listener => listener(data));
     }
 
-    public dispose(): void {
+    dispose() {
         this.listeners.clear();
     }
 }
 
-// Create helper for EventEmitter creation
-const createMockEventEmitter = <T>() => new MockEventEmitter<T>();
+// Reset all mocks before each test
+beforeEach(() => {
+    jest.clearAllMocks();
+});
 
-// Mock the VS Code API
+// Set reasonable test timeouts
+jest.setTimeout(5000);
+
+// Mock VS Code API
 jest.mock('vscode', () => ({
-    EventEmitter: MockEventEmitter,
-    workspace: {
-        workspaceFolders: [
-            {
-                uri: {
-                    fsPath: '/test/workspace',
-                    toString: () => '/test/workspace'
-                },
-                name: 'test',
-                index: 0
-            }
-        ],
-        getConfiguration: jest.fn().mockReturnValue({
-            get: jest.fn(),
-            update: jest.fn(),
-            has: jest.fn(),
-            inspect: jest.fn()
-        }),
-        onDidChangeConfiguration: createMockEventEmitter<any>().event,
-        fs: {
-            readFile: jest.fn(),
-            writeFile: jest.fn(),
-            readDirectory: jest.fn(),
-            createDirectory: jest.fn(),
-            delete: jest.fn(),
-            rename: jest.fn(),
-            stat: jest.fn()
-        },
-        findFiles: jest.fn()
-    },
-    commands: {
-        registerCommand: jest.fn(),
-        executeCommand: jest.fn(),
-        getCommands: jest.fn()
-    },
     window: {
         createOutputChannel: jest.fn().mockReturnValue({
             appendLine: jest.fn(),
@@ -71,13 +49,9 @@ jest.mock('vscode', () => ({
             hide: jest.fn(),
             dispose: jest.fn()
         }),
-        createWebviewPanel: jest.fn(),
-        createTerminal: jest.fn(),
         showInformationMessage: jest.fn(),
         showWarningMessage: jest.fn(),
         showErrorMessage: jest.fn(),
-        showInputBox: jest.fn(),
-        showQuickPick: jest.fn(),
         createStatusBarItem: jest.fn().mockReturnValue({
             text: '',
             tooltip: '',
@@ -86,139 +60,56 @@ jest.mock('vscode', () => ({
             hide: jest.fn(),
             dispose: jest.fn()
         }),
-        activeTextEditor: undefined,
-        activeColorTheme: {
-            kind: 2, // Default to dark theme
-            name: 'Dark Theme'
-        },
-        onDidChangeActiveTextEditor: jest.fn(),
-        onDidChangeVisibleTextEditors: jest.fn(),
-        onDidChangeActiveColorTheme: jest.fn(callback => {
-            // Return a disposable
-            return { dispose: jest.fn() };
+        activeTextEditor: undefined
+    },
+    workspace: {
+        getConfiguration: jest.fn().mockReturnValue({
+            get: jest.fn(),
+            update: jest.fn().mockResolvedValue(undefined),
+            has: jest.fn()
         }),
-        withProgress: jest.fn()
+        workspaceFolders: [],
+        onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+        fs: {
+            readFile: jest.fn().mockResolvedValue(Buffer.from('')),
+            writeFile: jest.fn().mockResolvedValue(undefined),
+            delete: jest.fn().mockResolvedValue(undefined),
+            rename: jest.fn().mockResolvedValue(undefined)
+        }
     },
-    ColorThemeKind: {
-        Light: 1,
-        Dark: 2,
-        HighContrast: 3,
-        HighContrastLight: 4
-    },
-    languages: {
-        createDiagnosticCollection: jest.fn(),
-        getDiagnostics: jest.fn()
-    },
+    EventEmitter: MockEventEmitter,
     Uri: {
-        file: jest.fn(path => ({ 
-            fsPath: path,
-            scheme: 'file',
-            path,
-            with: jest.fn()
-        })),
-        parse: jest.fn(),
+        file: jest.fn(path => ({ fsPath: path })),
+        parse: jest.fn()
     },
-    Position: jest.fn(),
     Range: jest.fn(),
-    ViewColumn: {
-        Active: -1,
-        Beside: -2,
-        One: 1,
-        Two: 2,
-        Three: 3
-    },
-    StatusBarAlignment: {
-        Left: 1,
-        Right: 2
-    },
-    ThemeColor: jest.fn(),
-    ProgressLocation: {
-        Notification: 15
-    },
-    LogLevel: {
-        Trace: 0,
-        Debug: 1,
-        Info: 2,
-        Warning: 3,
-        Error: 4,
-        Critical: 5,
-        Off: 6
-    },
-    FileType: {
-        Unknown: 0,
-        File: 1,
-        Directory: 2,
-        SymbolicLink: 64
-    },
-    FileSystemError: {
-        FileNotFound: jest.fn(),
-        FileExists: jest.fn(),
-        FileNotADirectory: jest.fn(),
-        FileIsADirectory: jest.fn(),
-        NoPermissions: jest.fn(),
-        Unavailable: jest.fn()
-    },
+    Position: jest.fn(),
+    CancellationTokenSource: jest.fn().mockImplementation(() => ({
+        token: { isCancellationRequested: false },
+        dispose: jest.fn()
+    })),
     ExtensionMode: {
         Development: 1,
-        Test: 2,
+        Test: 2, 
         Production: 3
-    },
-    EnvironmentVariableMutatorType: {
-        Replace: 1,
-        Append: 2,
-        Prepend: 3
-    },
-    EndOfLine: {
-        LF: 1,
-        CRLF: 2
-    },
-    ConfigurationTarget: {
-        Global: 1,
-        Workspace: 2,
-        WorkspaceFolder: 3
     }
 }), { virtual: true });
 
-// Reset all mocks before each test
-beforeEach(() => {
-    jest.clearAllMocks();
-});
-
-// Set global testing timeouts
-jest.setTimeout(10000);
-
-// Mock node-fetch
-jest.mock('node-fetch', () => 
-    jest.fn().mockImplementation(() => 
-        Promise.resolve({
-            ok: true,
-            status: 200,
-            json: () => Promise.resolve({}),
-            text: () => Promise.resolve('')
-        })
-    )
-);
-
-// Setup environment variables needed for tests
+// Setup test environment variables
 process.env.NODE_ENV = 'test';
+process.env.JEST_WORKER_ID = '1';
 
 // Mock global.performance if needed
-if (typeof global.performance === 'undefined') {
+if (!global.performance) {
     global.performance = {
-        now: () => Date.now()
-    } as Performance;
+        now: () => Date.now(),
+        mark: jest.fn(),
+        measure: jest.fn(),
+        getEntriesByName: jest.fn().mockReturnValue([]),
+        clearMarks: jest.fn(),
+        clearMeasures: jest.fn()
+    } as unknown as Performance;
 }
 
-// Override console methods to catch errors during tests
-const originalConsoleError = console.error;
-console.error = (..._args: any[]) => {
-    // Uncomment the line below if you want to see error messages during tests
-    // originalConsoleError(..._args);
-};
-
-// Clean up function to run after all tests
-afterAll(() => {
-    // Restore original console methods
-    console.error = originalConsoleError;
-    jest.restoreAllMocks();
-});
+// Export MockEventEmitter for use in tests
+export { MockEventEmitter };

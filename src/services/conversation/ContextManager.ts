@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { ConversationMemoryService } from './services/ConversationMemoryService';
+import { UserPreferencesService } from './services/UserPreferencesService';
+import { FilePreferencesService } from './services/FilePreferencesService';
+import { ContextAnalysisService } from './services/ContextAnalysisService';
 import { Message, MessageType } from './models';
 
 /**
@@ -8,10 +11,15 @@ import { Message, MessageType } from './models';
 export class ContextManager {
     private static instance: ContextManager;
     private conversationService: ConversationMemoryService;
+    private userPreferencesService: UserPreferencesService;
+    private filePreferencesService: FilePreferencesService;
+    private analysisService: ContextAnalysisService;
     private languagePreferences: Map<string, number> = new Map();
     private fileTypePreferences: Map<string, number> = new Map();
     private directoryPreferences: Map<string, number> = new Map();
     private filePatternPreferences: Map<string, number> = new Map();
+    private maxWindowSize: number = 10;
+    private disposables: vscode.Disposable[] = [];
 
     /**
      * Create a new ContextManager
@@ -19,6 +27,9 @@ export class ContextManager {
      */
     private constructor(context: vscode.ExtensionContext) {
         this.conversationService = new ConversationMemoryService(context);
+        this.userPreferencesService = new UserPreferencesService(context);
+        this.filePreferencesService = new FilePreferencesService(context);
+        this.analysisService = new ContextAnalysisService();
     }
     
     /**
@@ -33,76 +44,39 @@ export class ContextManager {
     }
 
     /**
-     * Process user input and extract useful context
-     * @param input User input text
-     * @returns Response with context
+     * Initialize services
      */
-    public async processInput(input: string): Promise<{ text: string; context: any }> {
-        const message: Message = {
-            id: Date.now().toString(),
-            role: MessageType.User,
-            content: input,
-            timestamp: Date.now()
-        };
-
-        await this.conversationService.addMessage(message);
-        this.extractLanguagePreferences(input);
-        this.extractFilePreferences(input);
-
-        return {
-            text: "Processed input and updated context",
-            context: this.buildContext()
-        };
+    public async initialize(): Promise<void> {
+        try {
+            await Promise.all([
+                this.conversationService.initialize(),
+                this.userPreferencesService.initialize(),
+                this.filePreferencesService.initialize()
+            ]);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to initialize context manager: ${message}`);
+        }
     }
 
     /**
-     * Get suggestions based on current context
-     * @param input Current input text
-     * @returns List of suggestions
+     * Add a message to the conversation
      */
-    public async getSuggestions(input: string): Promise<string[]> {
-        const preferredLang = this.getPreferredLanguage();
-        const preferredFramework = this.getPreferredFramework();
-        
-        const suggestions: string[] = [];
-        
-        // Add language-specific suggestions
-        if (preferredLang) {
-            if (preferredLang === 'typescript' || preferredLang === 'javascript') {
-                suggestions.push('Create a new component');
-                suggestions.push('Write a utility function');
-                suggestions.push('Add error handling to the current code');
-            } else if (preferredLang === 'python') {
-                suggestions.push('Create a new class');
-                suggestions.push('Add unit tests');
-                suggestions.push('Optimize current function');
-            }
+    public addMessage(message: Message): void {
+        this.conversationService.addMessage(message);
+        if (message.role === MessageType.User) {
+            this.analysisService.analyzeMessage(
+                message.content,
+                this.userPreferencesService,
+                this.filePreferencesService
+            );
+            this.extractLanguagePreferences(message.content);
+            this.extractFilePreferences(message.content);
         }
-        
-        // Add framework-specific suggestions
-        if (preferredFramework) {
-            if (preferredFramework === 'react') {
-                suggestions.push('Add state management with Redux/Context');
-                suggestions.push('Create a custom hook');
-            } else if (preferredFramework === 'angular') {
-                suggestions.push('Generate a new service');
-                suggestions.push('Add a route guard');
-            }
-        }
-        
-        // Add generic suggestions if no specific context
-        if (suggestions.length === 0) {
-            suggestions.push('Help me optimize my code');
-            suggestions.push('Explain this code to me');
-            suggestions.push('Generate documentation');
-        }
-        
-        return suggestions;
     }
 
     /**
      * Extract language preferences from user input
-     * @param content User input text
      */
     private extractLanguagePreferences(content: string): void {
         // Extract programming language mentions
@@ -127,8 +101,7 @@ export class ContextManager {
     }
 
     /**
-     * Extract file type preferences from user input
-     * @param content User input text
+     * Extract file preferences from user input
      */
     private extractFilePreferences(content: string): void {
         // Extract file extensions
@@ -159,36 +132,24 @@ export class ContextManager {
             this.filePatternPreferences.set(pattern, count + 1);
         }
     }
-    
+
     /**
-     * Get preferred language based on context
-     * @returns Most commonly used language
-     */
-    public getPreferredLanguage(): string | undefined {
-        let maxCount = 0;
-        let preferred: string | undefined = undefined;
-        
-        for (const [lang, count] of this.languagePreferences.entries()) {
-            if (!lang.startsWith('framework:') && count > maxCount) {
-                maxCount = count;
-                preferred = lang;
-            }
-        }
-        
-        return preferred;
-    }
-    
-    /**
-     * Get most frequently used programming languages
-     * @param limit Number of languages to return
-     * @returns Array of language names
+     * Get most frequent languages
      */
     public getFrequentLanguages(limit: number = 3): string[] {
         return Array.from(this.languagePreferences.entries())
-            .filter(([lang]) => !lang.startsWith('framework:'))
+            .filter(([key]) => !key.startsWith('framework:'))
             .sort((a, b) => b[1] - a[1])
             .slice(0, limit)
             .map(entry => entry[0]);
+    }
+
+    /**
+     * Get preferred language
+     */
+    public getPreferredLanguage(): string | undefined {
+        const languages = this.getFrequentLanguages(1);
+        return languages.length > 0 ? languages[0] : undefined;
     }
     
     /**
@@ -210,8 +171,6 @@ export class ContextManager {
     
     /**
      * Get recent file extensions
-     * @param limit Number of extensions to return
-     * @returns Array of file extensions
      */
     public getRecentFileExtensions(limit: number = 3): string[] {
         return Array.from(this.fileTypePreferences.entries())
@@ -222,8 +181,6 @@ export class ContextManager {
     
     /**
      * Get recently referenced directories
-     * @param limit Number of directories to return
-     * @returns Array of directory names
      */
     public getRecentDirectories(limit: number = 3): string[] {
         return Array.from(this.directoryPreferences.entries())
@@ -234,8 +191,6 @@ export class ContextManager {
     
     /**
      * Get file naming patterns
-     * @param limit Number of patterns to return
-     * @returns Array of naming patterns
      */
     public getFileNamingPatterns(limit: number = 3): string[] {
         return Array.from(this.filePatternPreferences.entries())
@@ -243,12 +198,11 @@ export class ContextManager {
             .slice(0, limit)
             .map(entry => entry[0]);
     }
-    
+
     /**
      * Build context string from current state
-     * @returns Context string
      */
-    private buildContext(): string {
+    public buildContextString(): string {
         const preferredLang = this.getPreferredLanguage();
         const preferredFramework = this.getPreferredFramework();
         const fileExtensions = this.getRecentFileExtensions();
@@ -284,12 +238,22 @@ export class ContextManager {
         this.directoryPreferences.clear();
         this.filePatternPreferences.clear();
         await this.conversationService.clearMessages();
+        await this.userPreferencesService.clearPreferences();
+        await this.filePreferencesService.clearPreferences();
+    }
+
+    /**
+     * Set maximum window size for conversation history
+     */
+    public setMaxWindowSize(size: number): void {
+        this.maxWindowSize = size;
     }
     
     /**
      * Clean up resources
      */
     public dispose(): void {
-        // Cleanup code
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
     }
 }

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LoggerImpl } from '../utils/logger';
+import { Logger } from '../utils/logger';
 
 /**
  * Manages workspace-related operations such as file reading/writing
@@ -8,20 +8,13 @@ import { LoggerImpl } from '../utils/logger';
  */
 export class WorkspaceManager {
     private static instance: WorkspaceManager;
-    private logger: LoggerImpl;
+    private logger: Logger;
 
-    /**
-     * Private constructor to enforce singleton pattern
-     */
     private constructor() {
-        this.logger = LoggerImpl.getInstance();
+        this.logger = Logger.getInstance();
     }
 
-    /**
-     * Gets the singleton instance of WorkspaceManager
-     * @param customLogger Optional logger for testing
-     */
-    public static getInstance(customLogger?: any): WorkspaceManager {
+    public static getInstance(customLogger?: Logger): WorkspaceManager {
         if (!WorkspaceManager.instance) {
             WorkspaceManager.instance = new WorkspaceManager();
             if (customLogger) {
@@ -32,17 +25,9 @@ export class WorkspaceManager {
     }
 
     /**
-     * Reset the singleton instance (for testing purposes)
-     */
-    public static resetInstance(): void {
-        WorkspaceManager.instance = undefined as any;
-    }
-
-    /**
      * Set logger for testing purposes
-     * @param logger Logger instance
      */
-    public setLogger(logger: any): void {
+    private setLogger(logger: Logger): void {
         this.logger = logger;
     }
 

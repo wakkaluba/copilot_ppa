@@ -3,41 +3,46 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/*.test.ts', '**/*.test.js'],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
         tsconfig: 'tsconfig.test.json',
-        // Move the ts-jest config here from globals
-        compiler: 'typescript',
         isolatedModules: true,
-        tsconfig: {
-          // Allow unused imports in test files
-          noUnusedLocals: false
+        diagnostics: {
+          warnOnly: false,
+          ignoreCodes: ['TS151001']
         }
       }
     ]
   },
   moduleNameMapper: {
-    // Handle module aliases
     '^@/(.*)$': '<rootDir>/src/$1'
   },
-  // Ignore node_modules
   transformIgnorePatterns: [
     '/node_modules/'
   ],
-  // Enable ESM support
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/dist/'
+    '/dist/',
+    '/__mocks__/'
   ],
-  collectCoverage: true,
+  collectCoverage: false,
   coverageReporters: ['json', 'lcov', 'text', 'clover'],
-  // Handle missing modules
   modulePathIgnorePatterns: [
     '<rootDir>/dist/'
   ],
-  // Set a reasonable timeout
-  testTimeout: 30000
+  testTimeout: 5000,
+  maxWorkers: '50%',
+  globals: {
+    'ts-jest': {
+      isolatedModules: true,
+      tsconfig: 'tsconfig.test.json'
+    }
+  },
+  verbose: false,
+  bail: 0,
+  cache: true,
+  maxConcurrency: 5
 }

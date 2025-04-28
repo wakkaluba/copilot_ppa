@@ -1,24 +1,31 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { ContextManager } from '../services/context/contextManager';
-import { LLMProvider } from '../services/llm/interfaces/LLMProvider';
-import { ChatMessage, ChatStreamEvent } from '../models/interfaces/chat';
+import { IContextManager, ILLMProvider, IChatMessage } from '../models';
 
 export class EnhancedChatProvider {
-    private contextManager: ContextManager;
-    private llmProvider: LLMProvider;
+    private contextManager: IContextManager;
+    private llmProvider: ILLMProvider;
     private view?: vscode.WebviewView;
     private isStreaming: boolean = false;
-    private offlineCache: Map<string, ChatMessage[]> = new Map();
+    private offlineCache: Map<string, IChatMessage[]> = new Map();
     private readonly maxRetries: number = 3;
     
     constructor(
         context: vscode.ExtensionContext, 
-        contextManager: ContextManager, 
-        llmProvider: LLMProvider
+        contextManager: IContextManager, 
+        llmProvider: ILLMProvider
     ) {
         this.contextManager = contextManager;
         this.llmProvider = llmProvider;
+    }
+
+    private async handleContinueIteration(): Promise<void> {
+        if (!this.view) { return; }
+        
+        this.view.webview.postMessage({
+            type: 'showContinuePrompt',
+            message: 'Continue to iterate?'
+        });
     }
     
     public setWebview(view: vscode.WebviewView): void {
@@ -55,6 +62,10 @@ export class EnhancedChatProvider {
                     
                 case 'createSnippet':
                     await this.createCodeSnippet(message.code, message.language);
+                    break;
+
+                case 'continueIteration':
+                    await this.handleContinueIteration();
                     break;
             }
         });
@@ -97,15 +108,15 @@ export class EnhancedChatProvider {
     }
 
     public async handleUserMessage(content: string): Promise<void> {
-        if (!content.trim()) {return;}
-        
-        const userMessage: ChatMessage = {
+        if (!content.trim()) { return; }
+
+        const userMessage: IChatMessage = {
             id: uuidv4(),
             role: 'user',
             content: content,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
-        
+
         this.contextManager.appendMessage(userMessage);
         this.sendMessagesToWebview();
 
@@ -113,24 +124,27 @@ export class EnhancedChatProvider {
             await this.handleOfflineMode(userMessage);
             return;
         }
-        
+
         let retryCount = 0;
         while (retryCount < this.maxRetries) {
             try {
-                await this.generateStreamingResponse(userMessage);
+                await this.generateResponse(userMessage);
+                
+                // Show continue prompt after successful response
+                if (content.toLowerCase().includes('continue') || content.toLowerCase().includes('iterate')) {
+                    await this.handleContinueIteration();
+                }
                 break;
             } catch (error) {
                 retryCount++;
                 if (retryCount === this.maxRetries) {
-                    await this.handleError(error);
-                } else {
-                    await this.waitBeforeRetry(retryCount);
+                    throw error;
                 }
             }
         }
     }
 
-    private async generateStreamingResponse(userMessage: ChatMessage): Promise<void> {
+    private async generateResponse(userMessage: IChatMessage): Promise<void> {
         this.isStreaming = true;
         this.updateStatus('Thinking...');
         
@@ -138,20 +152,20 @@ export class EnhancedChatProvider {
         
         try {
             const context = this.contextManager.getContextString();
-            await this.llmProvider.streamCompletion(
+            await this.llmProvider.generateResponse(
                 userMessage.content,
                 { context },
-                (event: ChatStreamEvent) => {
-                    currentResponse += event.content;
+                (content: string) => {
+                    currentResponse += content;
                     this.updateStreamingContent(currentResponse);
                 }
             );
             
-            const assistantMessage: ChatMessage = {
+            const assistantMessage: IChatMessage = {
                 id: uuidv4(),
                 role: 'assistant',
                 content: currentResponse,
-                timestamp: new Date()
+                timestamp: Date.now()
             };
             
             this.contextManager.appendMessage(assistantMessage);
@@ -163,18 +177,18 @@ export class EnhancedChatProvider {
         }
     }
 
-    private async handleOfflineMode(message: ChatMessage): Promise<void> {
+    private async handleOfflineMode(message: IChatMessage): Promise<void> {
         // Cache message for later sync
         const conversationId = this.contextManager.getCurrentConversationId();
         const cachedMessages = this.offlineCache.get(conversationId) || [];
         cachedMessages.push(message);
         this.offlineCache.set(conversationId, cachedMessages);
         
-        const offlineMessage: ChatMessage = {
+        const offlineMessage: IChatMessage = {
             id: uuidv4(),
             role: 'system',
             content: 'Currently offline. Message saved and will be processed when connection is restored.',
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         
         this.contextManager.appendMessage(offlineMessage);
@@ -184,11 +198,11 @@ export class EnhancedChatProvider {
     private async handleError(error: unknown): Promise<void> {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
-        const errorResponse: ChatMessage = {
+        const errorResponse: IChatMessage = {
             id: uuidv4(),
             role: 'system',
             content: `Error: ${errorMessage}\nPlease try again or check your connection.`,
-            timestamp: new Date()
+            timestamp: Date.now()
         };
         
         this.contextManager.appendMessage(errorResponse);
@@ -221,7 +235,7 @@ export class EnhancedChatProvider {
         if (cachedMessages.length === 0) {return;}
         
         for (const message of cachedMessages) {
-            await this.generateStreamingResponse(message);
+            await this.generateResponse(message);
         }
         
         this.offlineCache.delete(conversationId);

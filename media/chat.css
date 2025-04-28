@@ -519,3 +519,42 @@ textarea {
 .theme-light {
     color-scheme: light;
 }
+
+.continue-prompt {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.continue-message {
+    margin-bottom: 8px;
+    color: var(--vscode-foreground);
+    text-align: center;
+}
+
+.continue-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-continue {
+    padding: 4px 12px;
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-continue:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}

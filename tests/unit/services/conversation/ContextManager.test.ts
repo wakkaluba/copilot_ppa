@@ -1,209 +1,213 @@
-import { ContextManager } from '../../../../src/services/conversation/contextManager';
-import { WorkspaceManager } from '../../../../src/services/WorkspaceManager';
-import { Logger } from '../../../../src/utils/logger';
-import * as sinon from 'sinon';
+import * as vscode from 'vscode';
+import { ContextManager } from '../../../../src/services/conversation/ContextManager';
+import { ConversationMemoryService } from '../../../../src/services/conversation/services/ConversationMemoryService';
+import { UserPreferencesService } from '../../../../src/services/conversation/services/UserPreferencesService';
+import { FilePreferencesService } from '../../../../src/services/conversation/services/FilePreferencesService';
+import { ContextAnalysisService } from '../../../../src/services/conversation/services/ContextAnalysisService';
+import { Message, MessageType } from '../../../../src/services/conversation/models';
 
-jest.mock('../../../../src/utils/logger');
-jest.mock('../../../../src/services/WorkspaceManager');
+jest.mock('../../../../src/services/conversation/services/ConversationMemoryService');
+jest.mock('../../../../src/services/conversation/services/UserPreferencesService');
+jest.mock('../../../../src/services/conversation/services/FilePreferencesService');
+jest.mock('../../../../src/services/conversation/services/ContextAnalysisService');
 
 describe('ContextManager', () => {
     let contextManager: ContextManager;
-    let mockWorkspaceManager: jest.Mocked<WorkspaceManager>;
-    let mockLogger: jest.Mocked<Logger>;
-    
+    let mockExtensionContext: vscode.ExtensionContext;
+    let mockConversationService: jest.Mocked<ConversationMemoryService>;
+    let mockUserPreferencesService: jest.Mocked<UserPreferencesService>;
+    let mockFilePreferencesService: jest.Mocked<FilePreferencesService>;
+    let mockAnalysisService: jest.Mocked<ContextAnalysisService>;
+
     beforeEach(() => {
-        mockWorkspaceManager = new WorkspaceManager() as jest.Mocked<WorkspaceManager>;
-        mockLogger = {
-            debug: jest.fn(),
-            info: jest.fn(),
-            warn: jest.fn(),
-            error: jest.fn()
-        } as unknown as jest.Mocked<Logger>;
-        
-        contextManager = new ContextManager(mockWorkspaceManager, mockLogger);
-        
-        // Adding missing methods to support tests
-        contextManager.initialize = jest.fn().mockResolvedValue(undefined);
-        contextManager.addMessage = jest.fn();
-        contextManager.clearAllContextData = jest.fn();
+        // Reset singleton instance
+        (ContextManager as any).instance = undefined;
+
+        // Create mock extension context
+        mockExtensionContext = {
+            subscriptions: [],
+            extensionPath: '/test/path',
+            storageUri: { fsPath: '/test/storage' } as any,
+            globalState: {
+                get: jest.fn(),
+                update: jest.fn().mockResolvedValue(undefined),
+                keys: jest.fn().mockReturnValue([])
+            } as any,
+            workspaceState: {
+                get: jest.fn(),
+                update: jest.fn().mockResolvedValue(undefined),
+                keys: jest.fn().mockReturnValue([])
+            } as any,
+            globalStorageUri: { fsPath: '/test/global-storage' } as any,
+            logUri: { fsPath: '/test/logs' } as any,
+            extensionUri: { fsPath: '/test/extension' } as any,
+            asAbsolutePath: jest.fn(path => path)
+        } as vscode.ExtensionContext;
+
+        // Create mock services
+        mockConversationService = {
+            initialize: jest.fn().mockResolvedValue(undefined),
+            addMessage: jest.fn(),
+            clearMessages: jest.fn().mockResolvedValue(undefined)
+        } as any;
+
+        mockUserPreferencesService = {
+            initialize: jest.fn().mockResolvedValue(undefined),
+            clearPreferences: jest.fn().mockResolvedValue(undefined)
+        } as any;
+
+        mockFilePreferencesService = {
+            initialize: jest.fn().mockResolvedValue(undefined),
+            clearPreferences: jest.fn().mockResolvedValue(undefined)
+        } as any;
+
+        mockAnalysisService = {
+            analyzeMessage: jest.fn()
+        } as any;
+
+        // Set up mocked constructors
+        (ConversationMemoryService as jest.Mock).mockImplementation(() => mockConversationService);
+        (UserPreferencesService as jest.Mock).mockImplementation(() => mockUserPreferencesService);
+        (FilePreferencesService as jest.Mock).mockImplementation(() => mockFilePreferencesService);
+        (ContextAnalysisService as jest.Mock).mockImplementation(() => mockAnalysisService);
+
+        contextManager = ContextManager.getInstance(mockExtensionContext);
     });
-    
+
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    describe('initialization', () => {
-        test('should initialize successfully', async () => {
-            await contextManager.initialize();
-            expect(contextManager.initialize).toHaveBeenCalled();
-        });
-
-        test('should handle initialization errors', async () => {
-            (contextManager.initialize as jest.Mock).mockRejectedValue(new Error('Init error'));
-            await expect(contextManager.initialize()).rejects.toThrow('Init error');
+    describe('Singleton Pattern', () => {
+        it('should maintain a single instance', () => {
+            const instance1 = ContextManager.getInstance(mockExtensionContext);
+            const instance2 = ContextManager.getInstance(mockExtensionContext);
+            expect(instance1).toBe(instance2);
         });
     });
 
-    describe('message handling', () => {
-        const testMessage: ConversationMessage = {
-            id: '123',
-            role: 'user',
-            content: 'Test message in typescript using react',
-            timestamp: Date.now()
-        };
+    describe('Initialization', () => {
+        it('should initialize all services successfully', async () => {
+            await contextManager.initialize();
 
-        it('should add message and extract preferences', () => {
-            contextManager.addMessage(testMessage);
+            expect(mockConversationService.initialize).toHaveBeenCalled();
+            expect(mockUserPreferencesService.initialize).toHaveBeenCalled();
+            expect(mockFilePreferencesService.initialize).toHaveBeenCalled();
+        });
+
+        it('should handle initialization errors', async () => {
+            const error = new Error('Init failed');
+            mockConversationService.initialize.mockRejectedValue(error);
+
+            await expect(contextManager.initialize()).rejects.toThrow('Failed to initialize context manager: Init failed');
+        });
+    });
+
+    describe('Message Handling', () => {
+        it('should process user messages and extract preferences', () => {
+            const message: Message = {
+                role: MessageType.User,
+                content: 'Help with TypeScript React component',
+                timestamp: Date.now()
+            };
+
+            contextManager.addMessage(message);
+
+            expect(mockConversationService.addMessage).toHaveBeenCalledWith(message);
+            expect(mockAnalysisService.analyzeMessage).toHaveBeenCalledWith(
+                message.content,
+                mockUserPreferencesService,
+                mockFilePreferencesService
+            );
+
             expect(contextManager.getPreferredLanguage()).toBe('typescript');
             expect(contextManager.getPreferredFramework()).toBe('react');
         });
 
         it('should not analyze non-user messages', () => {
-            const assistantMessage: ConversationMessage = {
-                ...testMessage,
-                role: 'assistant'
+            const message: Message = {
+                role: MessageType.Assistant,
+                content: 'Here is help with TypeScript',
+                timestamp: Date.now()
             };
-            contextManager.addMessage(assistantMessage);
-            expect(contextManager.getPreferredLanguage()).toBeUndefined();
+
+            contextManager.addMessage(message);
+
+            expect(mockConversationService.addMessage).toHaveBeenCalledWith(message);
+            expect(mockAnalysisService.analyzeMessage).not.toHaveBeenCalled();
         });
     });
 
-    describe('language preferences', () => {
-        it('should detect language preferences from messages', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Help me with this Python code',
+    describe('Context Building', () => {
+        it('should build context string with all preferences', () => {
+            const userMessage: Message = {
+                role: MessageType.User,
+                content: 'Help with TypeScript React component in src/components',
                 timestamp: Date.now()
-            });
+            };
 
-            expect(contextManager.getPreferredLanguage()).toBe('python');
-        });
+            contextManager.addMessage(userMessage);
 
-        it('should track multiple language usages', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'JavaScript code',
-                timestamp: Date.now()
-            });
-
-            contextManager.addMessage({
-                id: '2',
-                role: 'user',
-                content: 'More JavaScript',
-                timestamp: Date.now()
-            });
-
-            const frequentLangs = contextManager.getFrequentLanguages(1);
-            expect(frequentLangs[0].language).toBe('javascript');
-            expect(frequentLangs[0].count).toBe(2);
+            const contextString = contextManager.buildContextString();
+            expect(contextString).toContain('Preferred Language: Typescript');
+            expect(contextString).toContain('Framework: React');
+            expect(contextString).toContain('Project Directories: src, components');
         });
     });
 
-    describe('file preferences', () => {
-        it('should detect file extensions from messages', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Open the file test.ts',
+    describe('Preference Management', () => {
+        it('should extract and store file preferences', () => {
+            const message: Message = {
+                role: MessageType.User,
+                content: 'Looking at files in src/components/UserService.ts and utils/helpers.js',
                 timestamp: Date.now()
-            });
+            };
+
+            contextManager.addMessage(message);
 
             const extensions = contextManager.getRecentFileExtensions();
             expect(extensions).toContain('ts');
-        });
+            expect(extensions).toContain('js');
 
-        it('should detect directory preferences', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Look in the src/components directory',
-                timestamp: Date.now()
-            });
-
-            const dirs = contextManager.getRecentDirectories();
-            expect(dirs).toContain('src/components');
-        });
-
-        it('should detect file naming patterns', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Name it like test.component.ts',
-                timestamp: Date.now()
-            });
+            const directories = contextManager.getRecentDirectories();
+            expect(directories).toContain('src');
+            expect(directories).toContain('components');
+            expect(directories).toContain('utils');
 
             const patterns = contextManager.getFileNamingPatterns();
-            expect(patterns).toContain('test.component.ts');
+            expect(patterns).toContain('service');
         });
     });
 
-    describe('context building', () => {
-        it('should build context string with all preferences', () => {
-            // Add messages to set up preferences
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Help with TypeScript React component in src/components',
-                timestamp: Date.now()
-            });
-
-            const contextString = contextManager.buildContextString();
-            expect(contextString).toContain('TypeScript');
-            expect(contextString).toContain('React');
-            expect(contextString).toContain('src/components');
-        });
-    });
-
-    describe('suggestions', () => {
-        it('should generate context-aware suggestions', () => {
-            // Set up context first
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Help with React components',
-                timestamp: Date.now()
-            });
-
-            const suggestions = contextManager.generateSuggestions('component');
-            expect(suggestions).toContain('Create a new component');
-            expect(suggestions).toContain('Add component styles');
-        });
-
-        it('should include framework-specific suggestions', () => {
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
-                content: 'Help with React state management',
-                timestamp: Date.now()
-            });
-
-            const suggestions = contextManager.generateSuggestions('state');
-            expect(suggestions).toContain('Add state management with Redux/Context');
-        });
-    });
-
-    describe('data clearing', () => {
+    describe('Context Clearing', () => {
         it('should clear all context data', async () => {
-            // Set up some data first
-            contextManager.addMessage({
-                id: '1',
-                role: 'user',
+            const message: Message = {
+                role: MessageType.User,
                 content: 'TypeScript React code',
                 timestamp: Date.now()
-            });
+            };
 
-            await contextManager.clearAllContextData();
+            contextManager.addMessage(message);
+            await contextManager.clearContext();
 
             expect(contextManager.getPreferredLanguage()).toBeUndefined();
             expect(contextManager.getPreferredFramework()).toBeUndefined();
             expect(contextManager.getRecentFileExtensions()).toHaveLength(0);
+            expect(mockConversationService.clearMessages).toHaveBeenCalled();
+            expect(mockUserPreferencesService.clearPreferences).toHaveBeenCalled();
+            expect(mockFilePreferencesService.clearPreferences).toHaveBeenCalled();
         });
+    });
 
-        it('should handle errors during clearing', async () => {
-            (mockContext.globalState.update as jest.Mock).mockRejectedValue(new Error('Clear error'));
-            await expect(contextManager.clearAllContextData()).rejects.toThrow('Failed to clear context data: Clear error');
+    describe('Resource Management', () => {
+        it('should dispose of all resources', () => {
+            const disposableMock = { dispose: jest.fn() };
+            (contextManager as any).disposables = [disposableMock, disposableMock];
+
+            contextManager.dispose();
+
+            expect(disposableMock.dispose).toHaveBeenCalledTimes(2);
+            expect((contextManager as any).disposables).toHaveLength(0);
         });
     });
 });

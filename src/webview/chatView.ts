@@ -1,23 +1,23 @@
 import * as vscode from 'vscode';
-import { ChatManager } from '../services/ChatManager';
+import { ILLMChatManager, IChatSession, IChatErrorEvent } from '../models';
 import { Logger } from '../utils/logger';
-import { Theme } from '../services/ui/themes/interfaces';
-import { ThemeManager } from '../services/ui/themeManager';
+import { ITheme } from '../services/ui/themes/interfaces';
+import { ThemeService } from '../services/ui/themeService';
 
 export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'copilotPPA.chatView';
     private view?: vscode.WebviewView;
-    private currentSession?: ChatSession;
+    private currentSession?: IChatSession;
     private readonly logger: Logger;
-    private readonly themeManager: ThemeManager;
+    private readonly themeService: ThemeService;
     private disposables: vscode.Disposable[] = [];
 
     constructor(
         private readonly extensionUri: vscode.Uri,
-        private readonly chatManager: LLMChatManager
+        private readonly chatManager: ILLMChatManager
     ) {
-        this.logger = Logger.getInstance();
-        this.themeManager = ThemeManager.getInstance();
+        this.logger = new Logger('ChatView');
+        this.themeService = ThemeService.getInstance();
         this.setupEventListeners();
     }
 
@@ -46,9 +46,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
         this.disposables.push(
             this.chatManager.onMessageHandled(() => this.updateMessages()),
             this.chatManager.onHistoryCleared(() => this.updateMessages()),
-            this.chatManager.onError((event) => this.handleError(event)),
+            this.chatManager.onError((event: IChatErrorEvent) => this.handleError(event)),
             this.chatManager.onConnectionStatusChanged(() => this.updateConnectionStatus()),
-            this.themeManager.onThemeChanged(() => this.updateTheme())
+            this.themeService.onThemeChanged(() => this.updateTheme())
         );
     }
 
@@ -97,11 +97,34 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
                     case 'createSnippet':
                         await this.createSnippet(message.code, message.language);
                         break;
+                        
+                    case 'continueIteration':
+                        await this.handleContinueIteration();
+                        break;
                 }
             } catch (error) {
                 this.handleError({ error });
             }
         });
+    }
+
+    private showContinuePrompt(): void {
+        if (!this.view) {
+            return;
+        }
+
+        this.view.webview.postMessage({
+            type: 'showContinuePrompt',
+            message: 'Continue to iterate?'
+        });
+    }
+
+    private async handleContinueIteration(): Promise<void> {
+        if (!this.currentSession) {
+            return;
+        }
+
+        await this.handleMessage('Continue');
     }
 
     private async handleMessage(content: string): Promise<void> {
@@ -113,6 +136,12 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
             this.currentSession.id,
             content
         );
+
+        // Show continue prompt after certain messages
+        if (content.toLowerCase().includes('continue') || 
+            content.toLowerCase().includes('iterate')) {
+            this.showContinuePrompt();
+        }
     }
 
     private async clearChat(): Promise<void> {
@@ -160,14 +189,14 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        const theme = this.themeManager.getCurrentTheme();
+        const theme = this.themeService.currentTheme;
         this.view.webview.postMessage({
             type: 'updateTheme',
             theme
         });
     }
 
-    private handleError(event: ChatErrorEvent): void {
+    private handleError(event: IChatErrorEvent): void {
         const errorMessage = event.error instanceof Error ? 
             event.error.message : 
             String(event.error);
@@ -186,7 +215,7 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     private getWebviewContent(): string {
         const cssUri = this.getResourceUri('chat.css');
         const jsUri = this.getResourceUri('chat.js');
-        const theme = this.themeManager.getCurrentTheme();
+        const theme = this.themeService.currentTheme;
 
         return `<!DOCTYPE html>
             <html>
@@ -207,6 +236,14 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
                     </div>
 
                     <div id="messages" class="messages"></div>
+
+                    <div class="continue-prompt" style="display: none;">
+                        <div class="continue-message">Continue to iterate?</div>
+                        <div class="continue-actions">
+                            <button id="btn-continue-yes" class="btn-continue">Yes</button>
+                            <button id="btn-continue-no" class="btn-continue">No</button>
+                        </div>
+                    </div>
 
                     <div class="error-container" style="display: none;">
                         <div class="error-message"></div>

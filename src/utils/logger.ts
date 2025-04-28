@@ -1,85 +1,48 @@
 import * as vscode from 'vscode';
 
-export enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3
-}
-
-export class LoggerImpl {
-    private static instance: LoggerImpl;
+export class Logger {
+    private static instance: Logger;
     private outputChannel: vscode.OutputChannel;
-    private currentLogLevel: LogLevel = LogLevel.INFO;
 
-    private constructor(outputChannel: vscode.OutputChannel) {
-        this.outputChannel = outputChannel;
+    constructor(private readonly scope: string) {
+        this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
     }
 
-    public static getInstance(outputChannel?: vscode.OutputChannel): LoggerImpl {
-        if (!LoggerImpl.instance && outputChannel) {
-            LoggerImpl.instance = new LoggerImpl(outputChannel);
+    public static getInstance(): Logger {
+        if (!Logger.instance) {
+            Logger.instance = new Logger('Global');
         }
-        
-        if (!LoggerImpl.instance) {
-            throw new Error("Logger not initialized. Provide outputChannel when getting instance for the first time.");
-        }
-        
-        return LoggerImpl.instance;
+        return Logger.instance;
     }
 
-    public setLogLevel(level: LogLevel): void {
-        this.currentLogLevel = level;
+    public debug(message: string, data?: any): void {
+        this.log('DEBUG', message, data);
     }
 
-    public debug(message: string, context?: Record<string, unknown>): void {
-        this.log(LogLevel.DEBUG, message, context);
+    public info(message: string, data?: any): void {
+        this.log('INFO', message, data);
     }
 
-    public info(message: string, context?: Record<string, unknown>): void {
-        this.log(LogLevel.INFO, message, context);
+    public warn(message: string, data?: any): void {
+        this.log('WARN', message, data);
     }
 
-    public warn(message: string, context?: Record<string, unknown>): void {
-        this.log(LogLevel.WARN, message, context);
+    public error(message: string, data?: any): void {
+        this.log('ERROR', message, data);
     }
 
-    public error(message: string, error?: Error, context?: Record<string, unknown>): void {
-        const errorContext = error ? { 
-            ...context, 
-            error: error.message,
-            stack: error.stack 
-        } : context;
-        
-        this.log(LogLevel.ERROR, message, errorContext);
-    }
-
-    private log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
-        if (level < this.currentLogLevel) {
-            return;
-        }
-        
+    private log(level: string, message: string, data?: any): void {
         const timestamp = new Date().toISOString();
-        const levelName = LogLevel[level];
+        const logMessage = `[${timestamp}] [${level}] [${this.scope}] ${message}`;
         
-        let logMessage = `[${timestamp}] [${levelName}] ${message}`;
-        
-        if (context) {
-            try {
-                logMessage += `\nContext: ${JSON.stringify(context)}`;
-            } catch (e) {
-                logMessage += '\nContext: [Cannot stringify context]';
-            }
+        if (data) {
+            this.outputChannel.appendLine(`${logMessage}\n${JSON.stringify(data, null, 2)}`);
+        } else {
+            this.outputChannel.appendLine(logMessage);
         }
-        
-        this.outputChannel.appendLine(logMessage);
-        
-        // Also log errors to console during development
-        if (level === LogLevel.ERROR) {
-            console.error(message, context);
-        }
+    }
+
+    public dispose(): void {
+        this.outputChannel.dispose();
     }
 }
-
-// For backward compatibility
-export const Logger = LoggerImpl;
