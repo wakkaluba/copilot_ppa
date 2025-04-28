@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    // ...existing scripts...
+    "fix-timestamp": "node tools/fix-timestamp-errors.js",
+    "fix-uri": "node tools/fix-uri-errors.js",
+    "fix-all": "node tools/fix-all.js"
+    // ...existing scripts...
+  }
+}

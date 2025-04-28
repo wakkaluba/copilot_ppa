@@ -11,6 +11,9 @@ describe('CommandParser Tests', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         
+        // Reset the CommandParser instance before each test
+        CommandParser.resetInstance();
+        
         // Create stub for WorkspaceManager
         workspaceManagerStub = sandbox.createStubInstance(WorkspaceManager);
         

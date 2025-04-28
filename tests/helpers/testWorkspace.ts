@@ -129,6 +129,14 @@ export class TestWorkspace {
    */
   async deleteFile(relativePath: string): Promise<void> {
     const fullPath = path.join(this.workspacePath, relativePath);
-    await fs.unlink(fullPath);
+    try {
+      await fs.unlink(fullPath);
+    } catch (error) {
+      // If file doesn't exist, that's okay in testing scenarios
+      // Only rethrow if it's not a "file not found" error
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
   }
 }

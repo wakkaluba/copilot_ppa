@@ -1,110 +1,57 @@
 import * as vscode from 'vscode';
-import { PromptManager } from './PromptManager';
-import { ContextManager } from './ContextManager';
-import { CommandParser } from './CommandParser';
-import { ConversationManager } from './conversationManager';
+import { PromptManager } from './promptManager';
+import { LLMProvider } from '../llm/llmProvider';
+import { WorkspaceManager } from './workspaceManager';
+import { ContextManager } from './contextManager';
 
 export class CoreAgent {
-    private static instance: CoreAgent;
     private promptManager: PromptManager;
+    private llmProvider: LLMProvider;
+    private workspaceManager: WorkspaceManager;
     private contextManager: ContextManager;
-    private commandParser: CommandParser;
-    private conversationManager: ConversationManager;
-    private status: 'idle' | 'processing' | 'error' = 'idle';
 
-    private constructor() {
-        this.promptManager = PromptManager.getInstance();
-        this.contextManager = ContextManager.getInstance();
-        this.commandParser = CommandParser.getInstance();
-        this.conversationManager = ConversationManager.getInstance();
+    constructor(
+        context: vscode.ExtensionContext,
+        contextManager: ContextManager,
+        llmProvider?: LLMProvider,
+        workspaceManager?: WorkspaceManager,
+        promptManager?: PromptManager
+    ) {
+        this.contextManager = contextManager;
+        this.llmProvider = llmProvider || new LLMProvider();
+        this.workspaceManager = workspaceManager || WorkspaceManager.getInstance();
+        this.promptManager = promptManager || new PromptManager(this.contextManager);
     }
 
-    static getInstance(): CoreAgent {
-        if (!this.instance) {
-            this.instance = new CoreAgent();
-        }
-        return this.instance;
-    }
-
-    async processInput(input: string): Promise<void> {
+    async processInput(input: string): Promise<{ response: any }> {
         try {
-            this.status = 'processing';
-            
-            // Get conversation context
-            const context = await this.contextManager.buildContext(
-                'current',
-                input
-            );
-
-            // Generate prompt based on input and context
-            const prompt = this.promptManager.generatePrompt('agent-task', {
-                input,
-                context: context.join('\n')
-            });
-
-            // Process the response (assuming LLM response is received)
-            await this.handleResponse(prompt);
-
-            this.status = 'idle';
+            const enhancedPrompt = this.promptManager.createPrompt(input);
+            const response = await this.llmProvider.generateResponse(enhancedPrompt);
+            return { response };
         } catch (error) {
-            this.status = 'error';
-            throw error;
+            this.contextManager.addMessage({
+                role: 'system',
+                content: `Error: ${error.message}`,
+                timestamp: new Date()
+            });
+            throw new Error(`Failed to process input: ${error.message}`);
         }
     }
 
-    private async handleResponse(response: string): Promise<void> {
-        // Check for commands in response
-        if (response.includes('#')) {
-            const commands = response.match(/#\w+\([^)]+\)/g) || [];
-            for (const command of commands) {
-                await this.commandParser.parseAndExecute(command);
-            }
-        }
-
-        // Update conversation history
-        await this.conversationManager.addMessage('assistant', response);
+    getSuggestions(input: string): string[] {
+        return this.contextManager.generateSuggestions(input);
     }
 
-    async analyzeCode(code: string, context?: string): Promise<string> {
-        const prompt = this.promptManager.generatePrompt('analyze-code', {
-            code,
-            context: context || ''
-        });
-        // Process with LLM and return analysis
-        return prompt; // Placeholder
-    }
-
-    async suggestImprovements(code: string): Promise<string> {
-        const prompt = this.promptManager.generatePrompt('suggest-improvements', {
-            code
-        });
-        // Process with LLM and return suggestions
-        return prompt; // Placeholder
-    }
-
-    async continueCodingIteration(): Promise<void> {
+    async clearContext(): Promise<void> {
         try {
-            this.status = 'processing';
-            
-            // Get the current conversation context
-            const context = await this.contextManager.buildContext('current', 'continue iteration');
-            
-            // Generate continuation prompt
-            const prompt = this.promptManager.generatePrompt('continue-iteration', {
-                context: context.join('\n')
-            });
-
-            // Process the response
-            await this.handleResponse(prompt);
-            
-            this.status = 'idle';
+            await this.contextManager.clearAllContextData();
         } catch (error) {
-            this.status = 'error';
-            throw error;
+            throw new Error(`Failed to clear context: ${error.message}`);
         }
     }
 
-    getStatus(): string {
-        return this.status;
+    dispose(): void {
+        // Clean up resources
+        this.llmProvider.dispose?.();
     }
 }

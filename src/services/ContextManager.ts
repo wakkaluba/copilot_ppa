@@ -1,139 +1,266 @@
 import * as vscode from 'vscode';
-import { ConversationService } from './conversation/ConversationService';
-import { FileStorageService } from './storage/FileStorageService';
-import { WorkspaceStateService } from './workspace/WorkspaceStateService';
-import { 
-    ContextData, 
-    WorkspaceContext, 
-    ContextOptions,
-    ContextMetadata 
-} from './types/context';
 
-/**
- * Manages context across the application with proper state management and persistence
- */
-export class ContextManager implements vscode.Disposable {
+interface Message {
+    role: string;
+    content: string;
+    timestamp: Date;
+}
+
+interface Context {
+    id: string;
+    messages: Message[];
+    preferences: {
+        language?: string;
+        framework?: string;
+        fileExtensions: string[];
+        directories: string[];
+        namingPatterns: string[];
+    };
+}
+
+export class ContextManager {
     private static instance: ContextManager;
-    private readonly conversationService: ConversationService;
-    private readonly fileStorage: FileStorageService;
-    private readonly workspaceState: WorkspaceStateService;
-    private readonly contextCache = new Map<string, ContextData>();
-    private readonly eventEmitter = new vscode.EventEmitter<ContextData>();
+    private contexts: Map<string, Context>;
+    private maxWindowSize: number = 10;
+    private relevanceThreshold: number = 0.5;
+    private disposables: vscode.Disposable[] = [];
 
-    public readonly onDidChangeContext = this.eventEmitter.event;
-
-    private constructor(
-        private readonly context: vscode.ExtensionContext,
-        private readonly options: ContextOptions = {}
-    ) {
-        this.conversationService = new ConversationService(context);
-        this.fileStorage = new FileStorageService(context);
-        this.workspaceState = new WorkspaceStateService(context);
-        this.setupEventHandlers();
+    private constructor() {
+        this.contexts = new Map();
+        this.disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(this.onWorkspaceFoldersChanged.bind(this)));
     }
 
-    static getInstance(context?: vscode.ExtensionContext, options?: ContextOptions): ContextManager {
-        if (!ContextManager.instance && context) {
-            ContextManager.instance = new ContextManager(context, options);
+    static getInstance(): ContextManager {
+        if (!ContextManager.instance) {
+            ContextManager.instance = new ContextManager();
         }
         return ContextManager.instance;
     }
 
-    private setupEventHandlers(): void {
-        vscode.workspace.onDidChangeWorkspaceFolders(() => this.handleWorkspaceChange());
-        vscode.window.onDidChangeActiveTextEditor(() => this.handleActiveFileChange());
+    // For testing purposes
+    static resetInstance(): void {
+        ContextManager.instance = undefined as any;
     }
 
-    async initialize(): Promise<void> {
-        try {
-            await Promise.all([
-                this.conversationService.initialize(),
-                this.fileStorage.initialize(),
-                this.workspaceState.initialize()
-            ]);
-            await this.loadPersistedContext();
-        } catch (error) {
-            console.error('Failed to initialize ContextManager:', error);
-            throw new Error('Context initialization failed');
+    createContext(id: string): Context {
+        const context: Context = {
+            id,
+            messages: [],
+            preferences: {
+                language: undefined,
+                framework: undefined,
+                fileExtensions: [],
+                directories: [],
+                namingPatterns: []
+            }
+        };
+        this.contexts.set(id, context);
+        return context;
+    }
+
+    getContext(id: string): Context {
+        let context = this.contexts.get(id);
+        if (!context) {
+            context = this.createContext(id);
+        }
+        return context;
+    }
+
+    updateContext(id: string, update: Partial<{ messageContent: string, activeFile: string }>): void {
+        const context = this.getContext(id);
+        
+        if (update.messageContent) {
+            this.addMessage({
+                role: 'user',
+                content: update.messageContent,
+                timestamp: new Date()
+            });
+            
+            // Extract preferences
+            this.extractLanguagePreferences(update.messageContent);
+            this.extractFilePreferences(update.messageContent);
+        }
+        
+        if (update.activeFile) {
+            this.trackActiveFile(update.activeFile);
         }
     }
 
-    async getContext(id: string): Promise<ContextData | undefined> {
-        if (!this.contextCache.has(id)) {
-            const persisted = await this.fileStorage.loadContext(id);
-            if (persisted) {
-                this.contextCache.set(id, persisted);
+    addMessage(message: Message): void {
+        const context = this.getContext('default');
+        context.messages.push(message);
+        
+        // Keep only the last N messages to limit context window
+        if (context.messages.length > this.maxWindowSize) {
+            context.messages.shift();
+        }
+        
+        // Extract preferences
+        this.extractLanguagePreferences(message.content);
+        this.extractFilePreferences(message.content);
+    }
+
+    extractLanguagePreferences(content: string): void {
+        // Simplified language detection
+        const languages = [
+            { name: 'typescript', aliases: ['ts', 'typescript', 'tsx'] },
+            { name: 'javascript', aliases: ['js', 'javascript', 'jsx'] },
+            { name: 'python', aliases: ['py', 'python'] },
+            { name: 'java', aliases: ['java'] },
+            { name: 'csharp', aliases: ['c#', 'csharp', 'cs'] }
+        ];
+        
+        for (const lang of languages) {
+            if (lang.aliases.some(alias => content.toLowerCase().includes(alias))) {
+                const context = this.getContext('default');
+                context.preferences.language = lang.name;
+                break;
             }
         }
-        return this.contextCache.get(id);
-    }
-
-    async updateContext(id: string, data: Partial<ContextData>): Promise<void> {
-        const existing = await this.getContext(id) || {};
-        const updated = { ...existing, ...data, updatedAt: Date.now() };
-        this.contextCache.set(id, updated);
-        await this.fileStorage.saveContext(id, updated);
-        this.eventEmitter.fire(updated);
-    }
-
-    async getWorkspaceContext(workspaceId: string): Promise<WorkspaceContext> {
-        return this.workspaceState.getWorkspaceContext(workspaceId);
-    }
-
-    async updateWorkspaceContext(workspaceId: string, context: Partial<WorkspaceContext>): Promise<void> {
-        await this.workspaceState.updateWorkspaceContext(workspaceId, context);
-    }
-
-    private async handleWorkspaceChange(): Promise<void> {
-        const workspaces = vscode.workspace.workspaceFolders || [];
-        await Promise.all(
-            workspaces.map(workspace => 
-                this.workspaceState.initializeWorkspace(workspace.uri.toString())
-            )
-        );
-    }
-
-    private async handleActiveFileChange(): Promise<void> {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            const fileContext = {
-                path: editor.document.uri.toString(),
-                language: editor.document.languageId,
-                lastAccessed: Date.now()
-            };
-            await this.workspaceState.updateActiveFile(fileContext);
+        
+        // Framework detection
+        const frameworks = [
+            { name: 'react', language: 'typescript', aliases: ['react', 'jsx', 'tsx'] },
+            { name: 'angular', language: 'typescript', aliases: ['angular', 'ng'] },
+            { name: 'vue', language: 'javascript', aliases: ['vue'] },
+            { name: 'django', language: 'python', aliases: ['django'] },
+            { name: 'laravel', language: 'php', aliases: ['laravel'] }
+        ];
+        
+        for (const framework of frameworks) {
+            if (framework.aliases.some(alias => content.toLowerCase().includes(alias))) {
+                const context = this.getContext('default');
+                context.preferences.framework = framework.name;
+                context.preferences.language = framework.language;
+                break;
+            }
         }
     }
 
-    private async loadPersistedContext(): Promise<void> {
-        const contexts = await this.fileStorage.loadAllContexts();
-        contexts.forEach(({ id, data }) => this.contextCache.set(id, data));
+    extractFilePreferences(content: string): void {
+        const context = this.getContext('default');
+        
+        // Extract file extensions
+        const extMatch = content.match(/\.(ts|js|py|java|cs|tsx|jsx|html|css|scss|json|md|yml|yaml)\b/g);
+        if (extMatch) {
+            extMatch.forEach(ext => {
+                const cleanExt = ext.substring(1); // Remove the dot
+                if (!context.preferences.fileExtensions.includes(cleanExt)) {
+                    context.preferences.fileExtensions.push(cleanExt);
+                }
+            });
+        }
+        
+        // Extract directories
+        const dirMatch = content.match(/(?:^|\s)(src\/\w+|src\/\w+\/\w+|\w+\/\w+)\b/g);
+        if (dirMatch) {
+            dirMatch.forEach(dir => {
+                const cleanDir = dir.trim();
+                if (!context.preferences.directories.includes(cleanDir)) {
+                    context.preferences.directories.push(cleanDir);
+                }
+            });
+        }
+        
+        // Extract naming patterns
+        const patternMatch = content.match(/\w+\.\w+\.\w+|\w+[-_]\w+[-_]\w+/g);
+        if (patternMatch) {
+            patternMatch.forEach(pattern => {
+                if (!context.preferences.namingPatterns.includes(pattern)) {
+                    context.preferences.namingPatterns.push(pattern);
+                }
+            });
+        }
     }
 
-    async getAllContextMetadata(): Promise<ContextMetadata[]> {
-        return Array.from(this.contextCache.entries()).map(([id, data]) => ({
-            id,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-            type: data.type
-        }));
+    trackActiveFile(filePath: string): void {
+        const context = this.getContext('default');
+        const extension = filePath.split('.').pop();
+        if (extension && !context.preferences.fileExtensions.includes(extension)) {
+            context.preferences.fileExtensions.push(extension);
+        }
     }
 
-    async clearContext(id: string): Promise<void> {
-        this.contextCache.delete(id);
-        await this.fileStorage.deleteContext(id);
+    buildContextString(): string {
+        const context = this.getContext('default');
+        let contextString = '';
+        
+        if (context.preferences.language) {
+            contextString += `Using ${context.preferences.language} language. `;
+        }
+        
+        if (context.preferences.framework) {
+            contextString += `Working with the ${context.preferences.framework} framework. `;
+        }
+        
+        if (context.preferences.fileExtensions.length > 0) {
+            contextString += `Working with files of types: ${context.preferences.fileExtensions.join(', ')}. `;
+        }
+        
+        if (context.preferences.directories.length > 0) {
+            contextString += `Relevant directories: ${context.preferences.directories.join(', ')}. `;
+        }
+        
+        return contextString;
     }
 
-    async clearAllContexts(): Promise<void> {
-        this.contextCache.clear();
-        await this.fileStorage.clearAllContexts();
-        await this.workspaceState.clearAllWorkspaces();
+    generateSuggestions(input: string): string[] {
+        const context = this.getContext('default');
+        const suggestions: string[] = [];
+        
+        if (context.preferences.framework === 'react') {
+            suggestions.push('Create a new component', 'Set up React Router', 'Add state management with Redux/Context');
+        } else if (context.preferences.framework === 'angular') {
+            suggestions.push('Generate a new service', 'Create a module', 'Add Angular Material');
+        } else if (context.preferences.language === 'python') {
+            suggestions.push('Create a new function', 'Set up virtual environment', 'Add unit tests');
+        }
+        
+        return suggestions;
+    }
+
+    async clearAllContextData(): Promise<void> {
+        this.contexts.clear();
+    }
+
+    getConversationHistory(): Message[] {
+        return this.getContext('default').messages;
+    }
+
+    setMaxWindowSize(size: number): void {
+        this.maxWindowSize = size;
+    }
+
+    setRelevanceThreshold(threshold: number): void {
+        this.relevanceThreshold = threshold;
+    }
+
+    getPreferredLanguage(): string | undefined {
+        return this.getContext('default').preferences.language;
+    }
+
+    getPreferredFramework(): string | undefined {
+        return this.getContext('default').preferences.framework;
+    }
+
+    getRecentFileExtensions(): string[] {
+        return this.getContext('default').preferences.fileExtensions;
+    }
+
+    getRecentDirectories(): string[] {
+        return this.getContext('default').preferences.directories;
+    }
+
+    getFileNamingPatterns(): string[] {
+        return this.getContext('default').preferences.namingPatterns;
+    }
+
+    private onWorkspaceFoldersChanged(): void {
+        // Handle workspace changes
     }
 
     dispose(): void {
-        this.eventEmitter.dispose();
-        this.conversationService.dispose();
-        this.fileStorage.dispose();
-        this.workspaceState.dispose();
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
     }
 }

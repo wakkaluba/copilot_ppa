@@ -87,9 +87,23 @@ jest.mock('vscode', () => ({
             dispose: jest.fn()
         }),
         activeTextEditor: undefined,
-        onDidChangeActiveTextEditor: createMockEventEmitter<any>().event,
-        onDidChangeVisibleTextEditors: createMockEventEmitter<any[]>().event,
+        activeColorTheme: {
+            kind: 2, // Default to dark theme
+            name: 'Dark Theme'
+        },
+        onDidChangeActiveTextEditor: jest.fn(),
+        onDidChangeVisibleTextEditors: jest.fn(),
+        onDidChangeActiveColorTheme: jest.fn(callback => {
+            // Return a disposable
+            return { dispose: jest.fn() };
+        }),
         withProgress: jest.fn()
+    },
+    ColorThemeKind: {
+        Light: 1,
+        Dark: 2,
+        HighContrast: 3,
+        HighContrastLight: 4
     },
     languages: {
         createDiagnosticCollection: jest.fn(),
