@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 /**
  * Service for managing file type preferences
  */
 export class FilePreferencesService {
     private fileExtensions: Map<string, number> = new Map();
+    private directories: Map<string, number> = new Map();
+    private namingPatterns: Map<string, number> = new Map();
     private context: vscode.ExtensionContext;
 
     /**
@@ -24,9 +27,23 @@ export class FilePreferencesService {
         if (storedPrefs) {
             try {
                 const parsedPrefs = JSON.parse(storedPrefs as string);
-                Object.entries(parsedPrefs).forEach(([key, value]) => {
-                    this.fileExtensions.set(key, value as number);
-                });
+                if (parsedPrefs.extensions) {
+                    Object.entries(parsedPrefs.extensions).forEach(([key, value]) => {
+                        this.fileExtensions.set(key, value as number);
+                    });
+                }
+                
+                if (parsedPrefs.directories) {
+                    Object.entries(parsedPrefs.directories).forEach(([key, value]) => {
+                        this.directories.set(key, value as number);
+                    });
+                }
+                
+                if (parsedPrefs.namingPatterns) {
+                    Object.entries(parsedPrefs.namingPatterns).forEach(([key, value]) => {
+                        this.namingPatterns.set(key, value as number);
+                    });
+                }
             } catch (error) {
                 console.error('Failed to parse stored file preferences', error);
             }
@@ -48,6 +65,44 @@ export class FilePreferencesService {
     }
 
     /**
+     * Track directory usage
+     * @param filePath Full path to a file
+     */
+    public trackDirectory(filePath: string): void {
+        const directory = path.dirname(filePath);
+        const count = this.directories.get(directory) || 0;
+        this.directories.set(directory, count + 1);
+        
+        // Also track naming pattern
+        this.trackNamingPattern(path.basename(filePath));
+        
+        this.savePreferences();
+    }
+
+    /**
+     * Track file naming pattern
+     * @param fileName Name of the file
+     */
+    private trackNamingPattern(fileName: string): void {
+        // Simple patterns: camelCase, snake_case, kebab-case, PascalCase
+        const patterns = [
+            { name: 'camelCase', regex: /^[a-z][a-zA-Z0-9]*$/ },
+            { name: 'snake_case', regex: /^[a-z][a-z0-9_]*$/ },
+            { name: 'kebab-case', regex: /^[a-z][a-z0-9-]*$/ },
+            { name: 'PascalCase', regex: /^[A-Z][a-zA-Z0-9]*$/ }
+        ];
+        
+        const baseName = path.parse(fileName).name;
+        for (const { name, regex } of patterns) {
+            if (regex.test(baseName)) {
+                const count = this.namingPatterns.get(name) || 0;
+                this.namingPatterns.set(name, count + 1);
+                break;
+            }
+        }
+    }
+
+    /**
      * Get most frequently used file extensions
      * @param limit Maximum number of extensions to return
      */
@@ -55,6 +110,26 @@ export class FilePreferencesService {
         return Array.from(this.fileExtensions.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, limit)
+            .map(entry => entry[0]);
+    }
+
+    /**
+     * Get recently used directories
+     * @param limit Maximum number of directories to return
+     */
+    public getRecentDirectories(limit: number = 3): string[] {
+        return Array.from(this.directories.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, limit)
+            .map(entry => entry[0]);
+    }
+
+    /**
+     * Get file naming patterns used by the user
+     */
+    public getNamingPatterns(): string[] {
+        return Array.from(this.namingPatterns.entries())
+            .sort((a, b) => b[1] - a[1])
             .map(entry => entry[0]);
     }
 
@@ -76,6 +151,8 @@ export class FilePreferencesService {
      */
     public async clearPreferences(): Promise<void> {
         this.fileExtensions.clear();
+        this.directories.clear();
+        this.namingPatterns.clear();
         await this.savePreferences();
     }
 
@@ -83,7 +160,12 @@ export class FilePreferencesService {
      * Save preferences to storage
      */
     private async savePreferences(): Promise<void> {
-        const prefsObject = Object.fromEntries(this.fileExtensions.entries());
+        const prefsObject = {
+            extensions: Object.fromEntries(this.fileExtensions.entries()),
+            directories: Object.fromEntries(this.directories.entries()),
+            namingPatterns: Object.fromEntries(this.namingPatterns.entries())
+        };
+        
         await this.context.globalState.update('filePreferences', JSON.stringify(prefsObject));
     }
 }

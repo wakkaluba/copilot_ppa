@@ -5,11 +5,12 @@ suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Starting test suite');
 
 	test('Extension should be present', () => {
-		assert.ok(vscode.extensions.getExtension('vscode-local-llm-agent'));
+		assert.ok(vscode.extensions.getExtension('copilot-ppa'));
 	});
 
-	test('Command should be registered', async () => {
+	test('Commands should be registered', async () => {
 		const commands = await vscode.commands.getCommands();
-		assert.ok(commands.includes('vscode-local-llm-agent.askAgent'));
+		assert.ok(commands.includes('copilot-ppa.start'));
+		assert.ok(commands.includes('copilot-ppa.startAgent') || commands.includes('copilot-ppa.openMenu'));
 	});
 });

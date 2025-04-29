@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 import { BaseLLMProvider, ProviderCapabilities, HealthCheckResult, ProviderState } from './BaseLLMProvider';
 import {
     LLMModelInfo,
@@ -6,9 +6,30 @@ import {
     LLMRequestOptions,
     LLMResponse,
     LLMStreamEvent,
-} from '../../../llm/types';
+} from '../types';
 import { ProviderConfig } from '../validators/ProviderConfigValidator';
-import { ModelError, ProviderError, RequestError } from '../errors';
+
+// Define custom error classes since they're not exported from '../errors'
+class ModelError extends Error {
+    constructor(message: string, public providerId: string, public modelId: string) {
+        super(message);
+        this.name = 'ModelError';
+    }
+}
+
+class ProviderError extends Error {
+    constructor(message: string, public providerId: string, public details?: string) {
+        super(message);
+        this.name = 'ProviderError';
+    }
+}
+
+class RequestError extends Error {
+    constructor(message: string, public providerId: string, public originalError: Error) {
+        super(message);
+        this.name = 'RequestError';
+    }
+}
 
 interface OllamaModelInfo {
     name: string;
@@ -40,8 +61,22 @@ interface OllamaGenerateRequest {
     } | undefined;
 }
 
+// Extend the LLMRequestOptions for Ollama-specific options
+interface OllamaRequestOptions extends LLMRequestOptions {
+    topK?: number;
+    presenceBonus?: number;
+    frequencyBonus?: number;
+    stopSequences?: string[];
+}
+
+// Fix the OllamaStreamEvent interface to properly implement LLMStreamEvent
+interface OllamaStreamEvent {
+    content: string;
+    done: boolean;
+}
+
 export class OllamaProvider extends BaseLLMProvider {
-    private client: AxiosInstance;
+    private client: any; // Use any type instead of AxiosInstance
     private modelDetails = new Map<string, OllamaModelInfo>();
 
     constructor(config: ProviderConfig) {
@@ -71,7 +106,7 @@ export class OllamaProvider extends BaseLLMProvider {
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: new Date()
+                timestamp: Date.now() // Use Date.now() instead of new Date()
             };
         }
     }
@@ -145,7 +180,7 @@ export class OllamaProvider extends BaseLLMProvider {
 
     public async getCapabilities(): Promise<ProviderCapabilities> {
         return {
-            maxContextLength: 4096,
+            maxContextLength: 4096, // Add the required maxContextLength property
             supportsChatCompletion: true,
             supportsStreaming: true,
             supportsSystemPrompts: true
@@ -159,6 +194,7 @@ export class OllamaProvider extends BaseLLMProvider {
         options?: LLMRequestOptions
     ): Promise<LLMResponse> {
         try {
+            const ollamaOptions = options as OllamaRequestOptions;
             const request: OllamaGenerateRequest = {
                 model,
                 prompt,
@@ -167,16 +203,23 @@ export class OllamaProvider extends BaseLLMProvider {
                     options: {
                         ...(options.temperature !== undefined && { temperature: options.temperature }),
                         ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
-                        ...(options.topK !== undefined && { top_k: options.topK }),
-                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
-                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
-                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                        ...(ollamaOptions?.topK !== undefined && { top_k: ollamaOptions.topK }),
+                        ...(ollamaOptions?.presenceBonus !== undefined && { presence_penalty: ollamaOptions.presenceBonus }),
+                        ...(ollamaOptions?.frequencyBonus !== undefined && { frequency_penalty: ollamaOptions.frequencyBonus }),
+                        ...(ollamaOptions?.stopSequences !== undefined && { stop: ollamaOptions.stopSequences })
                     }
                 })
             };
 
             const response = await this.client.post('/api/generate', request);
-            return {
+            
+            // Create complete LLMResponse with all required fields
+            const result: LLMResponse = {
+                id: `ollama-${Date.now()}`, // Add required fields
+                requestId: crypto.randomUUID?.() || `req-${Date.now()}`,
+                model: model,
+                prompt: prompt,
+                timestamp: Date.now(),
                 content: response.data.response,
                 usage: {
                     promptTokens: response.data.prompt_eval_count || 0,
@@ -184,6 +227,8 @@ export class OllamaProvider extends BaseLLMProvider {
                     totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
                 }
             };
+
+            return result;
         } catch (error) {
             throw new RequestError(
                 'Generation failed',
@@ -210,6 +255,7 @@ export class OllamaProvider extends BaseLLMProvider {
         callback?: (event: LLMStreamEvent) => void
     ): Promise<void> {
         try {
+            const ollamaOptions = options as OllamaRequestOptions;
             const request: OllamaGenerateRequest = {
                 model,
                 prompt,
@@ -218,10 +264,10 @@ export class OllamaProvider extends BaseLLMProvider {
                     options: {
                         ...(options.temperature !== undefined && { temperature: options.temperature }),
                         ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
-                        ...(options.topK !== undefined && { top_k: options.topK }),
-                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
-                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
-                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                        ...(ollamaOptions?.topK !== undefined && { top_k: ollamaOptions.topK }),
+                        ...(ollamaOptions?.presenceBonus !== undefined && { presence_penalty: ollamaOptions.presenceBonus }),
+                        ...(ollamaOptions?.frequencyBonus !== undefined && { frequency_penalty: ollamaOptions.frequencyBonus }),
+                        ...(ollamaOptions?.stopSequences !== undefined && { stop: ollamaOptions.stopSequences })
                     }
                 })
             };
@@ -233,9 +279,10 @@ export class OllamaProvider extends BaseLLMProvider {
             for await (const chunk of response.data) {
                 const data = JSON.parse(chunk.toString());
                 if (callback) {
+                    // Convert to standard LLMStreamEvent with required done property
                     callback({
                         content: data.response,
-                        done: data.done
+                        done: !!data.done // Ensure we provide the required 'done' property
                     });
                 }
             }
@@ -263,7 +310,7 @@ export class OllamaProvider extends BaseLLMProvider {
             id: modelId,
             name: info.name,
             provider: this.id,
-            maxContextLength: 4096, // Default for most Ollama models
+            maxContextLength: 4096, // Add required maxContextLength
             parameters: {
                 format: info.details.format,
                 family: info.details.family,

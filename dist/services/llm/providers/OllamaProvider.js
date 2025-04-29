@@ -6,7 +6,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaProvider = void 0;
 const axios_1 = __importDefault(require("axios"));
 const BaseLLMProvider_1 = require("./BaseLLMProvider");
-const errors_1 = require("../errors");
+// Define custom error classes since they're not exported from '../errors'
+class ModelError extends Error {
+    constructor(message, providerId, modelId) {
+        super(message);
+        this.providerId = providerId;
+        this.modelId = modelId;
+        this.name = 'ModelError';
+    }
+}
+class ProviderError extends Error {
+    constructor(message, providerId, details) {
+        super(message);
+        this.providerId = providerId;
+        this.details = details;
+        this.name = 'ProviderError';
+    }
+}
+class RequestError extends Error {
+    constructor(message, providerId, originalError) {
+        super(message);
+        this.providerId = providerId;
+        this.originalError = originalError;
+        this.name = 'RequestError';
+    }
+}
 class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     constructor(config) {
         super('ollama', 'Ollama', config);
@@ -32,7 +56,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                 isHealthy: false,
                 error: error instanceof Error ? error : new Error(String(error)),
                 latency: 0,
-                timestamp: new Date()
+                timestamp: Date.now() // Use Date.now() instead of new Date()
             };
         }
     }
@@ -51,7 +75,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         try {
             const available = await this.isAvailable();
             if (!available) {
-                throw new errors_1.ProviderError('Ollama service is not available', this.id);
+                throw new ProviderError('Ollama service is not available', this.id);
             }
             await this.refreshModels();
             this.setState(BaseLLMProvider_1.ProviderState.Active);
@@ -77,7 +101,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
         }
         catch (error) {
             const errorString = error instanceof Error ? error.message : String(error);
-            throw new errors_1.ProviderError('Failed to fetch models', this.id, errorString);
+            throw new ProviderError('Failed to fetch models', this.id, errorString);
         }
     }
     async getAvailableModels() {
@@ -87,13 +111,13 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     async getModelInfo(modelId) {
         const info = this.modelDetails.get(modelId);
         if (!info) {
-            throw new errors_1.ModelError('Model not found', this.id, modelId);
+            throw new ModelError('Model not found', this.id, modelId);
         }
         return this.convertModelInfo(modelId, info);
     }
     async getCapabilities() {
         return {
-            maxContextLength: 4096,
+            maxContextLength: 4096, // Add the required maxContextLength property
             supportsChatCompletion: true,
             supportsStreaming: true,
             supportsSystemPrompts: true
@@ -101,6 +125,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     }
     async generateCompletion(model, prompt, systemPrompt, options) {
         try {
+            const ollamaOptions = options;
             const request = {
                 model,
                 prompt,
@@ -109,15 +134,21 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                     options: {
                         ...(options.temperature !== undefined && { temperature: options.temperature }),
                         ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
-                        ...(options.topK !== undefined && { top_k: options.topK }),
-                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
-                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
-                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                        ...(ollamaOptions?.topK !== undefined && { top_k: ollamaOptions.topK }),
+                        ...(ollamaOptions?.presenceBonus !== undefined && { presence_penalty: ollamaOptions.presenceBonus }),
+                        ...(ollamaOptions?.frequencyBonus !== undefined && { frequency_penalty: ollamaOptions.frequencyBonus }),
+                        ...(ollamaOptions?.stopSequences !== undefined && { stop: ollamaOptions.stopSequences })
                     }
                 })
             };
             const response = await this.client.post('/api/generate', request);
-            return {
+            // Create complete LLMResponse with all required fields
+            const result = {
+                id: `ollama-${Date.now()}`, // Add required fields
+                requestId: crypto.randomUUID?.() || `req-${Date.now()}`,
+                model: model,
+                prompt: prompt,
+                timestamp: Date.now(),
                 content: response.data.response,
                 usage: {
                     promptTokens: response.data.prompt_eval_count || 0,
@@ -125,9 +156,10 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                     totalTokens: (response.data.prompt_eval_count || 0) + (response.data.eval_count || 0)
                 }
             };
+            return result;
         }
         catch (error) {
-            throw new errors_1.RequestError('Generation failed', this.id, error instanceof Error ? error : new Error(String(error)));
+            throw new RequestError('Generation failed', this.id, error instanceof Error ? error : new Error(String(error)));
         }
     }
     async generateChatCompletion(model, messages, options) {
@@ -136,6 +168,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
     }
     async streamCompletion(model, prompt, systemPrompt, options, callback) {
         try {
+            const ollamaOptions = options;
             const request = {
                 model,
                 prompt,
@@ -144,10 +177,10 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
                     options: {
                         ...(options.temperature !== undefined && { temperature: options.temperature }),
                         ...(options.maxTokens !== undefined && { num_predict: options.maxTokens }),
-                        ...(options.topK !== undefined && { top_k: options.topK }),
-                        ...(options.presenceBonus !== undefined && { presence_penalty: options.presenceBonus }),
-                        ...(options.frequencyBonus !== undefined && { frequency_penalty: options.frequencyBonus }),
-                        ...(options.stopSequences !== undefined && { stop: options.stopSequences })
+                        ...(ollamaOptions?.topK !== undefined && { top_k: ollamaOptions.topK }),
+                        ...(ollamaOptions?.presenceBonus !== undefined && { presence_penalty: ollamaOptions.presenceBonus }),
+                        ...(ollamaOptions?.frequencyBonus !== undefined && { frequency_penalty: ollamaOptions.frequencyBonus }),
+                        ...(ollamaOptions?.stopSequences !== undefined && { stop: ollamaOptions.stopSequences })
                     }
                 })
             };
@@ -157,15 +190,16 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             for await (const chunk of response.data) {
                 const data = JSON.parse(chunk.toString());
                 if (callback) {
+                    // Convert to standard LLMStreamEvent with required done property
                     callback({
                         content: data.response,
-                        done: data.done
+                        done: !!data.done // Ensure we provide the required 'done' property
                     });
                 }
             }
         }
         catch (error) {
-            throw new errors_1.RequestError('Streaming failed', this.id, error instanceof Error ? error : new Error(String(error)));
+            throw new RequestError('Streaming failed', this.id, error instanceof Error ? error : new Error(String(error)));
         }
     }
     async streamChatCompletion(model, messages, options, callback) {
@@ -177,7 +211,7 @@ class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
             id: modelId,
             name: info.name,
             provider: this.id,
-            maxContextLength: 4096, // Default for most Ollama models
+            maxContextLength: 4096, // Add required maxContextLength
             parameters: {
                 format: info.details.format,
                 family: info.details.family,

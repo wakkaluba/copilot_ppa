@@ -3,7 +3,7 @@ import * as path from 'path';
 import { LLMCacheService } from '../../services/cache/llmCacheService';
 import { CacheTestHelper } from '../helpers/CacheTestHelper';
 
-suite('LLMCacheService Tests', () => {
+describe('LLMCacheService Tests', () => {
     let llmCacheService: LLMCacheService;
     let testHelper: CacheTestHelper;
 
@@ -16,12 +16,12 @@ suite('LLMCacheService Tests', () => {
         testHelper.dispose();
     });
 
-    suite('Cache Construction', () => {
+    describe('Cache Construction', () => {
         // ...existing constructor tests...
     });
 
-    suite('Cache Operations', () => {
-        test('get should return null when cache is disabled', async () => {
+    describe('Cache Operations', () => {
+        it('get should return null when cache is disabled', async () => {
             // Disable cache
             testHelper.workspaceConfigStub.returns({
                 get: (key: string) => key === 'enabled' ? false : undefined
@@ -32,7 +32,7 @@ suite('LLMCacheService Tests', () => {
             assert.strictEqual(result, null);
         });
 
-        test('get should handle expired cache entries', async () => {
+        it('get should handle expired cache entries', async () => {
             const cacheKey = generateCacheKey('prompt', 'model', {});
             const cacheFilePath = path.join('/fake/extension/path/cache', `${cacheKey}.json`);
 
@@ -49,7 +49,7 @@ suite('LLMCacheService Tests', () => {
             assert.ok(testHelper.fsStubs.unlinkSync.calledWith(cacheFilePath));
         });
 
-        test('get should return valid cached response', async () => {
+        it('get should return valid cached response', async () => {
             const cacheKey = generateCacheKey('prompt', 'model', {});
             const cacheFilePath = path.join('/fake/extension/path/cache', `${cacheKey}.json`);
 
@@ -67,8 +67,8 @@ suite('LLMCacheService Tests', () => {
         });
     });
 
-    suite('Cache Maintenance', () => {
-        test('clearCache should remove all cache files', () => {
+    describe('Cache Maintenance', () => {
+        it('clearCache should remove all cache files', () => {
             testHelper.fsStubs.readdirSync
                 .withArgs('/fake/extension/path/cache')
                 .returns(['file1.json', 'file2.json']);
@@ -78,7 +78,7 @@ suite('LLMCacheService Tests', () => {
             assert.strictEqual(testHelper.fsStubs.unlinkSync.callCount, 2);
         });
 
-        test('clearExpiredCache should only remove expired entries', () => {
+        it('clearExpiredCache should only remove expired entries', () => {
             testHelper.fsStubs.readdirSync
                 .withArgs('/fake/extension/path/cache')
                 .returns(['valid.json', 'expired.json', 'invalid.json']);

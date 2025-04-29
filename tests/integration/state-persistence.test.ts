@@ -1,10 +1,13 @@
-import * as vscode from 'vscode';
+import * as assert from 'assert';
+import * as fs from 'fs';
+import * as path from 'path';
+// Fix the import path to use consistent casing
+import { ContextManager } from '../../src/services/contextManager';
 import { ConversationManager } from '../../src/services/conversationManager';
-import { ContextManager } from '../../src/services/ContextManager';
-import { LLMProviderManager } from '../../src/llm/llmProviderManager';
-import { ModelManager } from '../../src/models/modelManager';
-import { PerformanceManager } from '../../src/performance/performanceManager';
-import { createMockExtensionContext } from '../helpers/mockHelpers';
+import { LLMProviderManager } from '../../src/services/llm/LLMProviderManager';
+import { PerformanceManager } from '../../src/services/performance/PerformanceManager';
+import { ConversationHistory } from '../../src/services/conversation/ConversationHistory';
+import { createMockExtensionContext, IExtensionContext } from '../helpers/mockContext';
 
 describe('State Persistence Tests', () => {
     let contextManager: ContextManager;

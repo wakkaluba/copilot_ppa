@@ -13,6 +13,10 @@ class CommandParser {
         this.registerCommand('modifyFile', this.modifyFile.bind(this));
         this.registerCommand('deleteFile', this.deleteFile.bind(this));
     }
+    // For testing purposes only - allows resetting the singleton instance
+    static resetInstance() {
+        CommandParser.instance = undefined;
+    }
     static getInstance() {
         if (!CommandParser.instance) {
             const workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
@@ -40,13 +44,25 @@ class CommandParser {
     }
     parseCommand(command) {
         try {
-            // Simple command format: commandName(arg1=value1, arg2=value2)
-            const match = command.match(/^([a-zA-Z0-9_]+)\s*\((.*)\)$/);
-            if (!match) {
+            // Improved command format handling: commandName(arg1=value1, arg2=value2)
+            // Trim any leading/trailing whitespace first
+            command = command.trim();
+            // Extract command name - everything before the first parenthesis
+            const nameEndIndex = command.indexOf('(');
+            if (nameEndIndex === -1) {
                 return null;
             }
-            const name = match[1];
-            const argsString = match[2];
+            const name = command.substring(0, nameEndIndex).trim();
+            if (!name || !/^[a-zA-Z0-9_]+$/.test(name)) {
+                return null; // Invalid command name format
+            }
+            // Extract arguments string - everything between the outer parentheses
+            const argsStartIndex = nameEndIndex + 1;
+            const argsEndIndex = command.lastIndexOf(')');
+            if (argsEndIndex === -1 || argsEndIndex <= argsStartIndex) {
+                return null; // No closing parenthesis or empty args section
+            }
+            const argsString = command.substring(argsStartIndex, argsEndIndex);
             const args = this.parseArgs(argsString);
             return { name, args };
         }
@@ -105,7 +121,7 @@ class CommandParser {
         }
         else if (find !== undefined && replace !== undefined) {
             // Simple string replacement
-            fileContent = fileContent.replace(new RegExp(find, 'g'), replace);
+            fileContent = fileContent.replace(new RegExp(this.escapeRegExp(find), 'g'), replace);
         }
         await this.workspaceManager.writeFile(filePath, fileContent);
         this.logger.info(`Modified file: ${filePath}`);
@@ -120,6 +136,10 @@ class CommandParser {
     }
     dispose() {
         // Clean up any resources if needed
+    }
+    // Helper function to escape special regex characters in strings
+    escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }
 exports.CommandParser = CommandParser;

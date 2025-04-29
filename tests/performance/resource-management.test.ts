@@ -1,11 +1,10 @@
 import * as assert from 'assert';
-import * as vscode from 'vscode';
-import { ContextManager } from '../../src/services/ContextManager';
-import { ConversationManager } from '../../src/services/conversationManager';
-import { LLMProviderManager } from '../../src/llm/llmProviderManager';
-import { ModelManager } from '../../src/models/modelManager';
-import { PerformanceManager } from '../../src/performance/performanceManager';
-import { createMockExtensionContext } from '../helpers/mockHelpers';
+import { PerformanceManager } from '../../src/services/performance/PerformanceManager';
+// Fix the import path to use consistent casing
+import { ContextManager } from '../../src/services/contextManager';
+import { LLMProviderManager } from '../../src/services/llm/LLMProviderManager';
+import { WorkspaceManager } from '../../src/services/workspace/WorkspaceManager';
+import { createMockExtensionContext } from '../helpers/contextMock';
 
 describe('Resource Management and Performance', () => {
     let contextManager: ContextManager;

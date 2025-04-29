@@ -1,8 +1,9 @@
 import * as assert from 'assert';
-import { performance } from 'perf_hooks';
-import { LLMProviderManager } from '../../src/llm/llmProviderManager';
-import { ContextManager } from '../../src/services/ContextManager';
-import { WorkspaceManager } from '../../src/services/WorkspaceManager';
+import { PerformanceManager } from '../../src/services/performance/PerformanceManager';
+// Fix the import path to use consistent casing
+import { ContextManager } from '../../src/services/contextManager';
+import { LLMProviderManager } from '../../src/services/llm/LLMProviderManager';
+import { WorkspaceManager } from '../../src/services/workspace/WorkspaceManager';
 import { createMockExtensionContext } from '../helpers/mockHelpers';
 
 describe('Component Performance Tests', () => {

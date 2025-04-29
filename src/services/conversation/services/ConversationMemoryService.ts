@@ -82,7 +82,7 @@ export class ConversationMemoryService {
      */
     public getMessagesByDateRange(startDate: number, endDate: number): Message[] {
         return this.messages.filter(
-            msg => msg.timestamp >= startDate && msg.timestamp <= endDate
+            msg => (msg.timestamp || 0) >= startDate && (msg.timestamp || 0) <= endDate
         );
     }
 

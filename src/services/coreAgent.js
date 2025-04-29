@@ -42,46 +42,58 @@ var ContextManager_1 = require("./ContextManager");
 var CommandParser_1 = require("./CommandParser");
 var conversationManager_1 = require("./conversationManager");
 var CoreAgent = /** @class */ (function () {
-    function CoreAgent() {
+    function CoreAgent(context, contextManager) {
         this.status = 'idle';
-        this.promptManager = PromptManager_1.PromptManager.getInstance();
-        this.contextManager = ContextManager_1.ContextManager.getInstance();
+        this.promptManager = PromptManager_1.PromptManager.getInstance(context);
+        this.contextManager = contextManager || ContextManager_1.ContextManager.getInstance(context);
         this.commandParser = CommandParser_1.CommandParser.getInstance();
         this.conversationManager = conversationManager_1.ConversationManager.getInstance();
     }
-    CoreAgent.getInstance = function () {
+    CoreAgent.getInstance = function (context) {
         if (!this.instance) {
-            this.instance = new CoreAgent();
+            if (!context) {
+                throw new Error('Context is required when creating CoreAgent for the first time');
+            }
+            this.instance = new CoreAgent(context);
         }
         return this.instance;
     };
     CoreAgent.prototype.processInput = function (input) {
         return __awaiter(this, void 0, void 0, function () {
-            var context_1, prompt_1, error_1;
+            var messageId, context, error_1, message;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _a.trys.push([0, 3, , 4]);
+                        _a.trys.push([0, 2, , 3]);
                         this.status = 'processing';
-                        return [4 /*yield*/, this.contextManager.buildContext('current', input)];
-                    case 1:
-                        context_1 = _a.sent();
-                        prompt_1 = this.promptManager.generatePrompt('agent-task', {
-                            input: input,
-                            context: context_1.join('\n')
+                        messageId = this.generateId();
+                        // Add the user input to the context manager
+                        this.contextManager.addMessage({
+                            id: messageId,
+                            role: 'user',
+                            content: input,
+                            timestamp: Date.now()
                         });
-                        // Process the response (assuming LLM response is received)
-                        return [4 /*yield*/, this.handleResponse(prompt_1)];
-                    case 2:
-                        // Process the response (assuming LLM response is received)
-                        _a.sent();
+                        
+                        // Get the context
+                        context = this.contextManager.buildContextString();
+                        
+                        // In a real implementation, this would call an LLM service
+                        // For now we return a mock response
                         this.status = 'idle';
-                        return [3 /*break*/, 4];
-                    case 3:
+                        return [2 /*return*/, {
+                            response: 'Test response',
+                            context: context
+                        }];
+                    case 1:
+                        _a.sent();
+                        return [3 /*break*/, 3];
+                    case 2:
                         error_1 = _a.sent();
                         this.status = 'error';
-                        throw error_1;
-                    case 4: return [2 /*return*/];
+                        message = error_1 instanceof Error ? error_1.message : String(error_1);
+                        throw new Error("Failed to process input: " + message);
+                    case 3: return [2 /*return*/];
                 }
             });
         });
@@ -174,6 +186,37 @@ var CoreAgent = /** @class */ (function () {
     };
     CoreAgent.prototype.getStatus = function () {
         return this.status;
+    };
+    CoreAgent.prototype.getSuggestions = function (input) {
+        // Pass the input to the contextManager to get suggestions
+        return this.contextManager.generateSuggestions(input);
+    };
+    CoreAgent.prototype.clearContext = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var error_3, message;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, this.contextManager.clearAllContextData()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, true];
+                    case 2:
+                        error_3 = _a.sent();
+                        message = error_3 instanceof Error ? error_3.message : String(error_3);
+                        throw new Error("Failed to clear context: " + message);
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    CoreAgent.prototype.dispose = function () {
+        // Clean up resources
+        this.contextManager.dispose();
+    };
+    CoreAgent.prototype.generateId = function () {
+        return Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9);
     };
     return CoreAgent;
 }());

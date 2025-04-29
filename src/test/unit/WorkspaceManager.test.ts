@@ -5,7 +5,7 @@ import * as path from 'path';
 import { WorkspaceManager } from '../../services/WorkspaceManager';
 import { TestLogger } from '../helpers/TestLogger';
 
-suite('WorkspaceManager Tests', () => {
+describe('WorkspaceManager Tests', () => {
     let workspaceManager: WorkspaceManager;
     let sandbox: sinon.SinonSandbox;
     let fsStub: sinon.SinonStubbedInstance<typeof vscode.workspace.fs>;
@@ -72,17 +72,17 @@ suite('WorkspaceManager Tests', () => {
         sandbox.stub(vscode.window, 'showTextDocument').resolves({} as any);
     }
 
-    // Organized test suites by functionality
-    suite('Instance Management', () => {
-        test('getInstance should return singleton instance', () => {
+    // Organized test describes by functionality
+    describe('Instance Management', () => {
+        it('getInstance should return singleton instance', () => {
             const instance1 = WorkspaceManager.getInstance();
             const instance2 = WorkspaceManager.getInstance();
             assert.strictEqual(instance1, instance2);
         });
     });
 
-    suite('File Operations', () => {
-        test('readFile should read a file and return its content', async () => {
+    describe('File Operations', () => {
+        it('readFile should read a file and return its content', async () => {
             const fileContent = 'file content';
             fsStub.readFile.resolves(Buffer.from(fileContent));
             
@@ -96,7 +96,7 @@ suite('WorkspaceManager Tests', () => {
             assert.strictEqual(uri.fsPath, path.join('d:\\test\\workspace', 'test.txt'));
         });
 
-        test('readFile should handle absolute paths', async () => {
+        it('readFile should handle absolute paths', async () => {
             const fileContent = 'file content';
             fsStub.readFile.resolves(Buffer.from(fileContent));
             
@@ -110,7 +110,7 @@ suite('WorkspaceManager Tests', () => {
             assert.strictEqual(uri.fsPath, absolutePath);
         });
 
-        test('readFile should handle UTF-8 encoding properly', async () => {
+        it('readFile should handle UTF-8 encoding properly', async () => {
             const nonAsciiContent = 'Hello, 世界!';
             fsStub.readFile.resolves(Buffer.from(nonAsciiContent));
             
@@ -119,7 +119,7 @@ suite('WorkspaceManager Tests', () => {
             assert.strictEqual(content, nonAsciiContent);
         });
 
-        test('readFile should throw error when file read fails', async () => {
+        it('readFile should throw error when file read fails', async () => {
             fsStub.readFile.rejects(new Error('Read error'));
             
             await assert.rejects(
@@ -128,7 +128,7 @@ suite('WorkspaceManager Tests', () => {
             );
         });
 
-        test('writeFile should write content to a file', async () => {
+        it('writeFile should write content to a file', async () => {
             fsStub.writeFile.resolves();
             fsStub.stat.resolves({} as vscode.FileStat);
             
@@ -150,7 +150,7 @@ suite('WorkspaceManager Tests', () => {
             assert.deepStrictEqual(content, Buffer.from('file content'));
         });
 
-        test('writeFile should create parent directory if it does not exist', async () => {
+        it('writeFile should create parent directory if it does not exist', async () => {
             fsStub.writeFile.resolves();
             fsStub.stat.onFirstCall().rejects(new Error('Directory not found'));
             fsStub.createDirectory.resolves();
@@ -173,7 +173,7 @@ suite('WorkspaceManager Tests', () => {
             assert.strictEqual(path.basename(dirUri.fsPath), 'subdir');
         });
 
-        test('deleteFile should delete a file', async () => {
+        it('deleteFile should delete a file', async () => {
             fsStub.delete.resolves();
             
             await workspaceManager.deleteFile('test.txt');
@@ -187,8 +187,8 @@ suite('WorkspaceManager Tests', () => {
         });
     });
 
-    suite('Directory Operations', () => {
-        test('createDirectory should create a directory', async () => {
+    describe('Directory Operations', () => {
+        it('createDirectory should create a directory', async () => {
             fsStub.createDirectory.resolves();
             
             await workspaceManager.createDirectory('testdir');
@@ -200,7 +200,7 @@ suite('WorkspaceManager Tests', () => {
             assert.strictEqual(uri.fsPath, path.join('d:\\test\\workspace', 'testdir'));
         });
 
-        test('listFiles should return files in a directory', async () => {
+        it('listFiles should return files in a directory', async () => {
             fsStub.readDirectory.resolves([
                 ['file1.txt', vscode.FileType.File],
                 ['file2.txt', vscode.FileType.File],
@@ -217,7 +217,7 @@ suite('WorkspaceManager Tests', () => {
             ]);
         });
 
-        test('listFiles should handle empty directories', async () => {
+        it('listFiles should handle empty directories', async () => {
             fsStub.readDirectory.resolves([]);
             
             const files = await workspaceManager.listFiles('emptydir');
@@ -226,8 +226,8 @@ suite('WorkspaceManager Tests', () => {
         });
     });
 
-    suite('Todo Operations', () => {
-        test('parseTodoFile should parse content into lines', async () => {
+    describe('Todo Operations', () => {
+        it('parseTodoFile should parse content into lines', async () => {
             const fileContent = 'Line 1\nLine 2\n\nLine 3';
             fsStub.readFile.resolves(Buffer.from(fileContent));
             
@@ -236,7 +236,7 @@ suite('WorkspaceManager Tests', () => {
             assert.deepStrictEqual(lines, ['Line 1', 'Line 2', 'Line 3']);
         });
 
-        test('updateTodoFile should write lines to file', async () => {
+        it('updateTodoFile should write lines to file', async () => {
             fsStub.writeFile.resolves();
             fsStub.stat.resolves({} as vscode.FileStat);
             
@@ -258,7 +258,7 @@ suite('WorkspaceManager Tests', () => {
             assert.deepStrictEqual(Buffer.from(content).toString(), 'Line 1\nLine 2\nLine 3');
         });
 
-        test('moveCompletedTasks should move completed tasks to target file', async () => {
+        it('moveCompletedTasks should move completed tasks to target file', async () => {
             // Setup mock data
             const sourceTodo = [
                 '- [ ] Task 1 (0%)',
@@ -303,7 +303,7 @@ suite('WorkspaceManager Tests', () => {
             assert.ok(Buffer.from(targetContent).toString().includes('[completed:'));
         });
 
-        test('updateTaskStatus should add status markers to tasks', async () => {
+        it('updateTaskStatus should add status markers to tasks', async () => {
             // Setup mock data
             const todo = [
                 '- Task without status',
@@ -339,8 +339,8 @@ suite('WorkspaceManager Tests', () => {
         });
     });
 
-    suite('Error Handling', () => {
-        test('readFile should handle read errors gracefully', async () => {
+    describe('Error Handling', () => {
+        it('readFile should handle read errors gracefully', async () => {
             fsStub.readFile.rejects(new Error('Read error'));
             
             await assert.rejects(
@@ -349,7 +349,7 @@ suite('WorkspaceManager Tests', () => {
             );
         });
 
-        test('writeFile should handle write errors gracefully', async () => {
+        it('writeFile should handle write errors gracefully', async () => {
             fsStub.writeFile.rejects(new Error('Write error'));
             
             await assert.rejects(
@@ -358,7 +358,7 @@ suite('WorkspaceManager Tests', () => {
             );
         });
 
-        test('resolveFilePath should handle missing workspace gracefully', async () => {
+        it('resolveFilePath should handle missing workspace gracefully', async () => {
             workspaceFoldersStub.value(undefined);
             
             assert.throws(
@@ -368,7 +368,7 @@ suite('WorkspaceManager Tests', () => {
         });
 
         // Add new error cases
-        test('formatDocument should handle formatting errors gracefully', async () => {
+        it('formatDocument should handle formatting errors gracefully', async () => {
             commandsStub.rejects(new Error('Format error'));
             const mockDocument = {
                 languageId: 'plaintext',
@@ -383,8 +383,8 @@ suite('WorkspaceManager Tests', () => {
         });
     });
 
-    suite('Cleanup', () => {
-        test('should properly clean up resources', () => {
+    describe('Cleanup', () => {
+        it('should properly clean up resources', () => {
             // Add cleanup test logic if needed
         });
     });

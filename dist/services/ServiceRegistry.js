@@ -5,7 +5,7 @@ exports.initializeServices = initializeServices;
 const LLMConnectionManager_1 = require("./llm/LLMConnectionManager");
 const LLMHostManager_1 = require("./llm/LLMHostManager");
 const LLMSessionManager_1 = require("./llm/LLMSessionManager");
-const ContextManager_1 = require("./ContextManager");
+const ContextManager_1 = require("./conversation/ContextManager");
 const PromptManager_1 = require("./PromptManager");
 const themeManager_1 = require("./themeManager");
 const displaySettingsService_1 = require("./displaySettingsService");
@@ -68,7 +68,8 @@ async function initializeServices(context) {
     const connectionStatus = new connectionStatusService_1.ConnectionStatusService(hostManager, connectionManager);
     const sessionManager = new LLMSessionManager_1.LLMSessionManager(connectionManager, hostManager);
     const promptManager = new PromptManager_1.PromptManager(context);
-    const contextManager = new ContextManager_1.ContextManager(context, promptManager);
+    // Use the singleton pattern for ContextManager
+    const contextManager = ContextManager_1.ContextManager.getInstance(context);
     const themeManager = new themeManager_1.ThemeManager(context);
     const displaySettings = new displaySettingsService_1.DisplaySettingsService(themeManager, context);
     // Initialize provider management

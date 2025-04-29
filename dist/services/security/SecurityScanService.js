@@ -19,15 +19,11 @@ class SecurityScanService {
                 this.dependencyScanner.scanWorkspaceDependencies()
             ]);
             return {
-                timestamp: new Date(),
+                timestamp: Date.now(), // Changed from new Date() to Date.now()
                 issues: codeResult.issues,
                 scannedFiles: codeResult.scannedFiles || 0,
                 summary: this.generateSummary(codeResult.issues, dependencyResult.vulnerabilities),
-                metrics: {
-                    filesScanned: codeResult.filesScanned || codeResult.scannedFiles || 0,
-                    issuesFound: codeResult.issues.length + dependencyResult.vulnerabilities.length,
-                    scanDuration: codeResult.duration || 0
-                }
+                // Remove metrics field as it's not in the interface
             };
         }
         catch (error) {
@@ -45,21 +41,16 @@ class SecurityScanService {
             // First check if it's a code security issue
             const codeIssue = await this.codeScanner.getIssueDetails?.(issueId);
             if (codeIssue) {
-                // Make sure we have all required fields by mapping between types if needed
+                // Map to the correct SecurityIssue interface
                 return {
                     id: codeIssue.id,
                     name: codeIssue.name || `Issue ${issueId}`,
                     description: codeIssue.description,
-                    severity: codeIssue.severity,
-                    location: {
-                        file: codeIssue.file || '',
-                        line: codeIssue.line || 0,
-                        column: codeIssue.column || 0
-                    },
-                    recommendation: codeIssue.recommendation || 'No recommendation available',
-                    file: codeIssue.file || '',
+                    severity: this.normalizeSeverity(codeIssue.severity), // Convert to the correct enum
+                    filePath: codeIssue.file || '',
                     line: codeIssue.line || 0,
-                    column: codeIssue.column || 0
+                    column: codeIssue.column || 0,
+                    recommendation: codeIssue.recommendation || 'No recommendation available'
                 };
             }
             // Then check if it's a dependency vulnerability
@@ -70,16 +61,11 @@ class SecurityScanService {
                     id: dependencyIssue.id,
                     name: dependencyIssue.title || `Vulnerability ${issueId}`,
                     description: dependencyIssue.description || 'No description available',
-                    severity: dependencyIssue.severity,
-                    location: {
-                        file: 'package.json',
-                        line: 0,
-                        column: 0
-                    },
-                    recommendation: `Update to version ${dependencyIssue.fixedIn || 'latest'}`,
-                    file: 'package.json',
+                    severity: this.normalizeSeverity(dependencyIssue.severity),
+                    filePath: 'package.json',
                     line: 0,
-                    column: 0
+                    column: 0,
+                    recommendation: `Update to version ${dependencyIssue.fixedIn || 'latest'}`
                 };
             }
             throw new Error(`Issue with ID ${issueId} not found`);
@@ -90,20 +76,31 @@ class SecurityScanService {
         }
     }
     generateSummary(codeIssues, dependencyIssues) {
-        const counts = {
-            [security_1.SecuritySeverity.CRITICAL]: 0,
-            [security_1.SecuritySeverity.HIGH]: 0,
-            [security_1.SecuritySeverity.MEDIUM]: 0,
-            [security_1.SecuritySeverity.LOW]: 0
+        const summary = {
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0
         };
+        // Count code issues by severity
         [...codeIssues, ...dependencyIssues].forEach(issue => {
-            // Map the severity to a valid key
             const severityKey = this.normalizeSeverity(issue.severity);
-            if (counts.hasOwnProperty(severityKey)) {
-                counts[severityKey]++;
+            switch (severityKey) {
+                case security_1.SecuritySeverity.CRITICAL:
+                    summary.critical++;
+                    break;
+                case security_1.SecuritySeverity.HIGH:
+                    summary.high++;
+                    break;
+                case security_1.SecuritySeverity.MEDIUM:
+                    summary.medium++;
+                    break;
+                case security_1.SecuritySeverity.LOW:
+                    summary.low++;
+                    break;
             }
         });
-        return counts;
+        return summary;
     }
     normalizeSeverity(severity) {
         switch (severity?.toLowerCase()) {

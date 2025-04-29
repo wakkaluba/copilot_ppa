@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { PromptManager, PromptTemplate } from '../../services/PromptManager';
 
-suite('PromptManager Tests', () => {
+describe('PromptManager Tests', () => {
     let promptManager: PromptManager;
     let sandbox: sinon.SinonSandbox;
 
@@ -20,13 +20,13 @@ suite('PromptManager Tests', () => {
         sandbox.restore();
     });
 
-    test('getInstance should return singleton instance', () => {
+    it('getInstance should return singleton instance', () => {
         const instance1 = PromptManager.getInstance();
         const instance2 = PromptManager.getInstance();
         assert.strictEqual(instance1, instance2);
     });
 
-    test('addTemplate should add a new template', () => {
+    it('addTemplate should add a new template', () => {
         const newTemplate: PromptTemplate = {
             name: 'test-template',
             template: 'This is a test template with {{parameter}}',
@@ -40,12 +40,12 @@ suite('PromptManager Tests', () => {
         assert.deepStrictEqual(retrievedTemplate, newTemplate);
     });
 
-    test('getTemplate should return undefined for non-existent template', () => {
+    it('getTemplate should return undefined for non-existent template', () => {
         const template = promptManager.getTemplate('non-existent-template');
         assert.strictEqual(template, undefined);
     });
 
-    test('listTemplates should return all templates', () => {
+    it('listTemplates should return all templates', () => {
         // First check the default templates
         const defaultTemplates = promptManager.listTemplates();
         assert.ok(defaultTemplates.length >= 4); // At least the 4 default templates
@@ -69,7 +69,7 @@ suite('PromptManager Tests', () => {
         assert.deepStrictEqual(foundTemplate, newTemplate);
     });
 
-    test('generatePrompt should fill in template parameters', () => {
+    it('generatePrompt should fill in template parameters', () => {
         const parameters = {
             code: 'function add(a, b) { return a + b; }',
             problem: 'Function always returns NaN',
@@ -87,13 +87,13 @@ suite('PromptManager Tests', () => {
         assert.ok(!prompt.includes('{{error}}'));
     });
 
-    test('generatePrompt should throw error for non-existent template', () => {
+    it('generatePrompt should throw error for non-existent template', () => {
         assert.throws(() => {
             promptManager.generatePrompt('non-existent-template', { param: 'value' });
         }, /Template 'non-existent-template' not found/);
     });
 
-    test('default templates should be initialized properly', () => {
+    it('default templates should be initialized properly', () => {
         // Check that all default templates exist
         const defaultTemplateNames = [
             'explain-code',
@@ -112,7 +112,7 @@ suite('PromptManager Tests', () => {
         }
     });
 
-    test('generatePrompt should handle missing optional parameters', () => {
+    it('generatePrompt should handle missing optional parameters', () => {
         // Create a template with optional parameters
         const templateWithOptionals: PromptTemplate = {
             name: 'template-with-optionals',
@@ -132,7 +132,7 @@ suite('PromptManager Tests', () => {
         assert.strictEqual(prompt, 'Required: value, Optional: {{optional}}');
     });
 
-    test('generatePrompt should handle nested parameters', () => {
+    it('generatePrompt should handle nested parameters', () => {
         // Create a template with nested parameters
         const nestedTemplate: PromptTemplate = {
             name: 'nested-template',

@@ -15,7 +15,7 @@ class MockLLMProvider implements LLMProvider {
     }
 }
 
-suite('LLMService Tests', () => {
+describe('LLMService Tests', () => {
     let llmService: LLMService;
     let mockProvider: MockLLMProvider;
     let cacheServiceStub: sinon.SinonStubbedInstance<LLMCacheService>;
@@ -48,7 +48,7 @@ suite('LLMService Tests', () => {
         (global as any).LLMCacheService = originalLLMCacheService;
     });
 
-    test('generateResponse should use the provider to generate text', async () => {
+    it('generateResponse should use the provider to generate text', async () => {
         const prompt = 'Hello, world!';
         const expectedResponse = 'Generated response';
         
@@ -86,7 +86,7 @@ suite('LLMService Tests', () => {
         assert.strictEqual(cachedResponse, expectedResponse);
     });
 
-    test('generateResponse should use custom options if provided', async () => {
+    it('generateResponse should use custom options if provided', async () => {
         const prompt = 'Hello, world!';
         const expectedResponse = 'Generated response';
         const options: LLMRequestOptions = {
@@ -118,7 +118,7 @@ suite('LLMService Tests', () => {
         assert.strictEqual(response, expectedResponse);
     });
 
-    test('generateResponse should return cached response if available', async () => {
+    it('generateResponse should return cached response if available', async () => {
         const prompt = 'Hello, world!';
         const cachedResponse = 'Cached response';
         
@@ -141,19 +141,19 @@ suite('LLMService Tests', () => {
         assert.strictEqual(cacheServiceStub.set.called, false);
     });
 
-    test('clearCache should call the cache service clearCache method', () => {
+    it('clearCache should call the cache service clearCache method', () => {
         llmService.clearCache();
         
         assert.strictEqual(cacheServiceStub.clearCache.calledOnce, true);
     });
 
-    test('clearExpiredCache should call the cache service clearExpiredCache method', () => {
+    it('clearExpiredCache should call the cache service clearExpiredCache method', () => {
         llmService.clearExpiredCache();
         
         assert.strictEqual(cacheServiceStub.clearExpiredCache.calledOnce, true);
     });
 
-    test('generateResponse should handle provider errors', async () => {
+    it('generateResponse should handle provider errors', async () => {
         const prompt = 'Hello, world!';
         const error = new Error('Provider error');
         

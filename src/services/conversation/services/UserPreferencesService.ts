@@ -87,4 +87,18 @@ export class UserPreferencesService {
         const prefsObject = Object.fromEntries(this.preferences.entries());
         await this.context.globalState.update('userPreferences', JSON.stringify(prefsObject));
     }
+
+    /**
+     * Get the preferred programming language
+     */
+    public getPreferredLanguage(): string | undefined {
+        return this.getPreference<string>('preferredLanguage');
+    }
+
+    /**
+     * Get the preferred framework
+     */
+    public getPreferredFramework(): string | undefined {
+        return this.getPreference<string>('preferredFramework');
+    }
 }

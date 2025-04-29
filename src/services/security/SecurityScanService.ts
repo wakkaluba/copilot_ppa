@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Logger } from '../../utils/logger';
-import { SecurityScanResult, SecuritySeverity, SecurityIssue } from '../../types/security';
+import { SecurityScanResult, SecuritySeverity, SecurityIssue, SecuritySummary } from '../../types/security';
 import { CodeSecurityScanner } from '../../security/codeScanner';
 import { DependencyScanner } from '../../security/dependencyScanner';
 
@@ -24,15 +24,11 @@ export class SecurityScanService {
             ]);
 
             return {
-                timestamp: new Date(),
+                timestamp: Date.now(), // Changed from new Date() to Date.now()
                 issues: codeResult.issues,
                 scannedFiles: codeResult.scannedFiles || 0,
                 summary: this.generateSummary(codeResult.issues, dependencyResult.vulnerabilities),
-                metrics: {
-                    filesScanned: codeResult.filesScanned || codeResult.scannedFiles || 0,
-                    issuesFound: codeResult.issues.length + dependencyResult.vulnerabilities.length,
-                    scanDuration: codeResult.duration || 0
-                }
+                // Remove metrics field as it's not in the interface
             };
         } catch (error) {
             this.logger.error('Error during security scan', error);
@@ -50,21 +46,16 @@ export class SecurityScanService {
             // First check if it's a code security issue
             const codeIssue = await this.codeScanner.getIssueDetails?.(issueId);
             if (codeIssue) {
-                // Make sure we have all required fields by mapping between types if needed
+                // Map to the correct SecurityIssue interface
                 return {
                     id: codeIssue.id,
                     name: codeIssue.name || `Issue ${issueId}`,
                     description: codeIssue.description,
-                    severity: codeIssue.severity as SecuritySeverity,
-                    location: {
-                        file: codeIssue.file || '',
-                        line: codeIssue.line || 0,
-                        column: codeIssue.column || 0
-                    },
-                    recommendation: codeIssue.recommendation || 'No recommendation available',
-                    file: codeIssue.file || '',
+                    severity: this.normalizeSeverity(codeIssue.severity), // Convert to the correct enum
+                    filePath: codeIssue.file || '',
                     line: codeIssue.line || 0,
-                    column: codeIssue.column || 0
+                    column: codeIssue.column || 0,
+                    recommendation: codeIssue.recommendation || 'No recommendation available'
                 };
             }
 
@@ -76,16 +67,11 @@ export class SecurityScanService {
                     id: dependencyIssue.id,
                     name: dependencyIssue.title || `Vulnerability ${issueId}`,
                     description: dependencyIssue.description || 'No description available',
-                    severity: dependencyIssue.severity as SecuritySeverity,
-                    location: {
-                        file: 'package.json',
-                        line: 0,
-                        column: 0
-                    },
-                    recommendation: `Update to version ${dependencyIssue.fixedIn || 'latest'}`,
-                    file: 'package.json',
+                    severity: this.normalizeSeverity(dependencyIssue.severity),
+                    filePath: 'package.json',
                     line: 0,
-                    column: 0
+                    column: 0,
+                    recommendation: `Update to version ${dependencyIssue.fixedIn || 'latest'}`
                 };
             }
 
@@ -96,23 +82,34 @@ export class SecurityScanService {
         }
     }
 
-    private generateSummary(codeIssues: any[], dependencyIssues: any[]) {
-        const counts = {
-            [SecuritySeverity.CRITICAL]: 0,
-            [SecuritySeverity.HIGH]: 0,
-            [SecuritySeverity.MEDIUM]: 0,
-            [SecuritySeverity.LOW]: 0
+    private generateSummary(codeIssues: any[], dependencyIssues: any[]): SecuritySummary {
+        const summary: SecuritySummary = {
+            critical: 0,
+            high: 0,
+            medium: 0,
+            low: 0
         };
 
+        // Count code issues by severity
         [...codeIssues, ...dependencyIssues].forEach(issue => {
-            // Map the severity to a valid key
             const severityKey = this.normalizeSeverity(issue.severity);
-            if (counts.hasOwnProperty(severityKey)) {
-                counts[severityKey as SecuritySeverity]++;
+            switch (severityKey) {
+                case SecuritySeverity.CRITICAL:
+                    summary.critical++;
+                    break;
+                case SecuritySeverity.HIGH:
+                    summary.high++;
+                    break;
+                case SecuritySeverity.MEDIUM:
+                    summary.medium++;
+                    break;
+                case SecuritySeverity.LOW:
+                    summary.low++;
+                    break;
             }
         });
 
-        return counts;
+        return summary;
     }
     
     private normalizeSeverity(severity: string): SecuritySeverity {

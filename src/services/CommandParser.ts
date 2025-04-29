@@ -28,6 +28,11 @@ export class CommandParser implements IDisposable {
     this.registerCommand('deleteFile', this.deleteFile.bind(this));
   }
   
+  // For testing purposes only - allows resetting the singleton instance
+  public static resetInstance(): void {
+    CommandParser.instance = undefined as any;
+  }
+  
   public static getInstance(): CommandParser {
     if (!CommandParser.instance) {
       const workspaceManager = WorkspaceManager.getInstance();
@@ -65,16 +70,29 @@ export class CommandParser implements IDisposable {
   
   public parseCommand(command: string): { name: string; args: any } | null {
     try {
-      // Simple command format: commandName(arg1=value1, arg2=value2)
-      const match = command.match(/^([a-zA-Z0-9_]+)\s*\((.*)\)$/);
+      // Improved command format handling: commandName(arg1=value1, arg2=value2)
+      // Trim any leading/trailing whitespace first
+      command = command.trim();
       
-      if (!match) {
+      // Extract command name - everything before the first parenthesis
+      const nameEndIndex = command.indexOf('(');
+      if (nameEndIndex === -1) {
         return null;
       }
       
-      const name = match[1];
-      const argsString = match[2];
+      const name = command.substring(0, nameEndIndex).trim();
+      if (!name || !/^[a-zA-Z0-9_]+$/.test(name)) {
+        return null; // Invalid command name format
+      }
       
+      // Extract arguments string - everything between the outer parentheses
+      const argsStartIndex = nameEndIndex + 1;
+      const argsEndIndex = command.lastIndexOf(')');
+      if (argsEndIndex === -1 || argsEndIndex <= argsStartIndex) {
+        return null; // No closing parenthesis or empty args section
+      }
+      
+      const argsString = command.substring(argsStartIndex, argsEndIndex);
       const args = this.parseArgs(argsString);
       
       return { name, args };
@@ -149,7 +167,7 @@ export class CommandParser implements IDisposable {
       fileContent = content;
     } else if (find !== undefined && replace !== undefined) {
       // Simple string replacement
-      fileContent = fileContent.replace(new RegExp(find, 'g'), replace);
+      fileContent = fileContent.replace(new RegExp(this.escapeRegExp(find), 'g'), replace);
     }
     
     await this.workspaceManager.writeFile(filePath, fileContent);
@@ -169,5 +187,10 @@ export class CommandParser implements IDisposable {
   
   public dispose(): void {
     // Clean up any resources if needed
+  }
+  
+  // Helper function to escape special regex characters in strings
+  private escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

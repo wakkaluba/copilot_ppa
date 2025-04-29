@@ -104,7 +104,7 @@ class ConversationMemoryService {
      * @param endDate End date timestamp
      */
     getMessagesByDateRange(startDate, endDate) {
-        return this.messages.filter(msg => msg.timestamp >= startDate && msg.timestamp <= endDate);
+        return this.messages.filter(msg => (msg.timestamp || 0) >= startDate && (msg.timestamp || 0) <= endDate);
     }
     /**
      * Clear all messages

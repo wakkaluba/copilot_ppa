@@ -1,5 +1,6 @@
 import { UserPreferencesService } from "./UserPreferencesService";
 import { FilePreferencesService } from "./FilePreferencesService";
+import { ConversationMemoryService } from "./ConversationMemoryService";
 
 /**
  * Service for analyzing conversation context
@@ -99,5 +100,57 @@ export class ContextAnalysisService {
         } else if (/\bspaces\b/i.test(message) || /\bindentation: space\b/i.test(message)) {
             userPrefs.setPreference('useTabs', false);
         }
+    }
+
+    /**
+     * Build a context string for prompting
+     * @param userPrefs User preferences service
+     * @param filePrefs File preferences service
+     * @param memoryService Conversation memory service
+     * @returns Formatted context string
+     */
+    public buildContextString(
+        userPrefs: UserPreferencesService,
+        filePrefs: FilePreferencesService,
+        memoryService: ConversationMemoryService
+    ): string {
+        const contextParts: string[] = [];
+        
+        // Add language preference
+        const preferredLanguage = userPrefs.getPreference<string>('preferredLanguage');
+        if (preferredLanguage) {
+            contextParts.push(`Preferred Language: ${preferredLanguage.charAt(0).toUpperCase() + preferredLanguage.slice(1)}`);
+        }
+        
+        // Add framework preference
+        const preferredFramework = userPrefs.getPreference<string>('preferredFramework');
+        if (preferredFramework) {
+            contextParts.push(`Framework: ${preferredFramework.charAt(0).toUpperCase() + preferredFramework.slice(1)}`);
+        }
+        
+        // Add code style preferences
+        const useTabs = userPrefs.getPreference<boolean>('useTabs');
+        if (useTabs !== undefined) {
+            contextParts.push(`Indentation: ${useTabs ? 'tabs' : 'spaces'}`);
+        }
+        
+        // Add file type preferences
+        const preferredExtensions = filePrefs.getMostFrequentExtensions(3);
+        if (preferredExtensions.length > 0) {
+            contextParts.push(`Common file types: ${preferredExtensions.join(', ')}`);
+        }
+
+        // Add directory preferences that tests are expecting
+        const recentDirs = filePrefs.getRecentDirectories(3); 
+        if (recentDirs.length > 0) {
+            const dirNames = recentDirs.map(dir => {
+                const parts = dir.split(/[\/\\]/);
+                return parts[parts.length - 1]; // Just the last part of the path
+            });
+            contextParts.push(`Project Directories: ${dirNames.join(', ')}`);
+        }
+        
+        // Return the formatted context
+        return contextParts.length > 0 ? contextParts.join('\n') : '';
     }
 }

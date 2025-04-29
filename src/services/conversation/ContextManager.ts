@@ -102,7 +102,7 @@ export class ContextManager {
      * Add a message for context processing
      */
     public addMessage(message: Message): void {
-        if (message.role === MessageType.User) {
+        if (message.type === MessageType.User) {
             this.processUserMessage(message);
         } else {
             this.processAssistantMessage(message);
@@ -182,6 +182,13 @@ export class ContextManager {
      */
     public getPreferredFileExtensions(limit: number = 5): string[] {
         return this.filePrefsService.getMostFrequentExtensions(limit);
+    }
+
+    /**
+     * Get recent file extensions (alias for getPreferredFileExtensions)
+     */
+    public getRecentFileExtensions(limit: number = 5): string[] {
+        return this.getPreferredFileExtensions(limit);
     }
 
     /**

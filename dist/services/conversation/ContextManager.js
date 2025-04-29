@@ -121,7 +121,7 @@ class ContextManager {
      * Add a message for context processing
      */
     addMessage(message) {
-        if (message.role === models_1.MessageType.User) {
+        if (message.type === models_1.MessageType.User) {
             this.processUserMessage(message);
         }
         else {
@@ -188,6 +188,12 @@ class ContextManager {
      */
     getPreferredFileExtensions(limit = 5) {
         return this.filePrefsService.getMostFrequentExtensions(limit);
+    }
+    /**
+     * Get recent file extensions (alias for getPreferredFileExtensions)
+     */
+    getRecentFileExtensions(limit = 5) {
+        return this.getPreferredFileExtensions(limit);
     }
     /**
      * Get active files

@@ -106,7 +106,7 @@ describe('ContextManager', () => {
     describe('Message Handling', () => {
         it('should process user messages and extract preferences', () => {
             const message: Message = {
-                role: MessageType.User,
+                type: MessageType.User,
                 content: 'Help with TypeScript React component',
                 timestamp: Date.now()
             };
@@ -126,7 +126,7 @@ describe('ContextManager', () => {
 
         it('should not analyze non-user messages', () => {
             const message: Message = {
-                role: MessageType.Assistant,
+                type: MessageType.Assistant,
                 content: 'Here is help with TypeScript',
                 timestamp: Date.now()
             };
@@ -141,7 +141,7 @@ describe('ContextManager', () => {
     describe('Context Building', () => {
         it('should build context string with all preferences', () => {
             const userMessage: Message = {
-                role: MessageType.User,
+                type: MessageType.User,
                 content: 'Help with TypeScript React component in src/components',
                 timestamp: Date.now()
             };
@@ -158,7 +158,7 @@ describe('ContextManager', () => {
     describe('Preference Management', () => {
         it('should extract and store file preferences', () => {
             const message: Message = {
-                role: MessageType.User,
+                type: MessageType.User,
                 content: 'Looking at files in src/components/UserService.ts and utils/helpers.js',
                 timestamp: Date.now()
             };
@@ -182,7 +182,7 @@ describe('ContextManager', () => {
     describe('Context Clearing', () => {
         it('should clear all context data', async () => {
             const message: Message = {
-                role: MessageType.User,
+                type: MessageType.User,
                 content: 'TypeScript React code',
                 timestamp: Date.now()
             };

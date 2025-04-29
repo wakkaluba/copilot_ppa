@@ -3,7 +3,7 @@ import { LLMProvider } from '../llm/types';
 import { LLMConnectionManager } from './llm/LLMConnectionManager';
 import { LLMHostManager } from './llm/LLMHostManager';
 import { LLMSessionManager } from './llm/LLMSessionManager';
-import { ContextManager } from './ContextManager';
+import { ContextManager } from './conversation/ContextManager';
 import { PromptManager } from './PromptManager';
 import { ThemeManager } from './themeManager';
 import { DisplaySettingsService } from './displaySettingsService';
@@ -81,7 +81,10 @@ export async function initializeServices(context: vscode.ExtensionContext): Prom
     const connectionStatus = new ConnectionStatusService(hostManager, connectionManager);
     const sessionManager = new LLMSessionManager(connectionManager, hostManager);
     const promptManager = new PromptManager(context);
-    const contextManager = new ContextManager(context, promptManager);
+    
+    // Use the singleton pattern for ContextManager
+    const contextManager = ContextManager.getInstance(context);
+    
     const themeManager = new ThemeManager(context);
     const displaySettings = new DisplaySettingsService(themeManager, context);
     

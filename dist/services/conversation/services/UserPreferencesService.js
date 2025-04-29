@@ -80,6 +80,18 @@ class UserPreferencesService {
         const prefsObject = Object.fromEntries(this.preferences.entries());
         await this.context.globalState.update('userPreferences', JSON.stringify(prefsObject));
     }
+    /**
+     * Get the preferred programming language
+     */
+    getPreferredLanguage() {
+        return this.getPreference('preferredLanguage');
+    }
+    /**
+     * Get the preferred framework
+     */
+    getPreferredFramework() {
+        return this.getPreference('preferredFramework');
+    }
 }
 exports.UserPreferencesService = UserPreferencesService;
 //# sourceMappingURL=UserPreferencesService.js.map

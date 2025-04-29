@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>0/19</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>0/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>0/19</span>
             </div>
         
             
@@ -118,8 +118,9 @@
 <a name='L53'></a><a href='#L53'>53</a>
 <a name='L54'></a><a href='#L54'>54</a>
 <a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -132,19 +133,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -160,9 +154,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -172,61 +173,66 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { EventEmitter } from 'events';</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
 &nbsp;
-export interface PanelState {
-    isAccessEnabled: boolean;
-    lastProvider?: string;
-    lastCreatedRepo?: string;
-    errorMessage: string | undefined;
+export interface IPanelState {
+    selectedRepository?: string;
+    repositories: string[];
+    currentView: string;
 }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export class R</span>epositoryPanelStateService {
-    private state: PanelState = <span class="cstat-no" title="statement not covered" >{</span>
-        isAccessEnabled: false,
-        errorMessage: undefined
+    private <span class="cstat-no" title="statement not covered" >state: IPanelState = {</span>
+        repositories: [],
+        currentView: 'list',
     };
-    private readonly eventEmitter = <span class="cstat-no" title="statement not covered" >new EventEmitter();</span>
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >getAccessState(</span>): boolean {
-<span class="cstat-no" title="statement not covered" >        return this.state.isAccessEnabled;</span>
+    
+<span class="fstat-no" title="function not covered" >    constructor(private <span class="cstat-no" title="statement not covered" >c</span>ontext: vscode.ExtensionContext)</span> {
+<span class="cstat-no" title="statement not covered" >        this.loadState();</span>
     }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >setAccessEnabled(</span>enabled: boolean): void {
-<span class="cstat-no" title="statement not covered" >        this.state.isAccessEnabled = enabled;</span>
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.emit('stateChanged', this.state);</span>
-    }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >setLastProvider(</span>provider: string): void {
-<span class="cstat-no" title="statement not covered" >        this.state.lastProvider = provider;</span>
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.emit('stateChanged', this.state);</span>
-    }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >setLastCreatedRepo(</span>repoUrl: string): void {
-<span class="cstat-no" title="statement not covered" >        this.state.lastCreatedRepo = repoUrl;</span>
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.emit('stateChanged', this.state);</span>
-    }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >setErrorMessage(</span>message: string | undefined): void {
-<span class="cstat-no" title="statement not covered" >        this.state.errorMessage = message;</span>
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.emit('stateChanged', this.state);</span>
-    }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >getState(</span>): PanelState {
+    
+    public <span class="fstat-no" title="function not covered" >getState(</span>): IPanelState {
 <span class="cstat-no" title="statement not covered" >        return { ...this.state };</span>
     }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >onStateChanged(</span>listener: (state: PanelState) =&gt; void): void {
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.on('stateChanged', listener);</span>
+    
+    public <span class="fstat-no" title="function not covered" >setState(</span>newState: Partial&lt;IPanelState&gt;): void {
+<span class="cstat-no" title="statement not covered" >        this.state = { ...this.state, ...newState };</span>
+<span class="cstat-no" title="statement not covered" >        this.saveState();</span>
     }
-&nbsp;
-    public <span class="fstat-no" title="function not covered" >clearState(</span>): void {
-<span class="cstat-no" title="statement not covered" >        this.state = {</span>
-            isAccessEnabled: false,
-            errorMessage: undefined
-        };
-<span class="cstat-no" title="statement not covered" >        this.eventEmitter.emit('stateChanged', this.state);</span>
+    
+    public <span class="fstat-no" title="function not covered" >setSelectedRepository(</span>repositoryName: string): void {
+<span class="cstat-no" title="statement not covered" >        this.state.selectedRepository = repositoryName;</span>
+<span class="cstat-no" title="statement not covered" >        this.saveState();</span>
+    }
+    
+    public <span class="fstat-no" title="function not covered" >clearSelectedRepository(</span>): void {
+<span class="cstat-no" title="statement not covered" >        delete this.state.selectedRepository;</span>
+<span class="cstat-no" title="statement not covered" >        this.saveState();</span>
+    }
+    
+    public <span class="fstat-no" title="function not covered" >setRepositories(</span>repositories: string[]): void {
+<span class="cstat-no" title="statement not covered" >        this.state.repositories = repositories;</span>
+<span class="cstat-no" title="statement not covered" >        this.saveState();</span>
+    }
+    
+    public <span class="fstat-no" title="function not covered" >setCurrentView(</span>view: string): void {
+<span class="cstat-no" title="statement not covered" >        this.state.currentView = view;</span>
+<span class="cstat-no" title="statement not covered" >        this.saveState();</span>
+    }
+    
+    private <span class="fstat-no" title="function not covered" >saveState(</span>): void {
+<span class="cstat-no" title="statement not covered" >        this.context.workspaceState.update('repository-panel-state', this.state);</span>
+    }
+    
+    private <span class="fstat-no" title="function not covered" >loadState(</span>): void {
+        const savedState = <span class="cstat-no" title="statement not covered" >this.context.workspaceState.get&lt;IPanelState&gt;('repository-panel-state');</span>
+<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (savedState) {</span>
+<span class="cstat-no" title="statement not covered" >            this.state = savedState;</span>
+        }
     }
 }</pre></td></tr></table></pre>
 
@@ -235,7 +241,7 @@ export interface PanelState {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-25T19:20:30.964Z
+                at 2025-04-29T16:16:43.146Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
