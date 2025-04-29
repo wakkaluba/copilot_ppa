@@ -42,9 +42,12 @@ jest.mock('../../../src/services/conversation/ContextManager');
 jest.mock('../../../src/services/conversation/ConversationMemory');
 jest.mock('../../../src/services/conversation/UserPreferences');
 jest.mock('../../../src/services/conversation/FilePreferences');
+jest.mock('../../../src/utils/logger');
+
 describe('CoreAgent', function () {
     var mockContext;
     var mockContextManager;
+    var mockLogger;
     var agent;
     beforeEach(function () {
         // Mock VS Code extension context
@@ -71,41 +74,51 @@ describe('CoreAgent', function () {
             getRecentFileExtensions: jest.fn().mockReturnValue([]),
             getRecentDirectories: jest.fn().mockReturnValue([]),
             getFileNamingPatterns: jest.fn().mockReturnValue([]),
-            buildContextString: jest.fn().mockReturnValue('Context string'),
-            generateSuggestions: jest.fn().mockReturnValue([]),
-            clearAllContextData: jest.fn().mockResolvedValue(undefined),
+            buildContextString: jest.fn().mockReturnValue('Test context'),
+            processInput: jest.fn().mockResolvedValue({
+                text: 'Test response', 
+                context: 'Test context'
+            }),
+            getSuggestions: jest.fn().mockResolvedValue(['Suggestion 1', 'Suggestion 2']),
+            clearContext: jest.fn().mockResolvedValue(undefined),
             dispose: jest.fn(),
         };
+        
+        // Mock Logger
+        mockLogger = {
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            log: jest.fn(),
+            setLogLevel: jest.fn(),
+            show: jest.fn(),
+            clear: jest.fn(),
+            dispose: jest.fn()
+        };
+        
         // Create the agent with mocked dependencies
-        agent = new coreAgent_1.CoreAgent(mockContext, mockContextManager);
+        agent = new coreAgent_1.CoreAgent(mockContextManager, mockLogger);
     });
     afterEach(function () {
         jest.clearAllMocks();
     });
     describe('processInput', function () {
         it('should process input and return response with context', function () { return __awaiter(void 0, void 0, void 0, function () {
-            var input, expectedResponse, response;
+            var input, response;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         input = 'Test input';
-                        expectedResponse = 'Test response';
-                        // Mock agent's internal processing
-                        mockContextManager.buildContextString.mockReturnValue('Test context');
                         return [4 /*yield*/, agent.processInput(input)];
                     case 1:
                         response = _a.sent();
                         expect(response).toEqual({
-                            response: expectedResponse,
+                            text: 'Test response',
                             context: 'Test context'
                         });
-                        expect(mockContextManager.addMessage).toHaveBeenCalledWith({
-                            id: expect.any(String),
-                            role: 'user',
-                            content: input,
-                            timestamp: expect.any(Number)
-                        });
-                        expect(mockContextManager.buildContextString).toHaveBeenCalled();
+                        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Processing input'));
+                        expect(mockContextManager.processInput).toHaveBeenCalledWith(input);
                         return [2 /*return*/];
                 }
             });
@@ -117,24 +130,34 @@ describe('CoreAgent', function () {
                     case 0:
                         input = 'Test input';
                         error = new Error('Test error');
-                        mockContextManager.buildContextString.mockRejectedValue(error);
-                        return [4 /*yield*/, expect(agent.processInput(input)).rejects.toThrow('Failed to process input: Test error')];
+                        mockContextManager.processInput.mockRejectedValue(error);
+                        return [4 /*yield*/, expect(agent.processInput(input)).rejects.toThrow(error)];
                     case 1:
                         _a.sent();
+                        expect(mockLogger.error).toHaveBeenCalled();
                         return [2 /*return*/];
                 }
             });
         }); });
     });
     describe('getSuggestions', function () {
-        it('should return suggestions based on current input', function () {
-            var input = 'test';
-            var expectedSuggestions = ['Suggestion 1', 'Suggestion 2'];
-            mockContextManager.generateSuggestions.mockReturnValue(expectedSuggestions);
-            var suggestions = agent.getSuggestions(input);
-            expect(suggestions).toEqual(expectedSuggestions);
-            expect(mockContextManager.generateSuggestions).toHaveBeenCalledWith(input);
-        });
+        it('should return suggestions based on current input', function () { return __awaiter(void 0, void 0, void 0, function () {
+            var input, expectedSuggestions, suggestions;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        input = 'test';
+                        expectedSuggestions = ['Suggestion 1', 'Suggestion 2'];
+                        mockContextManager.getSuggestions.mockResolvedValue(expectedSuggestions);
+                        return [4 /*yield*/, agent.getSuggestions(input)];
+                    case 1:
+                        suggestions = _a.sent();
+                        expect(suggestions).toEqual(expectedSuggestions);
+                        expect(mockContextManager.getSuggestions).toHaveBeenCalledWith(input);
+                        return [2 /*return*/];
+                }
+            });
+        }); });
     });
     describe('clearContext', function () {
         it('should clear all context data', function () { return __awaiter(void 0, void 0, void 0, function () {
@@ -143,19 +166,22 @@ describe('CoreAgent', function () {
                     case 0: return [4 /*yield*/, agent.clearContext()];
                     case 1:
                         _a.sent();
-                        expect(mockContextManager.clearAllContextData).toHaveBeenCalled();
+                        expect(mockContextManager.clearContext).toHaveBeenCalled();
                         return [2 /*return*/];
                 }
             });
         }); });
         it('should handle errors during context clearing', function () { return __awaiter(void 0, void 0, void 0, function () {
+            var error;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        mockContextManager.clearAllContextData.mockRejectedValue(new Error('Test error'));
-                        return [4 /*yield*/, expect(agent.clearContext()).rejects.toThrow('Failed to clear context: Test error')];
+                        error = new Error('Test error');
+                        mockContextManager.clearContext.mockRejectedValue(error);
+                        return [4 /*yield*/, expect(agent.clearContext()).rejects.toThrow(error)];
                     case 1:
                         _a.sent();
+                        expect(mockLogger.error).toHaveBeenCalled();
                         return [2 /*return*/];
                 }
             });

@@ -33,57 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createMockConversationHistory = createMockConversationHistory;
 exports.createMockExtensionContext = createMockExtensionContext;
 exports.createMockConversation = createMockConversation;
 exports.createMockMessage = createMockMessage;
 const vscode = __importStar(require("vscode"));
 const sinon = __importStar(require("sinon"));
-const ConversationHistory_1 = require("../../services/ConversationHistory");
-/**
- * Creates a mock ConversationHistory instance that can be used in tests
- */
-function createMockConversationHistory() {
-    const mockHistory = sinon.createStubInstance(ConversationHistory_1.ConversationHistory);
-    // Add additional methods that aren't automatically detected
-    mockHistory.on = sinon.stub().returns(mockHistory);
-    mockHistory.emit = sinon.stub().returns(true);
-    // Implement some standard behaviors
-    mockHistory.getConversation = sinon.stub().callsFake((id) => {
-        return {
-            id,
-            title: `Mock Conversation ${id}`,
-            messages: [],
-            created: Date.now(),
-            updated: Date.now()
-        };
-    });
-    mockHistory.getAllConversations = sinon.stub().returns([]);
-    mockHistory.createConversation = sinon.stub().callsFake(async (title) => {
-        return {
-            id: `mock-${Date.now()}`,
-            title,
-            messages: [],
-            created: Date.now(),
-            updated: Date.now()
-        };
-    });
-    mockHistory.addMessage = sinon.stub().resolves();
-    mockHistory.deleteConversation = sinon.stub().resolves();
-    mockHistory.searchConversations = sinon.stub().resolves([]);
-    mockHistory.exportConversation = sinon.stub().resolves("{}");
-    mockHistory.importConversation = sinon.stub().resolves({
-        id: "imported-conversation",
-        title: "Imported Conversation",
-        messages: [],
-        created: Date.now(),
-        updated: Date.now()
-    });
-    return mockHistory;
-}
-/**
- * Creates a mock ExtensionContext that can be used in tests
- */
 function createMockExtensionContext() {
     return {
         subscriptions: [],
@@ -120,16 +74,25 @@ function createMockExtensionContext() {
             scheme: 'file'
         },
         extensionMode: vscode.ExtensionMode.Test,
+        environmentVariableCollection: {
+            persistent: true,
+            replace: sinon.stub(),
+            append: sinon.stub(),
+            prepend: sinon.stub(),
+            get: sinon.stub(),
+            forEach: sinon.stub(),
+            delete: sinon.stub(),
+            clear: sinon.stub(),
+            [Symbol.iterator]: function* () { yield* []; }
+        },
         secrets: {
             get: sinon.stub().resolves(undefined),
             store: sinon.stub().resolves(),
-            delete: sinon.stub().resolves()
+            delete: sinon.stub().resolves(),
+            onDidChange: new vscode.EventEmitter().event
         }
     };
 }
-/**
- * Creates a mock conversation that can be used in tests
- */
 function createMockConversation(id = 'test-conversation', title = 'Test Conversation') {
     return {
         id,
@@ -139,9 +102,6 @@ function createMockConversation(id = 'test-conversation', title = 'Test Conversa
         updated: Date.now()
     };
 }
-/**
- * Creates a mock chat message that can be used in tests
- */
 function createMockMessage(role = 'user', content = 'Test message') {
     return {
         role,

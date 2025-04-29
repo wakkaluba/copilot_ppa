@@ -2,56 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { ChatMessage, Conversation, ConversationHistory } from '../../services/ConversationHistory';
 
-/**
- * Creates a mock ConversationHistory instance that can be used in tests
- */
-export function createMockConversationHistory(): sinon.SinonStubbedInstance<ConversationHistory> {
-    const mockHistory = sinon.createStubInstance(ConversationHistory);
-    
-    // Add additional methods that aren't automatically detected
-    mockHistory.on = sinon.stub().returns(mockHistory);
-    mockHistory.emit = sinon.stub().returns(true);
-    
-    // Implement some standard behaviors
-    mockHistory.getConversation = sinon.stub().callsFake((id: string) => {
-        return {
-            id,
-            title: `Mock Conversation ${id}`,
-            messages: [],
-            created: Date.now(),
-            updated: Date.now()
-        };
-    });
-    
-    mockHistory.getAllConversations = sinon.stub().returns([]);
-    mockHistory.createConversation = sinon.stub().callsFake(async (title: string) => {
-        return {
-            id: `mock-${Date.now()}`,
-            title,
-            messages: [],
-            created: Date.now(),
-            updated: Date.now()
-        };
-    });
-    
-    mockHistory.addMessage = sinon.stub().resolves();
-    mockHistory.deleteConversation = sinon.stub().resolves();
-    mockHistory.searchConversations = sinon.stub().resolves([]);
-    mockHistory.exportConversation = sinon.stub().resolves("{}");
-    mockHistory.importConversation = sinon.stub().resolves({
-        id: "imported-conversation",
-        title: "Imported Conversation",
-        messages: [],
-        created: Date.now(),
-        updated: Date.now()
-    });
-    
-    return mockHistory;
-}
-
-/**
- * Creates a mock ExtensionContext that can be used in tests
- */
 export function createMockExtensionContext(): vscode.ExtensionContext {
     return {
         subscriptions: [],
@@ -88,17 +38,26 @@ export function createMockExtensionContext(): vscode.ExtensionContext {
             scheme: 'file'
         } as any,
         extensionMode: vscode.ExtensionMode.Test,
+        environmentVariableCollection: {
+            persistent: true,
+            replace: sinon.stub(),
+            append: sinon.stub(), 
+            prepend: sinon.stub(),
+            get: sinon.stub(),
+            forEach: sinon.stub(),
+            delete: sinon.stub(),
+            clear: sinon.stub(),
+            [Symbol.iterator]: function* () { yield* []; }
+        } as any,
         secrets: {
             get: sinon.stub().resolves(undefined),
             store: sinon.stub().resolves(),
-            delete: sinon.stub().resolves()
+            delete: sinon.stub().resolves(),
+            onDidChange: new vscode.EventEmitter<string>().event
         }
     };
 }
 
-/**
- * Creates a mock conversation that can be used in tests
- */
 export function createMockConversation(id: string = 'test-conversation', title: string = 'Test Conversation'): Conversation {
     return {
         id,
@@ -109,9 +68,6 @@ export function createMockConversation(id: string = 'test-conversation', title: 
     };
 }
 
-/**
- * Creates a mock chat message that can be used in tests
- */
 export function createMockMessage(role: 'user' | 'assistant' | 'system' = 'user', content: string = 'Test message'): ChatMessage {
     return {
         role,

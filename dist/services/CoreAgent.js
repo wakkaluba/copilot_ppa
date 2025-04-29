@@ -2,27 +2,24 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CoreAgent = void 0;
 /**
- * Core agent that processes user inputs and manages interactions
+ * CoreAgent class that handles interactions with the context manager
+ * and provides the main functionality for processing user inputs
  */
 class CoreAgent {
-    /**
-     * Create a new CoreAgent instance
-     * @param contextManager Context manager instance
-     * @param logger Logger instance
-     */
     constructor(contextManager, logger) {
         this.contextManager = contextManager;
         this.logger = logger;
+        this.logger.info('CoreAgent initialized');
     }
     /**
-     * Process user input and generate a response with context
-     * @param input User input text
-     * @returns Response with context information
+     * Process user input and return a response
+     * @param input The user input to process
+     * @returns Response with text and context
      */
     async processInput(input) {
         try {
-            this.logger.info(`Processing input: ${input}`);
-            const response = await this.contextManager.processInput(input);
+            this.logger.info(`Processing input: ${input.substring(0, 50)}${input.length > 50 ? '...' : ''}`);
+            const response = await this.contextManager.addMessage(input, 'user');
             return response;
         }
         catch (error) {
@@ -33,11 +30,14 @@ class CoreAgent {
     /**
      * Get suggestions based on current input
      * @param input Current input text
-     * @returns List of suggestions
+     * @returns Array of suggestions
      */
     async getSuggestions(input) {
         try {
-            return await this.contextManager.getSuggestions(input);
+            // The ContextManager's getRecentHistory method now explicitly supports
+            // accepting an input string for generating suggestions based on context
+            const suggestions = await this.contextManager.getRecentHistory(input);
+            return suggestions;
         }
         catch (error) {
             this.logger.error(`Error getting suggestions: ${error instanceof Error ? error.message : String(error)}`);
@@ -45,7 +45,7 @@ class CoreAgent {
         }
     }
     /**
-     * Clear all context data
+     * Clear the conversation context
      */
     async clearContext() {
         try {

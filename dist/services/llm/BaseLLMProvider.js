@@ -2,30 +2,27 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseLLMProvider = void 0;
 const events_1 = require("events");
-const interfaces_1 = require("./interfaces");
-const llm_1 = require("../../types/llm");
 const ConnectionMetricsTracker_1 = require("./ConnectionMetricsTracker");
-const errors_1 = require("./errors");
 const connectionUtils_1 = require("./connectionUtils");
-/**
- * Base class for LLM providers with common functionality
- */
+const errors_1 = require("./errors");
+const llm_1 = require("../../types/llm");
 class BaseLLMProvider extends events_1.EventEmitter {
-    constructor(name) {
+    constructor(id, name) {
         super();
+        this.id = id;
         this.name = name;
         this.connectionState = llm_1.ConnectionState.DISCONNECTED;
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
     }
-    /**
-     * Connect to the provider
-     */
-    async connect(options) {
+    isConnected() {
+        return this.connectionState === llm_1.ConnectionState.CONNECTED;
+    }
+    async connect() {
         try {
             this.connectionState = llm_1.ConnectionState.CONNECTING;
             this.emit('stateChanged', this.connectionState);
             const startTime = Date.now();
-            await this.performConnect(options);
+            await this.performConnect();
             const endTime = Date.now();
             this.metricsTracker.recordConnectionSuccess();
             this.metricsTracker.recordRequest(endTime - startTime);
@@ -39,9 +36,6 @@ class BaseLLMProvider extends events_1.EventEmitter {
             throw formattedError;
         }
     }
-    /**
-     * Disconnect from the provider
-     */
     async disconnect() {
         try {
             await this.performDisconnect();
@@ -55,67 +49,11 @@ class BaseLLMProvider extends events_1.EventEmitter {
             throw formattedError;
         }
     }
-    /**
-     * Get current connection status
-     */
-    getStatus() {
-        return {
-            state: this.connectionState,
-            error: this.lastError,
-            modelInfo: this.currentModel,
-            metadata: {
-                metrics: this.metricsTracker.getMetrics()
-            }
-        };
-    }
-    /**
-     * Check if provider is available
-     */
-    async isAvailable() {
-        try {
-            const health = await this.healthCheck();
-            return health.status === 'ok';
-        }
-        catch {
-            return false;
-        }
-    }
-    /**
-     * Get current model info
-     */
-    async getModelInfo() {
-        if (!this.currentModel) {
-            try {
-                this.currentModel = await this.loadModelInfo();
-            }
-            catch (error) {
-                const formattedError = (0, connectionUtils_1.formatProviderError)(error, this.name);
-                this.handleError(formattedError);
-                throw formattedError;
-            }
-        }
-        return this.currentModel;
-    }
-    /**
-     * Set active model
-     */
-    async setModel(modelId) {
-        const models = await this.getAvailableModels();
-        const model = models.find(m => m.id === modelId);
-        if (!model) {
-            throw new errors_1.ModelNotFoundError(modelId);
-        }
-        await this.loadModel(model);
-        this.currentModel = model;
-    }
-    /**
-     * Handle provider error
-     */
     handleError(error) {
         this.lastError = error;
         this.emit('error', error);
         if (error instanceof errors_1.LLMConnectionError) {
-            if (error.code === interfaces_1.ConnectionErrorCode.PROVIDER_UNAVAILABLE) {
+            if (error.code === 'PROVIDER_UNAVAILABLE') {
                 this.connectionState = llm_1.ConnectionState.DISCONNECTED;
             }
             else {
@@ -128,47 +66,11 @@ class BaseLLMProvider extends events_1.EventEmitter {
         this.emit('stateChanged', this.connectionState);
         this.metricsTracker.recordRequestFailure(error);
     }
-    /**
-     * Dispose of provider resources
-     */
     dispose() {
         if (this.connectionState === llm_1.ConnectionState.CONNECTED) {
             this.disconnect().catch(console.error);
         }
         this.removeAllListeners();
-    }
-    /**
-     * Perform model load
-     */
-    async performModelLoad(modelInfo) {
-        try {
-            await this.loadModel(modelInfo);
-            this.currentModel = modelInfo;
-            this.emit('modelLoaded', modelInfo);
-        }
-        catch (error) {
-            const formattedError = (0, connectionUtils_1.formatProviderError)(error, this.name);
-            this.handleError(formattedError);
-            throw formattedError;
-        }
-    }
-    /**
-     * Perform model unload
-     */
-    async performModelUnload() {
-        if (this.currentModel) {
-            try {
-                await this.performDisconnect();
-                const previousModel = this.currentModel;
-                this.currentModel = undefined;
-                this.emit('modelUnloaded', previousModel);
-            }
-            catch (error) {
-                const formattedError = (0, connectionUtils_1.formatProviderError)(error, this.name);
-                this.handleError(formattedError);
-                throw formattedError;
-            }
-        }
     }
 }
 exports.BaseLLMProvider = BaseLLMProvider;

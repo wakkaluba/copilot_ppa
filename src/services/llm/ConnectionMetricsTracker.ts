@@ -1,188 +1,61 @@
-import { EventEmitter } from 'events';
-import { ConnectionErrorCode } from './interfaces';
-import { LLMConnectionError } from './errors';
-
-/**
- * Performance metrics for LLM connections
- */
-interface ConnectionMetrics {
-    totalRequests: number;
-    successfulRequests: number;
-    failedRequests: number;
-    totalLatency: number;
-    averageLatency: number;
-    maxLatency: number;
-    minLatency: number;
-    errors: Record<string, number>;
-    requestsInLastMinute: number;
-    requestsInLastHour: number;
-    lastUpdated: number;
-}
-
-/**
- * Timestamp and duration for a request
- */
-interface RequestTiming {
-    timestamp: number;
-    duration: number;
-}
-
-/**
- * Default metrics state
- */
-const DEFAULT_METRICS: ConnectionMetrics = {
-    totalRequests: 0,
-    successfulRequests: 0,
-    failedRequests: 0,
-    totalLatency: 0,
-    averageLatency: 0,
-    maxLatency: 0,
-    minLatency: Infinity,
-    errors: {},
-    requestsInLastMinute: 0,
-    requestsInLastHour: 0,
-    lastUpdated: Date.now()
-};
-
 /**
  * Tracks performance metrics for LLM connections
  */
-export class ConnectionMetricsTracker extends EventEmitter {
-    private metrics: ConnectionMetrics = { ...DEFAULT_METRICS };
-    private recentRequests: RequestTiming[] = [];
-    private readonly MINUTE = 60 * 1000;
-    private readonly HOUR = 60 * 60 * 1000;
+export class ConnectionMetricsTracker {
+    private connectionAttempts = 0;
+    private successfulConnections = 0;
+    private requestCount = 0;
+    private errorCount = 0;
+    private totalLatency = 0;
+    private lastError?: Error;
+    private lastRequestTime?: number;
 
-    constructor() {
-        super();
-        this.startPeriodicCleanup();
+    public recordConnectionAttempt(): void {
+        this.connectionAttempts++;
     }
 
-    /**
-     * Record a successful connection
-     */
     public recordConnectionSuccess(): void {
-        this.updateMetrics({
-            type: 'connection',
-            success: true
-        });
+        this.successfulConnections++;
     }
 
-    /**
-     * Record a successful request with timing
-     */
-    public recordRequest(durationMs: number): void {
-        this.updateMetrics({
-            type: 'request',
-            success: true,
-            duration: durationMs
-        });
+    public recordRequest(latencyMs: number): void {
+        this.requestCount++;
+        this.totalLatency += latencyMs;
+        this.lastRequestTime = Date.now();
     }
 
-    /**
-     * Record a failed request
-     */
     public recordRequestFailure(error: Error): void {
-        this.updateMetrics({
-            type: 'request',
-            success: false,
-            error
-        });
+        this.errorCount++;
+        this.lastError = error;
     }
 
-    /**
-     * Get current metrics
-     */
-    public getMetrics(): ConnectionMetrics {
-        this.updateTimeBasedMetrics();
-        return { ...this.metrics };
+    public getMetrics(): {
+        connectionAttempts: number;
+        successfulConnections: number;
+        requestCount: number;
+        errorCount: number;
+        averageLatency: number;
+        lastError?: Error;
+        lastRequestTime?: number;
+    } {
+        return {
+            connectionAttempts: this.connectionAttempts,
+            successfulConnections: this.successfulConnections,
+            requestCount: this.requestCount,
+            errorCount: this.errorCount,
+            averageLatency: this.requestCount > 0 ? this.totalLatency / this.requestCount : 0,
+            lastError: this.lastError,
+            lastRequestTime: this.lastRequestTime
+        };
     }
 
-    /**
-     * Reset metrics
-     */
     public reset(): void {
-        this.metrics = { ...DEFAULT_METRICS };
-        this.recentRequests = [];
-        this.emit('metricsReset');
-    }
-
-    private updateMetrics(event: {
-        type: 'connection' | 'request';
-        success: boolean;
-        duration?: number;
-        error?: Error;
-    }): void {
-        const now = Date.now();
-        this.metrics.lastUpdated = now;
-        this.metrics.totalRequests++;
-
-        if (event.success) {
-            this.metrics.successfulRequests++;
-            if (event.duration !== undefined) {
-                this.updateLatencyMetrics(event.duration);
-                this.recentRequests.push({
-                    timestamp: now,
-                    duration: event.duration
-                });
-            }
-        } else {
-            this.metrics.failedRequests++;
-            if (event.error) {
-                this.recordError(event.error);
-            }
-        }
-
-        this.updateTimeBasedMetrics();
-        this.emit('metricsUpdated', this.getMetrics());
-    }
-
-    private updateLatencyMetrics(duration: number): void {
-        this.metrics.totalLatency += duration;
-        this.metrics.averageLatency = this.metrics.totalLatency / this.metrics.successfulRequests;
-        this.metrics.maxLatency = Math.max(this.metrics.maxLatency, duration);
-        this.metrics.minLatency = Math.min(this.metrics.minLatency, duration);
-    }
-
-    private recordError(error: Error): void {
-        let errorType = 'unknown';
-        
-        if (error instanceof LLMConnectionError) {
-            errorType = ConnectionErrorCode[error.code] || 'unknown';
-        } else {
-            errorType = error.constructor.name;
-        }
-
-        this.metrics.errors[errorType] = (this.metrics.errors[errorType] || 0) + 1;
-    }
-
-    private updateTimeBasedMetrics(): void {
-        const now = Date.now();
-        const minuteAgo = now - this.MINUTE;
-        const hourAgo = now - this.HOUR;
-
-        // Update recent request counts
-        this.recentRequests = this.recentRequests.filter(r => r.timestamp >= hourAgo);
-        this.metrics.requestsInLastMinute = this.recentRequests.filter(
-            r => r.timestamp >= minuteAgo
-        ).length;
-        this.metrics.requestsInLastHour = this.recentRequests.length;
-    }
-
-    private startPeriodicCleanup(): void {
-        setInterval(() => {
-            const now = Date.now();
-            const hourAgo = now - this.HOUR;
-            
-            // Remove requests older than an hour
-            this.recentRequests = this.recentRequests.filter(r => r.timestamp >= hourAgo);
-            
-            // Update time-based metrics
-            this.updateTimeBasedMetrics();
-        }, this.MINUTE); // Clean up every minute
-    }
-
-    public dispose(): void {
-        this.removeAllListeners();
+        this.connectionAttempts = 0;
+        this.successfulConnections = 0;
+        this.requestCount = 0;
+        this.errorCount = 0;
+        this.totalLatency = 0;
+        this.lastError = undefined;
+        this.lastRequestTime = undefined;
     }
 }

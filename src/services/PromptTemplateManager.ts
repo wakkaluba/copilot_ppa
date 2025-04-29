@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Context } from './ContextManager';
+import { Context } from '../types/context';
 
 export interface PromptTemplate {
     name: string;

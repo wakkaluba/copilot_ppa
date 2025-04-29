@@ -19,4 +19,4 @@ class ContextManager {
     }
 }
 exports.ContextManager = ContextManager;
-//# sourceMappingURL=contextManager.js.map
+//# sourceMappingURL=ContextManager.js.map

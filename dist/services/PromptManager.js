@@ -6,6 +6,7 @@ class PromptManager {
         this.contextManager = contextManager;
     }
     createPrompt(userInput) {
+        // Call buildContextString which is available in the actual implementation
         const contextString = this.contextManager.buildContextString();
         return `${contextString}\n\nUser: ${userInput}`;
     }
