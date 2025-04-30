@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">12.3% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>8/65</span>
+                <span class='fraction'>0/65</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">12.5% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/16</span>
+                <span class='fraction'>0/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/15</span>
+                <span class='fraction'>0/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">12.3% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>8/65</span>
+                <span class='fraction'>0/65</span>
             </div>
         
             
@@ -261,17 +261,15 @@
 <a name='L196'></a><a href='#L196'>196</a>
 <a name='L197'></a><a href='#L197'>197</a>
 <a name='L198'></a><a href='#L198'>198</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -280,7 +278,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -458,15 +458,15 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
-import { EventEmitter } from 'events';
+<span class="cstat-no" title="statement not covered" >import { EventEmitter } from 'events';</span>
 import { LLMProvider, ProviderCapabilities } from '../../llm/types';
-import { LLMProviderValidator } from './validators/LLMProviderValidator';
+<span class="cstat-no" title="statement not covered" >import { LLMProviderValidator } from './validators/LLMProviderValidator';</span>
 &nbsp;
-export enum ConnectionStatus {
-    Disconnected = 'disconnected',
-    Connecting = 'connecting',
-    Connected = 'connected',
-    Error = 'error'
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >export enum C</span>onnectionStatus {</span>
+<span class="cstat-no" title="statement not covered" >    Disconnected = 'disconnected',</span>
+<span class="cstat-no" title="statement not covered" >    Connecting = 'connecting',</span>
+<span class="cstat-no" title="statement not covered" >    Connected = 'connected',</span>
+<span class="cstat-no" title="statement not covered" >    Error = 'error'</span>
 }
 &nbsp;
 export interface ConnectionEvent {
@@ -477,7 +477,7 @@ export interface ConnectionEvent {
     details?: Record&lt;string, any&gt;;
 }
 &nbsp;
-export class LLMConnectionManager extends EventEmitter implements vscode.Disposable {
+<span class="cstat-no" title="statement not covered" >export class L</span>LMConnectionManager extends EventEmitter implements vscode.Disposable {
     private <span class="cstat-no" title="statement not covered" >provider: LLMProvider | null = null;</span>
     private <span class="cstat-no" title="statement not covered" >status: ConnectionStatus = ConnectionStatus.Disconnected;</span>
     private validator: LLMProviderValidator;
@@ -661,7 +661,7 @@ export class LLMConnectionManager extends EventEmitter implements vscode.Disposa
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-27T22:37:44.846Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

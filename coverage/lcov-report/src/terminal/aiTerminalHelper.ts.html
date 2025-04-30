@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/187</span>
+                <span class='fraction'>0/185</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/184</span>
+                <span class='fraction'>0/182</span>
             </div>
         
             
@@ -749,14 +749,13 @@
 <a name='L684'></a><a href='#L684'>684</a>
 <a name='L685'></a><a href='#L685'>685</a>
 <a name='L686'></a><a href='#L686'>686</a>
-<a name='L687'></a><a href='#L687'>687</a>
-<a name='L688'></a><a href='#L688'>688</a>
-<a name='L689'></a><a href='#L689'>689</a>
-<a name='L690'></a><a href='#L690'>690</a>
-<a name='L691'></a><a href='#L691'>691</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L687'></a><a href='#L687'>687</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -967,13 +966,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1055,9 +1050,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1447,6 +1439,9 @@
 <span class="cstat-no" title="statement not covered" >import { TerminalShellType, CommandHistoryEntry } from './types';</span>
 import { InteractiveShell } from './interactiveShell';
 import { LLMProviderManager } from '../llm/providerManager';
+<span class="cstat-no" title="statement not covered" >import * as fs from 'fs';</span>
+<span class="cstat-no" title="statement not covered" >import * as path from 'path';</span>
+<span class="cstat-no" title="statement not covered" >import { spawn } from 'child_process';</span>
 &nbsp;
 /**
  * Provides AI-powered assistance for terminal commands
@@ -1658,10 +1653,6 @@ Ensure the command is:
         }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        try {</span>
-            const { spawn } = <span class="cstat-no" title="statement not covered" >require('child_process');</span>
-            const fs = <span class="cstat-no" title="statement not covered" >require('fs');</span>
-            const path = <span class="cstat-no" title="statement not covered" >require('path');</span>
-            
             let contextInfo = <span class="cstat-no" title="statement not covered" >'';</span>
             
             // Check if it's a git repository
@@ -1745,9 +1736,6 @@ Ensure the command is:
      */
     private <span class="fstat-no" title="function not covered" >checkForFileTypes(</span>directory: string, extensions: string[]): boolean {
 <span class="cstat-no" title="statement not covered" >        try {</span>
-            const fs = <span class="cstat-no" title="statement not covered" >require('fs');</span>
-            const path = <span class="cstat-no" title="statement not covered" >require('path');</span>
-            
             // Get top-level files only (for performance)
             const files = <span class="cstat-no" title="statement not covered" >fs.readdirSync(directory);</span>
             
@@ -1906,13 +1894,13 @@ Format your response using these exact headings.
         };
         
         // Extract purpose (overall purpose section)
-        const purposeMatch = <span class="cstat-no" title="statement not covered" >response.match(/(?:Overall purpose|Purpose)(?:[:\-])?\s*(.*?)(?=Component breakdown|$)/si);</span>
+        const purposeMatch = <span class="cstat-no" title="statement not covered" >response.match(/(?:Overall purpose|Purpose)(?:[:-])?\s*(.*?)(?=Component breakdown|$)/si);</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (purposeMatch &amp;&amp; purposeMatch[1]) {</span>
 <span class="cstat-no" title="statement not covered" >            analysis.purpose = purposeMatch[1].trim();</span>
         }
         
         // Extract component breakdown
-        const componentsMatch = <span class="cstat-no" title="statement not covered" >response.match(/Component breakdown(?:[:\-])?\s*(.*?)(?=Potential risks|Risks|$)/si);</span>
+        const componentsMatch = <span class="cstat-no" title="statement not covered" >response.match(/Component breakdown(?:[:-])?\s*(.*?)(?=Potential risks|Risks|$)/si);</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (componentsMatch &amp;&amp; componentsMatch[1]) {</span>
             // Split components by bullet points or numbered list
             const componentsText = <span class="cstat-no" title="statement not covered" >componentsMatch[1].trim();</span>
@@ -1923,7 +1911,7 @@ Format your response using these exact headings.
         }
         
         // Extract risks
-        const risksMatch = <span class="cstat-no" title="statement not covered" >response.match(/(?:Potential risks|Risks)(?:[:\-])?\s*(.*?)(?=Performance|$)/si);</span>
+        const risksMatch = <span class="cstat-no" title="statement not covered" >response.match(/(?:Potential risks|Risks)(?:[:-])?\s*(.*?)(?=Performance|$)/si);</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (risksMatch &amp;&amp; risksMatch[1]) {</span>
             // Split risks by bullet points or numbered list
             const risksText = <span class="cstat-no" title="statement not covered" >risksMatch[1].trim();</span>
@@ -1934,13 +1922,13 @@ Format your response using these exact headings.
         }
         
         // Extract performance considerations
-        const performanceMatch = <span class="cstat-no" title="statement not covered" >response.match(/Performance(?:[:\-])?\s*(.*?)(?=Alternatives|$)/si);</span>
+        const performanceMatch = <span class="cstat-no" title="statement not covered" >response.match(/Performance(?:[:-])?\s*(.*?)(?=Alternatives|$)/si);</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (performanceMatch &amp;&amp; performanceMatch[1]) {</span>
 <span class="cstat-no" title="statement not covered" >            analysis.performance = performanceMatch[1].trim();</span>
         }
         
         // Extract alternatives
-        const alternativesMatch = <span class="cstat-no" title="statement not covered" >response.match(/Alternatives(?:[:\-])?\s*(.*?)(?=$)/si);</span>
+        const alternativesMatch = <span class="cstat-no" title="statement not covered" >response.match(/Alternatives(?:[:-])?\s*(.*?)(?=$)/si);</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (alternativesMatch &amp;&amp; alternativesMatch[1]) {</span>
             // Split alternatives by bullet points or numbered list
             const alternativesText = <span class="cstat-no" title="statement not covered" >alternativesMatch[1].trim();</span>
@@ -2140,7 +2128,7 @@ function <span class="fstat-no" title="function not covered" >processFile(</span
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-17T00:47:47.806Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

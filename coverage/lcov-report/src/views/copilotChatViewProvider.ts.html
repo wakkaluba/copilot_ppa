@@ -695,18 +695,18 @@
  * Provides a custom view that integrates with Copilot Chat
  */
 <span class="cstat-no" title="statement not covered" >export class C</span>opilotChatViewProvider implements vscode.WebviewViewProvider {
-    public static readonly <span class="cstat-no" title="statement not covered" >viewType = 'localLlmAgent.copilotChatView';</span>
+    public static readonly <span class="cstat-no" title="statement not covered" >viewType = 'copilot-ppa.copilotChatView';</span>
     private _view?: vscode.WebviewView;
     private copilotChatIntegration: CopilotChatIntegration;
     private logger: Logger;
-    
+&nbsp;
 <span class="fstat-no" title="function not covered" >    constructor(</span>
         private readonly <span class="cstat-no" title="statement not covered" >_extensionUri: vscode.Uri</span>
     ) {
 <span class="cstat-no" title="statement not covered" >        this.copilotChatIntegration = CopilotChatIntegration.getInstance();</span>
 <span class="cstat-no" title="statement not covered" >        this.logger = Logger.getInstance();</span>
     }
-    
+&nbsp;
     /**
      * Resolves the webview view
      */
@@ -716,18 +716,18 @@
         _token: vscode.CancellationToken
     ) {
 <span class="cstat-no" title="statement not covered" >        this._view = webviewView;</span>
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        webviewView.webview.options = {</span>
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
         };
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);</span>
-        
+&nbsp;
         // Initialize Copilot chat integration
         const isInitialized = <span class="cstat-no" title="statement not covered" >await this.copilotChatIntegration.initialize();</span>
 <span class="cstat-no" title="statement not covered" >        this._updateStatus(isInitialized);</span>
-        
+&nbsp;
         // Handle messages from the webview
 <span class="cstat-no" title="statement not covered" >        webviewView.webview.onDidReceiveMessage(<span class="fstat-no" title="function not covered" >async </span>message =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >            switch (message.command) {</span>
@@ -748,7 +748,7 @@
             }
         });
     }
-    
+&nbsp;
     /**
      * Update integration status in the webview
      */
@@ -760,7 +760,7 @@
             });
         }
     }
-    
+&nbsp;
     /**
      * Handle sending a message to Copilot chat
      */
@@ -768,11 +768,11 @@
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!text.trim()) {</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        try {</span>
             // Send message to Copilot chat
             const success = <span class="cstat-no" title="statement not covered" >await this.copilotChatIntegration.sendMessageToCopilotChat(text);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (!success) {</span>
 <span class="cstat-no" title="statement not covered" >                <span class="missing-if-branch" title="if path not taken" >I</span>if (this._view) {</span>
 <span class="cstat-no" title="statement not covered" >                    this._view.webview.postMessage({</span>
@@ -783,7 +783,7 @@
             }
         } catch (error) {
 <span class="cstat-no" title="statement not covered" >            this.logger.error('Error sending message to Copilot chat', error);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (this._view) {</span>
 <span class="cstat-no" title="statement not covered" >                this._view.webview.postMessage({</span>
                     command: 'showError',
@@ -792,7 +792,7 @@
             }
         }
     }
-    
+&nbsp;
     /**
      * Generate HTML for the webview
      */
@@ -801,7 +801,7 @@
         const styleUri = <span class="cstat-no" title="statement not covered" >webview.asWebviewUri(</span>
             vscode.Uri.joinPath(this._extensionUri, 'media', 'styles.css')
         );
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        return `&lt;!DOCTYPE html&gt;</span>
         &lt;html lang="en"&gt;
         &lt;head&gt;
@@ -898,21 +898,21 @@
                         &lt;button id="reconnectButton"&gt;Reconnect&lt;/button&gt;
                     &lt;/div&gt;
                 &lt;/div&gt;
-                
+&nbsp;
                 &lt;div class="message-container" id="messageContainer"&gt;
                     &lt;div class="message"&gt;
                         Welcome to the Copilot Chat Integration. Messages sent from here will appear in the Copilot chat window.
                     &lt;/div&gt;
                 &lt;/div&gt;
-                
+&nbsp;
                 &lt;div id="errorContainer" class="error" style="display: none;"&gt;&lt;/div&gt;
-                
+&nbsp;
                 &lt;div class="message-input"&gt;
                     &lt;input type="text" id="messageInput" placeholder="Type message to send to Copilot Chat..." /&gt;
                     &lt;button id="sendButton"&gt;Send&lt;/button&gt;
                 &lt;/div&gt;
             &lt;/div&gt;
-            
+&nbsp;
             &lt;script&gt;
                 const vscode = acquireVsCodeApi();
                 const messageInput = document.getElementById('messageInput');
@@ -922,7 +922,7 @@
                 const toggleButton = document.getElementById('toggleIntegration');
                 const reconnectButton = document.getElementById('reconnectButton');
                 const errorContainer = document.getElementById('errorContainer');
-                
+&nbsp;
                 // Send message
                 function sendMessage() {
                     const text = messageInput.value.trim();
@@ -931,12 +931,12 @@
                             command: 'sendMessage',
                             text: text
                         });
-                        
+&nbsp;
                         // Clear input
                         messageInput.value = '';
                     }
                 }
-                
+&nbsp;
                 // Update status indicator
                 function updateStatus(active) {
                     if (active) {
@@ -949,7 +949,7 @@
                         statusText.textContent = 'Integration Inactive';
                     }
                 }
-                
+&nbsp;
                 // Show error message
                 function showError(message) {
                     errorContainer.textContent = message;
@@ -958,37 +958,37 @@
                         errorContainer.style.display = 'none';
                     }, 5000);
                 }
-                
+&nbsp;
                 // Event listeners
                 sendButton.addEventListener('click', sendMessage);
-                
+&nbsp;
                 messageInput.addEventListener('keypress', (e) =&gt; {
                     if (e.key === 'Enter') {
                         sendMessage();
                     }
                 });
-                
+&nbsp;
                 toggleButton.addEventListener('click', () =&gt; {
                     vscode.postMessage({
                         command: 'toggleIntegration'
                     });
                 });
-                
+&nbsp;
                 reconnectButton.addEventListener('click', () =&gt; {
                     vscode.postMessage({
                         command: 'reconnect'
                     });
                 });
-                
+&nbsp;
                 // Handle messages from extension
                 window.addEventListener('message', event =&gt; {
                     const message = event.data;
-                    
+&nbsp;
                     switch (message.command) {
                         case 'updateStatus':
                             updateStatus(message.isActive);
                             break;
-                            
+&nbsp;
                         case 'showError':
                             showError(message.text);
                             break;
@@ -1006,7 +1006,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-29T20:35:53.244Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

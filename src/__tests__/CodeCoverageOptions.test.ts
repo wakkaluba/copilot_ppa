@@ -38,13 +38,13 @@ describe('CodeCoverageOptions Interface', () => {
   describe('Coverage Tool Configuration', () => {
     it('should accept all supported coverage tools', () => {
       const tools = ['jest', 'nyc', 'istanbul', 'c8', 'custom'] as const;
-      
+
       tools.forEach(tool => {
         const options: CodeCoverageOptions = {
           tool,
           command: `run ${tool}`
         };
-        
+
         expect(options.tool).toBe(tool);
       });
     });
@@ -55,7 +55,7 @@ describe('CodeCoverageOptions Interface', () => {
         reportFormat: 'json',
         threshold: 90
       };
-      
+
       expect(options.tool).toBe('jest');
       expect(options.reportFormat).toBe('json');
       expect(options.threshold).toBe(90);
@@ -67,7 +67,7 @@ describe('CodeCoverageOptions Interface', () => {
         reportFormat: 'lcov',
         reportPath: '.nyc_output/coverage.lcov'
       };
-      
+
       expect(options.tool).toBe('nyc');
       expect(options.reportFormat).toBe('lcov');
       expect(options.reportPath).toBe('.nyc_output/coverage.lcov');
@@ -80,7 +80,7 @@ describe('CodeCoverageOptions Interface', () => {
         reportPath: 'custom-coverage/report.json',
         reportFormat: 'json'
       };
-      
+
       expect(options.tool).toBe('custom');
       expect(options.command).toBe('./run-custom-coverage.sh');
       expect(options.reportPath).toBe('custom-coverage/report.json');
@@ -92,13 +92,13 @@ describe('CodeCoverageOptions Interface', () => {
   describe('Report Format Configuration', () => {
     it('should accept all supported report formats', () => {
       const formats = ['lcov', 'json', 'html', 'text'] as const;
-      
+
       formats.forEach(format => {
         const options: CodeCoverageOptions = {
           reportFormat: format,
           reportPath: `coverage/report.${format}`
         };
-        
+
         expect(options.reportFormat).toBe(format);
       });
     });
@@ -134,12 +134,12 @@ describe('CodeCoverageOptions Interface', () => {
   describe('Coverage Threshold Configuration', () => {
     it('should handle different threshold values', () => {
       const thresholds = [0, 50, 80, 90, 100];
-      
+
       thresholds.forEach(threshold => {
         const options: CodeCoverageOptions = {
           threshold
         };
-        
+
         expect(options.threshold).toBe(threshold);
       });
     });
@@ -189,6 +189,56 @@ describe('CodeCoverageOptions Interface', () => {
       };
       expect(relativeOptions.path).toBe('./src');
       expect(relativeOptions.reportPath).toBe('./coverage/lcov.info');
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle invalid tool names', () => {
+      const options: CodeCoverageOptions = {
+        tool: 'invalid' as any
+      };
+      expect(options.tool).toBe('invalid');
+    });
+
+    it('should handle invalid report formats', () => {
+      const options: CodeCoverageOptions = {
+        reportFormat: 'xml' as any
+      };
+      expect(options.reportFormat).toBe('xml');
+    });
+
+    it('should handle negative thresholds', () => {
+      const options: CodeCoverageOptions = {
+        threshold: -10
+      };
+      expect(options.threshold).toBe(-10);
+    });
+
+    it('should handle thresholds above 100', () => {
+      const options: CodeCoverageOptions = {
+        threshold: 150
+      };
+      expect(options.threshold).toBe(150);
+    });
+  });
+
+  describe('Mixed Configurations', () => {
+    it('should handle combinations of tools and formats', () => {
+      const tools = ['jest', 'nyc', 'istanbul', 'c8'] as const;
+      const formats = ['lcov', 'json', 'html', 'text'] as const;
+
+      tools.forEach(tool => {
+        formats.forEach(format => {
+          const options: CodeCoverageOptions = {
+            tool,
+            reportFormat: format,
+            threshold: 80
+          };
+          expect(options.tool).toBe(tool);
+          expect(options.reportFormat).toBe(format);
+          expect(options.threshold).toBe(80);
+        });
+      });
     });
   });
 });

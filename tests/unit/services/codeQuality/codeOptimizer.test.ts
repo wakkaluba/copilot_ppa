@@ -1,21 +1,17 @@
-import * as vscode from 'vscode';
+import * as assert from 'assert';
 import * as sinon from 'sinon';
-import { strict as assert } from 'assert';
+import * as vscode from 'vscode';
 import { CodeOptimizer } from '../../../../src/services/codeQuality/codeOptimizer';
-import { createMockDocument, createMockExtensionContext, createMockOutputChannel } from '../../../helpers/mockHelpers';
+import { createMockDocument, createMockExtensionContext } from '../../../helpers/mockHelpers';
 
 suite('CodeOptimizer Tests', () => {
     let optimizer: CodeOptimizer;
-    let sandbox: sinon.SinonSandbox;
-    let outputChannel: vscode.OutputChannel;
     let context: vscode.ExtensionContext;
+    let sandbox: sinon.SinonSandbox;
 
     setup(() => {
         sandbox = sinon.createSandbox();
-        outputChannel = createMockOutputChannel();
         context = createMockExtensionContext();
-        
-        sandbox.stub(vscode.window, 'createOutputChannel').returns(outputChannel);
         optimizer = new CodeOptimizer(context);
     });
 
@@ -23,142 +19,170 @@ suite('CodeOptimizer Tests', () => {
         sandbox.restore();
     });
 
-    test('optimizeFunction should improve loop performance', async () => {
-        const document = createMockDocument(`
-            function processArray(arr) {
-                for (let i = 0; i < arr.length; i++) {
-                    console.log(arr[i]);
-                }
-            }
-        `);
-
-        const optimized = await optimizer.optimizeFunction(document, 'processArray');
-        
-        assert.ok(!optimized.includes('arr.length'));
-        assert.ok(optimized.includes('const len ='));
-        assert.ok(optimized.includes('< len;'));
-    });
-
-    test('optimizeFunction should convert forEach to for...of when appropriate', async () => {
-        const document = createMockDocument(`
-            function processItems(items) {
-                items.forEach(item => {
-                    processItem(item);
-                });
-            }
-        `);
-
-        const optimized = await optimizer.optimizeFunction(document, 'processItems');
-        
-        assert.ok(!optimized.includes('forEach'));
-        assert.ok(optimized.includes('for (const item of items)'));
-    });
-
-    test('analyzeMemoryUsage should identify potential memory leaks', async () => {
-        const document = createMockDocument(`
-            function createHandlers() {
-                const handlers = [];
-                for (let i = 0; i < 10; i++) {
-                    handlers.push(() => {
-                        console.log(i);
-                    });
-                }
-                return handlers;
-            }
-        `);
-
-        const issues = await optimizer.analyzeMemoryUsage(document);
-        
-        assert.ok(issues.some(i => i.type === 'memory'));
-        assert.ok(issues.some(i => i.message.includes('closure')));
-    });
-
-    test('suggestOptimizations should propose performance improvements', async () => {
-        const document = createMockDocument(`
-            function calculateFactorial(n) {
-                if (n <= 1) return 1;
-                return n * calculateFactorial(n - 1);
-            }
-        `);
-
-        const suggestions = await optimizer.suggestOptimizations(document);
-        
-        assert.ok(suggestions.some(s => s.type === 'caching'));
-        assert.ok(suggestions.some(s => s.message.includes('memoization')));
-    });
-
-    test('analyzeRedundancy should identify redundant operations', async () => {
-        const document = createMockDocument(`
-            function processString(str) {
-                return str.trim().toLowerCase().trim();
-            }
-        `);
-
-        const issues = await optimizer.analyzeRedundancy(document);
-        
-        assert.ok(issues.some(i => i.type === 'redundancy'));
-        assert.ok(issues.some(i => i.message.includes('duplicate trim')));
-    });
-
-    test('suggestPropertyAccess should propose optimization', async () => {
-        const document = createMockDocument(`
-            function deepGet(obj) {
-                return obj.very.deep.nested.property.value;
-            }
-        `);
-
-        const suggestions = await optimizer.suggestPropertyAccess(document);
-        
-        assert.ok(suggestions.some(s => s.type === 'propertyAccess'));
-        assert.ok(suggestions.some(s => s.message.includes('destructuring')));
-    });
-
-    test('suggestAsyncOptimizations should propose improvements', async () => {
-        const document = createMockDocument(`
-            function processData(items) {
-                items.forEach(item => {
-                    fetch(item.url);
-                });
-            }
-        `);
-
-        const suggestions = await optimizer.suggestAsyncOptimizations(document);
-        
-        assert.ok(suggestions.some(s => s.type === 'async'));
-        assert.ok(suggestions.some(s => s.message.includes('Promise.all')));
-    });
-
-    test('suggestDataStructures should propose appropriate structures', async () => {
-        const document = createMockDocument(`
-            function uniqueValues(arr) {
-                return arr.filter((item, index) => arr.indexOf(item) === index);
-            }
-        `);
-
-        const suggestions = await optimizer.suggestDataStructures(document);
-        
-        assert.ok(suggestions.some(s => s.type === 'dataStructure'));
-        assert.ok(suggestions.some(s => s.message.includes('Set')));
-    });
-
-    test('analyzeTimeComplexity should identify inefficient algorithms', async () => {
-        const document = createMockDocument(`
-            function findDuplicates(arr) {
-                const duplicates = [];
-                for (let i = 0; i < arr.length; i++) {
-                    for (let j = i + 1; j < arr.length; j++) {
-                        if (arr[i] === arr[j]) {
-                            duplicates.push(arr[i]);
+    suite('Performance Analysis', () => {
+        test('detects O(n²) time complexity', async () => {
+            const mockDocument = createMockDocument(`
+                function nestedLoops(arr) {
+                    for(let i = 0; i < arr.length; i++) {
+                        for(let j = 0; j < arr.length; j++) {
+                            console.log(arr[i], arr[j]);
                         }
                     }
                 }
-                return duplicates;
-            }
-        `);
+            `);
 
-        const analysis = await optimizer.analyzeTimeComplexity(document);
-        
-        assert.strictEqual(analysis.complexity, 'O(n²)');
-        assert.ok(analysis.suggestions.some(s => s.includes('Map') || s.includes('Set')));
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('o(n²)')));
+        });
+
+        test('identifies inefficient array operations', async () => {
+            const mockDocument = createMockDocument(`
+                function arrayOperations(arr) {
+                    return arr.indexOf('item') !== -1;
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('includes')));
+        });
+
+        test('detects memory leaks', async () => {
+            const mockDocument = createMockDocument(`
+                class MemoryLeakExample {
+                    constructor() {
+                        document.addEventListener('click', this.handleClick);
+                    }
+                    handleClick() {
+                        // No removeEventListener
+                    }
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('memory leak')));
+        });
+    });
+
+    suite('Code Optimization', () => {
+        test('suggests array optimizations', async () => {
+            const mockDocument = createMockDocument(`
+                function processArray(arr) {
+                    const result = [];
+                    for(let i = 0; i < arr.length; i++) {
+                        if(arr[i] > 0) {
+                            result.push(arr[i]);
+                        }
+                    }
+                    return result;
+                }
+            `);
+
+            const optimized = await optimizer.optimizeCode(mockDocument);
+            assert.ok(optimized.includes('filter'));
+        });
+
+        test('suggests async/await optimizations', async () => {
+            const mockDocument = createMockDocument(`
+                function fetchData() {
+                    return fetch('/api/data')
+                        .then(response => response.json())
+                        .then(data => processData(data))
+                        .catch(error => handleError(error));
+                }
+            `);
+
+            const optimized = await optimizer.optimizeCode(mockDocument);
+            assert.ok(optimized.includes('async'));
+            assert.ok(optimized.includes('await'));
+        });
+
+        test('optimizes string concatenation', async () => {
+            const mockDocument = createMockDocument(`
+                function buildString(items) {
+                    let result = '';
+                    for(let i = 0; i < items.length; i++) {
+                        result = result + items[i] + ', ';
+                    }
+                    return result;
+                }
+            `);
+
+            const optimized = await optimizer.optimizeCode(mockDocument);
+            assert.ok(optimized.includes('join'));
+        });
+    });
+
+    suite('Resource Usage', () => {
+        test('identifies resource-intensive operations', async () => {
+            const mockDocument = createMockDocument(`
+                function processLargeData(data) {
+                    const result = JSON.parse(JSON.stringify(data));
+                    return deepClone(result);
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('resource')));
+        });
+
+        test('detects unnecessary object creation', async () => {
+            const mockDocument = createMockDocument(`
+                function createObjects() {
+                    return new Array(1000).fill(null).map(() => new Object());
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('object creation')));
+        });
+
+        test('suggests memory optimizations', async () => {
+            const mockDocument = createMockDocument(`
+                class CacheExample {
+                    constructor() {
+                        this.cache = [];
+                    }
+                    addToCache(item) {
+                        this.cache.push(item);
+                        // No cache size limit
+                    }
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.some(i => i.message.toLowerCase().includes('cache size')));
+        });
+    });
+
+    suite('Error Handling', () => {
+        test('handles parse errors gracefully', async () => {
+            const mockDocument = createMockDocument(`
+                function invalidSyntax {
+                    // Missing parentheses
+                }
+            `);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.length > 0);
+            assert.ok(analysis.some(i => i.severity === 'error'));
+        });
+
+        test('handles empty files', async () => {
+            const mockDocument = createMockDocument('');
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(Array.isArray(analysis));
+        });
+
+        test('handles large files', async () => {
+            let largeCode = '';
+            for(let i = 0; i < 1000; i++) {
+                largeCode += `function func${i}() { return ${i}; }\n`;
+            }
+            const mockDocument = createMockDocument(largeCode);
+
+            const analysis = await optimizer.analyzeCode(mockDocument);
+            assert.ok(analysis.length > 0);
+        });
     });
 });

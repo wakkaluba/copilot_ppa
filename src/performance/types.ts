@@ -16,6 +16,7 @@ export interface PerformanceIssue {
     code: string | null;
     solution: string;
     solutionCode?: string;
+    type: 'performance' | 'memory-leak' | 'cpu-intensive' | 'memory-management';
 }
 
 /**
@@ -74,9 +75,12 @@ export interface CSharpMetrics extends BaseMetrics {
  */
 export interface PerformanceAnalysisResult {
     filePath: string;
-    fileSize: number;
+    fileSize?: number;
     issues: PerformanceIssue[];
-    metrics: Record<string, number>;
+    metrics?: Record<string, number>;
+    skipped?: boolean;
+    skipReason?: string;
+    error?: string;
 }
 
 /**
@@ -118,7 +122,7 @@ export interface PerformanceAnalyzerConfig {
 }
 
 /**
- * Definition of a language analyzer 
+ * Definition of a language analyzer
  */
 export interface LanguageAnalyzer {
     /**
@@ -162,4 +166,24 @@ export interface FileAnalysisContext {
     uri: vscode.Uri;
     languageId: string;
     version: number;
+}
+
+export interface PerformanceMetrics {
+    lastAnalysisTime: number;
+    totalIssuesFound: number;
+    issuesByType: {
+        performance: number;
+        'memory-leak': number;
+        'cpu-intensive': number;
+        'memory-management': number;
+    };
+}
+
+export interface AnalyzerConfiguration {
+    minSeverity: 'error' | 'critical' | 'warning' | 'info';
+    maxFileSizeKB: number;
+}
+
+export interface TypeScriptPatternAnalyzer {
+    analyzeTypeScriptPatterns(fileContent: string, lines: string[]): PerformanceIssue[];
 }

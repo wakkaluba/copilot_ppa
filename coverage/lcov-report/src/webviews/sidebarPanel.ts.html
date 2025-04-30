@@ -248,11 +248,7 @@
 <a name='L183'></a><a href='#L183'>183</a>
 <a name='L184'></a><a href='#L184'>184</a>
 <a name='L185'></a><a href='#L185'>185</a>
-<a name='L186'></a><a href='#L186'>186</a>
-<a name='L187'></a><a href='#L187'>187</a>
-<a name='L188'></a><a href='#L188'>188</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L186'></a><a href='#L186'>186</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -438,11 +434,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
-import * as path from 'path';
-import * as fs from 'fs';
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export class S</span>idebarPanel {
-  public static readonly <span class="cstat-no" title="statement not covered" >viewType = '</span>localLLMAgent.sidebarPanel';
+  public static readonly <span class="cstat-no" title="statement not covered" >viewType = '</span>copilot-ppa.sidebarPanel';
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private <span class="cstat-no" title="statement not covered" >_disposables: vscode.Disposable[] = [];</span>
@@ -461,7 +455,7 @@ import * as fs from 'fs';
     // Otherwise, create a new panel.
     const panel = <span class="cstat-no" title="statement not covered" >vscode.window.createWebviewPanel(</span>
       SidebarPanel.viewType,
-      'Local LLM Agent',
+      'Copilot PPA',
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -526,13 +520,13 @@ import * as fs from 'fs';
   private <span class="fstat-no" title="function not covered" >_handleSendPrompt(</span>prompt: string) {
     // TODO: Implement LLM communication logic
 <span class="cstat-no" title="statement not covered" >    vscode.window.showInformationMessage(`Prompt sent: ${prompt}`);</span>
-    
+&nbsp;
     // Mock response for now
-    const response = <span class="cstat-no" title="statement not covered" >`I received your message: "${prompt}"\n\nThis is a placeholder response from the Local LLM Agent. The actual LLM integration will be implemented in a future update.`;</span>
-    
-<span class="cstat-no" title="statement not covered" >    this._panel.webview.postMessage({ </span>
-      type: 'response', 
-      text: response 
+    const response = <span class="cstat-no" title="statement not covered" >`I received your message: "${prompt}"\n\nThis is a placeholder response from Copilot PPA. The actual LLM integration will be implemented in a future update.`;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this._panel.webview.postMessage({</span>
+      type: 'response',
+      text: response
     });
   }
 &nbsp;
@@ -556,7 +550,7 @@ import * as fs from 'fs';
 &nbsp;
   private <span class="fstat-no" title="function not covered" >_update(</span>) {
     const webview = <span class="cstat-no" title="statement not covered" >this._panel.webview;</span>
-<span class="cstat-no" title="statement not covered" >    this._panel.title = "Local LLM Agent";</span>
+<span class="cstat-no" title="statement not covered" >    this._panel.title = "Copilot PPA";</span>
 <span class="cstat-no" title="statement not covered" >    this._panel.webview.html = this._getHtmlForWebview(webview);</span>
   }
 &nbsp;
@@ -579,28 +573,28 @@ import * as fs from 'fs';
       &lt;meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';"&gt;
       &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
       &lt;link href="${styleUri}" rel="stylesheet"&gt;
-      &lt;title&gt;Local LLM Agent&lt;/title&gt;
+      &lt;title&gt;Copilot PPA&lt;/title&gt;
     &lt;/head&gt;
     &lt;body&gt;
       &lt;div class="container"&gt;
         &lt;div class="header"&gt;
-          &lt;h1&gt;Local LLM Agent&lt;/h1&gt;
+          &lt;h1&gt;Copilot PPA&lt;/h1&gt;
           &lt;div class="connection-status"&gt;
             &lt;span class="status-indicator disconnected"&gt;&lt;/span&gt;
             &lt;span class="status-text"&gt;Disconnected&lt;/span&gt;
           &lt;/div&gt;
         &lt;/div&gt;
-        
+&nbsp;
         &lt;div class="chat-container"&gt;
           &lt;div id="chat-messages" class="chat-messages"&gt;
             &lt;div class="message system"&gt;
               &lt;div class="message-content"&gt;
-                &lt;p&gt;Welcome to the Local LLM Agent. How can I assist you with your code today?&lt;/p&gt;
+                &lt;p&gt;Welcome to Copilot PPA. How can I assist you with your code today?&lt;/p&gt;
               &lt;/div&gt;
             &lt;/div&gt;
           &lt;/div&gt;
         &lt;/div&gt;
-        
+&nbsp;
         &lt;div class="input-container"&gt;
           &lt;textarea id="prompt-input" placeholder="Type your message here..." rows="3"&gt;&lt;/textarea&gt;
           &lt;div class="button-container"&gt;
@@ -609,7 +603,7 @@ import * as fs from 'fs';
           &lt;/div&gt;
         &lt;/div&gt;
       &lt;/div&gt;
-      
+&nbsp;
       &lt;script nonce="${nonce}" src="${scriptUri}"&gt;&lt;/script&gt;
     &lt;/body&gt;
     &lt;/html&gt;`;
@@ -631,7 +625,7 @@ function <span class="fstat-no" title="function not covered" >getNonce(</span>) 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-29T20:35:53.244Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

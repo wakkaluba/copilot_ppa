@@ -1,16 +1,16 @@
 import { inject, injectable } from 'inversify';
-import { BasePerformanceAnalyzer } from './baseAnalyzer';
-import { PerformanceAnalysisResult, AnalyzerOptions } from '../types';
 import { ILogger } from '../../logging/ILogger';
-import { TypeScriptPatternAnalyzer } from './services/TypeScriptPatternAnalyzer';
+import { TYPES } from '../../types/types';
+import { AnalyzerOptions, PerformanceAnalysisResult, PerformanceIssue, TypeScriptPatternAnalyzer } from '../types';
+import { BasePerformanceAnalyzer } from './baseAnalyzer';
 import { TypeScriptMetricsCalculator } from './services/TypeScriptMetricsCalculator';
 
 @injectable()
 export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
     constructor(
-        @inject(ILogger) private readonly logger: ILogger,
-        @inject(TypeScriptPatternAnalyzer) private readonly patternAnalyzer: TypeScriptPatternAnalyzer,
-        @inject(TypeScriptMetricsCalculator) private readonly metricsCalculator: TypeScriptMetricsCalculator,
+        @inject(TYPES.ILogger) private readonly logger: ILogger,
+        @inject(TYPES.TypeScriptPatternAnalyzer) private readonly patternAnalyzer: TypeScriptPatternAnalyzer,
+        @inject(TYPES.TypeScriptMetricsCalculator) private readonly metricsCalculator: TypeScriptMetricsCalculator,
         options?: AnalyzerOptions
     ) {
         super(options);
@@ -22,7 +22,7 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
             const lines = fileContent.split('\n');
 
             // Analyze patterns and add issues
-            result.issues.push(
+            const analysisResults = [
                 ...this.patternAnalyzer.analyzeTypeScriptPatterns(fileContent, lines),
                 ...this.analyzeArrayOperations(fileContent, lines),
                 ...this.analyzeAsyncPatterns(fileContent, lines),
@@ -30,7 +30,9 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 ...this.analyzeDOMOperations(fileContent, lines),
                 ...this.analyzeEventHandlers(fileContent, lines),
                 ...this.analyzeCommonAntiPatterns(fileContent, lines)
-            );
+            ];
+
+            result.issues.push(...analysisResults.filter(Boolean));
 
             // Calculate and merge metrics
             result.metrics = {
@@ -41,17 +43,24 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
             return result;
         } catch (error) {
             this.logger.error('Error analyzing TypeScript file:', error);
-            return this.createErrorResult(fileContent, filePath, error);
+            return {
+                filePath,
+                fileSize: fileContent.length,
+                issues: [],
+                error: error instanceof Error ? error.message : String(error),
+                metrics: {}
+            };
         }
     }
 
-    private analyzeArrayOperations(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {
+    private analyzeArrayOperations(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
         // Check for array concatenation in loops
         const arrayOpRegex = /for\s*\([^)]+\)\s*\{[^}]*?\.concat\(/gs;
         let match;
         while ((match = arrayOpRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
-            result.issues.push({
+            issues.push({
                 title: 'Inefficient Array Operation',
                 description: 'Array concatenation in loops creates unnecessary temporary arrays',
                 severity: 'medium',
@@ -66,7 +75,7 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
         const indexOfInLoopRegex = /for\s*\([^)]+\)\s*\{[^}]*?\.indexOf\([^)]+\)/gs;
         while ((match = indexOfInLoopRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
-            result.issues.push({
+            issues.push({
                 title: 'Inefficient Array Search',
                 description: 'Using indexOf in loops can lead to O(n²) complexity',
                 severity: 'medium',
@@ -76,15 +85,17 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 solutionCode: '// Instead of:\nconst items = [...];\nfor (const item of data) {\n    if (items.indexOf(item) !== -1) { ... }\n}\n\n// Use:\nconst itemSet = new Set(items);\nfor (const item of data) {\n    if (itemSet.has(item)) { ... }\n}'
             });
         }
+        return issues;
     }
 
-    private analyzeAsyncPatterns(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {
+    private analyzeAsyncPatterns(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
         // Check for Promise.all usage with large arrays
         const promiseAllRegex = /Promise\.all\(\s*(\w+)\.map/g;
         let match;
         while ((match = promiseAllRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
-            result.issues.push({
+            issues.push({
                 title: 'Unbounded Parallel Promises',
                 description: 'Using Promise.all with map can start too many concurrent operations',
                 severity: 'medium',
@@ -94,15 +105,17 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 solutionCode: '// Instead of:\nawait Promise.all(items.map(item => process(item)));\n\n// Use:\nconst pool = new PromisePool(items, item => process(item), { concurrency: 5 });\nawait pool.start();'
             });
         }
+        return issues;
     }
 
-    private analyzeMemoryUsage(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {
+    private analyzeMemoryUsage(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
         // Check for closure memory leaks
         const closureLeakRegex = /setInterval\(\s*function\s*\([^)]*\)\s*\{[^}]*?this\./g;
         let match;
         while ((match = closureLeakRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
-            result.issues.push({
+            issues.push({
                 title: 'Potential Memory Leak',
                 description: 'Closure referencing this in setInterval can cause memory leaks',
                 severity: 'high',
@@ -112,15 +125,17 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 solutionCode: '// Instead of:\nsetInterval(function() {\n    this.update();\n}, 1000);\n\n// Use:\nconst self = this;\nsetInterval(() => self.update(), 1000);'
             });
         }
+        return issues;
     }
 
-    private analyzeDOMOperations(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {
+    private analyzeDOMOperations(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
         // Check for frequent DOM updates
         const domUpdateRegex = /for\s*\([^)]+\)\s*\{[^}]*?(innerHTML|appendChild|removeChild)/g;
         let match;
         while ((match = domUpdateRegex.exec(fileContent)) !== null) {
             const lineIndex = this.findLineNumber(fileContent, match.index);
-            result.issues.push({
+            issues.push({
                 title: 'Frequent DOM Updates',
                 description: 'Multiple DOM updates in a loop can cause layout thrashing',
                 severity: 'high',
@@ -130,9 +145,11 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 solutionCode: '// Instead of:\nfor (const item of items) {\n    container.appendChild(createNode(item));\n}\n\n// Use:\nconst fragment = document.createDocumentFragment();\nfor (const item of items) {\n    fragment.appendChild(createNode(item));\n}\ncontainer.appendChild(fragment);'
             });
         }
+        return issues;
     }
 
-    private analyzeEventHandlers(fileContent: string, lines: string[], result: PerformanceAnalysisResult): void {
+    private analyzeEventHandlers(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
         // Check for unbounded event listeners
         const eventListenerRegex = /addEventListener\([^)]+\)/g;
         const removeListenerRegex = /removeEventListener\([^)]+\)/g;
@@ -140,7 +157,7 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
         const removeCount = (fileContent.match(removeListenerRegex) || []).length;
 
         if (addCount > removeCount) {
-            result.issues.push({
+            issues.push({
                 title: 'Potential Event Listener Leak',
                 description: 'More event listeners are added than removed',
                 severity: 'medium',
@@ -150,6 +167,13 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
                 solutionCode: '// Instead of:\nelement.addEventListener("click", handler);\n// ... never removed\n\n// Use:\nconst handler = (e) => { ... };\nelement.addEventListener("click", handler);\n// Later when done:\nelement.removeEventListener("click", handler);'
             });
         }
+        return issues;
+    }
+
+    protected analyzeCommonAntiPatterns(fileContent: string, lines: string[]): PerformanceIssue[] {
+        const issues: PerformanceIssue[] = [];
+        // Add common anti-pattern analysis here
+        return issues;
     }
 
     private calculateTypeScriptMetrics(content: string): Record<string, number> {
@@ -177,24 +201,43 @@ export class TypeScriptAnalyzer extends BasePerformanceAnalyzer {
         let totalLines = 0;
         let methodCount = 0;
         const lines = content.split('\n');
-        
+
         methods.forEach(method => {
             const startIndex = content.indexOf(method);
             const lineIndex = this.findLineNumber(content, startIndex);
             let bracketCount = 1;
             let currentLine = lineIndex;
-            
+
             while (bracketCount > 0 && currentLine < lines.length) {
                 const line = lines[currentLine];
                 bracketCount += (line.match(/{/g) || []).length;
                 bracketCount -= (line.match(/}/g) || []).length;
                 currentLine++;
             }
-            
+
             totalLines += currentLine - lineIndex;
             methodCount++;
         });
-        
+
         return Math.round(totalLines / methodCount);
+    }
+
+    protected findLineNumber(content: string, index: number): number {
+        return content.substring(0, index).split('\n').length - 1;
+    }
+
+    protected extractCodeSnippet(lines: string[], lineIndex: number, context: number = 2): string {
+        const start = Math.max(0, lineIndex - context);
+        const end = Math.min(lines.length, lineIndex + context + 1);
+        return lines.slice(start, end).join('\n');
+    }
+
+    protected createBaseResult(fileContent: string, filePath: string): PerformanceAnalysisResult {
+        return {
+            filePath,
+            fileSize: fileContent.length,
+            issues: [],
+            metrics: {}
+        };
     }
 }

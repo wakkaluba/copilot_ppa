@@ -16,7 +16,8 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
-    }
+    },
+    "isolatedModules": true
   },
   "exclude": [
     "node_modules",

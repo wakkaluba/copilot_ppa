@@ -525,49 +525,49 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as path from 'path';</span>
+<span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
 <span class="cstat-no" title="statement not covered" >import { CodeComplexityAnalyzer } from './codeComplexityAnalyzer';</span>
-<span class="cstat-no" title="statement not covered" >import * as path from 'path';</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export class C</span>omplexityAnalysisCommand {
     private readonly complexityAnalyzer: CodeComplexityAnalyzer;
     private <span class="cstat-no" title="statement not covered" >decorationDisposables: vscode.Disposable[] = [];</span>
-    
+&nbsp;
 <span class="fstat-no" title="function not covered" >    constructor() {</span>
 <span class="cstat-no" title="statement not covered" >        this.complexityAnalyzer = new CodeComplexityAnalyzer();</span>
     }
-    
+&nbsp;
     /**
      * Register all complexity analysis commands
      * @returns Disposable for the commands
      */
     public <span class="fstat-no" title="function not covered" >register(</span>): vscode.Disposable {
         const subscriptions: vscode.Disposable[] = <span class="cstat-no" title="statement not covered" >[];</span>
-        
+&nbsp;
         // Register commands
 <span class="cstat-no" title="statement not covered" >        subscriptions.push(vscode.commands.registerCommand(</span>
-            'vscodeLocalLLMAgent.analyzeFileComplexity',
+            'copilot-ppa.analyzeFileComplexity',
             this.analyzeCurrentFile.bind(this)
         ));
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        subscriptions.push(vscode.commands.registerCommand(</span>
-            'vscodeLocalLLMAgent.analyzeWorkspaceComplexity',
+            'copilot-ppa.analyzeWorkspaceComplexity',
             this.analyzeWorkspace.bind(this)
         ));
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        subscriptions.push(vscode.commands.registerCommand(</span>
-            'vscodeLocalLLMAgent.toggleComplexityVisualization',
+            'copilot-ppa.toggleComplexityVisualization',
             this.toggleComplexityVisualization.bind(this)
         ));
-        
+&nbsp;
         // Watch for editor changes to update decorations
 <span class="cstat-no" title="statement not covered" >        subscriptions.push(vscode.window.onDidChangeActiveTextEditor(</span>
             this.handleEditorChange.bind(this)
         ));
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        return vscode.Disposable.from(...subscriptions);</span>
     }
-    
+&nbsp;
     /**
      * Analyze complexity of the current file in the editor
      */
@@ -577,7 +577,7 @@
 <span class="cstat-no" title="statement not covered" >            vscode.window.showWarningMessage('No active file to analyze.');</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        vscode.window.withProgress({</span>
             location: vscode.ProgressLocation.Notification,
             title: 'Analyzing file complexity...',
@@ -585,7 +585,7 @@
         }, <span class="fstat-no" title="function not covered" >async </span>() =&gt; {
             const filePath = <span class="cstat-no" title="statement not covered" >editor.document.uri.fsPath;</span>
             const result = <span class="cstat-no" title="statement not covered" >await this.complexityAnalyzer.analyzeFile(filePath);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            if (result) {</span>
                 // Show report
                 const fileName = <span class="cstat-no" title="statement not covered" >path.basename(filePath);</span>
@@ -593,13 +593,13 @@
                     `- **Average complexity**: ${result.averageComplexity.toFixed(2)}\n` +
                     `- **Total functions**: ${result.functions.length}\n\n` +
                     this.generateFunctionsTable(result);
-                
+&nbsp;
                 const doc = <span class="cstat-no" title="statement not covered" >await vscode.workspace.openTextDocument({</span>
                     content: report,
                     language: 'markdown'
                 });
 <span class="cstat-no" title="statement not covered" >                await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside });</span>
-                
+&nbsp;
                 // Apply decorations
 <span class="cstat-no" title="statement not covered" >                this.clearDecorations();</span>
 <span class="cstat-no" title="statement not covered" >                this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);</span>
@@ -608,7 +608,7 @@
             }
         });
     }
-    
+&nbsp;
     /**
      * Analyze complexity of the entire workspace
      */
@@ -618,7 +618,7 @@
 <span class="cstat-no" title="statement not covered" >            vscode.window.showWarningMessage('No workspace folder open.');</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        vscode.window.withProgress({</span>
             location: vscode.ProgressLocation.Notification,
             title: 'Analyzing workspace complexity...',
@@ -642,23 +642,23 @@
                     }
 <span class="cstat-no" title="statement not covered" >                    folder = selected.folder;</span>
                 }
-                
+&nbsp;
 <span class="cstat-no" title="statement not covered" >                progress.report({ message: `Analyzing files in ${folder.name}...` });</span>
                 const results = <span class="cstat-no" title="statement not covered" >await this.complexityAnalyzer.analyzeWorkspace(folder);</span>
-                
+&nbsp;
 <span class="cstat-no" title="statement not covered" >                <span class="missing-if-branch" title="if path not taken" >I</span>if (results.length === 0) {</span>
 <span class="cstat-no" title="statement not covered" >                    vscode.window.showInformationMessage('No files found for complexity analysis.');</span>
 <span class="cstat-no" title="statement not covered" >                    return;</span>
                 }
-                
+&nbsp;
                 const report = <span class="cstat-no" title="statement not covered" >this.complexityAnalyzer.generateComplexityReport(results);</span>
-                
+&nbsp;
                 const doc = <span class="cstat-no" title="statement not covered" >await vscode.workspace.openTextDocument({</span>
                     content: report,
                     language: 'markdown'
                 });
 <span class="cstat-no" title="statement not covered" >                await vscode.window.showTextDocument(doc);</span>
-                
+&nbsp;
 <span class="cstat-no" title="statement not covered" >                vscode.window.showInformationMessage(`Complexity analysis completed for ${results.length} files.`);</span>
             } catch (error) {
 <span class="cstat-no" title="statement not covered" >                console.error('Error analyzing workspace:', error);</span>
@@ -666,7 +666,7 @@
             }
         });
     }
-    
+&nbsp;
     /**
      * Toggle complexity visualization in the editor
      */
@@ -676,7 +676,7 @@
 <span class="cstat-no" title="statement not covered" >            vscode.window.showWarningMessage('No active editor.');</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        if (this.decorationDisposables.length &gt; 0) {</span>
             // Decorations are active, remove them
 <span class="cstat-no" title="statement not covered" >            this.clearDecorations();</span>
@@ -685,7 +685,7 @@
             // No decorations, analyze and show
             const filePath = <span class="cstat-no" title="statement not covered" >editor.document.uri.fsPath;</span>
             const result = <span class="cstat-no" title="statement not covered" >await this.complexityAnalyzer.analyzeFile(filePath);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            if (result) {</span>
 <span class="cstat-no" title="statement not covered" >                this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);</span>
 <span class="cstat-no" title="statement not covered" >                vscode.window.showInformationMessage('Complexity visualization enabled.');</span>
@@ -694,25 +694,25 @@
             }
         }
     }
-    
+&nbsp;
     /**
      * Handle editor change event to update decorations
      */
-    private <span class="fstat-no" title="function not covered" >async </span>handleEditorChange(editor: vscode.TextEditor | undefined): Promise&lt;void&gt; {
+    private <span class="fstat-no" title="function not covered" >async </span>handleEditorChange(editor?: vscode.TextEditor): Promise&lt;void&gt; {
         // Clear existing decorations
 <span class="cstat-no" title="statement not covered" >        this.clearDecorations();</span>
-        
+&nbsp;
         // If decorations were active and we have a new editor, reapply
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (editor &amp;&amp; this.decorationDisposables.length &gt; 0) {</span>
             const filePath = <span class="cstat-no" title="statement not covered" >editor.document.uri.fsPath;</span>
             const result = <span class="cstat-no" title="statement not covered" >await this.complexityAnalyzer.analyzeFile(filePath);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (result) {</span>
 <span class="cstat-no" title="statement not covered" >                this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);</span>
             }
         }
     }
-    
+&nbsp;
     /**
      * Clear all active decorations
      */
@@ -724,20 +724,20 @@
             }
         }
     }
-    
+&nbsp;
     /**
      * Generate a markdown table of functions sorted by complexity
      */
     private <span class="fstat-no" title="function not covered" >generateFunctionsTable(</span>result: any): string {
         let table = <span class="cstat-no" title="statement not covered" >'## Functions by Complexity\n\n';</span>
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (result.functions.length === 0) {</span>
 <span class="cstat-no" title="statement not covered" >            return table + '*No functions found to analyze.*\n\n';</span>
         }
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        table += '| Function | Complexity | Lines |\n';</span>
 <span class="cstat-no" title="statement not covered" >        table += '|----------|------------|-------|\n';</span>
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        result.functions</span>
             .sort(<span class="fstat-no" title="function not covered" >(a</span>: any, b: any) =&gt; <span class="cstat-no" title="statement not covered" >b.complexity - a.complexity)</span>
             .forEach(<span class="fstat-no" title="function not covered" >(f</span>n: any) =&gt; {
@@ -749,10 +749,10 @@
                 } else {
 <span class="cstat-no" title="statement not covered" >                    complexityIndicator = '🟢 '; </span>// Low complexity
                 }
-                
+&nbsp;
 <span class="cstat-no" title="statement not covered" >                table += `| ${fn.name} | ${complexityIndicator}${fn.complexity} | ${fn.startLine}-${fn.endLine} |\n`;</span>
             });
-        
+&nbsp;
 <span class="cstat-no" title="statement not covered" >        return table;</span>
     }
 }
@@ -763,7 +763,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-17T00:47:47.806Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

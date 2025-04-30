@@ -45,10 +45,8 @@ module.exports = {
     ],
     testTimeout: 15000,
     transform: {
-        "^.+\\.tsx?$": ["ts-jest", {
-            tsconfig: "tsconfig.json",
-            sourceMap: false,
-            isolatedModules: true
+        "^.+\\.tsx?$": ['ts-jest', {
+            tsconfig: "tsconfig.json"
         }]
     },
     maxWorkers: '50%',
@@ -61,20 +59,6 @@ module.exports = {
         url: 'http://localhost'
     },
     reporters: [
-        "default",
-        ["jest-junit", {
-            outputDirectory: "test-results",
-            outputName: "junit.xml",
-            classNameTemplate: "{classname}",
-            titleTemplate: "{title}",
-            ancestorSeparator: " › "
-        }]
-    ],
-    globals: {
-        'ts-jest': {
-            diagnostics: {
-                ignoreCodes: [151001]
-            }
-        }
-    }
+        "default"
+    ]
 }

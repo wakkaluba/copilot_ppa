@@ -197,12 +197,7 @@
     "sinon": "^17.0.1",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.3",
-    "vscode-test": "^2.3.3"
-  },
-  "dependencies": {
-    "inversify": "^7.1.0",
-    "jest-mock-extended": "^4.0.0",
-    "tslib": "^2.6.2",
+    "@vscode/test-electron": "^2.3.8",
     "uuid": "^9.0.1"
   },
   "lint-staged": {

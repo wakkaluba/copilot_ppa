@@ -1227,7 +1227,7 @@
 <span class="cstat-no" title="statement not covered" >export class S</span>nippetsPanelProvider {
     public static readonly <span class="cstat-no" title="statement not covered" >viewType = '</span>copilotPPA.snippetsPanel';
     
-    private panel: vscode.WebviewPanel | undefined;
+    private panel?: vscode.WebviewPanel;
     private snippetManager: SnippetManager;
     private <span class="cstat-no" title="statement not covered" >disposables: vscode.Disposable[] = [];</span>
     
@@ -1235,13 +1235,13 @@
 <span class="cstat-no" title="statement not covered" >        this.snippetManager = SnippetManager.getInstance(context);</span>
     }
     
-    public <span class="fstat-no" title="function not covered" >dispose(</span>) {
+    public <span class="fstat-no" title="function not covered" >dispose(</span>): void {
 <span class="cstat-no" title="statement not covered" >        this.panel?.dispose();</span>
 <span class="cstat-no" title="statement not covered" >        this.disposables.forEach(<span class="fstat-no" title="function not covered" >d </span>=&gt; <span class="cstat-no" title="statement not covered" >d.dispose())</span>;</span>
 <span class="cstat-no" title="statement not covered" >        this.disposables = [];</span>
     }
     
-    public <span class="fstat-no" title="function not covered" >open(</span>) {
+    public <span class="fstat-no" title="function not covered" >open(</span>): void {
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (this.panel) {</span>
 <span class="cstat-no" title="statement not covered" >            this.panel.reveal();</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
@@ -1312,7 +1312,7 @@
         );
     }
     
-    private <span class="fstat-no" title="function not covered" >updateWebviewContent(</span>) {
+    private <span class="fstat-no" title="function not covered" >updateWebviewContent(</span>): void {
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.panel) {</span>
 <span class="cstat-no" title="statement not covered" >            return;</span>
         }
@@ -1321,7 +1321,7 @@
 <span class="cstat-no" title="statement not covered" >        this.panel.webview.html = this.getWebviewContent(snippets);</span>
     }
     
-    private <span class="fstat-no" title="function not covered" >async </span>handleCreateSnippet(title: string, content: string, tags: string[]) {
+    private <span class="fstat-no" title="function not covered" >async </span>handleCreateSnippet(title: string, content: string, tags: string[]): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >            await this.snippetManager.createSnippetFromContent(title, content, tags);</span>
 <span class="cstat-no" title="statement not covered" >            vscode.window.showInformationMessage(`Snippet "${title}" created successfully`);</span>
@@ -1330,7 +1330,7 @@
         }
     }
     
-    private <span class="fstat-no" title="function not covered" >async </span>handleUpdateSnippet(id: string, updates: Partial&lt;ConversationSnippet&gt;) {
+    private <span class="fstat-no" title="function not covered" >async </span>handleUpdateSnippet(id: string, updates: Partial&lt;ConversationSnippet&gt;): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >        try {</span>
             const updated = <span class="cstat-no" title="statement not covered" >await this.snippetManager.updateSnippet(id, updates);</span>
 <span class="cstat-no" title="statement not covered" >            if (updated) {</span>
@@ -1343,7 +1343,7 @@
         }
     }
     
-    private <span class="fstat-no" title="function not covered" >async </span>handleDeleteSnippet(id: string) {
+    private <span class="fstat-no" title="function not covered" >async </span>handleDeleteSnippet(id: string): Promise&lt;void&gt; {
 <span class="cstat-no" title="statement not covered" >        try {</span>
             const deleted = <span class="cstat-no" title="statement not covered" >await this.snippetManager.deleteSnippet(id);</span>
 <span class="cstat-no" title="statement not covered" >            if (deleted) {</span>
@@ -1356,7 +1356,7 @@
         }
     }
     
-    private <span class="fstat-no" title="function not covered" >async </span>handleCopySnippet(id: string) {
+    private <span class="fstat-no" title="function not covered" >async </span>handleCopySnippet(id: string): Promise&lt;void&gt; {
         const snippet = <span class="cstat-no" title="statement not covered" >this.snippetManager.getSnippet(id);</span>
 <span class="cstat-no" title="statement not covered" >        if (snippet) {</span>
 <span class="cstat-no" title="statement not covered" >            await vscode.env.clipboard.writeText(snippet.content);</span>
@@ -1366,7 +1366,7 @@
         }
     }
     
-    private <span class="fstat-no" title="function not covered" >async </span>handleOpenSource(id: string) {
+    private <span class="fstat-no" title="function not covered" >async </span>handleOpenSource(id: string): Promise&lt;void&gt; {
         const snippet = <span class="cstat-no" title="statement not covered" >this.snippetManager.getSnippet(id);</span>
 <span class="cstat-no" title="statement not covered" >        if (snippet &amp;&amp; snippet.sourceConversationId) {</span>
 <span class="cstat-no" title="statement not covered" >            await vscode.commands.executeCommand(</span>
@@ -1807,7 +1807,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-17T00:47:47.806Z
+                at 2025-04-30T10:03:15.339Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
