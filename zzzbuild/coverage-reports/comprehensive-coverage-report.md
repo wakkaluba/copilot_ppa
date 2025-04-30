@@ -1,59 +1,18 @@
 # Comprehensive Coverage Report
 
-Generated: 2025-04-30T18:42:42.962Z
+Generated: 2025-04-30T19:28:42.962Z
 
 ## Test Case Coverage
 
 - Implementation files: 1050
-- Test files: 409 (⬆️ +1)
-- Files with associated tests: 130 (⬆️ +1)
-- Coverage percentage: 12.4% (⬆️ +0.1%)
+- Test files: 426 (⬆️ +1)
+- Files with associated tests: 147 (⬆️ +1)
+- Coverage percentage: 14.1% (⬆️ +0.1%)
 
 ## Recent Improvements
 
-- Added comprehensive tests for `src/services/logging/FileLogManager.ts` module
-    - Created unit tests for file logging initialization
-    - Added test coverage for log writing and rotation
-    - Verified error handling and cleanup
-    - Tested resource management and disposal
-- Added comprehensive tests for `media/codeExamples.js` module
-    - Created unit tests for code example search functionality
-    - Added test coverage for results display and interaction
-    - Verified loading states and error handling
-    - Tested code copy, insert, and source link features
-- Added comprehensive tests for `src/models/modelManager.ts` module
-    - Created unit tests for model lifecycle management
-    - Added test coverage for provider initialization
-    - Verified model configuration handling
-    - Tested error cases and provider switching
-- Added comprehensive tests for `src/services/ExtensionManager.ts` module
-    - Created unit tests for extension lifecycle management
-    - Added test coverage for configuration handling
-    - Verified service initialization and cleanup
-    - Tested telemetry tracking functionality
-- Added comprehensive tests for `media/dependencyGraph.js` module
-    - Created unit tests for dependency graph visualization
-    - Tested legend and visualization components
 
 ### Files Missing Tests
-
-- `coverage/block-navigation.js`
-- `coverage/lcov-report/block-navigation.js`
-- `coverage/lcov-report/prettify.js`
-- `coverage/lcov-report/sorter.js`
-- `coverage/prettify.js`
-- `coverage/sorter.js`
-- `media/main.js`
-- `media/sidebar.js`
-- `src/__mocks__/vscode.js`
-- `src/agents/baseAgent.js`
-- `src/agents/baseAgent.ts`
-- `src/agents/languageAgentFactory.js`
-- `src/agents/languageAgentFactory.ts`
-- `src/agents/languages/typescriptAgent.js`
-- `src/agents/languages/typescriptAgent.ts`
-- `src/buildTools/buildScriptOptimizer.js`
-- `src/buildTools/buildScriptOptimizer.ts`
 - `src/buildTools/buildToolsManager.js`
 - `src/buildTools/buildToolsManager.ts`
 - `src/buildTools/bundleAnalyzer.js`

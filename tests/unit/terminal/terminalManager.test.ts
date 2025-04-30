@@ -138,6 +138,21 @@ describe('TerminalManager', () => {
             expect(mockExecuteWithOutput).toHaveBeenCalledWith('echo Hello World', TerminalShellType.VSCodeDefault);
             expect(output).toBe('command output');
         });
+
+        test('should handle command with shell special characters', async () => {
+            const command = 'echo "Hello & World"';
+            await terminalManager.executeCommand(command);
+
+            // Verify command is properly escaped
+            expect(mockTerminal.sendText).toHaveBeenCalledWith('echo "Hello & World"', true);
+        });
+
+        test('should concatenate multiple commands correctly', async () => {
+            const commands = ['cd /test', 'npm install', 'npm start'];
+            await terminalManager.executeCommand(commands.join(' && '));
+
+            expect(mockTerminal.sendText).toHaveBeenCalledWith('cd /test && npm install && npm start', true);
+        });
     });
 
     describe('Terminal management', () => {
@@ -182,6 +197,100 @@ describe('TerminalManager', () => {
 
             // Verify dispose was called for all terminals
             expect(mockTerminal.dispose).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('Error handling', () => {
+        test('should handle terminal creation failure', () => {
+            // Mock createTerminal to throw
+            (vscode.window.createTerminal as jest.Mock).mockImplementation(() => {
+                throw new Error('Terminal creation failed');
+            });
+
+            expect(() => {
+                terminalManager.createTerminal('Failed Terminal', TerminalShellType.VSCodeDefault);
+            }).toThrow('Terminal creation failed');
+        });
+
+        test('should handle command execution failure', async () => {
+            const mockExecuteWithOutput = jest.spyOn(
+                terminalManager['commandExecutor'],
+                'executeWithOutput'
+            ).mockRejectedValue(new Error('Command execution failed'));
+
+            await expect(
+                terminalManager.executeCommandWithOutput('invalid-command')
+            ).rejects.toThrow('Command execution failed');
+        });
+
+        test('should handle invalid terminal name in executeCommand', async () => {
+            await expect(
+                terminalManager.executeCommand('echo test', 'NonexistentTerminal')
+            ).rejects.toThrow('Terminal not found');
+        });
+
+        test('should handle empty command string', async () => {
+            await expect(
+                terminalManager.executeCommand('')
+            ).rejects.toThrow('Command cannot be empty');
+        });
+
+        test('should handle command timeout', async () => {
+            const mockExecuteWithOutput = jest.spyOn(
+                terminalManager['commandExecutor'],
+                'executeWithOutput'
+            ).mockRejectedValue(new Error('Command execution timed out'));
+
+            await expect(
+                terminalManager.executeCommandWithOutput('long-running-command')
+            ).rejects.toThrow('Command execution timed out');
+        });
+    });
+
+    describe('Terminal lifecycle', () => {
+        test('should handle terminal close events', () => {
+            const terminal = terminalManager.createTerminal('Lifecycle Test', TerminalShellType.VSCodeDefault);
+
+            // Get the last registered callback for onDidCloseTerminal
+            const closeCallback = (vscode.window.onDidCloseTerminal as jest.Mock).mock.calls[0][0];
+
+            // Simulate terminal close
+            closeCallback(terminal);
+
+            // Verify terminal is removed from active terminals
+            const activeTerminals = terminalManager.getActiveTerminals();
+            expect(activeTerminals.has('Lifecycle Test')).toBe(false);
+        });
+    });
+
+    describe('Shell configuration', () => {
+        test('should use correct shell configuration for WSL on Windows', () => {
+            // Mock process.platform
+            const originalPlatform = process.platform;
+            Object.defineProperty(process, 'platform', { value: 'win32' });
+
+            terminalManager.createTerminal('WSL Terminal', TerminalShellType.WSLBash);
+
+            expect(vscode.window.createTerminal).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'WSL Terminal',
+                    shellPath: expect.stringMatching(/wsl/i)
+                })
+            );
+
+            // Restore process.platform
+            Object.defineProperty(process, 'platform', { value: originalPlatform });
+        });
+
+        test('should use default VS Code shell when no specific shell is configured', () => {
+            terminalManager.createTerminal('Default Terminal', TerminalShellType.VSCodeDefault);
+
+            expect(vscode.window.createTerminal).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'Default Terminal',
+                    shellPath: undefined
+                })
+            );
         });
     });
 });
