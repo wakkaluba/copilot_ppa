@@ -147,6 +147,8 @@ var CodeExecutorService = /** @class */ (function () {
                         filePath = path.join(tempDir, fileName);
                         uri = vscode.Uri.file(filePath);
                         uint8Array = new TextEncoder().encode(content);
+                        // Track this temporary file for cleanup
+                        this.trackTempFile(filePath);
                         return [4 /*yield*/, fs.writeFile(uri, uint8Array)];
                     case 1:
                         _a.sent();
@@ -155,6 +157,100 @@ var CodeExecutorService = /** @class */ (function () {
             });
         });
     };
+    /**
+     * Keeps track of temporary files for later cleanup
+     */
+    CodeExecutorService.prototype.trackTempFile = function (filePath) {
+        if (!this.tempFiles) {
+            this.tempFiles = [];
+            // Initialize cleanup mechanism if this is the first temp file
+            this.setupTempFileCleanup();
+        }
+        this.tempFiles.push({
+            path: filePath,
+            created: Date.now()
+        });
+    };
+    /**
+     * Sets up periodic cleanup of temporary files
+     */
+    CodeExecutorService.prototype.setupTempFileCleanup = function () {
+        var _this = this;
+        // Clean up temp files when VS Code is about to close
+        this.disposables.push(vscode.workspace.onDidChangeWorkspaceFolders(function() {
+            _this.cleanupTempFiles();
+        }));
+
+        // Also clean up periodically (every hour)
+        this.cleanupInterval = setInterval(function() {
+            _this.cleanupTempFiles(3600000); // 1 hour in milliseconds
+        }, 3600000);
+
+        // Make sure the interval is cleared when the extension is deactivated
+        this.disposables.push({ dispose: function() {
+            if (_this.cleanupInterval) {
+                clearInterval(_this.cleanupInterval);
+                _this.cleanupInterval = undefined;
+            }
+            _this.cleanupTempFiles();
+        }});
+    };
+    /**
+     * Cleans up temporary files
+     * @param {number} maxAge Optional maximum age in milliseconds
+     */
+    CodeExecutorService.prototype.cleanupTempFiles = function (maxAge) {
+        var _this = this;
+        if (!this.tempFiles || this.tempFiles.length === 0) {
+            return;
+        }
+
+        var now = Date.now();
+        var fs = vscode.workspace.fs;
+
+        // Keep track of which files were successfully deleted
+        var remainingFiles = this.tempFiles.filter(function(file) {
+            // Skip files that aren't old enough to delete
+            if (maxAge && (now - file.created) < maxAge) {
+                return true;
+            }
+
+            try {
+                // Try to delete the file
+                fs.delete(vscode.Uri.file(file.path), { useTrash: false });
+                return false; // File deleted successfully
+            } catch (error) {
+                // If deletion fails, keep the file in our tracking list
+                return true;
+            }
+        });
+
+        this.tempFiles = remainingFiles;
+    };
+    // Add to dispose method
+    var originalDispose = CodeExecutorService.prototype.dispose;
+    CodeExecutorService.prototype.dispose = function () {
+        if (originalDispose) {
+            originalDispose.call(this);
+        }
+
+        // Clean up all temp files on dispose
+        this.cleanupTempFiles();
+
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = undefined;
+        }
+    };
+    // Initialize disposables array in constructor if it doesn't exist
+    var originalConstructor = CodeExecutorService;
+    CodeExecutorService = function () {
+        originalConstructor.apply(this, arguments);
+        if (!this.disposables) {
+            this.disposables = [];
+        }
+    };
+    CodeExecutorService.prototype = originalConstructor.prototype;
     return CodeExecutorService;
 }());
 exports.CodeExecutorService = CodeExecutorService;
