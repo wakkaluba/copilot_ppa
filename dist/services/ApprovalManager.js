@@ -41,6 +41,10 @@ const logger_1 = require("../utils/logger");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class ApprovalManager {
+    static instance;
+    workspaceManager;
+    trustManager;
+    logger;
     constructor() {
         this.workspaceManager = WorkspaceManager_1.WorkspaceManager.getInstance();
         this.trustManager = TrustManager_1.TrustManager.getInstance();

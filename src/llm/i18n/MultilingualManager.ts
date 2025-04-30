@@ -1,17 +1,45 @@
 import { SupportedLanguage } from '../../i18n';
+import { LocalizationService } from '../../i18n/localization';
+import { getLanguageName } from '../../i18n/languageUtils';
 
 export class MultilingualManager {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private localizationService: LocalizationService;
+
+    constructor(context: any) {
+        this.localizationService = new LocalizationService(context);
+    }
+
     isResponseInExpectedLanguage(response: string, language: SupportedLanguage): boolean {
-        // Simple implementation for now - can be enhanced with actual language detection
-        return true;
+        // Skip validation for English as it's our fallback
+        if (language === 'en') {
+            return true;
+        }
+
+        // Check for explicit mentions of language inability
+        const lowerResponse = response.toLowerCase();
+        if (lowerResponse.includes("i can only respond in english") ||
+            lowerResponse.includes("i can't respond in") ||
+            lowerResponse.includes("i cannot respond in") ||
+            lowerResponse.includes("i am not able to respond in")) {
+            return false;
+        }
+
+        // Use the enhanced language detection
+        const detectedLanguage = this.localizationService.detectLanguage(response);
+        return detectedLanguage === language;
     }
 
     buildLanguageCorrectionPrompt(prompt: string, response: string, language: SupportedLanguage): string {
-        return `Please provide the response to "${prompt}" in ${language}. Previous response was: ${response}`;
+        const languageName = getLanguageName(language);
+        return `Please provide the response to "${prompt}" in ${languageName}. Previous response was: ${response}`;
     }
 
     enhancePromptWithLanguage(prompt: string, language: SupportedLanguage): string {
-        return `Please respond in ${language} to: ${prompt}`;
+        if (language === 'en') {
+            return prompt; // No need to enhance for English
+        }
+        
+        const languageName = getLanguageName(language);
+        return `${prompt}\n\nPlease respond in ${languageName}.`;
     }
 }

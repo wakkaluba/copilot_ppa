@@ -43,6 +43,9 @@ const child_process_1 = require("child_process");
  * Provides AI-powered assistance for terminal commands
  */
 class AITerminalHelper {
+    llmManager;
+    interactiveShell;
+    context;
     constructor(llmManager, interactiveShell, context) {
         this.llmManager = llmManager;
         this.interactiveShell = interactiveShell;

@@ -21,10 +21,11 @@ const events_1 = require("events");
  * Service for managing model versions
  */
 let ModelVersioningService = class ModelVersioningService extends events_1.EventEmitter {
+    logger;
+    versions = new Map();
     constructor(logger) {
         super();
         this.logger = logger;
-        this.versions = new Map();
         this.logger.info('ModelVersioningService initialized');
     }
     /**

@@ -42,8 +42,11 @@ const keybindingManager_1 = require("../services/ui/keybindingManager");
  * Status bar item to display and control command toggles
  */
 class ToggleStatusBarItem {
+    statusBarItem;
+    toggleManager;
+    quickAccessMenu;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.toggleManager = commandToggleManager_1.CommandToggleManager.getInstance(context);
         this.quickAccessMenu = new quickAccessMenu_1.QuickAccessMenu(context);
         // Create status bar item with high priority to appear near command toggles

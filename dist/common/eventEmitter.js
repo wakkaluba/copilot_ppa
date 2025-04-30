@@ -6,9 +6,7 @@ exports.EventEmitter = void 0;
  * Implements proper cleanup of event listeners
  */
 class EventEmitter {
-    constructor() {
-        this.eventListeners = new Map();
-    }
+    eventListeners = new Map();
     /**
      * Add event listener
      * @param event Event name

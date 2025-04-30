@@ -21,13 +21,15 @@ const events_1 = require("events");
  * Service for monitoring model health
  */
 let ModelHealthMonitorV2 = class ModelHealthMonitorV2 extends events_1.EventEmitter {
+    logger;
+    config;
+    health = new Map();
+    monitoringInterval = null;
+    startTimes = new Map();
     constructor(logger, config = {}) {
         super();
         this.logger = logger;
         this.config = config;
-        this.health = new Map();
-        this.monitoringInterval = null;
-        this.startTimes = new Map();
         this.logger.info('ModelHealthMonitorV2 initialized');
         this.startMonitoring();
     }

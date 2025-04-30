@@ -6,11 +6,8 @@ const events_1 = require("events");
  * Manages in-memory log entries and provides efficient storage and retrieval
  */
 class LogBufferManager extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this.entries = [];
-        this.maxEntries = 10000;
-    }
+    entries = [];
+    maxEntries = 10000;
     /**
      * Add a log entry to the buffer
      */

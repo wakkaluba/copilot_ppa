@@ -40,14 +40,16 @@ const os = __importStar(require("os"));
  * for LLM operations.
  */
 class ResourceManager {
+    context;
+    conversationHistory;
+    monitoringInterval = null;
+    memoryWarningThreshold = 80; // 80% memory usage warning threshold
+    memoryCriticalThreshold = 90; // 90% memory usage critical threshold
+    cpuWarningThreshold = 70; // 70% CPU usage warning threshold
+    cpuCriticalThreshold = 85; // 85% CPU usage critical threshold
     constructor(context, conversationHistory) {
         this.context = context;
         this.conversationHistory = conversationHistory;
-        this.monitoringInterval = null;
-        this.memoryWarningThreshold = 80; // 80% memory usage warning threshold
-        this.memoryCriticalThreshold = 90; // 90% memory usage critical threshold
-        this.cpuWarningThreshold = 70; // 70% CPU usage warning threshold
-        this.cpuCriticalThreshold = 85; // 85% CPU usage critical threshold
     }
     /**
      * Gets the current memory usage of the system

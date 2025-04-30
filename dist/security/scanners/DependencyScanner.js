@@ -9,10 +9,12 @@ const execAsync = (0, util_1.promisify)(child_process_1.exec);
  * Scanner for checking dependencies for known vulnerabilities
  */
 class DependencyScanner {
+    context;
+    vulnerabilityDb;
+    npmAuditCache = new Map();
+    cacheTimeout = 1000 * 60 * 60; // 1 hour
     constructor(context) {
         this.context = context;
-        this.npmAuditCache = new Map();
-        this.cacheTimeout = 1000 * 60 * 60; // 1 hour
         this.vulnerabilityDb = new SecurityVulnerabilityDatabase_1.SecurityVulnerabilityDatabase(context);
     }
     /**

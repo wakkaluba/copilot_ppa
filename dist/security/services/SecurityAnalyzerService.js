@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityAnalyzerService = void 0;
 const vscode = __importStar(require("vscode"));
 class SecurityAnalyzerService {
+    patternService;
     constructor(patternService) {
         this.patternService = patternService;
     }

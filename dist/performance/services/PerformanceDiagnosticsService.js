@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceDiagnosticsService = void 0;
 const vscode = __importStar(require("vscode"));
 class PerformanceDiagnosticsService {
+    diagnosticCollection;
     constructor() {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('performance');
     }

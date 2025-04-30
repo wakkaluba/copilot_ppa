@@ -40,8 +40,9 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class SystemInfoService {
+    cachedInfo = null;
+    outputChannel;
     constructor() {
-        this.cachedInfo = null;
         this.outputChannel = vscode.window.createOutputChannel('System Info');
     }
     async getSystemInfo() {

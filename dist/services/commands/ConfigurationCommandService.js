@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigurationCommandService = void 0;
 const vscode = __importStar(require("vscode"));
 class ConfigurationCommandService {
+    modelService;
+    configManager;
+    errorHandler;
     constructor(modelService, configManager, errorHandler) {
         this.modelService = modelService;
         this.configManager = configManager;

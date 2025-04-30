@@ -18,11 +18,14 @@ const DEFAULT_HEALTH_CONFIG = {
  * Monitors health of LLM connections
  */
 class ConnectionHealthMonitor extends events_1.EventEmitter {
+    static instance;
+    healthStates = new Map();
+    checkIntervals = new Map();
+    connectionManagers = new Map();
+    metricsTracker;
+    retryHandler;
     constructor() {
         super();
-        this.healthStates = new Map();
-        this.checkIntervals = new Map();
-        this.connectionManagers = new Map();
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
         this.retryHandler = ConnectionRetryHandler_1.ConnectionRetryHandler.getInstance();
     }

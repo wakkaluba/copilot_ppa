@@ -50,6 +50,8 @@ const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
 const CommandExecutionError_1 = require("../errors/CommandExecutionError");
 let CommandExecutionService = class CommandExecutionService {
+    logger;
+    outputChannel;
     constructor(logger, outputChannel) {
         this.logger = logger;
         this.outputChannel = outputChannel;

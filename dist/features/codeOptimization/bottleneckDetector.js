@@ -38,6 +38,8 @@ const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class BottleneckDetector {
+    context;
+    outputChannel;
     constructor(context) {
         this.context = context;
         this.outputChannel = vscode.window.createOutputChannel('Bottleneck Detector');

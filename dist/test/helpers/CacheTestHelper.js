@@ -38,6 +38,10 @@ const sinon = __importStar(require("sinon"));
 const fs = __importStar(require("fs"));
 const vscode = __importStar(require("vscode"));
 class CacheTestHelper {
+    sandbox;
+    fsStubs;
+    workspaceConfigStub;
+    extensionsStub;
     constructor() {
         this.sandbox = sinon.createSandbox();
         this.setupStubs();

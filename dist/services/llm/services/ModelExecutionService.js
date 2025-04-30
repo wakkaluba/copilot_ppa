@@ -21,16 +21,19 @@ const ModelResourceOptimizer_1 = require("./ModelResourceOptimizer");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 const types_1 = require("../types");
 let ModelExecutionService = class ModelExecutionService extends events_1.EventEmitter {
+    logger;
+    resourceOptimizer;
+    metricsService;
+    activeExecutions = new Map();
+    executionHistory = new Map();
+    processing = new Set();
+    executionTimeout = 30000; // 30 seconds default timeout
+    maxConcurrentExecutions = 3;
     constructor(logger, resourceOptimizer, metricsService) {
         super();
         this.logger = logger;
         this.resourceOptimizer = resourceOptimizer;
         this.metricsService = metricsService;
-        this.activeExecutions = new Map();
-        this.executionHistory = new Map();
-        this.processing = new Set();
-        this.executionTimeout = 30000; // 30 seconds default timeout
-        this.maxConcurrentExecutions = 3;
     }
     async executeModel(modelId, request) {
         if (this.processing.has(modelId)) {

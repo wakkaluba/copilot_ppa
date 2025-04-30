@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeExampleSearch = void 0;
 const CodeExampleSearchService_1 = require("./services/CodeExampleSearchService");
 class CodeExampleSearch {
+    service;
     constructor(context) {
         this.service = new CodeExampleSearchService_1.CodeExampleSearchService(context);
     }

@@ -6,8 +6,10 @@ const uuid_1 = require("uuid");
  * Service for storing and retrieving prompt templates
  */
 class PromptTemplateStorage {
+    static STORAGE_KEY = 'promptTemplates';
+    templates = new Map();
+    storage;
     constructor(context) {
-        this.templates = new Map();
         // Use global state for templates to persist across workspaces
         this.storage = context.globalState;
         this.loadTemplates();
@@ -229,5 +231,4 @@ class PromptTemplateStorage {
     }
 }
 exports.PromptTemplateStorage = PromptTemplateStorage;
-PromptTemplateStorage.STORAGE_KEY = 'promptTemplates';
 //# sourceMappingURL=storage.js.map

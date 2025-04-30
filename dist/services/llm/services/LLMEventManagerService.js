@@ -3,11 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMEventManagerService = void 0;
 const events_1 = require("events");
 class LLMEventManagerService extends events_1.EventEmitter {
+    currentState = new Map();
+    stateHistory = new Map();
+    maxHistoryLength = 100;
     constructor() {
         super();
-        this.currentState = new Map();
-        this.stateHistory = new Map();
-        this.maxHistoryLength = 100;
     }
     emitEvent(providerId, event) {
         const timestamp = Date.now();

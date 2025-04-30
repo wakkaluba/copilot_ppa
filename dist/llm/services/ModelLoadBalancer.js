@@ -54,13 +54,19 @@ const logging_1 = require("../../common/logging");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 const ModelHostManager_1 = require("./ModelHostManager");
 let ModelLoadBalancer = class ModelLoadBalancer extends events_1.EventEmitter {
+    logger;
+    metricsService;
+    hostManager;
+    metrics;
+    nodeHealth = new Map();
+    outputChannel;
+    healthCheckInterval;
+    distributionHistory = [];
     constructor(logger, metricsService, hostManager) {
         super();
         this.logger = logger;
         this.metricsService = metricsService;
         this.hostManager = hostManager;
-        this.nodeHealth = new Map();
-        this.distributionHistory = [];
         this.outputChannel = vscode.window.createOutputChannel('Model Load Balancer');
         this.metrics = this.initializeMetrics();
         this.startMonitoring();

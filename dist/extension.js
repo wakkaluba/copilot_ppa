@@ -40,6 +40,7 @@ const ServiceRegistry_1 = require("./services/ServiceRegistry");
 const commands_1 = require("./commands");
 const webview_1 = require("./webview");
 const statusBar_1 = require("./statusBar");
+const AgentResponseEnhancer_1 = require("./services/AgentResponseEnhancer");
 async function activate(context) {
     // Initialize service registry
     await (0, ServiceRegistry_1.initializeServices)(context);
@@ -59,6 +60,15 @@ async function activate(context) {
             console.error('Auto-connect failed:', error);
         });
     }
+    const conversationHistory = new ConversationHistory(context);
+    const responseEnhancer = new AgentResponseEnhancer_1.AgentResponseEnhancer(conversationHistory);
+    context.subscriptions.push(responseEnhancer);
+    const agent = new Agent(context, {
+        // ...existing code...
+        responseEnhancer,
+        // ...existing code...
+    });
+    // ...existing code...
     return {
         serviceRegistry: registry
     };

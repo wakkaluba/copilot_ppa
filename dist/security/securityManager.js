@@ -39,9 +39,17 @@ const SecurityWebviewService_1 = require("../services/security/SecurityWebviewSe
 const SecurityScanService_1 = require("../services/security/SecurityScanService");
 const logger_1 = require("../utils/logger");
 class SecurityManager {
+    context;
+    static instance;
+    panel;
+    logger;
+    webviewService;
+    scanService;
+    statusBarItem;
+    disposables = [];
+    lastResult;
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.logger = logger_1.Logger.getInstance();
         this.webviewService = new SecurityWebviewService_1.SecurityWebviewService();
         this.scanService = new SecurityScanService_1.SecurityScanService(context);

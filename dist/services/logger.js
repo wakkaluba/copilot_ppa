@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Logger = void 0;
 const vscode = __importStar(require("vscode"));
 class Logger {
+    scope;
+    outputChannel;
     constructor(scope) {
         this.scope = scope;
         this.outputChannel = vscode.window.createOutputChannel(`Copilot PPA - ${scope}`);

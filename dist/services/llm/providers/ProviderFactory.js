@@ -8,6 +8,7 @@ var ProviderType;
     ProviderType["Mock"] = "mock";
 })(ProviderType || (exports.ProviderType = ProviderType = {}));
 class ProviderFactory {
+    static instance;
     constructor() { }
     static getInstance() {
         if (!this.instance) {

@@ -48,7 +48,7 @@ export class TestItem extends vscode.TreeItem {
         public readonly collapsibleState: vscode.TreeItemCollapsibleState
     ) {
         super(label, collapsibleState);
-        
+
         // Set up command for running the test when clicked, if it's a main test category
         if (testType === 'unit' || testType === 'integration' || testType === 'e2e') {
             // Convert testType to proper case for command name (e.g., "e2e" to "E2E")
@@ -60,7 +60,7 @@ export class TestItem extends vscode.TreeItem {
             }
 
             this.command = {
-                command: `localLLMAgent.run${commandTestType}Tests`,
+                command: `copilot-ppa.run${commandTestType}Tests`,
                 title: `Run ${testType} tests`,
                 arguments: []
             };
@@ -75,13 +75,13 @@ export class TestItem extends vscode.TreeItem {
  */
 export function registerTestExplorerView(context: vscode.ExtensionContext): TestExplorerProvider {
     const testExplorerProvider = new TestExplorerProvider();
-    
+
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider(
-            'localLLMAgentTestExplorer',
+            'copilot-ppa.testExplorer',
             testExplorerProvider
         )
     );
-    
+
     return testExplorerProvider;
 }

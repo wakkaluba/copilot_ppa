@@ -8,10 +8,11 @@ const errors_1 = require("./errors");
  * Manages LLM provider registration and discovery
  */
 class ProviderRegistry extends events_1.EventEmitter {
+    static instance;
+    providers = new Map();
+    priorityQueue = [];
     constructor() {
         super();
-        this.providers = new Map();
-        this.priorityQueue = [];
     }
     static getInstance() {
         if (!this.instance) {

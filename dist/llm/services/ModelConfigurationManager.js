@@ -52,12 +52,14 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const types_1 = require("../types");
 let ModelConfigurationManager = class ModelConfigurationManager extends events_1.EventEmitter {
+    logger;
+    configMap = new Map();
+    defaultConfigs = new Map();
+    outputChannel;
+    storageKey = 'model-configurations';
     constructor(logger) {
         super();
         this.logger = logger;
-        this.configMap = new Map();
-        this.defaultConfigs = new Map();
-        this.storageKey = 'model-configurations';
         this.outputChannel = vscode.window.createOutputChannel('Model Configuration');
         this.loadPersistedConfigs();
     }

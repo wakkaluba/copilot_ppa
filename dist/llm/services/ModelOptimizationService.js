@@ -53,14 +53,19 @@ const ModelMetricsManager_1 = require("./ModelMetricsManager");
 const ModelPerformanceAnalyzer_1 = require("./ModelPerformanceAnalyzer");
 const ModelBenchmarkManager_1 = require("./ModelBenchmarkManager");
 let ModelOptimizationService = class ModelOptimizationService extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    performanceAnalyzer;
+    benchmarkManager;
+    optimizationHistory = new Map();
+    activeOptimizations = new Set();
+    outputChannel;
     constructor(logger, metricsManager, performanceAnalyzer, benchmarkManager) {
         super();
         this.logger = logger;
         this.metricsManager = metricsManager;
         this.performanceAnalyzer = performanceAnalyzer;
         this.benchmarkManager = benchmarkManager;
-        this.optimizationHistory = new Map();
-        this.activeOptimizations = new Set();
         this.outputChannel = vscode.window.createOutputChannel('Model Optimization');
     }
     async optimizeModel(modelId, currentMetrics) {

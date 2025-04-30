@@ -6,18 +6,18 @@ import { Logger } from '../utils/logger';
  * Provides a custom view that integrates with Copilot Chat
  */
 export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
-    public static readonly viewType = 'localLlmAgent.copilotChatView';
+    public static readonly viewType = 'copilot-ppa.copilotChatView';
     private _view?: vscode.WebviewView;
     private copilotChatIntegration: CopilotChatIntegration;
     private logger: Logger;
-    
+
     constructor(
         private readonly _extensionUri: vscode.Uri
     ) {
         this.copilotChatIntegration = CopilotChatIntegration.getInstance();
         this.logger = Logger.getInstance();
     }
-    
+
     /**
      * Resolves the webview view
      */
@@ -27,18 +27,18 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
         _token: vscode.CancellationToken
     ) {
         this._view = webviewView;
-        
+
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
         };
-        
+
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        
+
         // Initialize Copilot chat integration
         const isInitialized = await this.copilotChatIntegration.initialize();
         this._updateStatus(isInitialized);
-        
+
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async message => {
             switch (message.command) {
@@ -59,7 +59,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
             }
         });
     }
-    
+
     /**
      * Update integration status in the webview
      */
@@ -71,7 +71,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
             });
         }
     }
-    
+
     /**
      * Handle sending a message to Copilot chat
      */
@@ -79,11 +79,11 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
         if (!text.trim()) {
             return;
         }
-        
+
         try {
             // Send message to Copilot chat
             const success = await this.copilotChatIntegration.sendMessageToCopilotChat(text);
-            
+
             if (!success) {
                 if (this._view) {
                     this._view.webview.postMessage({
@@ -94,7 +94,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
             }
         } catch (error) {
             this.logger.error('Error sending message to Copilot chat', error);
-            
+
             if (this._view) {
                 this._view.webview.postMessage({
                     command: 'showError',
@@ -103,7 +103,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
             }
         }
     }
-    
+
     /**
      * Generate HTML for the webview
      */
@@ -112,7 +112,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
         const styleUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'media', 'styles.css')
         );
-        
+
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -209,21 +209,21 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
                         <button id="reconnectButton">Reconnect</button>
                     </div>
                 </div>
-                
+
                 <div class="message-container" id="messageContainer">
                     <div class="message">
                         Welcome to the Copilot Chat Integration. Messages sent from here will appear in the Copilot chat window.
                     </div>
                 </div>
-                
+
                 <div id="errorContainer" class="error" style="display: none;"></div>
-                
+
                 <div class="message-input">
                     <input type="text" id="messageInput" placeholder="Type message to send to Copilot Chat..." />
                     <button id="sendButton">Send</button>
                 </div>
             </div>
-            
+
             <script>
                 const vscode = acquireVsCodeApi();
                 const messageInput = document.getElementById('messageInput');
@@ -233,7 +233,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
                 const toggleButton = document.getElementById('toggleIntegration');
                 const reconnectButton = document.getElementById('reconnectButton');
                 const errorContainer = document.getElementById('errorContainer');
-                
+
                 // Send message
                 function sendMessage() {
                     const text = messageInput.value.trim();
@@ -242,12 +242,12 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
                             command: 'sendMessage',
                             text: text
                         });
-                        
+
                         // Clear input
                         messageInput.value = '';
                     }
                 }
-                
+
                 // Update status indicator
                 function updateStatus(active) {
                     if (active) {
@@ -260,7 +260,7 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
                         statusText.textContent = 'Integration Inactive';
                     }
                 }
-                
+
                 // Show error message
                 function showError(message) {
                     errorContainer.textContent = message;
@@ -269,37 +269,37 @@ export class CopilotChatViewProvider implements vscode.WebviewViewProvider {
                         errorContainer.style.display = 'none';
                     }, 5000);
                 }
-                
+
                 // Event listeners
                 sendButton.addEventListener('click', sendMessage);
-                
+
                 messageInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         sendMessage();
                     }
                 });
-                
+
                 toggleButton.addEventListener('click', () => {
                     vscode.postMessage({
                         command: 'toggleIntegration'
                     });
                 });
-                
+
                 reconnectButton.addEventListener('click', () => {
                     vscode.postMessage({
                         command: 'reconnect'
                     });
                 });
-                
+
                 // Handle messages from extension
                 window.addEventListener('message', event => {
                     const message = event.data;
-                    
+
                     switch (message.command) {
                         case 'updateStatus':
                             updateStatus(message.isActive);
                             break;
-                            
+
                         case 'showError':
                             showError(message.text);
                             break;

@@ -7,11 +7,16 @@ const connectionUtils_1 = require("./connectionUtils");
 const errors_1 = require("./errors");
 const llm_1 = require("../../types/llm");
 class BaseLLMProvider extends events_1.EventEmitter {
+    id;
+    name;
+    connectionState = llm_1.ConnectionState.DISCONNECTED;
+    metricsTracker;
+    lastError;
+    currentModel;
     constructor(id, name) {
         super();
         this.id = id;
         this.name = name;
-        this.connectionState = llm_1.ConnectionState.DISCONNECTED;
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
     }
     isConnected() {

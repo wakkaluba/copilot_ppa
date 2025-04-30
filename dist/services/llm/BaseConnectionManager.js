@@ -16,23 +16,25 @@ const DEFAULT_HEALTH_CONFIG = {
  * Provides common functionality for connection handling, health monitoring, and error management
  */
 class BaseConnectionManager extends events_1.EventEmitter {
+    activeProvider = null;
+    providerRegistry;
+    currentStatus = {
+        isConnected: false,
+        isAvailable: false,
+        error: ''
+    };
+    healthCheckInterval = null;
+    healthConfig;
+    retryConfig = {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        maxDelay: 30000,
+        backoffFactor: 2,
+        currentAttempt: 0,
+        timeout: 10000
+    };
     constructor(config) {
         super();
-        this.activeProvider = null;
-        this.currentStatus = {
-            isConnected: false,
-            isAvailable: false,
-            error: ''
-        };
-        this.healthCheckInterval = null;
-        this.retryConfig = {
-            maxAttempts: 3,
-            baseDelay: 1000,
-            maxDelay: 30000,
-            backoffFactor: 2,
-            currentAttempt: 0,
-            timeout: 10000
-        };
         this.providerRegistry = new LLMProviderRegistryService_1.LLMProviderRegistryService();
         this.retryConfig = { ...this.retryConfig, ...config };
         this.healthConfig = { ...DEFAULT_HEALTH_CONFIG, ...config };

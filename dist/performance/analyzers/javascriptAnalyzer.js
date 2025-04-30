@@ -41,16 +41,16 @@ const baseAnalyzer_1 = require("./baseAnalyzer");
 const parser = __importStar(require("@babel/parser"));
 const traverse_1 = __importDefault(require("@babel/traverse"));
 class JavaScriptAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
+    thresholds = {
+        cyclomaticComplexity: [10, 20],
+        nestedBlockDepth: [3, 5],
+        functionLength: [100, 200],
+        parameterCount: [4, 7],
+        maintainabilityIndex: [65, 85],
+        commentRatio: [10, 20]
+    };
     constructor(options) {
         super(options);
-        this.thresholds = {
-            cyclomaticComplexity: [10, 20],
-            nestedBlockDepth: [3, 5],
-            functionLength: [100, 200],
-            parameterCount: [4, 7],
-            maintainabilityIndex: [65, 85],
-            commentRatio: [10, 20]
-        };
     }
     analyze(fileContent, filePath) {
         if (!this.shouldAnalyzeFile(filePath)) {

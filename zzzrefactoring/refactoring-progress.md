@@ -41,13 +41,23 @@
       - src/refactoring/codeAnalysis/BaseCodeAnalyzer.ts
       - src/refactoring/codeAnalysis/ILanguageAnalyzer.ts
       - src/refactoring/types/UnusedElement.ts
+- Core Services
+  - [x] CoreAgent (April 29, 2025)
+    - Fixed issue with string parameter handling in getSuggestions method
+    - Improved interface with ContextManager
+    - Enhanced documentation with JSDoc comments
+    - Fixed file casing issues causing compilation errors
 
 ## In Progress
 - UI Components
   - [ ] ChatView components
   - [ ] ModelSelector components
 - Core Services
-  - [ ] ContextManager
+  - 🔄 ContextManager (April 29, 2025)
+    - Added proper overloaded method for getRecentHistory to support both string and number parameters
+    - Enhanced documentation
+    - Fixed issues with type safety
+    - Improved interaction with CoreAgent
   - [ ] ConversationManager
   - [ ] SecurityManager
 

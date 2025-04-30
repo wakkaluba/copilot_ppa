@@ -36,8 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeService = void 0;
 const vscode = __importStar(require("vscode"));
 class ThemeService {
+    _currentTheme;
+    disposables = [];
     constructor() {
-        this.disposables = [];
         this._currentTheme = this.detectCurrentTheme();
         this.disposables.push(vscode.window.onDidChangeActiveColorTheme(() => {
             this._currentTheme = this.detectCurrentTheme();

@@ -44,6 +44,13 @@ const viteConfigManager_1 = require("./vite/viteConfigManager");
 const buildScriptOptimizer_1 = require("./buildScriptOptimizer");
 const bundleAnalyzer_1 = require("./bundleAnalyzer");
 class BuildToolsManager extends eventEmitter_1.EventEmitter {
+    context;
+    logger;
+    webpackManager;
+    rollupManager;
+    viteManager;
+    buildScriptOptimizer;
+    bundleAnalyzer;
     constructor(context, logger) {
         super();
         this.context = context;

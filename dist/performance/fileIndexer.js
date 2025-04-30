@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileIndexer = void 0;
 const vscode = __importStar(require("vscode"));
 class FileIndexer {
+    index;
+    workers;
     constructor() {
         this.index = new Map();
         this.workers = [];

@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProgressHandler = void 0;
 const vscode = __importStar(require("vscode"));
 class ProgressHandler {
+    static instance;
+    currentProgress;
+    currentToken;
     constructor() { }
     static getInstance() {
         if (!ProgressHandler.instance) {

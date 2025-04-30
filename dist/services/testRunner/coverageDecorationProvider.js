@@ -41,6 +41,8 @@ const CoverageToggleService_1 = require("./services/CoverageToggleService");
  * Provider for code coverage decorations in the editor
  */
 class CoverageDecorationProvider {
+    decorationService;
+    toggleService;
     constructor() {
         this.decorationService = new CoverageDecorationService_1.CoverageDecorationService();
         this.toggleService = new CoverageToggleService_1.CoverageToggleService();

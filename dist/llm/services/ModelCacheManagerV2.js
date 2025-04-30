@@ -52,6 +52,13 @@ const events_1 = require("events");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 let ModelCacheManagerV2 = class ModelCacheManagerV2 extends events_1.EventEmitter {
+    logger;
+    config;
+    memoryCache = new Map();
+    diskCache = new Map();
+    metrics;
+    outputChannel;
+    cleanupInterval;
     constructor(logger, config = {
         maxMemorySize: 1024 * 1024 * 1024, // 1GB
         maxDiskSize: 5 * 1024 * 1024 * 1024, // 5GB
@@ -63,8 +70,6 @@ let ModelCacheManagerV2 = class ModelCacheManagerV2 extends events_1.EventEmitte
         super();
         this.logger = logger;
         this.config = config;
-        this.memoryCache = new Map();
-        this.diskCache = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Cache Manager');
         this.metrics = this.initializeMetrics();
         this.initializeCache();

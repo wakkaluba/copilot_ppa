@@ -38,8 +38,9 @@ const vscode = __importStar(require("vscode"));
 const codeComplexityAnalyzer_1 = require("./codeComplexityAnalyzer");
 const path = __importStar(require("path"));
 class ComplexityAnalysisCommand {
+    complexityAnalyzer;
+    decorationDisposables = [];
     constructor() {
-        this.decorationDisposables = [];
         this.complexityAnalyzer = new codeComplexityAnalyzer_1.CodeComplexityAnalyzer();
     }
     /**

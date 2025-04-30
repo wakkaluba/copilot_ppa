@@ -4,10 +4,11 @@ exports.ModelProvisioningService = void 0;
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelProvisioningService {
+    _provisioningEmitter = new events_1.EventEmitter();
+    _instances = new Map();
+    _allocations = new Map();
+    _logger;
     constructor() {
-        this._provisioningEmitter = new events_1.EventEmitter();
-        this._instances = new Map();
-        this._allocations = new Map();
         this._logger = logger_1.Logger.for('ModelProvisioningService');
     }
     async provisionModel(modelId, info) {

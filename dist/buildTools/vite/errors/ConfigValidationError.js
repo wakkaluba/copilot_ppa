@@ -5,6 +5,8 @@ exports.ConfigValidationError = void 0;
  * Custom error class for Vite configuration validation errors
  */
 class ConfigValidationError extends Error {
+    code;
+    details;
     constructor(message, code, details) {
         super(message);
         this.name = 'ConfigValidationError';

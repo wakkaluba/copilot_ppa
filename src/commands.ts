@@ -1,122 +1,152 @@
+import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
-import { ModelService } from './llm/modelService';
-import { ConfigManager } from './config';
-import { ICommandService } from './services/interfaces';
-import { AgentCommandService } from './services/commands/AgentCommandService';
-import { ConfigurationCommandService } from './services/commands/ConfigurationCommandService';
-import { VisualizationCommandService } from './services/commands/VisualizationCommandService';
-import { MenuCommandService } from './services/commands/MenuCommandService';
-import { ErrorHandler } from './services/error/ErrorHandler';
+import { ExtensionContext } from 'vscode';
+import { ErrorHandler } from './error/ErrorHandler';
+import { CodeQualityService } from './services/codeQuality';
+import { ConfigurationService } from './services/configuration/ConfigurationService';
+import { StructureReorganizer } from './services/refactoring/structureReorganizer';
+import { ServiceIdentifiers } from './services/ServiceRegistry';
+import { IDisposable } from './types';
+import { Logger } from './utils/logger';
 
-interface CommandHandler {
-    execute: (...args: any[]) => Promise<void>;
+export interface ICommand {
+    id: string;
+    handler: (...args: any[]) => Promise<any>;
+    description?: string;
 }
 
-export class CommandManager implements ICommandService {
-    private readonly _modelService: ModelService;
-    private readonly _registeredCommands: Map<string, CommandHandler>;
-    private readonly errorHandler: ErrorHandler;
-    private readonly agentService: AgentCommandService;
-    private readonly configService: ConfigurationCommandService;
-    private readonly visualizationService: VisualizationCommandService;
-    private readonly menuService: MenuCommandService;
+@injectable()
+export class CommandManager implements IDisposable {
+    private readonly _commands: Map<string, ICommand>;
+    private readonly _logger: Logger;
+    private readonly _disposables: IDisposable[];
 
     constructor(
-        private readonly context: vscode.ExtensionContext,
-        private readonly configManager: ConfigManager
+        @inject('Context') private readonly context: ExtensionContext,
+        @inject(ServiceIdentifiers.ErrorHandler) private readonly errorHandler: ErrorHandler,
+        @inject(ServiceIdentifiers.StructureReorganizer) private readonly structureReorganizer: StructureReorganizer,
+        @inject(ServiceIdentifiers.CodeQualityService) private readonly codeQualityService: CodeQualityService,
+        @inject(ServiceIdentifiers.ConfigurationService) private readonly configService: ConfigurationService
     ) {
-        this._modelService = new ModelService(context);
-        this._registeredCommands = new Map();
-        
-        // Initialize services
-        this.errorHandler = new ErrorHandler();
-        this.agentService = new AgentCommandService(this._modelService, this.errorHandler);
-        this.configService = new ConfigurationCommandService(this._modelService, this.configManager, this.errorHandler);
-        this.visualizationService = new VisualizationCommandService(context, this.errorHandler);
-        this.menuService = new MenuCommandService(
-            this.agentService,
-            this.configService,
-            this.visualizationService,
-            this.errorHandler
+        this._commands = new Map();
+        this._logger = Logger.for('CommandManager');
+        this._disposables = [];
+        this.registerCommands();
+    }
+
+    public registerCommand(command: ICommand): void {
+        if (this._commands.has(command.id)) {
+            this._logger.warn(`Command ${command.id} is already registered`);
+            return;
+        }
+
+        const wrappedHandler = async (...args: any[]) => {
+            try {
+                await command.handler(...args);
+            } catch (error) {
+                this.errorHandler.handle(`Error executing command ${command.id}`, error);
+            }
+        };
+
+        const disposable = this.context.subscriptions.push(
+            vscode.commands.registerCommand(command.id, wrappedHandler)
         );
-
-        // Add services to disposables
-        context.subscriptions.push(this.errorHandler);
+        this._commands.set(command.id, command);
+        this._disposables.push({ dispose: () => disposable });
+        this._logger.info(`Registered command: ${command.id}`);
     }
 
-    async initialize(): Promise<void> {
-        await this.registerCommands();
-    }
+    private registerCommands(): void {
+        // Core commands
+        this.registerCommand({
+            id: 'copilot-ppa.start',
+            handler: () => this.configService.start(),
+            description: 'Start Copilot PPA'
+        });
 
-    registerCommand(command: string, handler: CommandHandler): void {
-        this._registeredCommands.set(command, handler);
-        const disposable = vscode.commands.registerCommand(command, handler.execute);
-        this.context.subscriptions.push(disposable);
-    }
+        // Code structure commands
+        this.registerCommand({
+            id: 'copilot-ppa.analyzeStructure',
+            handler: () => this.structureReorganizer.analyzeCurrentFile(),
+            description: 'Analyze code structure'
+        });
 
-    async registerCommands(): Promise<void> {
-        // Agent commands
-        this.registerCommand('copilot-ppa.startAgent', { execute: this.agentService.startAgent.bind(this.agentService) });
-        this.registerCommand('copilot-ppa.stopAgent', { execute: this.agentService.stopAgent.bind(this.agentService) });
-        this.registerCommand('copilot-ppa.restartAgent', { execute: this.agentService.restartAgent.bind(this.agentService) });
-        
+        this.registerCommand({
+            id: 'copilot-ppa.reorganizeStructure',
+            handler: () => this.structureReorganizer.reorganizeCurrentFile(),
+            description: 'Reorganize code structure'
+        });
+
+        // Code quality commands
+        this.registerCommand({
+            id: 'copilot-ppa.analyzeCodeQuality',
+            handler: () => this.codeQualityService.analyzeCurrentFile(),
+            description: 'Analyze code quality'
+        });
+
+        this.registerCommand({
+            id: 'copilot-ppa.optimizeCode',
+            handler: () => this.codeQualityService.optimizeCurrentFile(),
+            description: 'Optimize code quality'
+        });
+
         // Configuration commands
-        this.registerCommand('copilot-ppa.configureModel', { execute: this.configService.configureModel.bind(this.configService) });
-        this.registerCommand('copilot-ppa.clearConversation', { execute: this.configService.clearConversation.bind(this.configService) });
-        
-        // Menu commands
-        this.registerCommand('copilot-ppa.openMenu', { execute: this.menuService.openMenu.bind(this.menuService) });
-        this.registerCommand('copilot-ppa.showMetrics', { execute: this.visualizationService.showMetrics.bind(this.visualizationService) });
-        
-        // Visualization commands
-        this.registerCommand('copilot-ppa.showMemoryVisualization', { execute: this.visualizationService.showMemoryVisualization.bind(this.visualizationService) });
-        this.registerCommand('copilot-ppa.showPerformanceMetrics', { execute: this.visualizationService.showPerformanceMetrics.bind(this.visualizationService) });
-        this.registerCommand('copilot-ppa.exportMetrics', { execute: this.visualizationService.exportMetrics.bind(this.visualizationService) });
+        this.registerCommand({
+            id: 'copilot-ppa.configure',
+            handler: () => this.configService.configure(),
+            description: 'Configure Copilot PPA'
+        });
+
+        this.registerCommand({
+            id: 'copilot-ppa.resetConfig',
+            handler: () => this.configService.reset(),
+            description: 'Reset configuration'
+        });
+
+        // Confirmation settings commands
+        this.registerCommand({
+            id: 'copilot-ppa.openConfirmationSettings',
+            handler: () => {
+                const { ConfirmationSettingsPanel } = require('./webviews/ConfirmationSettingsPanel');
+                ConfirmationSettingsPanel.createOrShow(this.context.extensionUri);
+            },
+            description: 'Open confirmation settings panel'
+        });
+
+        this.registerCommand({
+            id: 'copilot-ppa.resetConfirmationSettings',
+            handler: async () => {
+                const { UserConfirmationService } = require('./services/UserConfirmationService');
+                try {
+                    const confirmationService = UserConfirmationService.getInstance();
+                    // Reset all confirmation types
+                    await confirmationService.enableConfirmation('file');
+                    await confirmationService.enableConfirmation('workspace');
+                    await confirmationService.enableConfirmation('process');
+                    await confirmationService.enableConfirmation('other');
+
+                    vscode.window.showInformationMessage('All confirmation settings have been reset');
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Failed to reset confirmation settings: ${error}`);
+                }
+            },
+            description: 'Reset all confirmation settings'
+        });
+
+        this._logger.info('All commands registered successfully');
     }
 
-    // ICommandService implementation - delegate to specialized services
-    async startAgent(): Promise<void> {
-        await this.agentService.startAgent();
-    }
-
-    async stopAgent(): Promise<void> {
-        await this.agentService.stopAgent();
-    }
-
-    async restartAgent(): Promise<void> {
-        await this.agentService.restartAgent();
-    }
-
-    async configureModel(): Promise<void> {
-        await this.configService.configureModel();
-    }
-
-    async clearConversation(): Promise<void> {
-        await this.configService.clearConversation();
-    }
-
-    async openMenu(): Promise<void> {
-        await this.menuService.openMenu();
-    }
-
-    async showMetrics(): Promise<void> {
-        await this.visualizationService.showMetrics();
-    }
-
-    async showMemoryVisualization(): Promise<void> {
-        await this.visualizationService.showMemoryVisualization();
-    }
-
-    async showPerformanceMetrics(): Promise<void> {
-        await this.visualizationService.showPerformanceMetrics();
-    }
-
-    async exportMetrics(): Promise<void> {
-        await this.visualizationService.exportMetrics();
-    }
-
-    dispose(): void {
-        this._modelService.dispose();
-        this._registeredCommands.clear();
+    public async dispose(): Promise<void> {
+        try {
+            for (const disposable of this._disposables) {
+                await disposable.dispose();
+            }
+            this._disposables.length = 0;
+            this._commands.clear();
+            this._logger.info('CommandManager disposed successfully');
+        } catch (error) {
+            this._logger.error('Error disposing CommandManager', error);
+            throw error;
+        }
     }
 }

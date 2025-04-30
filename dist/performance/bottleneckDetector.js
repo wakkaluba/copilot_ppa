@@ -8,6 +8,8 @@ const BottleneckDetectionService_1 = require("./services/BottleneckDetectionServ
  * that are potentially causing performance issues
  */
 class BottleneckDetector extends events_1.EventEmitter {
+    static instance;
+    service;
     constructor() {
         super();
         this.service = new BottleneckDetectionService_1.BottleneckDetectionService();

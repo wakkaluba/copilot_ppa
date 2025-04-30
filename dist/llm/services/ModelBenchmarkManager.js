@@ -52,11 +52,13 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const types_1 = require("../types");
 let ModelBenchmarkManager = class ModelBenchmarkManager extends events_1.EventEmitter {
+    logger;
+    benchmarkCache = new Map();
+    outputChannel;
+    isRunning = false;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.benchmarkCache = new Map();
-        this.isRunning = false;
         this.outputChannel = vscode.window.createOutputChannel('Model Benchmarks');
     }
     async runBenchmark(model, options = {}) {

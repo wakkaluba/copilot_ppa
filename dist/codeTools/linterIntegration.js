@@ -42,6 +42,8 @@ const fs = __importStar(require("fs"));
  * Handles integration with various code linters
  */
 class LinterIntegration {
+    outputChannel;
+    diagnosticCollection;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('LLM Agent Linter');
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('llm-agent-linter');

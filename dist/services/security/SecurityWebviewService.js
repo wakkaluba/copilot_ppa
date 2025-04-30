@@ -37,6 +37,7 @@ exports.SecurityWebviewService = void 0;
 const vscode = __importStar(require("vscode"));
 const logger_1 = require("../../utils/logger");
 class SecurityWebviewService {
+    logger;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
     }

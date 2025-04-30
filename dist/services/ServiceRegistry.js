@@ -24,9 +24,9 @@ exports.Services = {
     DisplaySettings: Symbol('DisplaySettings')
 };
 class ServiceRegistry {
-    constructor() {
-        this.services = new Map();
-    }
+    static instance;
+    services = new Map();
+    constructor() { }
     static getInstance() {
         if (!ServiceRegistry.instance) {
             ServiceRegistry.instance = new ServiceRegistry();

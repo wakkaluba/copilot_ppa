@@ -36,13 +36,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StatusBarManager = void 0;
 const vscode = __importStar(require("vscode"));
 class StatusBarManager {
+    _mainStatusBarItem;
+    _metricsStatusBarItem;
+    _configListener;
+    _workingAnimation;
+    _state = {
+        mainText: '$(copilot) PPA',
+        isWorking: false,
+        isVisible: true,
+        isError: false
+    };
     constructor(context) {
-        this._state = {
-            mainText: '$(copilot) PPA',
-            isWorking: false,
-            isVisible: true,
-            isError: false
-        };
         this._mainStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this._mainStatusBarItem.command = 'copilot-ppa.openMenu';
         this._mainStatusBarItem.tooltip = 'Copilot PPA';

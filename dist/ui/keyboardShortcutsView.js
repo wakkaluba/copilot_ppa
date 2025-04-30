@@ -40,6 +40,9 @@ const keybindingManager_1 = require("../services/ui/keybindingManager");
  * WebviewViewProvider for displaying keyboard shortcuts in the sidebar
  */
 class KeyboardShortcutsViewProvider {
+    _extensionUri;
+    static viewType = 'copilotPPA.keyboardShortcutsView';
+    _view;
     constructor(_extensionUri) {
         this._extensionUri = _extensionUri;
     }
@@ -316,5 +319,4 @@ class KeyboardShortcutsViewProvider {
     }
 }
 exports.KeyboardShortcutsViewProvider = KeyboardShortcutsViewProvider;
-KeyboardShortcutsViewProvider.viewType = 'copilotPPA.keyboardShortcutsView';
 //# sourceMappingURL=keyboardShortcutsView.js.map

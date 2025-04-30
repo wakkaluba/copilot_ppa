@@ -10,10 +10,11 @@ var ConnectionState;
     ConnectionState["Error"] = "error";
 })(ConnectionState || (exports.ConnectionState = ConnectionState = {}));
 class ConnectionStatusService extends events_1.EventEmitter {
+    currentState = ConnectionState.Disconnected;
+    currentError;
+    metadata = {};
     constructor() {
         super();
-        this.currentState = ConnectionState.Disconnected;
-        this.metadata = {};
         // Start emitting periodic heartbeat events
         setInterval(() => {
             this.emit('heartbeat', {

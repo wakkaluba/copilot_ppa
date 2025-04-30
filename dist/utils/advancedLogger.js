@@ -44,9 +44,14 @@ const LogFormatterService_1 = require("../services/logging/LogFormatterService")
  * Advanced logger service with enhanced features, error handling, and storage options
  */
 class AdvancedLogger extends events_1.EventEmitter {
+    static instance;
+    outputChannel;
+    fileManager;
+    bufferManager;
+    formatter;
+    logLevel = logging_1.LogLevel.INFO;
     constructor() {
         super();
-        this.logLevel = logging_1.LogLevel.INFO;
         this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
         this.fileManager = new FileLogManager_1.FileLogManager();
         this.bufferManager = new LogBufferManager_1.LogBufferManager();

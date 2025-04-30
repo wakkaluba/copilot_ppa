@@ -5,6 +5,7 @@ exports.ThemeStorage = void 0;
  * Handles persistence of themes and UI layout options
  */
 class ThemeStorage {
+    storage;
     constructor(storage) {
         this.storage = storage;
     }

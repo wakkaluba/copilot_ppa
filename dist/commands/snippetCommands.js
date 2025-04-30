@@ -41,6 +41,12 @@ const SnippetCreationService_1 = require("../services/snippets/SnippetCreationSe
 const SnippetSelectionService_1 = require("../services/snippets/SnippetSelectionService");
 const SnippetInsertionService_1 = require("../services/snippets/SnippetInsertionService");
 class SnippetCommands {
+    static createSnippetCommandId = 'copilotPPA.createSnippet';
+    static insertSnippetCommandId = 'copilotPPA.insertSnippet';
+    static manageSnippetsCommandId = 'copilotPPA.manageSnippets';
+    creationService;
+    selectionService;
+    insertionService;
     constructor(context) {
         const snippetManager = snippetManager_1.SnippetManager.getInstance(context);
         const conversationManager = conversationManager_1.ConversationManager.getInstance(context);
@@ -85,7 +91,4 @@ class SnippetCommands {
     }
 }
 exports.SnippetCommands = SnippetCommands;
-SnippetCommands.createSnippetCommandId = 'copilotPPA.createSnippet';
-SnippetCommands.insertSnippetCommandId = 'copilotPPA.insertSnippet';
-SnippetCommands.manageSnippetsCommandId = 'copilotPPA.manageSnippets';
 //# sourceMappingURL=snippetCommands.js.map

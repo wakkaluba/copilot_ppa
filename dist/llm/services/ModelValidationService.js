@@ -40,9 +40,10 @@ const os = __importStar(require("os"));
  * Service for validating model compatibility with system capabilities
  */
 class ModelValidationService {
+    validationCache = new Map();
+    systemInfo = null;
+    outputChannel;
     constructor() {
-        this.validationCache = new Map();
-        this.systemInfo = null;
         this.outputChannel = vscode.window.createOutputChannel('Model Validation');
     }
     /**

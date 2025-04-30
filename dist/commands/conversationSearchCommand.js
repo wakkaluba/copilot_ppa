@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const conversationManager_1 = require("../services/conversationManager");
 const conversationSearchService_1 = require("../services/conversationSearchService");
 class ConversationSearchCommand {
+    static commandId = 'copilotPPA.searchConversations';
+    conversationManager;
+    searchService;
     constructor(context) {
         this.conversationManager = conversationManager_1.ConversationManager.getInstance(context);
         this.searchService = conversationSearchService_1.ConversationSearchService.getInstance(this.conversationManager);
@@ -177,5 +180,4 @@ class ConversationSearchCommand {
     }
 }
 exports.ConversationSearchCommand = ConversationSearchCommand;
-ConversationSearchCommand.commandId = 'copilotPPA.searchConversations';
 //# sourceMappingURL=conversationSearchCommand.js.map

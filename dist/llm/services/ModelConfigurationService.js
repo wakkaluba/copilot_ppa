@@ -4,11 +4,13 @@ exports.ModelConfigurationService = void 0;
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelConfigurationService {
+    persistenceIntervalMs;
+    _configEmitter = new events_1.EventEmitter();
+    _configurations = new Map();
+    _logger;
+    _persistenceInterval = null;
     constructor(persistenceIntervalMs = 5000) {
         this.persistenceIntervalMs = persistenceIntervalMs;
-        this._configEmitter = new events_1.EventEmitter();
-        this._configurations = new Map();
-        this._persistenceInterval = null;
         this._logger = logger_1.Logger.for('ModelConfigurationService');
         this.startPersistence();
     }

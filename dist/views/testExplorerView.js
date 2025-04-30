@@ -41,9 +41,10 @@ const TestExplorerService_1 = require("./services/TestExplorerService");
  * Tree data provider for the test explorer view
  */
 class TestExplorerProvider {
+    _onDidChangeTreeData = new vscode.EventEmitter();
+    onDidChangeTreeData = this._onDidChangeTreeData.event;
+    service;
     constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
         this.service = new TestExplorerService_1.TestExplorerService();
     }
     /**
@@ -71,6 +72,9 @@ exports.TestExplorerProvider = TestExplorerProvider;
  * Tree item representing a test or test result
  */
 class TestItem extends vscode.TreeItem {
+    label;
+    testType;
+    collapsibleState;
     constructor(label, testType, collapsibleState) {
         super(label, collapsibleState);
         this.label = label;

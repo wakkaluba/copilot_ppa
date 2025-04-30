@@ -4,9 +4,12 @@
   "description": "Copilot Personal Programming Assistant",
   "version": "0.1.0",
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.85.0",
+    "node": ">=18.0.0"
   },
   "categories": [
+    "Programming Languages",
+    "Machine Learning",
     "Other"
   ],
   "main": "./out/extension.js",
@@ -14,51 +17,198 @@
     "commands": [
       {
         "command": "copilot-ppa.start",
-        "title": "Start Copilot PPA"
+        "title": "Start Copilot PPA",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.analyzeStructure",
+        "title": "Analyze Code Structure",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.reorganizeStructure",
+        "title": "Reorganize Code Structure",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.analyzeCodeQuality",
+        "title": "Analyze Code Quality",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.optimizeCode",
+        "title": "Optimize Code Quality",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.configure",
+        "title": "Configure Settings",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.resetConfig",
+        "title": "Reset Configuration",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.openConfirmationSettings",
+        "title": "Manage Confirmation Settings",
+        "category": "Copilot PPA"
+      },
+      {
+        "command": "copilot-ppa.resetConfirmationSettings",
+        "title": "Reset Confirmation Settings",
+        "category": "Copilot PPA"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Copilot PPA",
+      "properties": {
+        "copilotPPA.autoConnect": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically connect to LLM on startup"
+        },
+        "copilotPPA.confirmations.disableFileConfirmations": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable confirmations for file operations"
+        },
+        "copilotPPA.confirmations.disableWorkspaceConfirmations": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable confirmations for workspace operations"
+        },
+        "copilotPPA.confirmations.disableProcessConfirmations": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable confirmations for long-running processes"
+        },
+        "copilotPPA.confirmations.disableOtherConfirmations": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable other confirmation dialogs"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorTextFocus",
+          "command": "copilot-ppa.analyzeStructure",
+          "group": "copilot-ppa@1"
+        },
+        {
+          "when": "editorTextFocus",
+          "command": "copilot-ppa.analyzeCodeQuality",
+          "group": "copilot-ppa@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "copilot-ppa.start"
+        },
+        {
+          "command": "copilot-ppa.analyzeStructure",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "copilot-ppa.reorganizeStructure",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "copilot-ppa.analyzeCodeQuality",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "copilot-ppa.optimizeCode",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "copilot-ppa.configure"
+        },
+        {
+          "command": "copilot-ppa.resetConfig"
+        },
+        {
+          "command": "copilot-ppa.openConfirmationSettings"
+        },
+        {
+          "command": "copilot-ppa.resetConfirmationSettings"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src --ext ts,tsx --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "jest",
-    "fix-all": "node tools/fix-all.js"
+    "test:unit": "jest --coverage",
+    "test:watch": "jest --watch",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "check-types": "tsc --noEmit",
+    "validate": "npm run lint && npm run check-types && npm run test",
+    "analyze": "node tools/analyze-code-structure.js",
+    "fix-all": "node tools/fix-all.js",
+    "prepare": "husky install",
+    "build:watch": "npm run watch",
+    "dev": "npm run build:watch",
+    "clean": "rimraf out"
   },
   "devDependencies": {
     "@gitbeaker/node": "^35.8.1",
-    "@jest/globals": "^29.5.0",
-    "@octokit/rest": "^19.0.13",
-    "@types/axios": "^0.9.36",
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@jest/globals": "^29.7.0",
+    "@octokit/rest": "^20.0.2",
+    "@types/axios": "^0.14.0",
     "@types/glob": "^8.1.0",
-    "@types/jest": "^29.5.0",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "16.x",
-    "@types/sinon": "^10.0.15",
-    "@types/vscode": "^1.60.0",
-    "@typescript-eslint/eslint-plugin": "^5.59.1",
-    "@typescript-eslint/parser": "^5.59.1",
-    "axios": "^1.9.0",
-    "axios-mock-adapter": "^1.21.4",
+    "@types/inversify": "^2.0.33",
+    "@types/jest": "^29.5.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.0",
+    "@types/reflect-metadata": "^0.1.0",
+    "@types/sinon": "^17.0.3",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/types": "^6.15.0",
+    "@typescript-eslint/typescript-estree": "^6.15.0",
+    "axios": "^1.6.2",
+    "axios-mock-adapter": "^1.22.0",
     "bitbucket": "^2.12.0",
     "chai": "^4.5.0",
-    "eslint": "^8.39.0",
-    "glob": "^8.1.0",
-    "jest": "^29.5.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^27.6.0",
+    "glob": "^10.3.10",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "jest-environment-node": "^29.5.0",
+    "jest-environment-node": "^29.7.0",
+    "lint-staged": "^15.2.0",
     "mocha": "^10.8.2",
-    "sinon": "^15.1.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.0.4",
-    "vscode-test": "^1.6.1"
+    "prettier": "^3.1.1",
+    "reflect-metadata": "^0.2.1",
+    "rimraf": "^5.0.5",
+    "sinon": "^17.0.1",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3",
+    "vscode-test": "^2.3.3"
   },
   "dependencies": {
-    "inversify": "^7.5.1",
-    "jest-mock-extended": "^4.0.0-beta1",
-    "uuid": "^11.1.0"
+    "inversify": "^7.1.0",
+    "jest-mock-extended": "^4.0.0",
+    "tslib": "^2.6.2",
+    "uuid": "^9.0.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

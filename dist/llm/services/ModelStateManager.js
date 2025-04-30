@@ -53,14 +53,17 @@ const events_1 = require("events");
 const logging_1 = require("../../common/logging");
 const IPersistenceService_1 = require("../interfaces/IPersistenceService");
 let ModelStateManager = class ModelStateManager extends events_1.EventEmitter {
+    logger;
+    persistence;
+    stateMap = new Map();
+    stateHistory = new Map();
+    outputChannel;
+    maxHistorySize = 1000;
+    storageKey = 'model-states';
     constructor(logger, persistence) {
         super();
         this.logger = logger;
         this.persistence = persistence;
-        this.stateMap = new Map();
-        this.stateHistory = new Map();
-        this.maxHistorySize = 1000;
-        this.storageKey = 'model-states';
         this.outputChannel = vscode.window.createOutputChannel('Model State');
         this.loadPersistedStates();
     }

@@ -22,6 +22,17 @@ const ModelScalingPolicy_1 = require("./ModelScalingPolicy");
 const ModelDeploymentService_1 = require("./ModelDeploymentService");
 const ModelScalingDashboardService_1 = require("./ModelScalingDashboardService");
 let ModelScalingService = class ModelScalingService extends events_1.EventEmitter {
+    logger;
+    metricsService;
+    scalingPolicy;
+    deploymentService;
+    dashboardService;
+    activeOperations = new Map();
+    operationHistory = new Map();
+    operationHistoryLimit = 50;
+    automaticScalingEnabled = true;
+    intervalId = null;
+    checkInterval = 60 * 1000; // 1 minute
     constructor(logger, metricsService, scalingPolicy, deploymentService, dashboardService) {
         super();
         this.logger = logger;
@@ -29,12 +40,6 @@ let ModelScalingService = class ModelScalingService extends events_1.EventEmitte
         this.scalingPolicy = scalingPolicy;
         this.deploymentService = deploymentService;
         this.dashboardService = dashboardService;
-        this.activeOperations = new Map();
-        this.operationHistory = new Map();
-        this.operationHistoryLimit = 50;
-        this.automaticScalingEnabled = true;
-        this.intervalId = null;
-        this.checkInterval = 60 * 1000; // 1 minute
         this.logger.info('ModelScalingService initialized');
         // Subscribe to metrics updates
         this.metricsService.on('metricsCollected', this.handleMetricsCollected.bind(this));

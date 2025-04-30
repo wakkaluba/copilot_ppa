@@ -13,11 +13,14 @@ var ProviderEvent;
     ProviderEvent["MetricsUpdated"] = "provider:metricsUpdated";
 })(ProviderEvent || (exports.ProviderEvent = ProviderEvent = {}));
 class LLMProviderManager extends events_1.EventEmitter {
+    connectionService;
+    connectionPool;
+    metrics = new Map();
+    activeProviders = new Set();
+    defaultProviderId;
     constructor(connectionService) {
         super();
         this.connectionService = connectionService;
-        this.metrics = new Map();
-        this.activeProviders = new Set();
         this.connectionPool = new ConnectionPoolManager_1.ConnectionPoolManager();
     }
     async initializeProvider(type, config) {

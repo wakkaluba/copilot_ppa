@@ -14,11 +14,12 @@ const DEFAULT_RATE_LIMIT_CONFIG = {
  * Manages request rate limiting for LLM providers
  */
 class RequestRateLimiter extends events_1.EventEmitter {
+    static instance;
+    buckets = new Map();
+    queues = new Map();
+    configs = new Map();
     constructor() {
         super();
-        this.buckets = new Map();
-        this.queues = new Map();
-        this.configs = new Map();
     }
     static getInstance() {
         if (!this.instance) {

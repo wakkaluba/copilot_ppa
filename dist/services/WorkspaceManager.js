@@ -39,6 +39,8 @@ const logger_1 = require("../utils/logger");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 class WorkspaceManager {
+    static instance;
+    logger;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
     }

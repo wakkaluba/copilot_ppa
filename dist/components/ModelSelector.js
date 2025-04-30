@@ -37,8 +37,10 @@ exports.ModelSelector = void 0;
 const vscode = __importStar(require("vscode"));
 const LLMConnectionManager_1 = require("../services/LLMConnectionManager");
 class ModelSelector {
+    static instance;
+    statusBarItem;
+    currentModel = '';
     constructor() {
-        this.currentModel = '';
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 98);
         this.statusBarItem.command = 'copilot-ppa.selectModel';
         this.updateStatusBarItem();

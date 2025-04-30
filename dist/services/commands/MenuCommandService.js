@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MenuCommandService = void 0;
 const vscode = __importStar(require("vscode"));
 class MenuCommandService {
+    agentService;
+    configService;
+    visualizationService;
+    errorHandler;
     constructor(agentService, configService, visualizationService, errorHandler) {
         this.agentService = agentService;
         this.configService = configService;

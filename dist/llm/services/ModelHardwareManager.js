@@ -60,13 +60,16 @@ const util_1 = require("util");
 const os_1 = __importDefault(require("os"));
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 let ModelHardwareManager = class ModelHardwareManager extends events_1.EventEmitter {
+    logger;
+    monitoringIntervalMs;
+    outputChannel;
+    monitoringInterval = null;
+    metricsHistory = new Map();
+    maxHistoryLength = 100;
     constructor(logger, monitoringIntervalMs = 5000) {
         super();
         this.logger = logger;
         this.monitoringIntervalMs = monitoringIntervalMs;
-        this.monitoringInterval = null;
-        this.metricsHistory = new Map();
-        this.maxHistoryLength = 100;
         this.outputChannel = vscode.window.createOutputChannel('Hardware Monitor');
         this.startMonitoring();
     }

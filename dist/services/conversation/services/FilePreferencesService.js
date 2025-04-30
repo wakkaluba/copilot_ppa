@@ -39,14 +39,15 @@ const path = __importStar(require("path"));
  * Service for managing file type preferences
  */
 class FilePreferencesService {
+    fileExtensions = new Map();
+    directories = new Map();
+    namingPatterns = new Map();
+    context;
     /**
      * Create a new FilePreferencesService
      * @param context Extension context for state persistence
      */
     constructor(context) {
-        this.fileExtensions = new Map();
-        this.directories = new Map();
-        this.namingPatterns = new Map();
         this.context = context;
     }
     /**

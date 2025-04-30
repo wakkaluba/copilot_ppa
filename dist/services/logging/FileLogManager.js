@@ -42,17 +42,14 @@ const events_1 = require("events");
  * Manages file-based logging operations
  */
 class FileLogManager extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this.enabled = false;
-        this.currentPath = null;
-        this.logStream = null;
-        this.config = {
-            filePath: '',
-            maxSizeMB: 5,
-            maxFiles: 3
-        };
-    }
+    enabled = false;
+    currentPath = null;
+    logStream = null;
+    config = {
+        filePath: '',
+        maxSizeMB: 5,
+        maxFiles: 3
+    };
     /**
      * Initialize the file manager with configuration
      */

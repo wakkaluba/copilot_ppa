@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentCodeActionProvider = void 0;
 const vscode = __importStar(require("vscode"));
 class AgentCodeActionProvider {
+    static providedCodeActionKinds = [
+        vscode.CodeActionKind.QuickFix,
+        vscode.CodeActionKind.RefactorRewrite
+    ];
     async provideCodeActions(document, range, context, token) {
         const actions = [];
         // Add explain code action
@@ -58,8 +62,4 @@ class AgentCodeActionProvider {
     }
 }
 exports.AgentCodeActionProvider = AgentCodeActionProvider;
-AgentCodeActionProvider.providedCodeActionKinds = [
-    vscode.CodeActionKind.QuickFix,
-    vscode.CodeActionKind.RefactorRewrite
-];
 //# sourceMappingURL=AgentCodeActionProvider.js.map

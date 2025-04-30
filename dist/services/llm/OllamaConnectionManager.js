@@ -7,11 +7,8 @@ const types_1 = require("./types");
  * Specialized connection manager for Ollama LLM service
  */
 class OllamaConnectionManager extends BaseConnectionManager_1.BaseConnectionManager {
-    constructor() {
-        super(...arguments);
-        this.endpoint = '';
-        this.currentModel = '';
-    }
+    endpoint = '';
+    currentModel = '';
     async establishConnection() {
         if (!this.endpoint) {
             throw new types_1.LLMConnectionError(types_1.LLMConnectionErrorCode.InvalidEndpoint, 'Ollama endpoint not configured');

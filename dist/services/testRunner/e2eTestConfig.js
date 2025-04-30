@@ -41,6 +41,7 @@ const path = __importStar(require("path"));
  * Service for detecting and configuring E2E test frameworks
  */
 class E2ETestConfigService {
+    static instance;
     /**
      * Get singleton instance of the service
      */

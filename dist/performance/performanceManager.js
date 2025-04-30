@@ -51,6 +51,18 @@ const logger_1 = require("../utils/logger");
  * Coordinates analysis, profiling, monitoring and reporting of performance metrics.
  */
 class PerformanceManager {
+    static instance;
+    analyzerService;
+    statusService;
+    diagnosticsService;
+    fileMonitorService;
+    configService;
+    profiler;
+    bottleneckDetector;
+    cachingService;
+    asyncOptimizer;
+    eventEmitter;
+    logger;
     constructor(extensionContext) {
         this.eventEmitter = new events_1.EventEmitter();
         this.configService = new PerformanceConfigService_1.PerformanceConfigService();

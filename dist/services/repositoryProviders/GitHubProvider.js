@@ -37,8 +37,9 @@ exports.GitHubProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const rest_1 = require("@octokit/rest");
 class GitHubProvider {
+    octokit;
+    name = 'GitHub';
     constructor() {
-        this.name = 'GitHub';
         this.initialize();
     }
     async initialize() {

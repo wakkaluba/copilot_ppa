@@ -36,8 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityPatternService = void 0;
 const vscode = __importStar(require("vscode"));
 class SecurityPatternService {
+    patterns = [];
     constructor() {
-        this.patterns = [];
         this.loadDefaultPatterns();
     }
     getPatterns() {

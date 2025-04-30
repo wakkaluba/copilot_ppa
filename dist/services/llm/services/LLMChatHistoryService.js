@@ -7,16 +7,17 @@ const types_1 = require("../types");
  * Service for managing chat history, persistence, and statistics
  */
 class LLMChatHistoryService extends events_1.EventEmitter {
+    sessions = new Map();
+    options;
+    stats = {
+        totalSessions: 0,
+        totalMessages: 0,
+        averageMessagesPerSession: 0,
+        oldestSession: null,
+        newestSession: null
+    };
     constructor(options = {}) {
         super();
-        this.sessions = new Map();
-        this.stats = {
-            totalSessions: 0,
-            totalMessages: 0,
-            averageMessagesPerSession: 0,
-            oldestSession: null,
-            newestSession: null
-        };
         this.options = {
             maxHistory: options.maxHistory || 100,
             maxMessagesPerSession: options.maxMessagesPerSession || 1000,

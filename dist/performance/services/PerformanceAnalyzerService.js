@@ -37,6 +37,8 @@ exports.PerformanceAnalyzerService = void 0;
 const vscode = __importStar(require("vscode"));
 const analyzerFactory_1 = require("../analyzers/analyzerFactory");
 class PerformanceAnalyzerService {
+    configService;
+    analyzerFactory;
     constructor(configService) {
         this.configService = configService;
         this.analyzerFactory = analyzerFactory_1.AnalyzerFactory.getInstance();

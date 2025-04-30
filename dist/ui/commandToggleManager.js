@@ -40,9 +40,14 @@ const ToggleStorageService_1 = require("./services/ToggleStorageService");
 const ToggleConfigurationService_1 = require("./services/ToggleConfigurationService");
 const ToggleOperationsService_1 = require("./services/ToggleOperationsService");
 class CommandToggleManager {
+    static instance;
+    stateService;
+    storageService;
+    configService;
+    operationsService;
+    _onToggleChange = new vscode.EventEmitter();
+    onToggleChange = this._onToggleChange.event;
     constructor(context) {
-        this._onToggleChange = new vscode.EventEmitter();
-        this.onToggleChange = this._onToggleChange.event;
         this.configService = new ToggleConfigurationService_1.ToggleConfigurationService();
         this.storageService = new ToggleStorageService_1.ToggleStorageService(context);
         this.stateService = new ToggleStateService_1.ToggleStateService(this.configService.getAvailableToggles());

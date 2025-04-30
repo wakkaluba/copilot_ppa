@@ -53,12 +53,15 @@ const events_1 = require("events");
 const types_1 = require("../types");
 const ModelBenchmarkManager_1 = require("./ModelBenchmarkManager");
 let ModelAutotuneManager = class ModelAutotuneManager extends events_1.EventEmitter {
+    logger;
+    benchmarkManager;
+    outputChannel;
+    optimizationCache = new Map();
+    isRunning = false;
     constructor(logger, benchmarkManager) {
         super();
         this.logger = logger;
         this.benchmarkManager = benchmarkManager;
-        this.optimizationCache = new Map();
-        this.isRunning = false;
         this.outputChannel = vscode.window.createOutputChannel('Model Autotuning');
     }
     async optimizeModel(model, config = {}) {

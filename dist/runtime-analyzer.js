@@ -41,6 +41,9 @@ const performanceManager_1 = require("./performance/performanceManager");
  * This class will be removed in a future version.
  */
 class RuntimeAnalyzer {
+    outputChannel;
+    logger;
+    isRecording;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('Runtime Analysis');
         this.isRecording = false;

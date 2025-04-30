@@ -15,11 +15,13 @@ const DEFAULT_CACHE_CONFIG = {
  * Manages caching for LLM-related data
  */
 class LLMCacheManager extends events_1.EventEmitter {
+    static instance;
+    modelInfoCache = new Map();
+    healthCheckCache = new Map();
+    responseCache = new Map();
+    config;
     constructor(config = {}) {
         super();
-        this.modelInfoCache = new Map();
-        this.healthCheckCache = new Map();
-        this.responseCache = new Map();
         this.config = { ...DEFAULT_CACHE_CONFIG, ...config };
         this.startCleanupInterval();
     }

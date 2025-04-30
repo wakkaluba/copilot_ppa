@@ -15,12 +15,13 @@ const inversify_1 = require("inversify");
 const logger_1 = require("../../utils/logger");
 const events_1 = require("events");
 let ModelScalingPolicy = class ModelScalingPolicy extends events_1.EventEmitter {
+    logger;
+    scalingRules = new Map();
+    recentDecisions = new Map();
+    decisionHistoryLimit = 20;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.scalingRules = new Map();
-        this.recentDecisions = new Map();
-        this.decisionHistoryLimit = 20;
         this.logger.info('ModelScalingPolicy initialized');
         this.initializeDefaultRules();
     }

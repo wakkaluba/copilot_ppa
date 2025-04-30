@@ -39,6 +39,8 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs/promises"));
 const logger_1 = require("../../utils/logger");
 class DependencyScanService {
+    vulnerabilityService;
+    logger;
     constructor(vulnerabilityService) {
         this.vulnerabilityService = vulnerabilityService;
         this.logger = logger_1.Logger.getInstance();

@@ -37,6 +37,7 @@ exports.ViteConfigAnalyzer = void 0;
 const fs = __importStar(require("fs"));
 const ConfigValidationError_1 = require("../errors/ConfigValidationError");
 class ViteConfigAnalyzer {
+    logger;
     constructor(logger) {
         this.logger = logger;
     }

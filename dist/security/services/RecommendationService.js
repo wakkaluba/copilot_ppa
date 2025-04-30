@@ -36,11 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecommendationService = void 0;
 const vscode = __importStar(require("vscode"));
 class RecommendationService {
+    analysisSvc;
+    dependencySvc;
+    disposables = [];
+    recommendationCache = new Map();
     constructor(analysisSvc, dependencySvc) {
         this.analysisSvc = analysisSvc;
         this.dependencySvc = dependencySvc;
-        this.disposables = [];
-        this.recommendationCache = new Map();
     }
     async generate() {
         const recommendations = [];

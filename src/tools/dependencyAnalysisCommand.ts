@@ -22,9 +22,9 @@ export class DependencyAnalysisCommand {
     public register(): vscode.Disposable {
         try {
             this.disposables.push(
-                vscode.commands.registerCommand('vscodeLocalLLMAgent.analyzeDependencies', () => this.handleAnalyzeDependencies()),
-                vscode.commands.registerCommand('vscodeLocalLLMAgent.analyzeFileDependencies', () => this.handleAnalyzeFileDependencies()),
-                vscode.commands.registerCommand('vscodeLocalLLMAgent.showDependencyGraph', () => this.handleShowDependencyGraph())
+                vscode.commands.registerCommand('copilot-ppa.analyzeDependencies', () => this.handleAnalyzeDependencies()),
+                vscode.commands.registerCommand('copilot-ppa.analyzeFileDependencies', () => this.handleAnalyzeFileDependencies()),
+                vscode.commands.registerCommand('copilot-ppa.showDependencyGraph', () => this.handleShowDependencyGraph())
             );
 
             return {

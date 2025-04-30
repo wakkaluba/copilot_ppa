@@ -1,46 +1,46 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { CodeComplexityAnalyzer } from './codeComplexityAnalyzer';
-import * as path from 'path';
 
 export class ComplexityAnalysisCommand {
     private readonly complexityAnalyzer: CodeComplexityAnalyzer;
     private decorationDisposables: vscode.Disposable[] = [];
-    
+
     constructor() {
         this.complexityAnalyzer = new CodeComplexityAnalyzer();
     }
-    
+
     /**
      * Register all complexity analysis commands
      * @returns Disposable for the commands
      */
     public register(): vscode.Disposable {
         const subscriptions: vscode.Disposable[] = [];
-        
+
         // Register commands
         subscriptions.push(vscode.commands.registerCommand(
-            'vscodeLocalLLMAgent.analyzeFileComplexity',
+            'copilot-ppa.analyzeFileComplexity',
             this.analyzeCurrentFile.bind(this)
         ));
-        
+
         subscriptions.push(vscode.commands.registerCommand(
-            'vscodeLocalLLMAgent.analyzeWorkspaceComplexity',
+            'copilot-ppa.analyzeWorkspaceComplexity',
             this.analyzeWorkspace.bind(this)
         ));
-        
+
         subscriptions.push(vscode.commands.registerCommand(
-            'vscodeLocalLLMAgent.toggleComplexityVisualization',
+            'copilot-ppa.toggleComplexityVisualization',
             this.toggleComplexityVisualization.bind(this)
         ));
-        
+
         // Watch for editor changes to update decorations
         subscriptions.push(vscode.window.onDidChangeActiveTextEditor(
             this.handleEditorChange.bind(this)
         ));
-        
+
         return vscode.Disposable.from(...subscriptions);
     }
-    
+
     /**
      * Analyze complexity of the current file in the editor
      */
@@ -50,7 +50,7 @@ export class ComplexityAnalysisCommand {
             vscode.window.showWarningMessage('No active file to analyze.');
             return;
         }
-        
+
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Analyzing file complexity...',
@@ -58,7 +58,7 @@ export class ComplexityAnalysisCommand {
         }, async () => {
             const filePath = editor.document.uri.fsPath;
             const result = await this.complexityAnalyzer.analyzeFile(filePath);
-            
+
             if (result) {
                 // Show report
                 const fileName = path.basename(filePath);
@@ -66,13 +66,13 @@ export class ComplexityAnalysisCommand {
                     `- **Average complexity**: ${result.averageComplexity.toFixed(2)}\n` +
                     `- **Total functions**: ${result.functions.length}\n\n` +
                     this.generateFunctionsTable(result);
-                
+
                 const doc = await vscode.workspace.openTextDocument({
                     content: report,
                     language: 'markdown'
                 });
                 await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Beside });
-                
+
                 // Apply decorations
                 this.clearDecorations();
                 this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);
@@ -81,7 +81,7 @@ export class ComplexityAnalysisCommand {
             }
         });
     }
-    
+
     /**
      * Analyze complexity of the entire workspace
      */
@@ -91,7 +91,7 @@ export class ComplexityAnalysisCommand {
             vscode.window.showWarningMessage('No workspace folder open.');
             return;
         }
-        
+
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Analyzing workspace complexity...',
@@ -115,23 +115,23 @@ export class ComplexityAnalysisCommand {
                     }
                     folder = selected.folder;
                 }
-                
+
                 progress.report({ message: `Analyzing files in ${folder.name}...` });
                 const results = await this.complexityAnalyzer.analyzeWorkspace(folder);
-                
+
                 if (results.length === 0) {
                     vscode.window.showInformationMessage('No files found for complexity analysis.');
                     return;
                 }
-                
+
                 const report = this.complexityAnalyzer.generateComplexityReport(results);
-                
+
                 const doc = await vscode.workspace.openTextDocument({
                     content: report,
                     language: 'markdown'
                 });
                 await vscode.window.showTextDocument(doc);
-                
+
                 vscode.window.showInformationMessage(`Complexity analysis completed for ${results.length} files.`);
             } catch (error) {
                 console.error('Error analyzing workspace:', error);
@@ -139,7 +139,7 @@ export class ComplexityAnalysisCommand {
             }
         });
     }
-    
+
     /**
      * Toggle complexity visualization in the editor
      */
@@ -149,7 +149,7 @@ export class ComplexityAnalysisCommand {
             vscode.window.showWarningMessage('No active editor.');
             return;
         }
-        
+
         if (this.decorationDisposables.length > 0) {
             // Decorations are active, remove them
             this.clearDecorations();
@@ -158,7 +158,7 @@ export class ComplexityAnalysisCommand {
             // No decorations, analyze and show
             const filePath = editor.document.uri.fsPath;
             const result = await this.complexityAnalyzer.analyzeFile(filePath);
-            
+
             if (result) {
                 this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);
                 vscode.window.showInformationMessage('Complexity visualization enabled.');
@@ -167,25 +167,25 @@ export class ComplexityAnalysisCommand {
             }
         }
     }
-    
+
     /**
      * Handle editor change event to update decorations
      */
     private async handleEditorChange(editor?: vscode.TextEditor): Promise<void> {
         // Clear existing decorations
         this.clearDecorations();
-        
+
         // If decorations were active and we have a new editor, reapply
         if (editor && this.decorationDisposables.length > 0) {
             const filePath = editor.document.uri.fsPath;
             const result = await this.complexityAnalyzer.analyzeFile(filePath);
-            
+
             if (result) {
                 this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);
             }
         }
     }
-    
+
     /**
      * Clear all active decorations
      */
@@ -197,20 +197,20 @@ export class ComplexityAnalysisCommand {
             }
         }
     }
-    
+
     /**
      * Generate a markdown table of functions sorted by complexity
      */
     private generateFunctionsTable(result: any): string {
         let table = '## Functions by Complexity\n\n';
-        
+
         if (result.functions.length === 0) {
             return table + '*No functions found to analyze.*\n\n';
         }
-        
+
         table += '| Function | Complexity | Lines |\n';
         table += '|----------|------------|-------|\n';
-        
+
         result.functions
             .sort((a: any, b: any) => b.complexity - a.complexity)
             .forEach((fn: any) => {
@@ -222,10 +222,10 @@ export class ComplexityAnalysisCommand {
                 } else {
                     complexityIndicator = '🟢 '; // Low complexity
                 }
-                
+
                 table += `| ${fn.name} | ${complexityIndicator}${fn.complexity} | ${fn.startLine}-${fn.endLine} |\n`;
             });
-        
+
         return table;
     }
 }

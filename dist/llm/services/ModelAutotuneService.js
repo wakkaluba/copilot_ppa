@@ -53,14 +53,19 @@ const ModelMetricsManager_1 = require("./ModelMetricsManager");
 const ModelBenchmarkManager_1 = require("./ModelBenchmarkManager");
 const ModelPerformanceAnalyzer_1 = require("./ModelPerformanceAnalyzer");
 let ModelAutotuneService = class ModelAutotuneService extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    benchmarkManager;
+    performanceAnalyzer;
+    tuningHistory = new Map();
+    activeTuning = new Set();
+    outputChannel;
     constructor(logger, metricsManager, benchmarkManager, performanceAnalyzer) {
         super();
         this.logger = logger;
         this.metricsManager = metricsManager;
         this.benchmarkManager = benchmarkManager;
         this.performanceAnalyzer = performanceAnalyzer;
-        this.tuningHistory = new Map();
-        this.activeTuning = new Set();
         this.outputChannel = vscode.window.createOutputChannel('Model Auto-tuning');
     }
     async startAutotuning(modelId) {

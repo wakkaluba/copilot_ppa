@@ -40,6 +40,9 @@ const ShellService_1 = require("./services/ShellService");
 const CommandExecutorService_1 = require("./services/CommandExecutorService");
 const TerminalLifecycleService_1 = require("./services/TerminalLifecycleService");
 class TerminalManager {
+    shellService;
+    commandExecutor;
+    lifecycleService;
     constructor() {
         this.shellService = new ShellService_1.ShellService();
         this.commandExecutor = new CommandExecutorService_1.CommandExecutorService();

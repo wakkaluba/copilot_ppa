@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigValidator = void 0;
 class ConfigValidator {
+    static VALID_FRAMEWORKS = ['cypress', 'playwright', 'puppeteer', 'selenium', 'testcafe', 'other'];
+    static VALID_BROWSERS = ['chrome', 'firefox', 'edge', 'safari'];
+    static VALID_PROVIDERS = ['ollama', 'lmstudio', 'huggingface'];
     /**
      * Validates LLM request options
      * @throws Error if validation fails
@@ -129,7 +132,4 @@ class ConfigValidator {
     }
 }
 exports.ConfigValidator = ConfigValidator;
-ConfigValidator.VALID_FRAMEWORKS = ['cypress', 'playwright', 'puppeteer', 'selenium', 'testcafe', 'other'];
-ConfigValidator.VALID_BROWSERS = ['chrome', 'firefox', 'edge', 'safari'];
-ConfigValidator.VALID_PROVIDERS = ['ollama', 'lmstudio', 'huggingface'];
 //# sourceMappingURL=validation.js.map

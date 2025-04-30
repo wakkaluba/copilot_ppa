@@ -48,11 +48,18 @@ const LLMInitializationService_1 = require("./services/LLMInitializationService"
  * Factory for accessing LLM services
  */
 class LLMFactory {
+    static instance;
+    connectionManager;
+    hostManager;
+    sessionManager;
+    commandHandler;
+    providerCreator;
+    initService;
+    disposables = [];
     /**
      * Creates a new LLM factory
      */
     constructor(options = {}) {
-        this.disposables = [];
         this.connectionManager = LLMConnectionManager_1.LLMConnectionManager.getInstance(options);
         this.hostManager = LLMHostManager_1.LLMHostManager.getInstance();
         this.sessionManager = LLMSessionManager_1.LLMSessionManager.getInstance();

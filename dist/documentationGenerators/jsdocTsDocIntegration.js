@@ -40,13 +40,15 @@ const ts = __importStar(require("typescript"));
  * Service responsible for handling JSDoc/TSDoc generation and integration
  */
 class JSDocTSDocIntegration {
+    llmProvider;
+    supportedLanguages = ['javascript', 'typescript'];
+    outputChannel;
     /**
      * Constructor for the JSDoc/TSDoc integration service
      * @param llmProvider The LLM provider to use for generating documentation
      */
     constructor(llmProvider) {
         this.llmProvider = llmProvider;
-        this.supportedLanguages = ['javascript', 'typescript'];
         this.outputChannel = vscode.window.createOutputChannel('JSDoc/TSDoc Integration');
     }
     /**

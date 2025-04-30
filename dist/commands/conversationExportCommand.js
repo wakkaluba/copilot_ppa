@@ -40,6 +40,11 @@ const ConversationExportService_1 = require("../services/conversation/Conversati
 const FileDialogService_1 = require("../services/dialog/FileDialogService");
 const ConversationSelectionService_1 = require("../services/conversation/ConversationSelectionService");
 class ConversationExportCommand {
+    static commandId = 'copilotPPA.exportConversation';
+    static exportAllCommandId = 'copilotPPA.exportAllConversations';
+    exportService;
+    fileDialogService;
+    selectionService;
     constructor(context) {
         const conversationManager = conversationManager_1.ConversationManager.getInstance(context);
         this.exportService = new ConversationExportService_1.ConversationExportService(conversationManager);
@@ -90,6 +95,4 @@ class ConversationExportCommand {
     }
 }
 exports.ConversationExportCommand = ConversationExportCommand;
-ConversationExportCommand.commandId = 'copilotPPA.exportConversation';
-ConversationExportCommand.exportAllCommandId = 'copilotPPA.exportAllConversations';
 //# sourceMappingURL=conversationExportCommand.js.map

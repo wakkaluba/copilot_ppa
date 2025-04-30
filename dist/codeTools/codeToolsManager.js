@@ -43,6 +43,11 @@ const documentationGenerator_1 = require("./documentationGenerator");
  * Central manager for all code tools integrations
  */
 class CodeToolsManager {
+    context;
+    linterIntegration;
+    complexityAnalyzer;
+    refactoringTools;
+    documentationGenerator;
     constructor(context) {
         this.context = context;
         this.linterIntegration = new linterIntegration_1.LinterIntegration();

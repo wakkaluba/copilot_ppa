@@ -37,12 +37,12 @@ exports.LLMAutoConnector = void 0;
 const vscode = __importStar(require("vscode"));
 const LLMHostManager_1 = require("./LLMHostManager");
 class LLMAutoConnector {
-    constructor() {
-        this.isConnected = false;
-        this.connectionAttempts = 0;
-        this.maxAttempts = 5;
-        this.retryDelay = 2000;
-    }
+    static instance;
+    isConnected = false;
+    connectionAttempts = 0;
+    maxAttempts = 5;
+    retryDelay = 2000;
+    constructor() { }
     static getInstance() {
         if (!LLMAutoConnector.instance) {
             LLMAutoConnector.instance = new LLMAutoConnector();

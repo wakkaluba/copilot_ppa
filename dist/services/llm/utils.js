@@ -11,6 +11,8 @@ const interfaces_1 = require("./interfaces");
  * Custom error class for LLM connection errors
  */
 class LLMConnectionError extends Error {
+    code;
+    cause;
     constructor(code, message, cause) {
         super(message);
         this.code = code;

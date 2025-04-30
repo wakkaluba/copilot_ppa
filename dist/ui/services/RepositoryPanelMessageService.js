@@ -2,10 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryPanelMessageService = void 0;
 class RepositoryPanelMessageService {
+    webview;
+    _disposables = [];
+    _listeners = new Map();
     constructor(webview) {
         this.webview = webview;
-        this._disposables = [];
-        this._listeners = new Map();
         this._disposables.push(webview.onDidReceiveMessage(this.handleMessage.bind(this)));
     }
     async handleMessage(message) {

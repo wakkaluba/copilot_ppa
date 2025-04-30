@@ -18,6 +18,9 @@ const baseAnalyzer_1 = require("./baseAnalyzer");
 const TypeScriptPatternAnalyzer_1 = require("./services/TypeScriptPatternAnalyzer");
 const TypeScriptMetricsCalculator_1 = require("./services/TypeScriptMetricsCalculator");
 let TypeScriptAnalyzer = class TypeScriptAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
+    logger;
+    patternAnalyzer;
+    metricsCalculator;
     constructor(logger, patternAnalyzer, metricsCalculator, options) {
         super(options);
         this.logger = logger;

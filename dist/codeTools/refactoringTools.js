@@ -45,6 +45,11 @@ const eventEmitter_1 = require("../common/eventEmitter");
  * Provides refactoring tools for code improvements
  */
 class RefactoringTools extends eventEmitter_1.EventEmitter {
+    simplificationService;
+    unusedCodeAnalyzer;
+    diffService;
+    outputService;
+    llmService;
     constructor() {
         super();
         this.simplificationService = new CodeSimplificationService_1.CodeSimplificationService();

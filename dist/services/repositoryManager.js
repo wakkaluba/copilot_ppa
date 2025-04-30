@@ -39,6 +39,10 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 class RepositoryManager {
+    static instance;
+    _isEnabled;
+    _statusBarItem;
+    _onDidChangeAccess;
     constructor() {
         this._onDidChangeAccess = new vscode.EventEmitter();
         this._isEnabled = vscode.workspace.getConfiguration('copilot-ppa').get('repository.enabled', false);

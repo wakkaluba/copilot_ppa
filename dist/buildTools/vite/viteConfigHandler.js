@@ -41,13 +41,11 @@ const path = __importStar(require("path"));
  * Handles Vite configuration files
  */
 class ViteConfigHandler {
-    constructor() {
-        this.configFileNames = [
-            'vite.config.js',
-            'vite.config.ts',
-            'vite.config.mjs'
-        ];
-    }
+    configFileNames = [
+        'vite.config.js',
+        'vite.config.ts',
+        'vite.config.mjs'
+    ];
     /**
      * Checks if a Vite configuration file exists in the workspace
      */

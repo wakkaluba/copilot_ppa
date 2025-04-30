@@ -37,9 +37,13 @@ exports.SnippetsPanelProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const snippetManager_1 = require("../services/snippetManager");
 class SnippetsPanelProvider {
+    context;
+    static viewType = 'copilotPPA.snippetsPanel';
+    panel;
+    snippetManager;
+    disposables = [];
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.snippetManager = snippetManager_1.SnippetManager.getInstance(context);
     }
     dispose() {
@@ -574,5 +578,4 @@ class SnippetsPanelProvider {
     }
 }
 exports.SnippetsPanelProvider = SnippetsPanelProvider;
-SnippetsPanelProvider.viewType = 'copilotPPA.snippetsPanel';
 //# sourceMappingURL=snippetsPanelProvider.js.map

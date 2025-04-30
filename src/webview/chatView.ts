@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import { ILLMChatManager, IChatSession, IChatErrorEvent } from '../models';
-import { Logger } from '../utils/logger';
-import { ITheme } from '../services/ui/themes/interfaces';
+import { IChatErrorEvent, IChatSession, ILLMChatManager } from '../models';
 import { ThemeService } from '../services/ui/themeService';
+import { Logger } from '../utils/logger';
 
 export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'copilotPPA.chatView';
@@ -12,12 +11,23 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     private readonly themeService: ThemeService;
     private disposables: vscode.Disposable[] = [];
 
+    // Map of common question patterns to predefined responses
+    private quickResponseTemplates: Record<string, string[]> = {
+        confirmation: ['Yes', 'No', 'Maybe later'],
+        opinion: ['I like it', 'I don\'t like it', 'Neutral'],
+        decision: ['Proceed', 'Cancel', 'Need more info'],
+        preference: ['Option 1', 'Option 2', 'None of these'],
+        binary: ['Yes', 'No'],
+        multiple: ['All of them', 'None of them', 'Some of them'],
+        custom: [] // Will be populated dynamically
+    };
+
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly chatManager: ILLMChatManager
     ) {
-        this.logger = new Logger('ChatView');
-        this.themeService = ThemeService.getInstance();
+        this.logger = Logger.getInstance();
+        this.themeService = new ThemeService();
         this.setupEventListeners();
     }
 
@@ -48,7 +58,7 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
             this.chatManager.onHistoryCleared(() => this.updateMessages()),
             this.chatManager.onError((event: IChatErrorEvent) => this.handleError(event)),
             this.chatManager.onConnectionStatusChanged(() => this.updateConnectionStatus()),
-            this.themeService.onThemeChanged(() => this.updateTheme())
+            vscode.window.onDidChangeActiveColorTheme(() => this.updateTheme())
         );
     }
 
@@ -97,9 +107,13 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
                     case 'createSnippet':
                         await this.createSnippet(message.code, message.language);
                         break;
-                        
+
                     case 'continueIteration':
                         await this.handleContinueIteration();
+                        break;
+
+                    case 'getQuickResponses':
+                        this.provideQuickResponses(message.messageType);
                         break;
                 }
             } catch (error) {
@@ -138,9 +152,14 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
         );
 
         // Show continue prompt after certain messages
-        if (content.toLowerCase().includes('continue') || 
+        if (content.toLowerCase().includes('continue') ||
             content.toLowerCase().includes('iterate')) {
             this.showContinuePrompt();
+        }
+
+        // Show Yes/No buttons after questions
+        if (content.endsWith('?')) {
+            this.showYesNoButtons('Quick response');
         }
     }
 
@@ -197,10 +216,10 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private handleError(event: IChatErrorEvent): void {
-        const errorMessage = event.error instanceof Error ? 
-            event.error.message : 
+        const errorMessage = event.error instanceof Error ?
+            event.error.message :
             String(event.error);
-            
+
         this.logger.error('Chat error occurred', { error: errorMessage });
         vscode.window.showErrorMessage(`Chat Error: ${errorMessage}`);
 
@@ -245,6 +264,9 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
                         </div>
                     </div>
 
+                    <!-- Quick response options container -->
+                    <div id="quick-responses" class="quick-responses" style="display: none;"></div>
+
                     <div class="error-container" style="display: none;">
                         <div class="error-message"></div>
                     </div>
@@ -267,6 +289,56 @@ export class UnifiedChatViewProvider implements vscode.WebviewViewProvider {
     private getResourceUri(fileName: string): string {
         const filePath = vscode.Uri.joinPath(this.extensionUri, 'media', fileName);
         return this.view!.webview.asWebviewUri(filePath).toString();
+    }
+
+    private provideQuickResponses(messageType: string): void {
+        if (!this.view) {
+            return;
+        }
+
+        // Generate appropriate responses based on the message type
+        const responses = this.getQuickResponseOptions(messageType);
+
+        // Send the responses to the webview
+        this.view.webview.postMessage({
+            type: 'showQuickResponses',
+            responses
+        });
+    }
+
+    private getQuickResponseOptions(messageType: string): string[] {
+        // Determine response category based on message type and content
+        let responseCategory: string;
+
+        switch (messageType) {
+            case 'question':
+                responseCategory = 'binary'; // Default for questions
+                break;
+            case 'error':
+                return ['Try again', 'Let me check something else', 'Can you help debug?'];
+            case 'confirmation':
+                return ['Looks good', 'Make changes', 'Undo this'];
+            case 'suggestion':
+                return ['Sounds good', 'Let me think about it', 'Not what I need'];
+            default:
+                return ['Thanks', 'Continue', 'That helps', 'Not quite'];
+        }
+
+        return this.quickResponseTemplates[responseCategory] || this.quickResponseTemplates.binary;
+    }
+
+    private showYesNoButtons(prompt: string): void {
+        if (!this.view) {
+            return;
+        }
+
+        // Use the binary template from response templates
+        const responses = this.quickResponseTemplates.binary;
+
+        this.view.webview.postMessage({
+            type: 'showQuickResponses',
+            responses
+        });
     }
 
     public dispose(): void {

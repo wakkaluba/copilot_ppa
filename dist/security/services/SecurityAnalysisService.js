@@ -40,15 +40,18 @@ const events_1 = require("events");
  * Service responsible for coordinating security analysis operations
  */
 class SecurityAnalysisService {
+    scanner;
+    disposables = [];
+    _onAnalysisComplete = new events_1.EventEmitter();
+    analysisTimeout;
+    diagnosticCollection;
+    issueCache = new Map();
     constructor(scanner) {
-        this.disposables = [];
-        this._onAnalysisComplete = new events_1.EventEmitter();
-        this.issueCache = new Map();
-        this.onAnalysisComplete = this._onAnalysisComplete.event;
         this.scanner = scanner;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('security');
         this.disposables.push(vscode.workspace.onDidChangeTextDocument(() => this.onDocumentChanged()));
     }
+    onAnalysisComplete = this._onAnalysisComplete.event;
     async scanWorkspace(progressCallback) {
         progressCallback?.("Analyzing workspace files...");
         const result = await this.scanner.scanWorkspace(progressCallback);

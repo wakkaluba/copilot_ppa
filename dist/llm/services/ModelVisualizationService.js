@@ -52,12 +52,16 @@ const events_1 = require("events");
 const ModelMetricsManager_1 = require("./ModelMetricsManager");
 const ModelPerformanceAnalyzer_1 = require("./ModelPerformanceAnalyzer");
 let ModelVisualizationService = class ModelVisualizationService extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    performanceAnalyzer;
+    webviewPanels = new Map();
+    outputChannel;
     constructor(logger, metricsManager, performanceAnalyzer) {
         super();
         this.logger = logger;
         this.metricsManager = metricsManager;
         this.performanceAnalyzer = performanceAnalyzer;
-        this.webviewPanels = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Visualization');
     }
     async showPerformanceDashboard(modelId) {

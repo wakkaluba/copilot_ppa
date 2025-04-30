@@ -7,6 +7,8 @@ const LLMConnectionManager_1 = require("./llm/LLMConnectionManager");
  * This class is kept for backward compatibility and forwards all calls to the new implementation
  */
 class LLMConnectionManager {
+    static instance;
+    newManager;
     constructor() {
         this.newManager = LLMConnectionManager_1.NewLLMConnectionManager.getInstance({
             maxRetries: 3,

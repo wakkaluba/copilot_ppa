@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ViteConfigDetector = void 0;
 const ConfigValidationError_1 = require("../errors/ConfigValidationError");
 class ViteConfigDetector {
+    logger;
+    fs;
     constructor(logger, fs) {
         this.logger = logger;
         this.fs = fs;

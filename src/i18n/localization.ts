@@ -110,10 +110,61 @@ export class LocalizationService {
      * @returns The detected language or null if detection failed
      */
     public detectLanguage(text: string): SupportedLanguage | null {
-        // This is a simple mock implementation
-        // In a real app, you would use a proper language detection library
-        
-        // For now, we'll assume English
+        if (!text) {
+            return null;
+        }
+
+        // Basic heuristic checks for common language patterns
+        const lowerText = text.toLowerCase();
+
+        // Check for CJK characters (Chinese, Japanese, Korean)
+        if (/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf\u3400-\u4dbf]/.test(text)) {
+            // Differentiate between Japanese, Chinese, and Korean
+            if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
+                return 'ja'; // Japanese-specific kana
+            }
+            if (/[\uac00-\ud7af]/.test(text)) {
+                return 'ko'; // Korean Hangul
+            }
+            return 'zh'; // Assume Chinese for other CJK
+        }
+
+        // Check for Arabic script
+        if (/[\u0600-\u06ff]/.test(text)) {
+            return 'ar';
+        }
+
+        // Check for Cyrillic (Russian/Ukrainian)
+        if (/[\u0400-\u04ff]/.test(text)) {
+            // Unique Ukrainian characters
+            if (/[\u0404\u0406\u0407\u0454\u0456\u0457\u0490\u0491]/.test(text)) {
+                return 'uk';
+            }
+            return 'ru';
+        }
+
+        // Check for Greek
+        if (/[\u0370-\u03ff]/.test(text)) {
+            return 'el';
+        }
+
+        // Check for Thai
+        if (/[\u0e00-\u0e7f]/.test(text)) {
+            return 'th';
+        }
+
+        // Simple checks for European languages based on common character combinations
+        if (lowerText.match(/[ñáéíóúü]/)) {
+            return 'es'; // Spanish
+        }
+        if (lowerText.match(/[àâçéèêëîïôûùüÿœæ]/)) {
+            return 'fr'; // French
+        }
+        if (lowerText.match(/[äöüß]/)) {
+            return 'de'; // German
+        }
+
+        // Default to English if no specific patterns are found
         return 'en';
     }
     

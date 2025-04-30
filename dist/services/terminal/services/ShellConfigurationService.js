@@ -10,9 +10,7 @@ exports.ShellConfigurationService = void 0;
 const types_1 = require("../types");
 const inversify_1 = require("inversify");
 let ShellConfigurationService = class ShellConfigurationService {
-    constructor() {
-        this.maxHistorySize = 100;
-    }
+    maxHistorySize = 100;
     getHistoryLimit() {
         return this.maxHistorySize;
     }

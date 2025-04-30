@@ -3,38 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JavaAnalyzer = void 0;
 const baseAnalyzer_1 = require("./baseAnalyzer");
 class JavaAnalyzer extends baseAnalyzer_1.BasePerformanceAnalyzer {
-    constructor() {
-        super(...arguments);
-        this.thresholds = {
-            cyclomaticComplexity: [10, 20],
-            nestedBlockDepth: [3, 5],
-            functionLength: [100, 200],
-            parameterCount: [4, 7],
-            maintainabilityIndex: [65, 85],
-            commentRatio: [10, 20]
-        };
-        this.memoryPatterns = {
-            stringBufferInit: /new\s+String(?:Buffer|Builder)\s*\(\s*\d+\s*\)/g,
-            staticCollections: /static\s+(?:final\s+)?(?:List|Set|Map)</g,
-            resourceLeaks: /new\s+(?:File|Socket|Connection)[^;]+;(?![^}]*(?:close|dispose)\s*\(\s*\))/g,
-            unclosedResources: /try\s*\{[^}]*new\s+(?:File|Socket|Connection)[^;]+;[^}]*\}\s*catch/g,
-            nonFinalStatics: /static\s+(?!final\s+)\w+\s+\w+/g
-        };
-        this.concurrencyPatterns = {
-            unsynchronizedStatic: /static\s+(?!final\s+)(?!synchronized\s+)\w+\s+\w+/g,
-            synchronizedMethod: /synchronized\s+\w+\s+\w+\s*\([^)]*\)/g,
-            lockUsage: /(?:ReentrantLock|Lock)\s+\w+\s*=/g,
-            threadCreation: /new\s+Thread\s*\(/g,
-            executorUsage: /Executors\.\w+/g
-        };
-        this.performancePatterns = {
-            stringConcat: /(?:"\s*\+\s*"|'\s*\+\s*')/g,
-            boxingInLoop: /for[^{]+\{[^}]*(?:Integer|Long|Double|Boolean)\.(?:valueOf|parse)/g,
-            collectionSizeInLoop: /for[^{]+\{[^}]*\.\s*size\s*\(\s*\)/g,
-            inefficientListAccess: /for\s*\([^)]+\)\s*\{[^}]*\.get\s*\(\s*i\s*\)/g,
-            repeatedMethodCalls: /(\w+\.\w+\([^)]*\).*){3,}/g
-        };
-    }
+    thresholds = {
+        cyclomaticComplexity: [10, 20],
+        nestedBlockDepth: [3, 5],
+        functionLength: [100, 200],
+        parameterCount: [4, 7],
+        maintainabilityIndex: [65, 85],
+        commentRatio: [10, 20]
+    };
+    memoryPatterns = {
+        stringBufferInit: /new\s+String(?:Buffer|Builder)\s*\(\s*\d+\s*\)/g,
+        staticCollections: /static\s+(?:final\s+)?(?:List|Set|Map)</g,
+        resourceLeaks: /new\s+(?:File|Socket|Connection)[^;]+;(?![^}]*(?:close|dispose)\s*\(\s*\))/g,
+        unclosedResources: /try\s*\{[^}]*new\s+(?:File|Socket|Connection)[^;]+;[^}]*\}\s*catch/g,
+        nonFinalStatics: /static\s+(?!final\s+)\w+\s+\w+/g
+    };
+    concurrencyPatterns = {
+        unsynchronizedStatic: /static\s+(?!final\s+)(?!synchronized\s+)\w+\s+\w+/g,
+        synchronizedMethod: /synchronized\s+\w+\s+\w+\s*\([^)]*\)/g,
+        lockUsage: /(?:ReentrantLock|Lock)\s+\w+\s*=/g,
+        threadCreation: /new\s+Thread\s*\(/g,
+        executorUsage: /Executors\.\w+/g
+    };
+    performancePatterns = {
+        stringConcat: /(?:"\s*\+\s*"|'\s*\+\s*')/g,
+        boxingInLoop: /for[^{]+\{[^}]*(?:Integer|Long|Double|Boolean)\.(?:valueOf|parse)/g,
+        collectionSizeInLoop: /for[^{]+\{[^}]*\.\s*size\s*\(\s*\)/g,
+        inefficientListAccess: /for\s*\([^)]+\)\s*\{[^}]*\.get\s*\(\s*i\s*\)/g,
+        repeatedMethodCalls: /(\w+\.\w+\([^)]*\).*){3,}/g
+    };
     analyze(fileContent, filePath) {
         const result = this.createBaseResult(fileContent, filePath);
         const lines = fileContent.split('\n');

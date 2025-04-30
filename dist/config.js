@@ -55,9 +55,12 @@ const DEFAULT_CONFIG = {
     defaultProvider: 'ollama',
 };
 class ConfigManager {
+    _context;
+    _configChangeEmitter = new vscode.EventEmitter();
+    _configChangeHandler;
+    _currentConfig;
+    onConfigChanged = this._configChangeEmitter.event;
     constructor(context) {
-        this._configChangeEmitter = new vscode.EventEmitter();
-        this.onConfigChanged = this._configChangeEmitter.event;
         this._context = context;
         this._currentConfig = this.loadConfig();
         this.setupConfigChangeListener();

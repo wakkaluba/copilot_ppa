@@ -4,9 +4,10 @@ exports.ConnectionRetryHandler = void 0;
 const events_1 = require("events");
 const types_1 = require("./types");
 class ConnectionRetryHandler extends events_1.EventEmitter {
+    static instance;
+    retryTimeouts = new Map();
     constructor() {
         super();
-        this.retryTimeouts = new Map();
     }
     static getInstance() {
         if (!this.instance) {

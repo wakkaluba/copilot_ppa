@@ -37,6 +37,8 @@ exports.VisualizationCommandService = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 class VisualizationCommandService {
+    context;
+    errorHandler;
     constructor(context, errorHandler) {
         this.context = context;
         this.errorHandler = errorHandler;

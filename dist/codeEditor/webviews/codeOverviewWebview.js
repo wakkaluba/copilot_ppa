@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeOverviewWebview = void 0;
 const vscode = __importStar(require("vscode"));
 class CodeOverviewWebview {
+    panel;
     show(symbols, language) {
         if (this.panel) {
             this.panel.reveal();

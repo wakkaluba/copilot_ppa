@@ -5,6 +5,7 @@ exports.SecurityReportHtmlProvider = void 0;
  * Provider for generating HTML content for security reports
  */
 class SecurityReportHtmlProvider {
+    context;
     constructor(context) {
         this.context = context;
     }

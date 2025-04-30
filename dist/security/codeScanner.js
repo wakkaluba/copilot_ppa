@@ -44,12 +44,16 @@ const SecurityReportHtmlProvider_1 = require("../providers/SecurityReportHtmlPro
  * Class responsible for scanning code for potential security issues
  */
 class CodeSecurityScanner {
+    patternService;
+    analyzerService;
+    diagnosticService;
+    fixService;
+    disposables = [];
+    webviewMap = new Map();
+    messageQueue = [];
+    isProcessing = false;
+    issueCache = new Map();
     constructor(context) {
-        this.disposables = [];
-        this.webviewMap = new Map();
-        this.messageQueue = [];
-        this.isProcessing = false;
-        this.issueCache = new Map();
         this.patternService = new SecurityPatternService_1.SecurityPatternService();
         this.analyzerService = new SecurityAnalyzerService_1.SecurityAnalyzerService(this.patternService);
         this.diagnosticService = new SecurityDiagnosticService_1.SecurityDiagnosticService(context);

@@ -40,6 +40,7 @@ const commandToggleManager_1 = require("./commandToggleManager");
  * Adds command prefixes to messages based on toggle states
  */
 class CommandPrefixer {
+    toggleManager;
     constructor(context) {
         this.toggleManager = commandToggleManager_1.CommandToggleManager.getInstance(context);
     }

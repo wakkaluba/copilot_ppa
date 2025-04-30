@@ -41,6 +41,7 @@ const structureReorganizer_1 = require("../services/refactoring/structureReorgan
  * Command handler for code structure reorganization
  */
 class StructureReorganizationCommand {
+    structureReorganizer;
     constructor() {
         this.structureReorganizer = new structureReorganizer_1.StructureReorganizer();
     }
@@ -86,10 +87,8 @@ class StructureReorganizationCommand {
                 const proposalUri = originalUri.with({ scheme: 'proposed-reorganization' });
                 // Register a content provider for the virtual document
                 const proposalProvider = new class {
-                    constructor() {
-                        this.onDidChangeEmitter = new vscode.EventEmitter();
-                        this.onDidChange = this.onDidChangeEmitter.event;
-                    }
+                    onDidChangeEmitter = new vscode.EventEmitter();
+                    onDidChange = this.onDidChangeEmitter.event;
                     provideTextDocumentContent(uri) {
                         return proposal.reorganizedCode;
                     }

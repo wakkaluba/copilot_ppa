@@ -38,8 +38,9 @@ const vscode = __importStar(require("vscode"));
 const rest_1 = require("@octokit/rest");
 const yaml = __importStar(require("yaml"));
 class GitHubActionsProvider {
+    octokit;
+    name = 'GitHub Actions';
     constructor() {
-        this.name = 'GitHub Actions';
         this.initialize();
     }
     async initialize() {

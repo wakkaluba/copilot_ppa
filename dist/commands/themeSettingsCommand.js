@@ -40,6 +40,9 @@ const webviewPanelManager_1 = require("../webview/webviewPanelManager");
 const ThemeSettingsHtmlProvider_1 = require("../ui/ThemeSettingsHtmlProvider");
 const ThemeEditorHtmlProvider_1 = require("../ui/ThemeEditorHtmlProvider");
 class ThemeSettingsCommand {
+    static commandId = 'copilotPPA.openThemeSettings';
+    static createThemeCommandId = 'copilotPPA.createCustomTheme';
+    themeManager;
     constructor(context) {
         this.themeManager = themeManager_1.ThemeManager.getInstance(context);
     }
@@ -140,6 +143,4 @@ class ThemeSettingsCommand {
     }
 }
 exports.ThemeSettingsCommand = ThemeSettingsCommand;
-ThemeSettingsCommand.commandId = 'copilotPPA.openThemeSettings';
-ThemeSettingsCommand.createThemeCommandId = 'copilotPPA.createCustomTheme';
 //# sourceMappingURL=themeSettingsCommand.js.map

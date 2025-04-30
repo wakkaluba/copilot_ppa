@@ -7,6 +7,7 @@ const ContextManager_1 = require("./conversation/ContextManager");
  * This helps maintain compatibility with existing test imports
  */
 class ContextManager {
+    static instance;
     /**
      * Get singleton instance of ContextManager
      * @param context Extension context

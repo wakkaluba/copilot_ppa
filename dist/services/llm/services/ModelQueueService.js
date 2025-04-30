@@ -21,20 +21,23 @@ const ModelResourceOptimizer_1 = require("./ModelResourceOptimizer");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 const types_1 = require("../types");
 let ModelQueueService = class ModelQueueService extends events_1.EventEmitter {
+    logger;
+    resourceOptimizer;
+    metricsService;
+    queues = new Map();
+    activeRequests = new Set();
+    maxQueueSize = 100;
+    maxRequestsPerPriority = {
+        high: 10,
+        normal: 20,
+        low: 30
+    };
+    isProcessing = false;
     constructor(logger, resourceOptimizer, metricsService) {
         super();
         this.logger = logger;
         this.resourceOptimizer = resourceOptimizer;
         this.metricsService = metricsService;
-        this.queues = new Map();
-        this.activeRequests = new Set();
-        this.maxQueueSize = 100;
-        this.maxRequestsPerPriority = {
-            high: 10,
-            normal: 20,
-            low: 30
-        };
-        this.isProcessing = false;
         this.initializeQueues();
     }
     initializeQueues() {

@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMHostErrorHandler = void 0;
 const vscode = __importStar(require("vscode"));
 class LLMHostErrorHandler {
+    outputChannel;
     constructor(outputChannel) {
         this.outputChannel = outputChannel;
     }

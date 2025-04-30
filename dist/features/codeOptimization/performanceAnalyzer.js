@@ -55,7 +55,15 @@ const PerformanceIssueService_1 = require("./services/PerformanceIssueService");
 const PerformanceReportService_1 = require("./services/PerformanceReportService");
 const PerformanceProgressService_1 = require("./services/PerformanceProgressService");
 const events_1 = require("events");
-let PerformanceAnalyzer = PerformanceAnalyzer_1 = class PerformanceAnalyzer extends events_1.EventEmitter {
+let PerformanceAnalyzer = class PerformanceAnalyzer extends events_1.EventEmitter {
+    static { PerformanceAnalyzer_1 = this; }
+    logger;
+    metricsService;
+    issueService;
+    reportService;
+    progressService;
+    static instance;
+    config;
     constructor(logger, metricsService, issueService, reportService, progressService) {
         super();
         this.logger = logger;

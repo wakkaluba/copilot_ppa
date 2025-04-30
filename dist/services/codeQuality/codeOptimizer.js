@@ -43,8 +43,12 @@ const SuggestionService_1 = require("./services/SuggestionService");
  * Provides code optimization functionality with comprehensive error handling
  */
 class CodeOptimizer {
+    analysisService;
+    optimizationService;
+    suggestionService;
+    logger;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.analysisService = new CodeAnalysisService_1.CodeAnalysisService(context);
         this.optimizationService = new OptimizationService_1.OptimizationService(context);
         this.suggestionService = new SuggestionService_1.SuggestionService(context);

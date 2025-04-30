@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StaticAnalysisServiceImpl = void 0;
 class StaticAnalysisServiceImpl {
+    logger;
+    outputChannel;
     constructor(logger, outputChannel) {
         this.logger = logger;
         this.outputChannel = outputChannel;

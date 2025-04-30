@@ -1,10 +1,17 @@
 import * as vscode from 'vscode';
-import { ServiceRegistry, initializeServices, Services } from './services/ServiceRegistry';
+import { Agent } from './agents/Agent';
 import { registerCommands } from './commands';
-import { setupWebviews } from './webview';
+import { AgentResponseEnhancer } from './services/AgentResponseEnhancer';
+import { ConversationHistory } from './services/ConversationHistory';
+import { initializeServices, ServiceRegistry, Services } from './services/ServiceRegistry';
+import { UserConfirmationService } from './services/UserConfirmationService';
 import { setupStatusBar } from './statusBar';
+import { setupWebviews } from './webview';
 
 export async function activate(context: vscode.ExtensionContext) {
+    // Initialize user confirmation service
+    UserConfirmationService.initialize(context);
+
     // Initialize service registry
     await initializeServices(context);
     const registry = ServiceRegistry.getInstance();
@@ -26,6 +33,17 @@ export async function activate(context: vscode.ExtensionContext) {
             console.error('Auto-connect failed:', error);
         });
     }
+
+    const conversationHistory = new ConversationHistory(context);
+    const responseEnhancer = new AgentResponseEnhancer(conversationHistory);
+    context.subscriptions.push(responseEnhancer);
+
+    const agent = new Agent(context, {
+        // ...existing code...
+        responseEnhancer,
+        // ...existing code...
+    });
+    // ...existing code...
 
     return {
         serviceRegistry: registry

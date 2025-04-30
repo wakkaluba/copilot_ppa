@@ -46,17 +46,18 @@ class NoOpLogger {
     error() { }
 }
 class WebpackConfigDetector {
+    configPatterns = [
+        'webpack.config.js',
+        'webpack.*.config.js',
+        '*webpack.config.js',
+        '*webpack*.js',
+        'webpack.config.ts',
+        'webpack.*.config.ts',
+        '*webpack.config.ts',
+        '*webpack*.ts'
+    ];
+    logger;
     constructor(logger) {
-        this.configPatterns = [
-            'webpack.config.js',
-            'webpack.*.config.js',
-            '*webpack.config.js',
-            '*webpack*.js',
-            'webpack.config.ts',
-            'webpack.*.config.ts',
-            '*webpack.config.ts',
-            '*webpack*.ts'
-        ];
         this.logger = logger || new NoOpLogger();
     }
     /**

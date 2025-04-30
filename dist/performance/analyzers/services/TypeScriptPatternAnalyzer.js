@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeScriptPatternAnalyzer = void 0;
 const inversify_1 = require("inversify");
 let TypeScriptPatternAnalyzer = class TypeScriptPatternAnalyzer {
+    logger;
     constructor(logger) {
         this.logger = logger;
     }

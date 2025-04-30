@@ -37,10 +37,13 @@ exports.EnhancedChatProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const uuid_1 = require("uuid");
 class EnhancedChatProvider {
+    contextManager;
+    llmProvider;
+    view;
+    isStreaming = false;
+    offlineCache = new Map();
+    maxRetries = 3;
     constructor(context, contextManager, llmProvider) {
-        this.isStreaming = false;
-        this.offlineCache = new Map();
-        this.maxRetries = 3;
         this.contextManager = contextManager;
         this.llmProvider = llmProvider;
     }

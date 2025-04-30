@@ -2,9 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BuildScriptAnalyzerService = void 0;
 class BuildScriptAnalyzerService {
-    constructor() {
-        this.BUILD_RELATED_TERMS = ['build', 'webpack', 'rollup', 'vite', 'compile', 'tsc'];
-    }
+    BUILD_RELATED_TERMS = ['build', 'webpack', 'rollup', 'vite', 'compile', 'tsc'];
     findBuildScripts(scripts) {
         return Object.entries(scripts)
             .filter(([name, script]) => this.isBuildScript(name, script))

@@ -4,11 +4,8 @@ exports.ConnectionPoolManager = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class ConnectionPoolManager extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this.pools = new Map();
-        this.healthChecks = new Map();
-    }
+    pools = new Map();
+    healthChecks = new Map();
     async initializeProvider(providerId, config) {
         const pool = new ProviderConnectionPool(config.poolSize || 1);
         this.pools.set(providerId, pool);

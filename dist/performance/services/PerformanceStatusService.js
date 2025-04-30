@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceStatusService = void 0;
 const vscode = __importStar(require("vscode"));
 class PerformanceStatusService {
+    statusBarItem;
     constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.show();

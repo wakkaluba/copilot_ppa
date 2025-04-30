@@ -43,11 +43,12 @@ const faissProvider_1 = require("./faissProvider");
  * Manager for vector database providers
  */
 class VectorDatabaseManager {
+    context;
+    providers = new Map();
+    activeProvider = null;
+    isEnabled = false;
     constructor(context) {
         this.context = context;
-        this.providers = new Map();
-        this.activeProvider = null;
-        this.isEnabled = false;
         // Register providers
         this.registerProvider(new chromaProvider_1.ChromaProvider(context));
         this.registerProvider(new faissProvider_1.FaissProvider(context));

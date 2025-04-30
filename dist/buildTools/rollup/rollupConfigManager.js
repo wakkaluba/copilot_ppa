@@ -3,6 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RollupConfigManager = void 0;
 const services_1 = require("./services");
 class RollupConfigManager {
+    configDetector;
+    configAnalyzer;
+    optimizationService;
+    logger;
     constructor(configDetectorOrLogger, configAnalyzer, optimizationService, loggerParam) {
         // Handle single logger constructor case
         if (arguments.length === 1 && 'debug' in configDetectorOrLogger) {

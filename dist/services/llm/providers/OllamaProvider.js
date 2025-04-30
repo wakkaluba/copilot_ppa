@@ -8,6 +8,8 @@ const axios_1 = __importDefault(require("axios"));
 const BaseLLMProvider_1 = require("./BaseLLMProvider");
 // Define custom error classes since they're not exported from '../errors'
 class ModelError extends Error {
+    providerId;
+    modelId;
     constructor(message, providerId, modelId) {
         super(message);
         this.providerId = providerId;
@@ -16,6 +18,8 @@ class ModelError extends Error {
     }
 }
 class ProviderError extends Error {
+    providerId;
+    details;
     constructor(message, providerId, details) {
         super(message);
         this.providerId = providerId;
@@ -24,6 +28,8 @@ class ProviderError extends Error {
     }
 }
 class RequestError extends Error {
+    providerId;
+    originalError;
     constructor(message, providerId, originalError) {
         super(message);
         this.providerId = providerId;
@@ -32,9 +38,10 @@ class RequestError extends Error {
     }
 }
 class OllamaProvider extends BaseLLMProvider_1.BaseLLMProvider {
+    client; // Use any type instead of AxiosInstance
+    modelDetails = new Map();
     constructor(config) {
         super('ollama', 'Ollama', config);
-        this.modelDetails = new Map();
         this.client = axios_1.default.create({
             baseURL: config.apiEndpoint,
             timeout: config.requestTimeout || 30000

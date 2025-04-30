@@ -39,12 +39,16 @@ const vscode = __importStar(require("vscode"));
  * Service for registering and handling security-related commands
  */
 class SecurityCommandService {
+    analysisSvc;
+    dependencySvc;
+    recommendationSvc;
+    reportSvc;
+    disposables = [];
     constructor(analysisSvc, dependencySvc, recommendationSvc, reportSvc) {
         this.analysisSvc = analysisSvc;
         this.dependencySvc = dependencySvc;
         this.recommendationSvc = recommendationSvc;
         this.reportSvc = reportSvc;
-        this.disposables = [];
         this.registerCommands();
     }
     /**

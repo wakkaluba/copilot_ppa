@@ -42,13 +42,11 @@ const ConfigValidationError_1 = require("./errors/ConfigValidationError");
  * Handles Rollup configuration files
  */
 class RollupConfigHandler {
-    constructor() {
-        this.configFileNames = [
-            'rollup.config.js',
-            'rollup.config.mjs',
-            'rollup.config.ts'
-        ];
-    }
+    configFileNames = [
+        'rollup.config.js',
+        'rollup.config.mjs',
+        'rollup.config.ts'
+    ];
     /**
      * Checks if a Rollup configuration file exists in the workspace
      * @throws {ConfigValidationError} If no workspace folders are open

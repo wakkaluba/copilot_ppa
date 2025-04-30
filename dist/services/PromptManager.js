@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptManager = void 0;
 class PromptManager {
+    contextManager; // Using any temporarily to resolve type issues
     constructor(contextManager) {
         this.contextManager = contextManager;
     }

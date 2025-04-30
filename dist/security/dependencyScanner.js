@@ -43,8 +43,13 @@ const logger_1 = require("../utils/logger");
  * Class responsible for scanning project dependencies for known vulnerabilities
  */
 class DependencyScanner {
+    static instance;
+    logger;
+    vulnerabilityService;
+    scanService;
+    reportService;
+    vulnerabilityCache = new Map();
     constructor(context) {
-        this.vulnerabilityCache = new Map();
         this.logger = logger_1.Logger.getInstance();
         this.vulnerabilityService = new VulnerabilityService_1.VulnerabilityService();
         this.scanService = new DependencyScanService_1.DependencyScanService(this.vulnerabilityService);

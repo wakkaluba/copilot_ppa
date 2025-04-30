@@ -5,6 +5,7 @@ exports.BasePerformanceAnalyzer = void 0;
  * Base class for all performance analyzers
  */
 class BasePerformanceAnalyzer {
+    context;
     constructor(context) {
         this.context = context;
     }

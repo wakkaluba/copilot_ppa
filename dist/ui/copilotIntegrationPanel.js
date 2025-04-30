@@ -45,9 +45,17 @@ const themeManager_1 = require("../services/ui/themeManager");
  * Panel that provides a webview interface for Copilot and LLM interactions
  */
 class CopilotIntegrationPanel {
+    context;
+    static instance;
+    panel;
+    contentService;
+    stateManager;
+    connectionManager;
+    messageHandler;
+    disposables = [];
+    logger;
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.logger = logger_1.Logger.getInstance();
         this.contentService = new CopilotWebviewContentService_1.CopilotWebviewContentService(themeManager_1.ThemeService.getInstance());
         this.stateManager = new CopilotWebviewStateManager_1.CopilotWebviewStateManager();

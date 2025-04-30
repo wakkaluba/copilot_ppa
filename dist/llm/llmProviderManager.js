@@ -4,9 +4,11 @@ exports.LLMProviderManager = void 0;
 const connectionStatusService_1 = require("../status/connectionStatusService");
 const MultilingualManager_1 = require("./i18n/MultilingualManager");
 class LLMProviderManager {
+    _providers = new Map();
+    _activeProvider = null;
+    connectionStatusService;
+    multilingualManager;
     constructor(connectionStatusService) {
-        this._providers = new Map();
-        this._activeProvider = null;
         this.connectionStatusService = connectionStatusService;
         this.multilingualManager = new MultilingualManager_1.MultilingualManager();
     }

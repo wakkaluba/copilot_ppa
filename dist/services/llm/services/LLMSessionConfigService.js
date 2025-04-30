@@ -52,6 +52,7 @@ const DEFAULT_CONFIG = {
  * Service for managing LLM session configurations
  */
 class LLMSessionConfigService extends events_1.EventEmitter {
+    currentConfig;
     constructor() {
         super();
         this.currentConfig = this.loadConfig();

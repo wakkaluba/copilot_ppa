@@ -6,6 +6,10 @@ const LLMConfigStorageService_1 = require("./services/LLMConfigStorageService");
 const LLMConfigValidationService_1 = require("./services/LLMConfigValidationService");
 const LLMConfigChangeTrackingService_1 = require("./services/LLMConfigChangeTrackingService");
 class LLMConfigManager extends events_1.EventEmitter {
+    static instance;
+    storageService;
+    validationService;
+    changeTracker;
     constructor() {
         super();
         this.storageService = new LLMConfigStorageService_1.LLMConfigStorageService();

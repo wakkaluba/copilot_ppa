@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseCodeAnalyzer = void 0;
 const vscode = __importStar(require("vscode"));
 class BaseCodeAnalyzer {
+    diagnosticCollection;
     constructor() {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('unusedCode');
     }

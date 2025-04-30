@@ -52,11 +52,13 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const types_1 = require("../types");
 let ModelTokenizer = class ModelTokenizer extends events_1.EventEmitter {
+    logger;
+    outputChannel;
+    cache = new Map();
+    maxCacheSize = 1000;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.cache = new Map();
-        this.maxCacheSize = 1000;
         this.outputChannel = vscode.window.createOutputChannel('Model Tokenization');
     }
     async countTokens(text, options = {}) {

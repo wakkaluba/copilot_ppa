@@ -62,10 +62,13 @@ __exportStar(require("./terminalManager"), exports);
 __exportStar(require("./interactiveShell"), exports);
 __exportStar(require("./aiTerminalHelper"), exports);
 let TerminalModule = class TerminalModule {
+    logger;
+    context;
+    disposables = [];
+    container;
     constructor(logger, context) {
         this.logger = logger;
         this.context = context;
-        this.disposables = [];
         this.container = new inversify_1.Container();
         this.configureContainer();
         this.registerDisposables();

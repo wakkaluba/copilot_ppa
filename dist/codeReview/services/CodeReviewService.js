@@ -51,6 +51,9 @@ const inversify_1 = require("inversify");
 const pullRequestIntegration_1 = require("../pullRequestIntegration");
 const reviewChecklist_1 = require("../reviewChecklist");
 let CodeReviewService = class CodeReviewService {
+    logger;
+    pullRequestIntegration;
+    reviewChecklist;
     constructor(logger, context) {
         this.logger = logger;
         this.pullRequestIntegration = new pullRequestIntegration_1.PullRequestIntegration();

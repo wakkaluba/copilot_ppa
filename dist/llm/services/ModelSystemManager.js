@@ -54,14 +54,17 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 let ModelSystemManager = class ModelSystemManager extends events_1.EventEmitter {
+    logger;
+    monitoringIntervalMs;
+    outputChannel;
+    monitoringInterval = null;
+    metricsHistory = new Array();
+    maxHistoryLength = 100;
+    processMap = new Map();
     constructor(logger, monitoringIntervalMs = 5000) {
         super();
         this.logger = logger;
         this.monitoringIntervalMs = monitoringIntervalMs;
-        this.monitoringInterval = null;
-        this.metricsHistory = new Array();
-        this.maxHistoryLength = 100;
-        this.processMap = new Map();
         this.outputChannel = vscode.window.createOutputChannel('System Monitor');
         this.startMonitoring();
     }

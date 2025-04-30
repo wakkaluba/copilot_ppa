@@ -46,19 +46,20 @@ class NoOpLogger {
     error() { }
 }
 class RollupConfigDetector {
+    configPatterns = [
+        'rollup.config.js',
+        'rollup.*.config.js',
+        '*rollup.config.js',
+        '*rollup*.js',
+        'rollup.config.ts',
+        'rollup.*.config.ts',
+        '*rollup.config.ts',
+        '*rollup*.ts',
+        'rollup.config.mjs',
+        'rollup.*.config.mjs'
+    ];
+    logger;
     constructor(logger) {
-        this.configPatterns = [
-            'rollup.config.js',
-            'rollup.*.config.js',
-            '*rollup.config.js',
-            '*rollup*.js',
-            'rollup.config.ts',
-            'rollup.*.config.ts',
-            '*rollup.config.ts',
-            '*rollup*.ts',
-            'rollup.config.mjs',
-            'rollup.*.config.mjs'
-        ];
         this.logger = logger || new NoOpLogger();
     }
     /**

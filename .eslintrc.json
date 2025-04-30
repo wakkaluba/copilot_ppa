@@ -2,20 +2,27 @@
     "root": true,
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 2020,
+        "ecmaVersion": 2023,
         "sourceType": "module",
-        "project": "./tsconfig.json"
+        "project": "./tsconfig.json",
+        "tsconfigRootDir": "."
     },
     "plugins": [
-        "@typescript-eslint"
+        "@typescript-eslint",
+        "jest",
+        "prettier"
     ],
     "extends": [
         "eslint:recommended",
-        "plugin:@typescript-eslint/recommended"
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "plugin:jest/recommended",
+        "plugin:jest/style",
+        "prettier"
     ],
     "rules": {
         "@typescript-eslint/naming-convention": [
-            "warn",
+            "error",
             {
                 "selector": "interface",
                 "format": ["PascalCase"],
@@ -23,24 +30,44 @@
                     "regex": "^I[A-Z]",
                     "match": true
                 }
+            },
+            {
+                "selector": "typeAlias",
+                "format": ["PascalCase"]
+            },
+            {
+                "selector": "enum",
+                "format": ["PascalCase"]
             }
         ],
-        "@typescript-eslint/explicit-function-return-type": "warn",
-        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/explicit-function-return-type": "error",
+        "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/no-unused-vars": [
-            "warn",
+            "error",
             {
                 "argsIgnorePattern": "^_",
-                "varsIgnorePattern": "^_"
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
             }
         ],
-        "@typescript-eslint/semi": "warn",
-        "@typescript-eslint/no-unnecessary-type-assertion": "warn",
-        "curly": "warn",
-        "eqeqeq": "warn",
-        "no-throw-literal": "warn",
+        "@typescript-eslint/semi": "error",
+        "@typescript-eslint/no-unnecessary-type-assertion": "error",
+        "@typescript-eslint/strict-boolean-expressions": "error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/await-thenable": "error",
+        "@typescript-eslint/no-misused-promises": "error",
+        "@typescript-eslint/prefer-nullish-coalescing": "error",
+        "@typescript-eslint/prefer-optional-chain": "error",
+        "curly": "error",
+        "eqeqeq": "error",
+        "no-throw-literal": "error",
         "semi": "off",
-        "no-console": "warn"
+        "no-console": ["error", { "allow": ["warn", "error"] }],
+        "prettier/prettier": "error",
+        "jest/no-disabled-tests": "warn",
+        "jest/no-focused-tests": "error",
+        "jest/prefer-expect-assertions": "warn",
+        "jest/valid-expect": "error"
     },
     "ignorePatterns": [
         "out",
@@ -49,5 +76,15 @@
         "node_modules",
         "jest.config.js",
         "webpack.config.js"
-    ]
+    ],
+    "env": {
+        "node": true,
+        "jest": true,
+        "es2023": true
+    },
+    "settings": {
+        "jest": {
+            "version": 29
+        }
+    }
 }

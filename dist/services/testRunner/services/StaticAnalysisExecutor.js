@@ -50,6 +50,8 @@ const vscode = __importStar(require("vscode"));
 const child_process_1 = require("child_process");
 const inversify_1 = require("inversify");
 let StaticAnalysisExecutor = class StaticAnalysisExecutor {
+    logger;
+    outputChannel;
     constructor(logger, outputChannel) {
         this.logger = logger;
         this.outputChannel = outputChannel;

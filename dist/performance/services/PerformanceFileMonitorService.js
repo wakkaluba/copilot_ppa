@@ -36,11 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceFileMonitorService = void 0;
 const vscode = __importStar(require("vscode"));
 class PerformanceFileMonitorService {
+    disposables = [];
+    documentCallbacks = new Set();
+    editorCallbacks = new Set();
+    throttleMap = new Map();
     constructor() {
-        this.disposables = [];
-        this.documentCallbacks = new Set();
-        this.editorCallbacks = new Set();
-        this.throttleMap = new Map();
         this.disposables.push(vscode.workspace.onDidSaveTextDocument(doc => this.notifyDocumentSaved(doc)), vscode.window.onDidChangeActiveTextEditor(editor => this.notifyEditorChanged(editor)));
     }
     async findAnalyzableFiles() {

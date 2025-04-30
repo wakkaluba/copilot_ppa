@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LanguageAgentFactory = void 0;
 class LanguageAgentFactory {
+    static agents = new Map();
     static registerAgent(language, agentClass) {
         this.agents.set(language.toLowerCase(), agentClass);
     }
@@ -14,5 +15,4 @@ class LanguageAgentFactory {
     }
 }
 exports.LanguageAgentFactory = LanguageAgentFactory;
-LanguageAgentFactory.agents = new Map();
 //# sourceMappingURL=languageAgentFactory.js.map

@@ -55,6 +55,14 @@ const ModelMetricsManager_1 = require("./ModelMetricsManager");
 const ModelResourceMonitorV2_1 = require("./ModelResourceMonitorV2");
 const ModelHealthMonitorV2_1 = require("./ModelHealthMonitorV2");
 let ModelRuntimeAnalyzer = class ModelRuntimeAnalyzer extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    resourceMonitor;
+    healthMonitor;
+    config;
+    metricsHistory = new Map();
+    analysisIntervals = new Map();
+    outputChannel;
     constructor(logger, metricsManager, resourceMonitor, healthMonitor, config = {
         analysisInterval: 60000, // 1 minute
         historyRetention: 24 * 60 * 60 * 1000, // 24 hours
@@ -71,8 +79,6 @@ let ModelRuntimeAnalyzer = class ModelRuntimeAnalyzer extends events_1.EventEmit
         this.resourceMonitor = resourceMonitor;
         this.healthMonitor = healthMonitor;
         this.config = config;
-        this.metricsHistory = new Map();
-        this.analysisIntervals = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Runtime Analysis');
     }
     async startAnalysis(modelId) {

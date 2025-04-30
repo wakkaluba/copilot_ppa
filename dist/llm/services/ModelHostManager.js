@@ -54,14 +54,19 @@ const logging_1 = require("../../common/logging");
 const ModelSystemManager_1 = require("./ModelSystemManager");
 const ModelStateManager_1 = require("./ModelStateManager");
 let ModelHostManager = class ModelHostManager extends events_1.EventEmitter {
+    logger;
+    systemManager;
+    stateManager;
+    hostedProcesses = new Map();
+    outputChannel;
+    monitorInterval;
+    maxRestartAttempts = 3;
+    restartDelayMs = 5000;
     constructor(logger, systemManager, stateManager) {
         super();
         this.logger = logger;
         this.systemManager = systemManager;
         this.stateManager = stateManager;
-        this.hostedProcesses = new Map();
-        this.maxRestartAttempts = 3;
-        this.restartDelayMs = 5000;
         this.outputChannel = vscode.window.createOutputChannel('Model Host');
         this.monitorInterval = setInterval(() => this.monitorProcesses(), 10000);
     }

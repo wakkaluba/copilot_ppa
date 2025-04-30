@@ -4,11 +4,11 @@ exports.LLMErrorHandlerService = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class LLMErrorHandlerService extends events_1.EventEmitter {
+    maxRetries = 3;
+    baseDelay = 1000; // 1 second
+    retryCount = new Map();
     constructor() {
         super();
-        this.maxRetries = 3;
-        this.baseDelay = 1000; // 1 second
-        this.retryCount = new Map();
     }
     async handleError(error, errorContext) {
         const formattedError = this.formatError(error);

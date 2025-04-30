@@ -5,14 +5,15 @@ exports.ConversationMemoryService = void 0;
  * Service for managing conversation memory
  */
 class ConversationMemoryService {
+    messages = [];
+    memoryLimit = 50;
+    context;
+    storageKey = 'conversation.history';
     /**
      * Create a new ConversationMemoryService
      * @param context Extension context for state persistence
      */
     constructor(context) {
-        this.messages = [];
-        this.memoryLimit = 50;
-        this.storageKey = 'conversation.history';
         this.context = context;
     }
     /**

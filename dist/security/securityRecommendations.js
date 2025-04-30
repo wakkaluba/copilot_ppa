@@ -7,6 +7,8 @@ const HtmlRenderer_1 = require("./recommendations/HtmlRenderer");
  * Entry point for generating and displaying security recommendations
  */
 class SecurityRecommendations {
+    context;
+    generator;
     constructor(context, codeScanner) {
         this.context = context;
         this.generator = new RecommendationGenerator_1.RecommendationGenerator(codeScanner);

@@ -20,12 +20,16 @@ const logger_1 = require("../../utils/logger");
 const ModelHealthMonitor_1 = require("./ModelHealthMonitor");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 let ModelAutoScalingService = class ModelAutoScalingService extends events_1.EventEmitter {
+    logger;
+    healthMonitor;
+    metricsService;
+    scaleCheckInterval;
+    scalingHistory = new Map();
     constructor(logger, healthMonitor, metricsService) {
         super();
         this.logger = logger;
         this.healthMonitor = healthMonitor;
         this.metricsService = metricsService;
-        this.scalingHistory = new Map();
         this.scaleCheckInterval = setInterval(() => this.checkScaling(), 60000);
     }
     async enableAutoScaling(modelId, config) {

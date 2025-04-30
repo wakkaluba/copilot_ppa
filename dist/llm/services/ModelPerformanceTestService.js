@@ -53,14 +53,19 @@ const ModelMetricsManager_1 = require("./ModelMetricsManager");
 const ModelPerformanceAnalyzer_1 = require("./ModelPerformanceAnalyzer");
 const ModelBenchmarkManager_1 = require("./ModelBenchmarkManager");
 let ModelPerformanceTestService = class ModelPerformanceTestService extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    performanceAnalyzer;
+    benchmarkManager;
+    testResults = new Map();
+    outputChannel;
+    isRunning = false;
     constructor(logger, metricsManager, performanceAnalyzer, benchmarkManager) {
         super();
         this.logger = logger;
         this.metricsManager = metricsManager;
         this.performanceAnalyzer = performanceAnalyzer;
         this.benchmarkManager = benchmarkManager;
-        this.testResults = new Map();
-        this.isRunning = false;
         this.outputChannel = vscode.window.createOutputChannel('Model Performance Tests');
     }
     async runTestScenario(modelId, scenario) {

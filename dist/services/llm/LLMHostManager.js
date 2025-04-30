@@ -10,11 +10,11 @@ var HostStatus;
     HostStatus["Error"] = "error";
 })(HostStatus || (exports.HostStatus = HostStatus = {}));
 class LLMHostManager extends events_1.EventEmitter {
+    hosts = new Map();
+    checkIntervals = new Map();
+    defaultCheckInterval = 60000; // 1 minute
     constructor() {
         super();
-        this.hosts = new Map();
-        this.checkIntervals = new Map();
-        this.defaultCheckInterval = 60000; // 1 minute
     }
     /**
      * Add a new LLM host

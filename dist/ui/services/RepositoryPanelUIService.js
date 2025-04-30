@@ -36,9 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryPanelUIService = void 0;
 const vscode = __importStar(require("vscode"));
 class RepositoryPanelUIService {
+    panel;
+    _disposables = [];
     constructor(panel) {
         this.panel = panel;
-        this._disposables = [];
     }
     update(extensionUri) {
         const webview = this.panel.webview;

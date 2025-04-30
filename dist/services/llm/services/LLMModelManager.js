@@ -19,11 +19,8 @@ const mapProviderField = (info) => ({
  * Manages LLM model lifecycle, discovery, and runtime management
  */
 let LLMModelManager = class LLMModelManager extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this.modelRegistry = new Map();
-        this.environmentConfigs = new Map();
-    }
+    modelRegistry = new Map();
+    environmentConfigs = new Map();
     /**
      * Register a model deployment
      */

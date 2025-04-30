@@ -40,6 +40,8 @@ const vscode = __importStar(require("vscode"));
  * Provides consistent logging across the extension with multiple log levels
  */
 class LoggingService {
+    outputChannel;
+    extensionName;
     /**
      * Creates a new logging service
      * @param extensionName The name of the extension for the output channel

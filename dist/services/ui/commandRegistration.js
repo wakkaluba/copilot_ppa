@@ -42,9 +42,10 @@ const keybindingManager_1 = require("./keybindingManager");
  * Service to register commands and keybindings with VS Code
  */
 class CommandRegistrationService {
+    context;
+    registeredCommands = new Set();
     constructor(context) {
         this.context = context;
-        this.registeredCommands = new Set();
     }
     /**
      * Register all keybindings with VS Code

@@ -20,13 +20,16 @@ const events_1 = require("events");
 const ModelVersioningService_1 = require("./ModelVersioningService");
 const ModelDeploymentService_1 = require("./ModelDeploymentService");
 let ModelDeploymentManagerService = class ModelDeploymentManagerService extends events_1.EventEmitter {
+    logger;
+    versioningService;
+    deploymentService;
+    deployments = new Map();
+    deploymentCounter = 0;
     constructor(logger, versioningService, deploymentService = {}) {
         super();
         this.logger = logger;
         this.versioningService = versioningService;
         this.deploymentService = deploymentService;
-        this.deployments = new Map();
-        this.deploymentCounter = 0;
         this.logger.info('ModelDeploymentManagerService initialized');
     }
     /**

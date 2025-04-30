@@ -38,6 +38,8 @@ const typescriptAnalyzer_1 = require("./typescriptAnalyzer");
 const pythonAnalyzer_1 = require("./pythonAnalyzer");
 const path = __importStar(require("path"));
 class AnalyzerFactory {
+    static instance;
+    analyzers;
     constructor() {
         this.analyzers = new Map();
         this.registerDefaultAnalyzers();

@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TelemetryService = void 0;
 const vscode = __importStar(require("vscode"));
 class TelemetryService {
+    _reporter;
     constructor() {
         this._reporter = vscode.env.createTelemetryLogger({
             sendEventData: async (eventName, data) => {

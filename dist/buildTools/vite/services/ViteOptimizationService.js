@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ViteOptimizationService = void 0;
 class ViteOptimizationService {
+    logger;
     constructor(logger) {
         this.logger = logger;
     }

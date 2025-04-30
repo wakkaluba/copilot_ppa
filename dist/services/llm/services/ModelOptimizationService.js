@@ -20,12 +20,14 @@ const ModelMetricsService_1 = require("./ModelMetricsService");
 const types_1 = require("../types");
 const events_1 = require("events");
 let ModelOptimizationService = class ModelOptimizationService extends events_1.EventEmitter {
+    logger;
+    metricsService;
+    optimizationHistory = new Map();
+    activeOptimizations = new Set();
     constructor(logger, metricsService) {
         super();
         this.logger = logger;
         this.metricsService = metricsService;
-        this.optimizationHistory = new Map();
-        this.activeOptimizations = new Set();
     }
     /**
      * Start an optimization run for a model

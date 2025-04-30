@@ -38,13 +38,14 @@ const vscode = __importStar(require("vscode"));
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 class ModelMetricsManager extends events_1.EventEmitter {
+    outputChannel;
+    metricsHistory = new Map();
+    retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
+    samplingInterval = 60 * 1000; // 1 minute
+    cleanupInterval = null;
+    logger = new logger_1.Logger();
     constructor() {
         super();
-        this.metricsHistory = new Map();
-        this.retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
-        this.samplingInterval = 60 * 1000; // 1 minute
-        this.cleanupInterval = null;
-        this.logger = new logger_1.Logger();
         this.outputChannel = vscode.window.createOutputChannel('Model Metrics');
         this.startPeriodicCleanup();
     }

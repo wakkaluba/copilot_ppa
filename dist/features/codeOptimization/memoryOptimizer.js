@@ -41,6 +41,11 @@ const MemoryCacheService_1 = require("./memoryAnalyzer/MemoryCacheService");
 const MemoryDiagnosticCollector_1 = require("./memoryAnalyzer/MemoryDiagnosticCollector");
 const MemoryReportGenerator_1 = require("./memoryAnalyzer/MemoryReportGenerator");
 class MemoryOptimizer {
+    staticAnalyzer;
+    llmAnalyzer;
+    cacheService;
+    diagnosticCollector;
+    reportGenerator;
     constructor(context, llmService) {
         this.staticAnalyzer = new StaticMemoryAnalyzer_1.StaticMemoryAnalyzer();
         this.llmAnalyzer = new LLMMemoryAnalyzer_1.LLMMemoryAnalyzer(llmService);

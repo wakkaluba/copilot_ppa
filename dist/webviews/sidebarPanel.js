@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SidebarPanel = void 0;
 const vscode = __importStar(require("vscode"));
 class SidebarPanel {
+    static viewType = 'localLLMAgent.sidebarPanel';
+    _panel;
+    _extensionUri;
+    _disposables = [];
     static createOrShow(extensionUri) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
@@ -59,8 +63,8 @@ class SidebarPanel {
     static revive(panel, extensionUri) {
         SidebarPanel.currentPanel = new SidebarPanel(panel, extensionUri);
     }
+    static currentPanel;
     constructor(panel, extensionUri) {
-        this._disposables = [];
         this._panel = panel;
         this._extensionUri = extensionUri;
         // Set the webview's initial html content
@@ -170,7 +174,6 @@ class SidebarPanel {
     }
 }
 exports.SidebarPanel = SidebarPanel;
-SidebarPanel.viewType = 'localLLMAgent.sidebarPanel';
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

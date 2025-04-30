@@ -38,9 +38,11 @@ const vscode = __importStar(require("vscode"));
 const conversationManager_1 = require("../services/conversationManager");
 const conversationSearchService_1 = require("../services/conversationSearchService");
 class ConversationSearchViewModel {
+    conversationManager;
+    searchService;
+    _onConversationsChanged = new vscode.EventEmitter();
+    onConversationsChanged = this._onConversationsChanged.event;
     constructor(context) {
-        this._onConversationsChanged = new vscode.EventEmitter();
-        this.onConversationsChanged = this._onConversationsChanged.event;
         this.conversationManager = conversationManager_1.ConversationManager.getInstance();
         this.searchService = conversationSearchService_1.ConversationSearchService.getInstance(this.conversationManager);
         // Listen for search results changes

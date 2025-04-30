@@ -40,6 +40,9 @@ const BestPracticesService_1 = require("./BestPracticesService");
  * Checks and enforces best practices in code
  */
 class BestPracticesChecker {
+    _service;
+    _diagnosticCollection;
+    _logger;
     constructor(context, logger) {
         this._logger = logger;
         this._diagnosticCollection = vscode.languages.createDiagnosticCollection('best-practices');

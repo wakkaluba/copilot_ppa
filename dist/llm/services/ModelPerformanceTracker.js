@@ -20,12 +20,16 @@ const logger_1 = require("../../utils/logger");
 const ModelHealthMonitor_1 = require("./ModelHealthMonitor");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 let ModelPerformanceTracker = class ModelPerformanceTracker extends events_1.EventEmitter {
+    logger;
+    healthMonitor;
+    metricsService;
+    metricsHistory = new Map();
+    trackingInterval;
     constructor(logger, healthMonitor, metricsService) {
         super();
         this.logger = logger;
         this.healthMonitor = healthMonitor;
         this.metricsService = metricsService;
-        this.metricsHistory = new Map();
         this.trackingInterval = setInterval(() => this.trackPerformance(), 30000);
     }
     async trackPerformance() {

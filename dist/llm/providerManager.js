@@ -9,6 +9,8 @@ const connectionStatusService_1 = require("../status/connectionStatusService");
  * @deprecated Use LLMProviderManager from llmProviderManager.ts instead
  */
 class LLMProviderManager {
+    mainProviderManager;
+    multilingualManager;
     constructor(context) {
         this.multilingualManager = new multilingualPromptManager_1.MultilingualPromptManager();
         // Create a ConnectionStatusService stub if not provided

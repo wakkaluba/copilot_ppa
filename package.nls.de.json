@@ -1,7 +1,15 @@
 {
   "commands.selectLanguage": "Sprache auswählen",
-  "commands.category": "Lokaler LLM-Agent",
-  "settings.title": "Lokaler LLM-Agent",
+  "commands.category": "Copilot PPA",
+  "settings.title": "Copilot PPA",
   "settings.language": "Sprache für die Erweiterungs-Benutzeroberfläche",
-  "settings.autoDetectLanguage": "Sprache in Prompts automatisch erkennen und Antworten anpassen"
+  "settings.autoDetectLanguage": "Sprache in Prompts automatisch erkennen und Antworten anpassen",
+  "settings.languageDetection.threshold": "Konfidenzgrenze für Spracherkennung",
+  "settings.languageDetection.fallback": "Ausweichsprache bei fehlgeschlagener Erkennung",
+  "settings.languageCustomization.responseStyle": "Ton und Stil der Antworten anpassen",
+  "settings.languageCustomization.translationQuality": "Balance zwischen Geschwindigkeit und Übersetzungsqualität",
+  "views.languageStatus.title": "Sprachstatus",
+  "views.languageStatus.detected": "Erkannte Sprache",
+  "views.languageStatus.confidence": "Erkennungssicherheit",
+  "views.languageStatus.switchLanguage": "Sprache wechseln"
 }

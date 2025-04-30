@@ -4,11 +4,11 @@ exports.ConnectionPoolManager = void 0;
 const errors_1 = require("../errors");
 const events_1 = require("events");
 class ConnectionPoolManager extends events_1.EventEmitter {
+    pools = new Map();
+    maxPoolSize = 5;
+    idleTimeout = 5 * 60 * 1000; // 5 minutes
     constructor() {
         super();
-        this.pools = new Map();
-        this.maxPoolSize = 5;
-        this.idleTimeout = 5 * 60 * 1000; // 5 minutes
         this.startIdleCleanup();
     }
     async initializeProvider(providerId, config) {

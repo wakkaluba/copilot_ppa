@@ -40,6 +40,11 @@ const llm_1 = require("../../types/llm");
  * Reports LLM connection status to VS Code UI
  */
 class LLMStatusReporter {
+    static instance;
+    statusBarItem;
+    outputChannel;
+    currentProvider;
+    currentModel;
     constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.outputChannel = vscode.window.createOutputChannel('LLM Connection');

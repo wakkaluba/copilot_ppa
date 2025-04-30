@@ -22,12 +22,15 @@ const events_1 = require("events");
  * Service for displaying scaling metrics in a dashboard
  */
 let ModelScalingDashboardService = class ModelScalingDashboardService extends events_1.EventEmitter {
+    logger;
+    metricsService;
+    dashboardState = new Map();
+    subscribedModels = new Set();
+    metricsListener;
     constructor(logger, metricsService) {
         super();
         this.logger = logger;
         this.metricsService = metricsService;
-        this.dashboardState = new Map();
-        this.subscribedModels = new Set();
         this.logger.info('ModelScalingDashboardService initialized');
         this.setupListeners();
     }

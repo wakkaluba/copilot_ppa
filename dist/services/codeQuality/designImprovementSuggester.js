@@ -5,6 +5,9 @@ const LanguageDesignAnalyzer_1 = require("./services/LanguageDesignAnalyzer");
 const ArchitectureAnalysisService_1 = require("./services/ArchitectureAnalysisService");
 const DesignDiagnosticService_1 = require("./services/DesignDiagnosticService");
 class DesignImprovementSuggester {
+    languageAnalyzer;
+    architectureService;
+    diagnosticService;
     constructor(context) {
         this.languageAnalyzer = new LanguageDesignAnalyzer_1.LanguageDesignAnalyzer();
         this.architectureService = new ArchitectureAnalysisService_1.ArchitectureAnalysisService();

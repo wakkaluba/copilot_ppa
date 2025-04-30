@@ -36,9 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyAnalysisService = void 0;
 const vscode = __importStar(require("vscode"));
 class DependencyAnalysisService {
-    constructor() {
-        this.disposables = [];
-    }
+    disposables = [];
     async scanDependencies() {
         const vulnerabilities = [];
         const workspaceFolders = vscode.workspace.workspaceFolders;

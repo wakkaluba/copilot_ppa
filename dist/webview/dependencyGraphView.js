@@ -42,8 +42,12 @@ const LoggerService_1 = require("../services/LoggerService");
  * Provides interactive dependency graph visualization
  */
 class DependencyGraphViewProvider {
+    static viewType = 'dependencyGraph.view';
+    graphService;
+    renderer;
+    logger;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.graphService = new DependencyGraphService_1.DependencyGraphService();
         this.renderer = new DependencyGraphRenderer_1.DependencyGraphRenderer();
         this.logger = LoggerService_1.LoggerService.getInstance();
@@ -157,5 +161,4 @@ class DependencyGraphViewProvider {
     }
 }
 exports.DependencyGraphViewProvider = DependencyGraphViewProvider;
-DependencyGraphViewProvider.viewType = 'dependencyGraph.view';
 //# sourceMappingURL=dependencyGraphView.js.map

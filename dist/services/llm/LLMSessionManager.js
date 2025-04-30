@@ -5,10 +5,14 @@ const events_1 = require("events");
 const uuid_1 = require("uuid");
 const LLMConnectionManager_1 = require("./LLMConnectionManager");
 class LLMSessionManager extends events_1.EventEmitter {
+    sessions = new Map();
+    activeSessionId;
+    connectionManager;
+    hostManager;
+    sessionTimeout = 3600000; // 1 hour
+    sessionCheckInterval;
     constructor(connectionManager, hostManager) {
         super();
-        this.sessions = new Map();
-        this.sessionTimeout = 3600000; // 1 hour
         this.connectionManager = connectionManager;
         this.hostManager = hostManager;
         // Listen for connection status changes

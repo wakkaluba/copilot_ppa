@@ -41,6 +41,11 @@ const logger_1 = require("../utils/logger");
  * Provides a custom view that integrates with Copilot Chat
  */
 class CopilotChatViewProvider {
+    _extensionUri;
+    static viewType = 'localLlmAgent.copilotChatView';
+    _view;
+    copilotChatIntegration;
+    logger;
     constructor(_extensionUri) {
         this._extensionUri = _extensionUri;
         this.copilotChatIntegration = copilotChatIntegration_1.CopilotChatIntegration.getInstance();
@@ -323,5 +328,4 @@ class CopilotChatViewProvider {
     }
 }
 exports.CopilotChatViewProvider = CopilotChatViewProvider;
-CopilotChatViewProvider.viewType = 'localLlmAgent.copilotChatView';
 //# sourceMappingURL=copilotChatViewProvider.js.map

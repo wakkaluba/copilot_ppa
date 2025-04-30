@@ -20,15 +20,18 @@ const logger_1 = require("../../utils/logger");
 const ModelHealthMonitorV2_1 = require("./ModelHealthMonitorV2");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 let ModelScalingValidatorService = class ModelScalingValidatorService extends events_1.EventEmitter {
+    logger;
+    healthMonitor;
+    metricsService;
+    validationConfigs = new Map();
+    rollbackConfigs = new Map();
+    validationHistory = new Map();
+    healthCheckTimers = new Map();
     constructor(logger, healthMonitor, metricsService) {
         super();
         this.logger = logger;
         this.healthMonitor = healthMonitor;
         this.metricsService = metricsService;
-        this.validationConfigs = new Map();
-        this.rollbackConfigs = new Map();
-        this.validationHistory = new Map();
-        this.healthCheckTimers = new Map();
         this.initializeDefaultConfigs();
     }
     initializeDefaultConfigs() {

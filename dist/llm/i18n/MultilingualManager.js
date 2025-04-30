@@ -1,17 +1,40 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MultilingualManager = void 0;
+const localization_1 = require("../../i18n/localization");
+const languageUtils_1 = require("../../i18n/languageUtils");
 class MultilingualManager {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    localizationService;
+    constructor(context) {
+        this.localizationService = new localization_1.LocalizationService(context);
+    }
     isResponseInExpectedLanguage(response, language) {
-        // Simple implementation for now - can be enhanced with actual language detection
-        return true;
+        // Skip validation for English as it's our fallback
+        if (language === 'en') {
+            return true;
+        }
+        // Check for explicit mentions of language inability
+        const lowerResponse = response.toLowerCase();
+        if (lowerResponse.includes("i can only respond in english") ||
+            lowerResponse.includes("i can't respond in") ||
+            lowerResponse.includes("i cannot respond in") ||
+            lowerResponse.includes("i am not able to respond in")) {
+            return false;
+        }
+        // Use the enhanced language detection
+        const detectedLanguage = this.localizationService.detectLanguage(response);
+        return detectedLanguage === language;
     }
     buildLanguageCorrectionPrompt(prompt, response, language) {
-        return `Please provide the response to "${prompt}" in ${language}. Previous response was: ${response}`;
+        const languageName = (0, languageUtils_1.getLanguageName)(language);
+        return `Please provide the response to "${prompt}" in ${languageName}. Previous response was: ${response}`;
     }
     enhancePromptWithLanguage(prompt, language) {
-        return `Please respond in ${language} to: ${prompt}`;
+        if (language === 'en') {
+            return prompt; // No need to enhance for English
+        }
+        const languageName = (0, languageUtils_1.getLanguageName)(language);
+        return `${prompt}\n\nPlease respond in ${languageName}.`;
     }
 }
 exports.MultilingualManager = MultilingualManager;

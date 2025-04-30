@@ -40,10 +40,14 @@ const types_1 = require("./types");
  * Webview panel for enhanced terminal command generation
  */
 class CommandGenerationWebview {
+    panel;
+    context;
+    aiHelper;
+    interactiveShell;
+    shellType = types_1.TerminalShellType.VSCodeDefault;
+    currentCommand = '';
+    lastAnalysis = null;
     constructor(context, aiHelper, interactiveShell) {
-        this.shellType = types_1.TerminalShellType.VSCodeDefault;
-        this.currentCommand = '';
-        this.lastAnalysis = null;
         this.context = context;
         this.aiHelper = aiHelper;
         this.interactiveShell = interactiveShell;

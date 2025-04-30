@@ -39,11 +39,11 @@ const fs = __importStar(require("fs"));
 const eslint_1 = require("eslint");
 const prettier = __importStar(require("prettier"));
 class StaticAnalysisServiceImpl {
+    eslintInstance = new mockLinters_1.ESLintMock();
+    useRealEslint = false;
+    useRealPrettier = false;
+    prettier = mockLinters_1.PrettierMock;
     constructor() {
-        this.eslintInstance = new mockLinters_1.ESLintMock();
-        this.useRealEslint = false;
-        this.useRealPrettier = false;
-        this.prettier = mockLinters_1.PrettierMock;
         this.initializeLinters();
     }
     async initializeLinters() {

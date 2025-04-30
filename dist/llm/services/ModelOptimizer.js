@@ -21,6 +21,7 @@ const events_1 = require("events");
  * Service for optimizing model performance and resource usage
  */
 let ModelOptimizer = class ModelOptimizer extends events_1.EventEmitter {
+    logger;
     constructor(logger) {
         super();
         this.logger = logger;

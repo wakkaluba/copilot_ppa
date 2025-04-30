@@ -46,6 +46,10 @@ class NoOpLogger {
     error() { }
 }
 class ViteConfigManager {
+    configDetector;
+    configAnalyzer;
+    optimizationService;
+    logger;
     constructor(logger) {
         this.logger = logger || new NoOpLogger();
         this.configDetector = new services_1.ViteConfigDetector(this.logger);

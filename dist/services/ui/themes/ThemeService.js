@@ -39,8 +39,8 @@ const vscode = __importStar(require("vscode"));
  * Handles VS Code theme integration and color detection
  */
 class ThemeService {
+    disposables = [];
     constructor() {
-        this.disposables = [];
         // Listen for VS Code theme changes
         this.disposables.push(vscode.window.onDidChangeActiveColorTheme(() => {
             this.getCurrentVSCodeColors();

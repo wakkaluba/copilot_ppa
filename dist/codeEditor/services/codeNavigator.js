@@ -37,6 +37,7 @@ exports.CodeNavigatorService = void 0;
 const vscode = __importStar(require("vscode"));
 const codeOverviewWebview_1 = require("../webviews/codeOverviewWebview");
 class CodeNavigatorService {
+    webviewProvider;
     constructor() {
         this.webviewProvider = new codeOverviewWebview_1.CodeOverviewWebview();
     }

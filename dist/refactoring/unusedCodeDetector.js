@@ -38,6 +38,8 @@ const vscode = __importStar(require("vscode"));
 const UnusedCodeAnalyzer_1 = require("./codeAnalysis/UnusedCodeAnalyzer");
 const logger_1 = require("../utils/logger");
 class UnusedCodeDetector {
+    analyzer;
+    logger;
     constructor(context) {
         this.analyzer = new UnusedCodeAnalyzer_1.UnusedCodeAnalyzer();
         this.logger = new logger_1.LoggerImpl();

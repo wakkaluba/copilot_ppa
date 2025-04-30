@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorHandler = void 0;
 const vscode = __importStar(require("vscode"));
 class ErrorHandler {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
     }

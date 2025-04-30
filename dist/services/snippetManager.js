@@ -36,14 +36,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SnippetManager = void 0;
 const vscode = __importStar(require("vscode"));
 class SnippetManager {
+    static instance;
+    snippets = new Map();
+    storage;
+    _onSnippetAdded = new vscode.EventEmitter();
+    _onSnippetUpdated = new vscode.EventEmitter();
+    _onSnippetDeleted = new vscode.EventEmitter();
+    onSnippetAdded = this._onSnippetAdded.event;
+    onSnippetUpdated = this._onSnippetUpdated.event;
+    onSnippetDeleted = this._onSnippetDeleted.event;
     constructor(context) {
-        this.snippets = new Map();
-        this._onSnippetAdded = new vscode.EventEmitter();
-        this._onSnippetUpdated = new vscode.EventEmitter();
-        this._onSnippetDeleted = new vscode.EventEmitter();
-        this.onSnippetAdded = this._onSnippetAdded.event;
-        this.onSnippetUpdated = this._onSnippetUpdated.event;
-        this.onSnippetDeleted = this._onSnippetDeleted.event;
         this.storage = context.globalState;
         this.loadSnippets();
     }

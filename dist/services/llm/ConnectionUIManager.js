@@ -39,8 +39,12 @@ const ConnectionStatusService_1 = require("../ui/ConnectionStatusService");
 const ModelInfoService_1 = require("../ui/ModelInfoService");
 const ConnectionDetailsService_1 = require("../ui/ConnectionDetailsService");
 class ConnectionUIManager {
+    statusService;
+    modelInfoService;
+    detailsService;
+    disposables = [];
+    connectionManager;
     constructor() {
-        this.disposables = [];
         this.statusService = new ConnectionStatusService_1.ConnectionStatusService();
         this.modelInfoService = new ModelInfoService_1.ModelInfoService();
         this.detailsService = new ConnectionDetailsService_1.ConnectionDetailsService();

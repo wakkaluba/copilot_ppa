@@ -37,10 +37,12 @@ exports.ThemeManager = void 0;
 const vscode = __importStar(require("vscode"));
 const events_1 = require("events");
 class ThemeManager extends events_1.EventEmitter {
+    currentTheme;
+    customThemes = new Map();
+    disposables = [];
+    context;
     constructor(context) {
         super();
-        this.customThemes = new Map();
-        this.disposables = [];
         this.context = context;
         // Load current theme
         this.detectCurrentTheme();

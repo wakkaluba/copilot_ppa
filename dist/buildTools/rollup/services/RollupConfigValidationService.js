@@ -41,6 +41,7 @@ const fs = __importStar(require("fs"));
  * Service responsible for validating Rollup configuration files and paths
  */
 class RollupConfigValidationService {
+    logger;
     constructor(logger) {
         this.logger = logger;
     }

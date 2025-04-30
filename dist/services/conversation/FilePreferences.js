@@ -2,11 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilePreferences = void 0;
 class FilePreferences {
-    constructor() {
-        this.fileExtensions = new Set();
-        this.directories = new Set();
-        this.filePatterns = new Set();
-    }
+    fileExtensions = new Set();
+    directories = new Set();
+    filePatterns = new Set();
     /**
      * Add a file extension to track
      * @param extension The file extension without dot (e.g., "ts", "js")

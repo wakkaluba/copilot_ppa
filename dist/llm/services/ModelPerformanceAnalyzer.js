@@ -54,13 +54,17 @@ const logging_1 = require("../../common/logging");
 const ModelResourceMonitorV2_1 = require("./ModelResourceMonitorV2");
 const ModelMetricsManager_1 = require("./ModelMetricsManager");
 let ModelPerformanceAnalyzer = class ModelPerformanceAnalyzer extends events_1.EventEmitter {
+    logger;
+    resourceMonitor;
+    metricsManager;
+    metricsHistory = new Map();
+    analysisIntervals = new Map();
+    outputChannel;
     constructor(logger, resourceMonitor, metricsManager) {
         super();
         this.logger = logger;
         this.resourceMonitor = resourceMonitor;
         this.metricsManager = metricsManager;
-        this.metricsHistory = new Map();
-        this.analysisIntervals = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Performance Analyzer');
     }
     async startAnalysis(modelId) {

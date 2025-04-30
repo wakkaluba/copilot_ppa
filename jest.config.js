@@ -13,21 +13,68 @@ module.exports = {
         "src/**/*.ts",
         "!src/**/*.d.ts",
         "!**/node_modules/**",
+        "!src/**/*.test.ts",
+        "!src/test/**",
+        "!src/**/__mocks__/**",
     ],
-    coverageReporters: ["json", "lcov", "text", "clover"],
+    coverageReporters: [
+        "json",
+        "lcov",
+        "text",
+        "clover",
+        "html",
+        "cobertura"
+    ],
+    coverageThreshold: {
+        global: {
+            branches: 80,
+            functions: 80,
+            lines: 80,
+            statements: 80
+        }
+    },
     setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
     moduleNameMapper: {
         '^vscode$': '<rootDir>/tests/vscode-mock.ts',
+        '^@src/(.*)$': '<rootDir>/src/$1',
+        '^@test/(.*)$': '<rootDir>/tests/$1'
     },
-    testTimeout: 10000,
-    // Don't generate sourcemaps, it can cause issues with breakpoints
+    modulePathIgnorePatterns: [
+        '<rootDir>/dist/',
+        '<rootDir>/out/'
+    ],
+    testTimeout: 15000,
     transform: {
         "^.+\\.tsx?$": ["ts-jest", {
             tsconfig: "tsconfig.json",
             sourceMap: false,
+            isolatedModules: true
         }]
     },
-    // Try to fix some memory issues
     maxWorkers: '50%',
     workerIdleMemoryLimit: '512MB',
+    detectOpenHandles: true,
+    forceExit: true,
+    errorOnDeprecated: true,
+    verbose: true,
+    testEnvironmentOptions: {
+        url: 'http://localhost'
+    },
+    reporters: [
+        "default",
+        ["jest-junit", {
+            outputDirectory: "test-results",
+            outputName: "junit.xml",
+            classNameTemplate: "{classname}",
+            titleTemplate: "{title}",
+            ancestorSeparator: " › "
+        }]
+    ],
+    globals: {
+        'ts-jest': {
+            diagnostics: {
+                ignoreCodes: [151001]
+            }
+        }
+    }
 }

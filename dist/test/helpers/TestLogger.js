@@ -2,12 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestLogger = void 0;
 class TestLogger {
-    constructor() {
-        this.errors = [];
-        this.warnings = [];
-        this.infos = [];
-        this.debugs = [];
-    }
+    errors = [];
+    warnings = [];
+    infos = [];
+    debugs = [];
     error(message, ...args) {
         this.errors.push(this.format(message, args));
     }

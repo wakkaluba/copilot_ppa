@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { AnalyzerOptions, LanguageMetricThresholds } from '../types';
+import { AnalyzerOptions } from '../types';
 
 export interface CachingOptions {
     enabled: boolean;
@@ -14,7 +14,7 @@ export interface AsyncOptions {
 }
 
 export class PerformanceConfigService {
-    private readonly configSection = 'performance';
+    private readonly configSection = 'copilot-ppa.performance';
     private config: vscode.WorkspaceConfiguration;
 
     constructor() {

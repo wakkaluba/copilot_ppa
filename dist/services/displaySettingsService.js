@@ -37,9 +37,12 @@ exports.DisplaySettingsService = void 0;
 const vscode = __importStar(require("vscode"));
 const events_1 = require("events");
 class DisplaySettingsService extends events_1.EventEmitter {
+    settings;
+    themeManager;
+    context;
+    disposables = [];
     constructor(themeManager, context) {
         super();
-        this.disposables = [];
         this.themeManager = themeManager;
         this.context = context;
         // Initialize with default settings

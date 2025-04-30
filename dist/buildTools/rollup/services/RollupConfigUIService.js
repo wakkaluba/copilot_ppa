@@ -39,6 +39,8 @@ const vscode = __importStar(require("vscode"));
  * Service responsible for UI interactions related to Rollup configuration
  */
 class RollupConfigUIService {
+    logger;
+    configManager;
     constructor(logger, configManager) {
         this.logger = logger;
         this.configManager = configManager;

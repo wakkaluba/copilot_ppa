@@ -50,6 +50,12 @@ const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
 const CodeReviewService_1 = require("./services/CodeReviewService");
 let CodeReviewWebviewProvider = class CodeReviewWebviewProvider {
+    logger;
+    _extensionUri;
+    _context;
+    service;
+    static viewType = 'codeReviewPanel';
+    _view;
     constructor(logger, _extensionUri, _context, service) {
         this.logger = logger;
         this._extensionUri = _extensionUri;
@@ -87,7 +93,6 @@ let CodeReviewWebviewProvider = class CodeReviewWebviewProvider {
     }
 };
 exports.CodeReviewWebviewProvider = CodeReviewWebviewProvider;
-CodeReviewWebviewProvider.viewType = 'codeReviewPanel';
 exports.CodeReviewWebviewProvider = CodeReviewWebviewProvider = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(ILogger_1.ILogger)),

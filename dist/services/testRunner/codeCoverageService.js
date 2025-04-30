@@ -44,6 +44,12 @@ const CoverageThresholdService_1 = require("./services/CoverageThresholdService"
  * Service for analyzing code coverage
  */
 class CodeCoverageService {
+    toolService;
+    executor;
+    reportService;
+    parser;
+    thresholdService;
+    outputChannel;
     constructor() {
         this.toolService = new CoverageToolService_1.CoverageToolService();
         this.executor = new CommandExecutorService_1.CommandExecutorService();

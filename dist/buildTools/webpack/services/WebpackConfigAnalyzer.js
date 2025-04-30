@@ -45,6 +45,7 @@ class NoOpLogger {
     error() { }
 }
 class WebpackConfigAnalyzer {
+    logger;
     constructor(logger) {
         this.logger = logger || new NoOpLogger();
     }

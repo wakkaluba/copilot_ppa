@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentCommandService = void 0;
 const vscode = __importStar(require("vscode"));
 class AgentCommandService {
+    modelService;
+    errorHandler;
     constructor(modelService, errorHandler) {
         this.modelService = modelService;
         this.errorHandler = errorHandler;

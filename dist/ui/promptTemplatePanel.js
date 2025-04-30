@@ -38,6 +38,9 @@ const vscode = __importStar(require("vscode"));
 const manager_1 = require("../services/promptTemplates/manager");
 const PromptTemplateHtmlProvider_1 = require("./PromptTemplateHtmlProvider");
 class PromptTemplatePanel {
+    static viewType = 'copilotPPA.promptTemplatePanel';
+    _panel;
+    _disposables = [];
     static createOrShow(extensionUri) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
@@ -51,7 +54,6 @@ class PromptTemplatePanel {
         return new PromptTemplatePanel(panel, extensionUri);
     }
     constructor(panel, extensionUri) {
-        this._disposables = [];
         this._panel = panel;
         // Set the webview's initial html content
         this._update();
@@ -252,5 +254,4 @@ class PromptTemplatePanel {
     }
 }
 exports.PromptTemplatePanel = PromptTemplatePanel;
-PromptTemplatePanel.viewType = 'copilotPPA.promptTemplatePanel';
 //# sourceMappingURL=promptTemplatePanel.js.map

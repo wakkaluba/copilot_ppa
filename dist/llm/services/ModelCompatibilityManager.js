@@ -50,10 +50,12 @@ const vscode = __importStar(require("vscode"));
 const inversify_1 = require("inversify");
 const events_1 = require("events");
 let ModelCompatibilityManager = class ModelCompatibilityManager extends events_1.EventEmitter {
+    logger;
+    compatibilityCache = new Map();
+    outputChannel;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.compatibilityCache = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Compatibility');
     }
     async checkModelCompatibility(model, hardware) {

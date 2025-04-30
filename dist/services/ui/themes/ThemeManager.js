@@ -49,17 +49,18 @@ class ThemeError extends Error {
 }
 exports.ThemeError = ThemeError;
 class ThemeManager {
+    storage;
+    themes = new Map();
+    customThemes = new Map();
+    activeThemeId;
+    themeService;
+    cssGenerator;
+    disposables = [];
+    // Event emitters
+    onThemeChangedEmitter = new vscode.EventEmitter();
+    onUIOptionsChangedEmitter = new vscode.EventEmitter();
     constructor(storage) {
         this.storage = storage;
-        this.themes = new Map();
-        this.customThemes = new Map();
-        this.disposables = [];
-        // Event emitters
-        this.onThemeChangedEmitter = new vscode.EventEmitter();
-        this.onUIOptionsChangedEmitter = new vscode.EventEmitter();
-        // Event handlers
-        this.onThemeChanged = this.onThemeChangedEmitter.event;
-        this.onUIOptionsChanged = this.onUIOptionsChangedEmitter.event;
         // Initialize default themes
         defaultThemes_1.defaultThemes.forEach((theme, id) => this.themes.set(id, theme));
         // Load saved theme preference and custom themes
@@ -72,6 +73,9 @@ class ThemeManager {
         // Set up event cleanup
         this.disposables.push(this.onThemeChangedEmitter, this.onUIOptionsChangedEmitter);
     }
+    // Event handlers
+    onThemeChanged = this.onThemeChangedEmitter.event;
+    onUIOptionsChanged = this.onUIOptionsChangedEmitter.event;
     /**
      * Get all available themes
      */

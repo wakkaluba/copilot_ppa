@@ -37,6 +37,8 @@ exports.TrustManager = void 0;
 const vscode = __importStar(require("vscode"));
 const logger_1 = require("../utils/logger");
 class TrustManager {
+    static instance;
+    logger;
     constructor() {
         this.logger = logger_1.Logger.getInstance();
     }

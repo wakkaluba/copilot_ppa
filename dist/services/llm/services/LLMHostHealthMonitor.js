@@ -3,12 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMHostHealthMonitor = void 0;
 const events_1 = require("events");
 class LLMHostHealthMonitor extends events_1.EventEmitter {
+    outputChannel;
+    monitoredProcesses = new Map();
+    healthChecks = new Map();
+    checkInterval = 5000; // 5 seconds
     constructor(outputChannel) {
         super();
         this.outputChannel = outputChannel;
-        this.monitoredProcesses = new Map();
-        this.healthChecks = new Map();
-        this.checkInterval = 5000; // 5 seconds
     }
     startMonitoring(processInfo) {
         const { pid } = processInfo;

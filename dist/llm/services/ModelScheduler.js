@@ -18,22 +18,25 @@ const inversify_1 = require("inversify");
 const types_1 = require("../types");
 const ModelSystemManager_1 = require("./ModelSystemManager");
 let ModelScheduler = class ModelScheduler {
+    logger;
+    systemManager;
+    processingIntervalMs;
+    taskQueue = new Map();
+    activeTasks = new Map();
+    maxConcurrentTasks = 3;
+    taskHistory = [];
+    metrics = {
+        totalTasks: 0,
+        completedTasks: 0,
+        failedTasks: 0,
+        averageWaitTime: 0,
+        averageProcessingTime: 0
+    };
+    processingInterval = null;
     constructor(logger, systemManager, processingIntervalMs = 1000) {
         this.logger = logger;
         this.systemManager = systemManager;
         this.processingIntervalMs = processingIntervalMs;
-        this.taskQueue = new Map();
-        this.activeTasks = new Map();
-        this.maxConcurrentTasks = 3;
-        this.taskHistory = [];
-        this.metrics = {
-            totalTasks: 0,
-            completedTasks: 0,
-            failedTasks: 0,
-            averageWaitTime: 0,
-            averageProcessingTime: 0
-        };
-        this.processingInterval = null;
         this.startProcessing();
     }
     async scheduleTask(modelId, priority = 'normal', payload, timeoutMs) {

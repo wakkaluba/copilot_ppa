@@ -42,6 +42,15 @@ const VisualizationCommandService_1 = require("./services/commands/Visualization
 const MenuCommandService_1 = require("./services/commands/MenuCommandService");
 const ErrorHandler_1 = require("./services/error/ErrorHandler");
 class CommandManager {
+    context;
+    configManager;
+    _modelService;
+    _registeredCommands;
+    errorHandler;
+    agentService;
+    configService;
+    visualizationService;
+    menuService;
     constructor(context, configManager) {
         this.context = context;
         this.configManager = configManager;

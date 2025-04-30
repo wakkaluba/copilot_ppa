@@ -38,10 +38,17 @@ const vscode = __importStar(require("vscode"));
 const logger_1 = require("../utils/logger");
 const themeService_1 = require("../services/ui/themeService");
 class UnifiedChatViewProvider {
+    extensionUri;
+    chatManager;
+    static viewType = 'copilotPPA.chatView';
+    view;
+    currentSession;
+    logger;
+    themeService;
+    disposables = [];
     constructor(extensionUri, chatManager) {
         this.extensionUri = extensionUri;
         this.chatManager = chatManager;
-        this.disposables = [];
         this.logger = new logger_1.Logger('ChatView');
         this.themeService = themeService_1.ThemeService.getInstance();
         this.setupEventListeners();
@@ -251,5 +258,4 @@ class UnifiedChatViewProvider {
     }
 }
 exports.UnifiedChatViewProvider = UnifiedChatViewProvider;
-UnifiedChatViewProvider.viewType = 'copilotPPA.chatView';
 //# sourceMappingURL=chatView.js.map

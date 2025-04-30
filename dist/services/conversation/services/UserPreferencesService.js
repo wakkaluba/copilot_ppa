@@ -5,12 +5,13 @@ exports.UserPreferencesService = void 0;
  * Service for managing user preferences
  */
 class UserPreferencesService {
+    preferences = new Map();
+    context;
     /**
      * Create a new UserPreferencesService
      * @param context Extension context for state persistence
      */
     constructor(context) {
-        this.preferences = new Map();
         this.context = context;
     }
     /**

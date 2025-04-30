@@ -129,6 +129,89 @@ class ContextAnalysisService {
         // Return the formatted context
         return contextParts.length > 0 ? contextParts.join('\n') : '';
     }
+    /**
+     * Generate suggestions based on user input and context
+     * @param input Current input text from user
+     * @param recentMessages Recent conversation messages for context
+     * @param userPreferences User preferences for suggestions
+     * @returns Array of suggestion strings
+     */
+    async generateSuggestions(input, recentMessages, userPreferences) {
+        if (!input || input.trim().length < 2) {
+            return [];
+        }
+        const suggestions = [];
+        // Extract potential commands or topics from input
+        const inputLower = input.toLowerCase();
+        // Generate language-specific suggestions
+        if (userPreferences.language) {
+            const language = userPreferences.language;
+            // Code-related suggestions
+            if (inputLower.includes('create') || inputLower.includes('generate')) {
+                if (language === 'typescript' || language === 'javascript') {
+                    suggestions.push(`Generate a ${language} function for ${input.replace(/^(create|generate)\s+/i, '')}`);
+                    suggestions.push(`Create a new ${language} class that implements ${input.replace(/^(create|generate)\s+/i, '')}`);
+                }
+                else if (language === 'python') {
+                    suggestions.push(`Create a Python function for ${input.replace(/^(create|generate)\s+/i, '')}`);
+                    suggestions.push(`Generate a Python class for ${input.replace(/^(create|generate)\s+/i, '')}`);
+                }
+            }
+            // Documentation suggestions
+            if (inputLower.includes('explain') || inputLower.includes('document')) {
+                suggestions.push(`Explain how to implement ${input.replace(/^(explain|document)\s+/i, '')} in ${language}`);
+                suggestions.push(`Show best practices for ${input.replace(/^(explain|document)\s+/i, '')} in ${language}`);
+            }
+        }
+        // Framework-specific suggestions
+        if (userPreferences.framework) {
+            const framework = userPreferences.framework;
+            if (inputLower.includes('component') || inputLower.includes('create')) {
+                if (framework === 'react') {
+                    suggestions.push(`Create a React component for ${input.replace(/^(create|component)\s+/i, '')}`);
+                    suggestions.push(`Generate a React hook for ${input.replace(/^(create|component)\s+/i, '')}`);
+                }
+                else if (framework === 'angular') {
+                    suggestions.push(`Create an Angular component for ${input.replace(/^(create|component)\s+/i, '')}`);
+                    suggestions.push(`Generate an Angular service for ${input.replace(/^(create|component)\s+/i, '')}`);
+                }
+                else if (framework === 'vue') {
+                    suggestions.push(`Create a Vue component for ${input.replace(/^(create|component)\s+/i, '')}`);
+                    suggestions.push(`Generate a Vue composable for ${input.replace(/^(create|component)\s+/i, '')}`);
+                }
+            }
+        }
+        // Context-based suggestions from recent conversations
+        if (recentMessages && recentMessages.length > 0) {
+            // Extract topics from recent messages
+            const topics = new Set();
+            recentMessages.forEach(msg => {
+                if (typeof msg.content === 'string') {
+                    const content = msg.content.toLowerCase();
+                    // Extract key topics (this is a simple approach, could be more sophisticated)
+                    const words = content.split(/\s+/);
+                    const significantWords = words.filter(word => word.length > 4 &&
+                        !['about', 'these', 'those', 'their', 'there'].includes(word));
+                    significantWords.forEach(word => topics.add(word));
+                }
+            });
+            // Generate suggestions based on recent topics
+            const relevantTopics = Array.from(topics)
+                .filter(topic => !inputLower.includes(topic))
+                .slice(0, 3);
+            relevantTopics.forEach(topic => {
+                suggestions.push(`Tell me more about ${topic} related to ${input}`);
+            });
+        }
+        // Add generic suggestions if we don't have enough
+        if (suggestions.length < 2) {
+            suggestions.push(`How to implement ${input} efficiently?`);
+            suggestions.push(`Show me examples of ${input} in code`);
+            suggestions.push(`What are best practices for ${input}?`);
+        }
+        // Return top suggestions, removing any duplicates
+        return [...new Set(suggestions)].slice(0, 5);
+    }
 }
 exports.ContextAnalysisService = ContextAnalysisService;
 //# sourceMappingURL=ContextAnalysisService.js.map

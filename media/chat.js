@@ -7,11 +7,11 @@
     const continuePrompt = document.querySelector('.continue-prompt');
     const btnContinueYes = document.getElementById('btn-continue-yes');
     const btnContinueNo = document.getElementById('btn-continue-no');
-    
+
     // Message handling
     window.addEventListener('message', event => {
         const message = event.data;
-        
+
         switch (message.type) {
             case 'updateMessages':
                 updateMessages(message.messages);
@@ -28,9 +28,12 @@
             case 'showContinuePrompt':
                 showContinuePrompt(message.message);
                 break;
+            case 'showQuickResponses':
+                showQuickResponseOptions(message.responses);
+                break;
         }
     });
-    
+
     // Event listeners
     sendButton.addEventListener('click', () => sendMessage());
     clearChatButton.addEventListener('click', () => clearChat());
@@ -56,6 +59,48 @@
         continuePrompt.style.display = 'none';
     }
 
+    // Quick response functions
+    function showQuickResponseOptions(responses) {
+        const quickResponsesContainer = document.getElementById('quick-responses');
+        if (!quickResponsesContainer) return;
+
+        // Clear existing quick responses
+        quickResponsesContainer.innerHTML = '';
+
+        // No responses to show
+        if (!responses || responses.length === 0) {
+            quickResponsesContainer.style.display = 'none';
+            return;
+        }
+
+        // Add response buttons
+        responses.forEach(response => {
+            const button = document.createElement('button');
+            button.className = 'quick-response-btn';
+            button.textContent = response;
+            button.addEventListener('click', () => {
+                sendQuickResponse(response);
+            });
+            quickResponsesContainer.appendChild(button);
+        });
+
+        // Show the container
+        quickResponsesContainer.style.display = 'flex';
+    }
+
+    function sendQuickResponse(text) {
+        vscode.postMessage({
+            type: 'sendMessage',
+            content: text
+        });
+
+        // Hide quick responses after sending
+        const quickResponsesContainer = document.getElementById('quick-responses');
+        if (quickResponsesContainer) {
+            quickResponsesContainer.style.display = 'none';
+        }
+    }
+
     // Rest of the existing functions...
     function sendMessage() {
         const text = messageInput.value.trim();
@@ -65,6 +110,12 @@
                 content: text
             });
             messageInput.value = '';
+
+            // Hide quick responses when sending a custom message
+            const quickResponsesContainer = document.getElementById('quick-responses');
+            if (quickResponsesContainer) {
+                quickResponsesContainer.style.display = 'none';
+            }
         }
     }
 
@@ -78,12 +129,36 @@
     function updateMessages(messages) {
         chatMessages.innerHTML = messages.map(m => createMessageElement(m)).join('');
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Attach event listeners to any "suggest-responses" buttons
+        document.querySelectorAll('.suggest-responses-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const messageType = this.getAttribute('data-message-type');
+                requestQuickResponses(messageType);
+            });
+        });
+
+        // Auto-show quick responses for the last message if it's from the assistant and contains a question
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant') {
+            const content = lastMessage.content;
+            if (content.includes('?')) {
+                requestQuickResponses('question');
+            }
+        }
+    }
+
+    function requestQuickResponses(messageType) {
+        vscode.postMessage({
+            type: 'getQuickResponses',
+            messageType: messageType
+        });
     }
 
     function updateConnectionStatus(status) {
         const statusDot = document.querySelector('.status-dot');
         const statusText = document.querySelector('.status-text');
-        
+
         if (status.state === 'connected') {
             statusDot.classList.add('connected');
             statusText.textContent = 'Connected';
@@ -105,10 +180,10 @@
     function showError(message) {
         const errorContainer = document.querySelector('.error-container');
         const errorMessage = document.querySelector('.error-message');
-        
+
         errorMessage.textContent = message;
         errorContainer.style.display = 'block';
-        
+
         setTimeout(() => {
             errorContainer.style.display = 'none';
         }, 5000);
@@ -122,7 +197,7 @@
         return `
             <div class="message ${message.role}">
                 <div class="content">${formatMessageContent(message.content)}</div>
-                ${message.role === 'assistant' ? createMessageActions() : ''}
+                ${message.role === 'assistant' ? createMessageActions(message) : ''}
             </div>
         `;
     }
@@ -132,15 +207,52 @@
         return content;
     }
 
-    function createMessageActions() {
+    function createMessageActions(message) {
+        // Detect what kind of message this is to provide appropriate quick responses
+        const messageType = detectMessageType(message.content);
+
         return `
             <div class="message-actions">
                 <button class="message-action" onclick="copyToClipboard(this)">
                     Copy
                 </button>
+                <button class="message-action suggest-responses-btn" data-message-type="${messageType}">
+                    Quick Reply
+                </button>
             </div>
         `;
     }
+
+    function detectMessageType(content) {
+        // Enhanced message type detection
+        const lowerContent = content.toLowerCase();
+
+        if (content.includes('?')) return 'question';
+        if (lowerContent.includes('error') || lowerContent.includes('failed') ||
+            lowerContent.includes('exception') || lowerContent.includes('invalid'))
+            return 'error';
+        if (lowerContent.includes('created') || lowerContent.includes('updated') ||
+            lowerContent.includes('deleted') || lowerContent.includes('completed') ||
+            lowerContent.includes('success'))
+            return 'confirmation';
+        if (lowerContent.includes('suggest') || lowerContent.includes('recommend') ||
+            lowerContent.includes('could') || lowerContent.includes('would') ||
+            lowerContent.includes('may want to') || lowerContent.includes('consider'))
+            return 'suggestion';
+        return 'general';
+    }
+
+    // Copy to clipboard function made global for onclick handler
+    window.copyToClipboard = function(element) {
+        const messageElement = element.closest('.message');
+        const contentElement = messageElement.querySelector('.content');
+        const text = contentElement.textContent;
+
+        vscode.postMessage({
+            type: 'copyToClipboard',
+            text: text
+        });
+    };
 
     // Initialize connection status check
     vscode.postMessage({ type: 'getConnectionStatus' });

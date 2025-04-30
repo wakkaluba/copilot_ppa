@@ -39,6 +39,7 @@ const vscode = __importStar(require("vscode"));
  * Service to handle output for refactoring operations
  */
 class RefactoringOutputService {
+    outputChannel;
     constructor() {
         this.outputChannel = vscode.window.createOutputChannel('Code Refactoring');
     }

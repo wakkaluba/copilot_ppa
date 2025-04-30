@@ -55,6 +55,12 @@ var ApiDocFormat;
  * Generates API documentation from source code
  */
 class ApiDocumentationGenerator {
+    context;
+    llmProvider;
+    fileService;
+    promptBuilder;
+    writer;
+    openApiService;
     /**
      * Constructor for API Documentation Generator
      * @param context The VSCode extension context

@@ -11,13 +11,14 @@ var ConnectionStatus;
     ConnectionStatus["Error"] = "error";
 })(ConnectionStatus || (exports.ConnectionStatus = ConnectionStatus = {}));
 class LLMConnectionManager extends events_1.EventEmitter {
+    provider = null;
+    status = ConnectionStatus.Disconnected;
+    validator;
+    connectionTimeout = 30000; // 30 seconds default timeout
+    connectionAttempts = 0;
+    maxConnectionAttempts = 3;
     constructor() {
         super();
-        this.provider = null;
-        this.status = ConnectionStatus.Disconnected;
-        this.connectionTimeout = 30000; // 30 seconds default timeout
-        this.connectionAttempts = 0;
-        this.maxConnectionAttempts = 3;
         this.validator = new LLMProviderValidator_1.LLMProviderValidator();
     }
     /**

@@ -36,9 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeSecurityScanner = void 0;
 const vscode = __importStar(require("vscode"));
 class CodeSecurityScanner {
-    constructor() {
-        this.supportedLanguages = ['javascript', 'typescript', 'python', 'java'];
-    }
+    supportedLanguages = ['javascript', 'typescript', 'python', 'java'];
     async scanWorkspace(progressCallback) {
         const issues = [];
         const workspaceFolders = vscode.workspace.workspaceFolders;

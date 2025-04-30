@@ -39,11 +39,13 @@ const ICICDProvider_1 = require("./ICICDProvider");
 const logger_1 = require("../../services/logger");
 const retry_1 = require("../utils/retry");
 class BitbucketPipelinesProvider {
+    bitbucket;
+    workspace;
+    connectionState = 'disconnected';
+    logger = new logger_1.Logger('BitbucketPipelinesProvider');
+    disposables = [];
+    name = 'Bitbucket Pipelines';
     constructor() {
-        this.connectionState = 'disconnected';
-        this.logger = new logger_1.Logger('BitbucketPipelinesProvider');
-        this.disposables = [];
-        this.name = 'Bitbucket Pipelines';
         this.initialize().catch(err => this.logger.error('Failed to initialize Bitbucket provider:', err));
         // Watch for configuration changes
         this.disposables.push(vscode.workspace.onDidChangeConfiguration(e => {

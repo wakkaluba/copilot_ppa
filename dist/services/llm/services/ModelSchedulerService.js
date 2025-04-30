@@ -21,15 +21,18 @@ const ModelMetricsService_1 = require("./ModelMetricsService");
 const types_1 = require("../types");
 const events_1 = require("events");
 let ModelSchedulerService = class ModelSchedulerService extends events_1.EventEmitter {
+    logger;
+    resourceOptimizer;
+    metricsService;
+    activeSchedules = new Map();
+    schedulingHistory = new Map();
+    processing = new Set();
+    taskTimeout = 30000; // 30 seconds default timeout
     constructor(logger, resourceOptimizer, metricsService) {
         super();
         this.logger = logger;
         this.resourceOptimizer = resourceOptimizer;
         this.metricsService = metricsService;
-        this.activeSchedules = new Map();
-        this.schedulingHistory = new Map();
-        this.processing = new Set();
-        this.taskTimeout = 30000; // 30 seconds default timeout
     }
     async scheduleModel(modelId, request) {
         if (this.processing.has(modelId)) {

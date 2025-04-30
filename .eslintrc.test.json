@@ -1,46 +1,78 @@
 {
-  "extends": "./.eslintrc.json",
+  "extends": [
+    "./.eslintrc.json",
+    "plugin:jest/all"
+  ],
   "rules": {
-    // Rules specific to test files
-    "jest/expect-expect": "error",
+    // Core Jest rules
+    "jest/expect-expect": ["error", { "assertFunctionNames": ["expect", "assert*"] }],
     "jest/no-disabled-tests": "warn",
     "jest/no-focused-tests": "error",
     "jest/no-identical-title": "error",
     "jest/valid-expect": "error",
     "jest/no-conditional-expect": "error",
-    "jest/prefer-to-be": "warn",
-    "jest/prefer-to-contain": "warn",
-    "jest/prefer-to-have-length": "warn",
+    "jest/prefer-to-be": "error",
+    "jest/prefer-to-contain": "error",
+    "jest/prefer-to-have-length": "error",
     "jest/prefer-expect-assertions": [
-      "warn",
+      "error",
       { "onlyFunctionsWithAsyncKeyword": true }
     ],
     
-    // Enforce consistency in test structure
+    // Advanced Jest rules
     "jest/consistent-test-it": [
       "error",
       { "fn": "it", "withinDescribe": "it" }
     ],
-    
-    // Enforce proper naming
     "jest/valid-title": [
       "error",
       {
-        "ignoreTypeOfDescribeName": true
+        "ignoreTypeOfDescribeName": true,
+        "mustMatch": {
+          "it": "^should\\s",
+          "describe": "^[A-Z]"
+        }
+      }
+    ],
+    "jest/require-top-level-describe": "error",
+    "jest/prefer-strict-equal": "error",
+    "jest/prefer-spy-on": "error",
+    "jest/prefer-snapshot-hint": "error",
+    "jest/prefer-hooks-in-order": "error",
+    "jest/prefer-hooks-on-top": "error",
+    "jest/prefer-expect-resolves": "error",
+    "jest/max-nested-describe": ["error", { "max": 3 }],
+    "jest/no-duplicate-hooks": "error",
+    "jest/no-test-return-statement": "error",
+    "jest/require-hook": "error",
+    
+    // TypeScript specific overrides for tests
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
       }
     ],
     
     // Allow dev dependencies in test files
-    "import/no-extraneous-dependencies": [
-      "error", 
-      { 
-        "devDependencies": true 
-      }
-    ],
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
     
     // More lenient rules for test files
     "max-lines": "off",
     "max-nested-callbacks": "off",
-    "max-statements": "off"
+    "max-statements": "off",
+    
+    // Disable some overly strict jest/all rules
+    "jest/no-hooks": "off",
+    "jest/prefer-expect-assertions": "off",
+    "jest/no-test-prefixes": "off",
+    "jest/lowercase-name": "off"
+  },
+  "env": {
+    "jest/globals": true
   }
 }

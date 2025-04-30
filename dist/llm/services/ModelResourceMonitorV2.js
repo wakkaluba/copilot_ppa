@@ -54,6 +54,13 @@ const logging_1 = require("../../common/logging");
 const ModelHardwareManager_1 = require("./ModelHardwareManager");
 const ModelSystemManager_1 = require("./ModelSystemManager");
 let ModelResourceMonitorV2 = class ModelResourceMonitorV2 extends events_1.EventEmitter {
+    logger;
+    hardwareManager;
+    systemManager;
+    config;
+    metricsHistory = new Map();
+    monitoringIntervals = new Map();
+    outputChannel;
     constructor(logger, hardwareManager, systemManager, config = {
         checkInterval: 5000,
         warningThresholds: {
@@ -72,8 +79,6 @@ let ModelResourceMonitorV2 = class ModelResourceMonitorV2 extends events_1.Event
         this.hardwareManager = hardwareManager;
         this.systemManager = systemManager;
         this.config = config;
-        this.metricsHistory = new Map();
-        this.monitoringIntervals = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Resource Monitor');
     }
     async startMonitoring(modelId) {

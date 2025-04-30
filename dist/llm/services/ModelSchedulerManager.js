@@ -53,14 +53,17 @@ const events_1 = require("events");
 const types_1 = require("../types");
 const ModelMetricsManager_1 = require("./ModelMetricsManager");
 let ModelSchedulerManager = class ModelSchedulerManager extends events_1.EventEmitter {
+    logger;
+    metricsManager;
+    outputChannel;
+    requestQueues = new Map();
+    activeRequests = new Set();
+    maxConcurrentRequests = 3;
+    isProcessing = false;
     constructor(logger, metricsManager) {
         super();
         this.logger = logger;
         this.metricsManager = metricsManager;
-        this.requestQueues = new Map();
-        this.activeRequests = new Set();
-        this.maxConcurrentRequests = 3;
-        this.isProcessing = false;
         this.outputChannel = vscode.window.createOutputChannel('Model Scheduler');
         this.initializeQueues();
     }

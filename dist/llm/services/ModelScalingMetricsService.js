@@ -18,13 +18,15 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const logger_1 = require("../../utils/logger");
 let ModelScalingMetricsService = class ModelScalingMetricsService extends events_1.EventEmitter {
+    logger;
+    metricsHistory = new Map();
+    thresholds = new Map();
+    retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
+    aggregationInterval = 60 * 1000; // 1 minute
+    cleanupTimer;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.metricsHistory = new Map();
-        this.thresholds = new Map();
-        this.retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
-        this.aggregationInterval = 60 * 1000; // 1 minute
         this.cleanupTimer = setInterval(() => this.cleanupOldMetrics(), this.retentionPeriod);
         this.initializeDefaultThresholds();
     }

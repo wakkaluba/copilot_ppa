@@ -55,13 +55,19 @@ const ShellConfigurationService_1 = require("./services/ShellConfigurationServic
 const CommandExecutionService_1 = require("./services/CommandExecutionService");
 const OutputProcessingService_1 = require("./services/OutputProcessingService");
 let InteractiveShell = class InteractiveShell {
+    terminalManager;
+    logger;
+    shellConfig;
+    commandExecutor;
+    outputProcessor;
+    commandHistory = [];
+    outputChannel;
     constructor(terminalManager, logger, shellConfig, commandExecutor, outputProcessor) {
         this.terminalManager = terminalManager;
         this.logger = logger;
         this.shellConfig = shellConfig;
         this.commandExecutor = commandExecutor;
         this.outputProcessor = outputProcessor;
-        this.commandHistory = [];
         this.outputChannel = vscode.window.createOutputChannel('Terminal Output');
     }
     async executeCommand(command, shellType = types_1.TerminalShellType.VSCodeDefault, showOutput = true) {

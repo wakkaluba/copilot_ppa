@@ -12,6 +12,10 @@ const LLMStreamError_1 = require("./errors/LLMStreamError");
  * Provider for handling streaming LLM responses
  */
 class LLMStreamProvider extends events_1.EventEmitter {
+    streamProcessor;
+    chunkExtractor;
+    streamManager;
+    connectionManager;
     /**
      * Creates a new LLM stream provider
      * @param streamEndpoint URL endpoint for streaming

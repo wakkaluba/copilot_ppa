@@ -40,8 +40,11 @@ const LanguageStatusBarService_1 = require("./services/LanguageStatusBarService"
 const LanguageSelectorService_1 = require("./services/LanguageSelectorService");
 const LanguageConfigurationService_1 = require("./services/LanguageConfigurationService");
 class LanguageSwitcher {
+    statusBarService;
+    selectorService;
+    configService;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.statusBarService = new LanguageStatusBarService_1.LanguageStatusBarService();
         this.selectorService = new LanguageSelectorService_1.LanguageSelectorService();
         this.configService = new LanguageConfigurationService_1.LanguageConfigurationService();

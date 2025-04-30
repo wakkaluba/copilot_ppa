@@ -5,13 +5,13 @@ exports.ConnectionMetricsTracker = void 0;
  * Tracks performance metrics for LLM connections
  */
 class ConnectionMetricsTracker {
-    constructor() {
-        this.connectionAttempts = 0;
-        this.successfulConnections = 0;
-        this.requestCount = 0;
-        this.errorCount = 0;
-        this.totalLatency = 0;
-    }
+    connectionAttempts = 0;
+    successfulConnections = 0;
+    requestCount = 0;
+    errorCount = 0;
+    totalLatency = 0;
+    lastError;
+    lastRequestTime;
     recordConnectionAttempt() {
         this.connectionAttempts++;
     }

@@ -520,6 +520,39 @@ textarea {
     color-scheme: light;
 }
 
+/* Quick Response Buttons */
+#quick-responses {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background-color: var(--vscode-editor-lineHighlightBackground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: var(--border-radius);
+}
+
+.quick-response-btn {
+    padding: 6px 12px;
+    background-color: var(--button-background);
+    color: var(--button-foreground);
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.quick-response-btn:hover {
+    background-color: var(--button-hover-background);
+}
+
+.suggest-responses-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+/* Continue Prompt Styling */
 .continue-prompt {
     position: fixed;
     bottom: 120px;
@@ -531,6 +564,7 @@ textarea {
     padding: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 100;
+    display: none;
 }
 
 .continue-message {
@@ -557,4 +591,34 @@ textarea {
 
 .btn-continue:hover {
     background-color: var(--vscode-button-hoverBackground);
+}
+
+.memory-controls {
+    display: flex;
+    gap: 8px;
+    padding: 4px;
+}
+
+.icon-button {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vscode-editor-foreground);
+}
+
+.icon-button:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+.icon-button:active {
+    background: var(--vscode-button-activeBackground);
+}
+
+.icon-button i {
+    font-size: 16px;
 }

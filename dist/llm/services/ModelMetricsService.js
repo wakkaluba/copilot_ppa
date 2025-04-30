@@ -18,12 +18,14 @@ const inversify_1 = require("inversify");
 const logger_1 = require("../../utils/logger");
 const events_1 = require("events");
 let ModelMetricsService = class ModelMetricsService extends events_1.EventEmitter {
+    logger;
+    metricsByModel = new Map();
+    latestMetrics = new Map();
+    metricsRetentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
+    cleanupInterval;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.metricsByModel = new Map();
-        this.latestMetrics = new Map();
-        this.metricsRetentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
         this.logger.info('ModelMetricsService initialized');
         // Set up periodic cleanup of old metrics
         this.cleanupInterval = setInterval(() => this.cleanupOldMetrics(), this.metricsRetentionPeriod);

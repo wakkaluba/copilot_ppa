@@ -41,6 +41,9 @@ const ToggleService_1 = require("../services/ui/ToggleService");
  * Provides a burger menu with quick access to command toggles
  */
 class QuickAccessMenu {
+    panel;
+    webviewService;
+    toggleService;
     constructor(context) {
         this.webviewService = new WebviewService_1.WebviewService(context);
         this.toggleService = new ToggleService_1.ToggleService(context);

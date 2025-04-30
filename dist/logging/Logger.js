@@ -40,8 +40,9 @@ const ILogger_1 = require("./ILogger");
  * Simple logger implementation
  */
 class Logger {
+    outputChannel;
+    logLevel = ILogger_1.LogLevel.Info;
     constructor(channelName = 'Copilot PPA') {
-        this.logLevel = ILogger_1.LogLevel.Info;
         this.outputChannel = vscode.window.createOutputChannel(channelName);
     }
     setLogLevel(level) {

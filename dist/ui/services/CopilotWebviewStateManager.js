@@ -36,15 +36,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotWebviewStateManager = void 0;
 const vscode = __importStar(require("vscode"));
 class CopilotWebviewStateManager {
-    constructor() {
-        this.state = {
-            isLocalLLMActive: false,
-            isCopilotConnected: false,
-            messages: []
-        };
-        this._onStateChanged = new vscode.EventEmitter();
-        this.onStateChanged = this._onStateChanged.event;
-    }
+    state = {
+        isLocalLLMActive: false,
+        isCopilotConnected: false,
+        messages: []
+    };
+    _onStateChanged = new vscode.EventEmitter();
+    onStateChanged = this._onStateChanged.event;
     getState() {
         return { ...this.state };
     }

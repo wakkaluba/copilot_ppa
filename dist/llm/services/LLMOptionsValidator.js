@@ -52,6 +52,8 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const types_1 = require("../types");
 let LLMOptionsValidator = class LLMOptionsValidator extends events_1.EventEmitter {
+    logger;
+    outputChannel;
     constructor(logger) {
         super();
         this.logger = logger;

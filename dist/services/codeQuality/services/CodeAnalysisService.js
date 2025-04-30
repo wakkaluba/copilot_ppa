@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeAnalysisService = void 0;
 const LoggerService_1 = require("../../LoggerService");
 class CodeAnalysisService {
+    context;
+    logger;
     constructor(context) {
         this.context = context;
         this.logger = LoggerService_1.LoggerService.getInstance();

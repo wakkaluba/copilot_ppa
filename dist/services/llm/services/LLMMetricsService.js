@@ -6,12 +6,9 @@ const events_1 = require("events");
  * Service for tracking and managing LLM connection metrics
  */
 class LLMMetricsService extends events_1.EventEmitter {
-    constructor() {
-        super(...arguments);
-        this.metrics = new Map();
-        this.activeProvider = null;
-        this.startTimes = new Map();
-    }
+    metrics = new Map();
+    activeProvider = null;
+    startTimes = new Map();
     initializeMetrics(providerName) {
         if (!this.metrics.has(providerName)) {
             this.metrics.set(providerName, {

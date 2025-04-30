@@ -46,6 +46,7 @@ class NoOpLogger {
     error() { }
 }
 class RollupConfigAnalyzer {
+    logger;
     constructor(logger) {
         this.logger = logger || new NoOpLogger();
     }

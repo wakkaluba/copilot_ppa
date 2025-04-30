@@ -2,9 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileStorageService = void 0;
 class FileStorageService {
+    context;
+    storageKey = 'contextManager.contexts';
     constructor(context) {
         this.context = context;
-        this.storageKey = 'contextManager.contexts';
     }
     async initialize() {
         // Initialize storage if needed

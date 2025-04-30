@@ -39,9 +39,14 @@ const UISettingsWebviewService_1 = require("./services/UISettingsWebviewService"
 const themeManager_1 = require("../services/ui/themeManager");
 const logger_1 = require("../utils/logger");
 class UISettingsPanel {
+    context;
+    static instance;
+    logger;
+    webviewService;
+    panel;
+    disposables = [];
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.logger = logger_1.Logger.getInstance();
         this.webviewService = new UISettingsWebviewService_1.UISettingsWebviewService(themeManager_1.ThemeService.getInstance());
     }

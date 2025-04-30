@@ -39,8 +39,11 @@ const ChromaClientService_1 = require("./services/ChromaClientService");
 const ChromaEmbeddingService_1 = require("./services/ChromaEmbeddingService");
 const ChromaDocumentService_1 = require("./services/ChromaDocumentService");
 class ChromaProvider {
+    name = 'Chroma';
+    clientService;
+    embeddingService;
+    documentService;
     constructor(context) {
-        this.name = 'Chroma';
         this.clientService = new ChromaClientService_1.ChromaClientService(context);
         this.embeddingService = new ChromaEmbeddingService_1.ChromaEmbeddingService();
         this.documentService = new ChromaDocumentService_1.ChromaDocumentService();

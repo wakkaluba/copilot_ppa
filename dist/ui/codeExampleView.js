@@ -39,6 +39,13 @@ const CodeExampleWebviewService_1 = require("../services/codeExamples/CodeExampl
 const CodeAnalysisService_1 = require("../services/codeExamples/CodeAnalysisService");
 const WebviewHtmlService_1 = require("../services/webview/WebviewHtmlService");
 class CodeExampleViewProvider {
+    _extensionUri;
+    codeExampleService;
+    static viewType = 'codeExamples.view';
+    _view;
+    webviewService;
+    analysisService;
+    htmlService;
     constructor(_extensionUri, codeExampleService) {
         this._extensionUri = _extensionUri;
         this.codeExampleService = codeExampleService;
@@ -96,5 +103,4 @@ class CodeExampleViewProvider {
     }
 }
 exports.CodeExampleViewProvider = CodeExampleViewProvider;
-CodeExampleViewProvider.viewType = 'codeExamples.view';
 //# sourceMappingURL=codeExampleView.js.map

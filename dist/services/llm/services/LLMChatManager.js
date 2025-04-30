@@ -7,16 +7,18 @@ const types_1 = require("../types");
  * Manages chat sessions, messages, and conversation flow
  */
 class LLMChatManager extends events_1.EventEmitter {
+    executionService;
+    historyService;
+    activeSessions = new Map();
+    metrics = {
+        totalSessions: 0,
+        activeSessions: 0,
+        totalMessages: 0,
+        averageResponseTime: 0,
+        errorRate: 0
+    };
     constructor(executionService, historyService) {
         super();
-        this.activeSessions = new Map();
-        this.metrics = {
-            totalSessions: 0,
-            activeSessions: 0,
-            totalMessages: 0,
-            averageResponseTime: 0,
-            errorRate: 0
-        };
         this.executionService = executionService;
         this.historyService = historyService;
         this.setupEventListeners();

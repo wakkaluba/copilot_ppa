@@ -52,12 +52,15 @@ const inversify_1 = require("inversify");
 const events_1 = require("events");
 const logging_1 = require("../../common/logging");
 let ModelRateLimiter = class ModelRateLimiter extends events_1.EventEmitter {
+    logger;
+    buckets = new Map();
+    queues = new Map();
+    configs = new Map();
+    outputChannel;
+    cleanupInterval;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.buckets = new Map();
-        this.queues = new Map();
-        this.configs = new Map();
         this.outputChannel = vscode.window.createOutputChannel('Model Rate Limiter');
         this.cleanupInterval = setInterval(() => this.cleanupStaleRequests(), 60000);
     }

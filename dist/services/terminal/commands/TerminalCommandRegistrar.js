@@ -19,13 +19,18 @@ const terminalManager_1 = require("../terminalManager");
 const interactiveShell_1 = require("../interactiveShell");
 const TerminalConfigurationService_1 = require("../services/TerminalConfigurationService");
 let TerminalCommandRegistrar = class TerminalCommandRegistrar {
+    logger;
+    terminalManager;
+    interactiveShell;
+    config;
+    aiHelper;
+    disposables = [];
     constructor(logger, terminalManager, interactiveShell, config, aiHelper) {
         this.logger = logger;
         this.terminalManager = terminalManager;
         this.interactiveShell = interactiveShell;
         this.config = config;
         this.aiHelper = aiHelper;
-        this.disposables = [];
     }
     register(context) {
         this.registerTerminalCreation(context);

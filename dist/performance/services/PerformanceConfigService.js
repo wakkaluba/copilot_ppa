@@ -36,8 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PerformanceConfigService = void 0;
 const vscode = __importStar(require("vscode"));
 class PerformanceConfigService {
+    configSection = 'performance';
+    config;
     constructor() {
-        this.configSection = 'performance';
         this.config = vscode.workspace.getConfiguration(this.configSection);
     }
     async initialize() {

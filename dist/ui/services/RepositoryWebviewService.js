@@ -37,6 +37,7 @@ exports.RepositoryWebviewService = void 0;
 const vscode = __importStar(require("vscode"));
 const themeManager_1 = require("../../services/ui/themeManager");
 class RepositoryWebviewService {
+    themeService;
     constructor(themeService) {
         this.themeService = themeService;
     }

@@ -36,12 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DependencyAnalyzer = exports.MetricsCalculator = exports.ComplexityAnalyzer = void 0;
 const ts = __importStar(require("typescript"));
 class ComplexityAnalyzer {
+    COMPLEXITY_THRESHOLD = {
+        LOW: 10,
+        MEDIUM: 20,
+        HIGH: 30
+    };
+    metricsCalculator;
+    dependencyAnalyzer;
     constructor() {
-        this.COMPLEXITY_THRESHOLD = {
-            LOW: 10,
-            MEDIUM: 20,
-            HIGH: 30
-        };
         this.metricsCalculator = new MetricsCalculator();
         this.dependencyAnalyzer = new DependencyAnalyzer();
     }

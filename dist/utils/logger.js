@@ -50,11 +50,13 @@ var LogLevel;
  * Logger class for consistent logging
  */
 class Logger {
+    static instance;
+    outputChannel;
+    logLevel = LogLevel.Info;
     /**
      * Create a new Logger instance
      */
     constructor() {
-        this.logLevel = LogLevel.Info;
         this.outputChannel = vscode.window.createOutputChannel('Copilot PPA');
     }
     /**

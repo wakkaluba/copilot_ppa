@@ -6,6 +6,8 @@ exports.CoreAgent = void 0;
  * and provides the main functionality for processing user inputs
  */
 class CoreAgent {
+    contextManager;
+    logger;
     constructor(contextManager, logger) {
         this.contextManager = contextManager;
         this.logger = logger;

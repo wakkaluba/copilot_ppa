@@ -41,14 +41,12 @@ const path = __importStar(require("path"));
  * Handles Webpack configuration files
  */
 class WebpackConfigHandler {
-    constructor() {
-        this.configFileNames = [
-            'webpack.config.js',
-            'webpack.common.js',
-            'webpack.dev.js',
-            'webpack.prod.js'
-        ];
-    }
+    configFileNames = [
+        'webpack.config.js',
+        'webpack.common.js',
+        'webpack.dev.js',
+        'webpack.prod.js'
+    ];
     /**
      * Checks if a Webpack configuration file exists in the workspace
      */

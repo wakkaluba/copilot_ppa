@@ -40,8 +40,9 @@ const CodeComplexityService_1 = require("../services/codeAnalysis/CodeComplexity
  * Analyzes and visualizes code complexity metrics
  */
 class CodeComplexityAnalyzer {
+    service;
+    disposables = [];
     constructor() {
-        this.disposables = [];
         this.service = new CodeComplexityService_1.CodeComplexityService();
     }
     /**

@@ -37,8 +37,9 @@ exports.GitLabProvider = void 0;
 const vscode = __importStar(require("vscode"));
 const node_1 = require("@gitbeaker/node");
 class GitLabProvider {
+    gitlab;
+    name = 'GitLab';
     constructor() {
-        this.name = 'GitLab';
         this.initialize();
     }
     async initialize() {

@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkspaceAccessManager = void 0;
 const vscode = __importStar(require("vscode"));
 class WorkspaceAccessManager {
+    static instance;
+    _isEnabled;
+    _statusBarItem;
+    _onDidChangeAccess;
     constructor() {
         this._onDidChangeAccess = new vscode.EventEmitter();
         this._isEnabled = vscode.workspace.getConfiguration('copilot-ppa').get('workspaceAccess.enabled', false);

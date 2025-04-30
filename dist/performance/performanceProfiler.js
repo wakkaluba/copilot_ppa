@@ -11,6 +11,12 @@ const CachingService_1 = require("./services/CachingService");
  * for various operations in the extension
  */
 class PerformanceProfiler {
+    static instance;
+    sessionService;
+    captureService;
+    persistenceService;
+    bottleneckService;
+    cacheService;
     constructor(context) {
         this.sessionService = new PerformanceSessionService_1.PerformanceSessionService(context);
         this.captureService = new MetricsCaptureService_1.MetricsCaptureService();

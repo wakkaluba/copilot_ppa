@@ -7,11 +7,14 @@ const statusBar_1 = require("../statusBar");
 const commands_1 = require("../commands");
 const telemetry_1 = require("./../utils/telemetry");
 class ServiceContainer {
+    context;
+    logging;
+    static instance;
+    services = new Map();
+    initialized = false;
     constructor(context, logging) {
         this.context = context;
         this.logging = logging;
-        this.services = new Map();
-        this.initialized = false;
     }
     static async initialize(context, logging) {
         if (!ServiceContainer.instance) {

@@ -39,6 +39,7 @@ const vscode = __importStar(require("vscode"));
  * Manages code formatting and optimization functionality
  */
 class CodeFormattingManager {
+    context;
     constructor(context) {
         this.context = context;
         this.registerCommands();

@@ -8,8 +8,11 @@ const bitbucketProvider_1 = require("../repository/bitbucketProvider");
  * Provides integration with Pull Request systems from various Git providers
  */
 class PullRequestIntegration {
+    gitHubProvider;
+    gitLabProvider;
+    bitbucketProvider;
+    activeProvider = null;
     constructor() {
-        this.activeProvider = null;
         this.gitHubProvider = new githubProvider_1.GitHubProvider();
         this.gitLabProvider = new gitlabProvider_1.GitLabProvider();
         this.bitbucketProvider = new bitbucketProvider_1.BitbucketProvider();

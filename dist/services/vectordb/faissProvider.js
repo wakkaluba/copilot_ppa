@@ -7,9 +7,11 @@ const FaissProviderService_1 = require("./services/FaissProviderService");
  * Provides FAISS vector database functionality with comprehensive error handling
  */
 class FaissProvider {
+    name = 'FAISS';
+    service;
+    logger;
+    disposed = false;
     constructor(context) {
-        this.name = 'FAISS';
-        this.disposed = false;
         this.service = new FaissProviderService_1.FaissProviderService(context);
         this.logger = LoggerService_1.LoggerService.getInstance();
     }

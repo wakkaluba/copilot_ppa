@@ -48,12 +48,23 @@ const DiagnosticReportHtmlProvider_1 = require("./providers/DiagnosticReportHtml
  * Class to generate diagnostic reports for the extension
  */
 class DiagnosticReportGenerator {
+    _logger;
+    _outputChannel;
+    _systemChecker;
+    _extensionContext;
+    // Performance tracking
+    _startTime;
+    _requestCount = 0;
+    _errorCount = 0;
+    _lastError = null;
+    _lastErrorTime = null;
+    _responseTimeHistory = [];
+    systemInfoSvc;
+    configSvc;
+    perfSvc;
+    runtimeTracker;
+    logService;
     constructor(logger, context, systemChecker) {
-        this._requestCount = 0;
-        this._errorCount = 0;
-        this._lastError = null;
-        this._lastErrorTime = null;
-        this._responseTimeHistory = [];
         this._logger = logger;
         this._extensionContext = context;
         this._systemChecker = systemChecker;

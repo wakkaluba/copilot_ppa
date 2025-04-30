@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypeScriptMetricsCalculator = void 0;
 const inversify_1 = require("inversify");
 let TypeScriptMetricsCalculator = class TypeScriptMetricsCalculator {
+    logger;
     constructor(logger) {
         this.logger = logger;
     }

@@ -44,6 +44,12 @@ const SecuritySummaryService_1 = require("./services/SecuritySummaryService");
  * Service for performing security testing
  */
 class SecurityTestingService {
+    toolService;
+    executor;
+    parser;
+    filter;
+    summary;
+    outputChannel;
     constructor() {
         this.toolService = new SecurityToolService_1.SecurityToolService();
         this.executor = new CommandExecutorService_1.CommandExecutorService();

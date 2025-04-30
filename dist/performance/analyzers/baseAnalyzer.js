@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasePerformanceAnalyzer = void 0;
 const path = __importStar(require("path"));
 class BasePerformanceAnalyzer {
+    thresholds;
+    options;
     constructor(options) {
         this.options = options || {
             maxFileSize: 1024 * 1024,

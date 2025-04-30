@@ -64,20 +64,24 @@ const DEFAULT_CACHE_CONFIG = {
     cleanupInterval: 5 * 60 * 1000 // 5 minutes
 };
 let ModelCacheManager = class ModelCacheManager extends events_1.EventEmitter {
+    logger;
+    cacheConfig;
+    cacheDir;
+    memoryCache = new Map();
+    diskCache = new Map();
+    outputChannel;
+    cleanupInterval = null;
+    cacheStats = {
+        hits: 0,
+        misses: 0,
+        evictions: 0,
+        memoryUsed: 0
+    };
     constructor(logger, cacheConfig = DEFAULT_CACHE_CONFIG, cacheDir = path_1.default.join(vscode.workspace.rootPath || '', '.model-cache')) {
         super();
         this.logger = logger;
         this.cacheConfig = cacheConfig;
         this.cacheDir = cacheDir;
-        this.memoryCache = new Map();
-        this.diskCache = new Map();
-        this.cleanupInterval = null;
-        this.cacheStats = {
-            hits: 0,
-            misses: 0,
-            evictions: 0,
-            memoryUsed: 0
-        };
         this.outputChannel = vscode.window.createOutputChannel('Model Cache');
         this.initializeCache();
     }

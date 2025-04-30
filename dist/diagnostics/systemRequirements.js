@@ -42,6 +42,7 @@ const execAsync = (0, util_1.promisify)(child_process.exec);
  * System requirements checker for the Copilot PPA extension
  */
 class SystemRequirementsChecker {
+    service;
     constructor(logger) {
         this.service = new SystemRequirementsService_1.SystemRequirementsService(logger);
     }

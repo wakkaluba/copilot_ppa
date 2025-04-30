@@ -11,6 +11,7 @@ class NoOpLogger {
     error() { }
 }
 class WebpackOptimizationService {
+    logger;
     constructor(logger) {
         this.logger = logger || new NoOpLogger();
     }

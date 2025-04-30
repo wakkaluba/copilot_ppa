@@ -20,6 +20,9 @@ const logger_1 = require("../../utils/logger");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 const ModelHealthMonitor_1 = require("./ModelHealthMonitor");
 let ModelResourceOptimizer = class ModelResourceOptimizer extends events_1.EventEmitter {
+    logger;
+    metricsService;
+    healthMonitor;
     constructor(logger, metricsService, healthMonitor) {
         super();
         this.logger = logger;

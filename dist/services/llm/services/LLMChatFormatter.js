@@ -6,9 +6,10 @@ const types_1 = require("../types");
  * Service for formatting chat messages, context, and responses
  */
 class LLMChatFormatter {
+    options;
+    defaultSystemPrompt = 'You are a helpful AI assistant.';
+    maxContextLength = 4096;
     constructor(options = {}) {
-        this.defaultSystemPrompt = 'You are a helpful AI assistant.';
-        this.maxContextLength = 4096;
         this.options = {
             systemPromptPrefix: options.systemPromptPrefix || this.defaultSystemPrompt,
             maxContextMessages: options.maxContextMessages || 10,

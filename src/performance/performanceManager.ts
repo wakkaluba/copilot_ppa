@@ -1,16 +1,16 @@
+import { EventEmitter } from 'events';
 import * as vscode from 'vscode';
-import { WorkspacePerformanceResult, PerformanceAnalysisResult } from './types';
+import { LoggerImpl } from '../utils/logger';
+import { AsyncOptimizer } from './asyncOptimizer';
+import { BottleneckDetector } from './bottleneckDetector';
+import { CachingService } from './cachingService';
+import { PerformanceProfiler } from './performanceProfiler';
 import { PerformanceAnalyzerService } from './services/PerformanceAnalyzerService';
-import { PerformanceStatusService } from './services/PerformanceStatusService';
+import { PerformanceConfigService } from './services/PerformanceConfigService';
 import { PerformanceDiagnosticsService } from './services/PerformanceDiagnosticsService';
 import { PerformanceFileMonitorService } from './services/PerformanceFileMonitorService';
-import { PerformanceConfigService } from './services/PerformanceConfigService';
-import { PerformanceProfiler } from './performanceProfiler';
-import { BottleneckDetector } from './bottleneckDetector';
-import { EventEmitter } from 'events';
-import { CachingService } from './cachingService';
-import { AsyncOptimizer } from './asyncOptimizer';
-import { LoggerImpl } from '../utils/logger';
+import { PerformanceStatusService } from './services/PerformanceStatusService';
+import { PerformanceAnalysisResult, WorkspacePerformanceResult } from './types';
 
 /**
  * Central manager for all performance-related functionality in the extension.
@@ -42,7 +42,7 @@ export class PerformanceManager implements vscode.Disposable {
         this.cachingService = CachingService.getInstance();
         this.asyncOptimizer = AsyncOptimizer.getInstance();
         this.logger = new LoggerImpl();
-        
+
         this.setupEventListeners();
         this.initializeServices().catch(error => {
             this.logger.error('Failed to initialize performance services:', error);
@@ -65,12 +65,12 @@ export class PerformanceManager implements vscode.Disposable {
             await this.configService.initialize();
             this.profiler.setEnabled(this.configService.isProfilingEnabled());
             this.bottleneckDetector.setEnabled(this.configService.isBottleneckDetectionEnabled());
-            
+
             const cachingOptions = this.configService.getCachingOptions();
             this.cachingService.setMaxCacheSize(cachingOptions.maxSize);
-            
+
             this.asyncOptimizer.setConfig(this.configService.getAsyncOptions());
-            
+
             this.eventEmitter.emit('servicesInitialized');
         } catch (error) {
             this.logger.error('Failed to initialize performance services:', error);
@@ -89,7 +89,7 @@ export class PerformanceManager implements vscode.Disposable {
 
         const operationId = 'workspace-analysis';
         this.profiler.startOperation(operationId);
-        
+
         try {
             return await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -98,7 +98,7 @@ export class PerformanceManager implements vscode.Disposable {
             }, async (progress, token) => {
                 const files = await this.fileMonitorService.findAnalyzableFiles();
                 const result = await this.analyzerService.analyzeWorkspace(files, progress, token);
-                
+
                 if (token.isCancellationRequested) {
                     throw new Error('Analysis cancelled by user');
                 }
@@ -181,10 +181,10 @@ export class PerformanceManager implements vscode.Disposable {
     }
 
     private setupEventListeners(): void {
-        this.fileMonitorService.onDocumentSaved((document: vscode.TextDocument) => 
+        this.fileMonitorService.onDocumentSaved((document: vscode.TextDocument) =>
             this.handleDocumentChange(document)
         );
-        
+
         this.fileMonitorService.onActiveEditorChanged((editor?: vscode.TextEditor) => {
             if (editor) {
                 this.analyzeFile(editor.document).catch(error => {
@@ -194,7 +194,7 @@ export class PerformanceManager implements vscode.Disposable {
         });
 
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('performance')) {
+            if (e.affectsConfiguration('copilot-ppa.performance')) {
                 this.initializeServices().catch(error => {
                     this.logger.error('Failed to reinitialize services:', error);
                 });

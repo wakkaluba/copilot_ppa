@@ -19,10 +19,11 @@ const DEFAULT_CONFIG = {
  * Manages configuration for LLM providers
  */
 class ProviderConfigManager extends events_1.EventEmitter {
+    static instance;
+    configs = new Map();
+    defaults = new Map();
     constructor() {
         super();
-        this.configs = new Map();
-        this.defaults = new Map();
     }
     static getInstance() {
         if (!this.instance) {

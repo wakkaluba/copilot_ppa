@@ -36,10 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationSearchService = void 0;
 const vscode = __importStar(require("vscode"));
 class ConversationSearchService {
+    static instance;
+    conversationManager;
+    lastResults = [];
+    _onSearchResultsChanged = new vscode.EventEmitter();
+    onSearchResultsChanged = this._onSearchResultsChanged.event;
     constructor(conversationManager) {
-        this.lastResults = [];
-        this._onSearchResultsChanged = new vscode.EventEmitter();
-        this.onSearchResultsChanged = this._onSearchResultsChanged.event;
         this.conversationManager = conversationManager;
     }
     static getInstance(conversationManager) {

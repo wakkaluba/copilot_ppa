@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProviderConnectionPool = void 0;
 class ProviderConnectionPool {
+    connections = [];
+    maxSize;
     constructor(maxSize) {
-        this.connections = [];
         this.maxSize = maxSize;
     }
     async acquire() {

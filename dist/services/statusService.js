@@ -46,10 +46,10 @@ var ConnectionStatus;
  * Service to track and notify about LLM connection status
  */
 class StatusService {
-    constructor() {
-        this._statusEventEmitter = new vscode.EventEmitter();
-        this._currentStatus = { status: ConnectionStatus.Disconnected };
-    }
+    static instance;
+    _statusEventEmitter = new vscode.EventEmitter();
+    _currentStatus = { status: ConnectionStatus.Disconnected };
+    constructor() { }
     static getInstance() {
         if (!StatusService.instance) {
             StatusService.instance = new StatusService();

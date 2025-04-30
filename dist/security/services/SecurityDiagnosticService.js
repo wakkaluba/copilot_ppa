@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityDiagnosticService = void 0;
 const vscode = __importStar(require("vscode"));
 class SecurityDiagnosticService {
+    diagnosticCollection;
     constructor(context) {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('securityIssues');
         context.subscriptions.push(this.diagnosticCollection);

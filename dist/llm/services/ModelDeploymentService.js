@@ -20,11 +20,12 @@ const events_1 = require("events");
  * Service for model deployment operations
  */
 let ModelDeploymentService = class ModelDeploymentService extends events_1.EventEmitter {
+    logger;
+    deployments = new Map();
+    deploymentCounter = 0;
     constructor(logger) {
         super();
         this.logger = logger;
-        this.deployments = new Map();
-        this.deploymentCounter = 0;
         this.logger.info('ModelDeploymentService initialized');
     }
     /**

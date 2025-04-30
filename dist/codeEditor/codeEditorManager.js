@@ -42,10 +42,14 @@ const codeLinker_1 = require("./services/codeLinker");
  * Manages code editing functionality through specialized services
  */
 class CodeEditorManager {
+    static instance;
+    executor;
+    navigator;
+    linker;
+    disposables = [];
+    _onEditorStateChange = new vscode.EventEmitter();
+    metrics = new Map();
     constructor(context) {
-        this.disposables = [];
-        this._onEditorStateChange = new vscode.EventEmitter();
-        this.metrics = new Map();
         this.executor = new codeExecutor_1.CodeExecutorService();
         this.navigator = new codeNavigator_1.CodeNavigatorService();
         this.linker = new codeLinker_1.CodeLinkerService();

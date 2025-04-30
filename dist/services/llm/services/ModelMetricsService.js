@@ -20,14 +20,16 @@ const logger_1 = require("../../../utils/logger");
 const types_1 = require("../types");
 const IStorageService_1 = require("../../storage/IStorageService");
 let ModelMetricsService = class ModelMetricsService extends events_1.EventEmitter {
+    logger;
+    storage;
+    metrics = new Map();
+    retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
+    aggregationInterval = 5 * 60 * 1000; // 5 minutes
+    aggregationTimer = null;
     constructor(logger, storage) {
         super();
         this.logger = logger;
         this.storage = storage;
-        this.metrics = new Map();
-        this.retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
-        this.aggregationInterval = 5 * 60 * 1000; // 5 minutes
-        this.aggregationTimer = null;
         this.startAggregation();
     }
     /**

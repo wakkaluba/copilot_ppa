@@ -44,6 +44,14 @@ const models_1 = require("./models");
  * Manages contextual information for conversations
  */
 class ContextManager {
+    static instance;
+    memoryService;
+    userPrefsService;
+    filePrefsService;
+    analysisService;
+    activeFiles = new Set();
+    context;
+    disposables = [];
     /**
      * Get the singleton instance
      */
@@ -60,8 +68,6 @@ class ContextManager {
      * Create a new ContextManager
      */
     constructor(context) {
-        this.activeFiles = new Set();
-        this.disposables = [];
         this.context = context;
         this.memoryService = new ConversationMemoryService_1.ConversationMemoryService(context);
         this.userPrefsService = new UserPreferencesService_1.UserPreferencesService(context);
@@ -143,9 +149,34 @@ class ContextManager {
     }
     /**
      * Get recent conversation history
+     * @param inputOrCount - Either the current input text for generating suggestions or the number of messages to retrieve
+     * @returns Array of messages or suggestions
      */
-    getRecentHistory(messageCount = 10) {
-        return this.memoryService.getRecentMessages(messageCount);
+    async getRecentHistory(inputOrCount = 10) {
+        // If the parameter is a string, it's an input for generating suggestions
+        if (typeof inputOrCount === 'string') {
+            // Generate suggestions based on the input text and context
+            try {
+                const inputText = inputOrCount;
+                const recentMessages = this.memoryService.getRecentMessages(5); // Get recent messages for context
+                const userPreferences = {
+                    language: this.getPreferredLanguage(),
+                    framework: this.getPreferredFramework(),
+                    fileExtensions: this.getPreferredFileExtensions()
+                };
+                // Use the analysis service to generate relevant suggestions
+                const suggestions = await this.analysisService.generateSuggestions(inputText, recentMessages, userPreferences);
+                return suggestions || [];
+            }
+            catch (error) {
+                console.error('Error generating suggestions:', error);
+                return [];
+            }
+        }
+        else {
+            // If the parameter is a number, return that many recent messages
+            return this.memoryService.getRecentMessages(inputOrCount);
+        }
     }
     /**
      * Get all conversation history

@@ -20,6 +20,9 @@ const logger_1 = require("../../utils/logger");
 const ModelHealthMonitor_1 = require("./ModelHealthMonitor");
 const ModelMetricsService_1 = require("./ModelMetricsService");
 let ModelDeploymentValidator = class ModelDeploymentValidator extends events_1.EventEmitter {
+    logger;
+    healthMonitor;
+    metricsService;
     constructor(logger, healthMonitor, metricsService) {
         super();
         this.logger = logger;

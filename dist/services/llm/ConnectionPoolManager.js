@@ -19,11 +19,14 @@ const DEFAULT_POOL_CONFIG = {
  * Manages a pool of LLM connections
  */
 class ConnectionPoolManager extends events_1.EventEmitter {
+    static instance;
+    pool = new Map();
+    inUse = new Map();
+    waiting = new Map();
+    metricsTracker;
+    config;
     constructor(config = {}) {
         super();
-        this.pool = new Map();
-        this.inUse = new Map();
-        this.waiting = new Map();
         this.config = { ...DEFAULT_POOL_CONFIG, ...config };
         this.metricsTracker = new ConnectionMetricsTracker_1.ConnectionMetricsTracker();
     }

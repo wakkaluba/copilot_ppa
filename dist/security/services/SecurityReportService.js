@@ -40,6 +40,9 @@ const SecurityReportHtmlProvider_1 = require("../providers/SecurityReportHtmlPro
  * Service for generating and displaying security reports
  */
 class SecurityReportService {
+    context;
+    reportProvider;
+    lastReport;
     constructor(context) {
         this.context = context;
         this.reportProvider = new SecurityReportHtmlProvider_1.SecurityReportHtmlProvider(context);

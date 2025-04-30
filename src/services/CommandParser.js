@@ -39,6 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommandParser = void 0;
 var vscode = require("vscode");
 var WorkspaceManager_1 = require("./WorkspaceManager");
+var UserConfirmationService_1 = require("./UserConfirmationService");
+
 var CommandParser = /** @class */ (function () {
     function CommandParser() {
         this.commands = new Map();
@@ -101,7 +103,7 @@ var CommandParser = /** @class */ (function () {
                     case 5:
                         _a.sent();
                         return [2 /*return*/];
-                    case 6: 
+                    case 6:
                     // For other commands, use the handler
                     return [4 /*yield*/, handler(command.args)];
                     case 7:
@@ -226,7 +228,7 @@ var CommandParser = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: 
+                    case 0:
                     // Convert string path to Uri for compatibility with WorkspaceManager
                     return [4 /*yield*/, this.workspaceManager.writeFile(this.pathToUri(args.path), args.content)];
                     case 1:
@@ -261,7 +263,7 @@ var CommandParser = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: 
+                    case 0:
                     // Convert string path to Uri for compatibility with WorkspaceManager
                     return [4 /*yield*/, this.workspaceManager.deleteFile(this.pathToUri(args.path))];
                     case 1:
@@ -306,6 +308,68 @@ var CommandParser = /** @class */ (function () {
     };
     CommandParser.prototype.continueIteration = function (args) {
         return __awaiter(this, void 0, void 0, function () {
+            var confirmationService, shouldContinue, CoreAgent, coreAgent, error_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        try {
+                            confirmationService = UserConfirmationService_1.UserConfirmationService.getInstance();
+                        } catch (e) {
+                            // Fall back to basic confirmation if service isn't initialized
+                            return [2 /*return*/, this.legacyContinueIteration(args)];
+                        }
+                        return [4 /*yield*/, confirmationService.showConfirmation({
+                            message: 'Continue to iterate?',
+                            confirmLabel: 'Yes',
+                            cancelLabel: 'No',
+                            detail: 'Continue with the current development iteration?',
+                            operationType: 'process'
+                        })];
+                    case 1:
+                        shouldContinue = _a.sent();
+                        if (!shouldContinue) return [3 /*break*/, 10];
+                        CoreAgent = require('./CoreAgent').CoreAgent;
+                        coreAgent = CoreAgent.getInstance();
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 7, , 9]);
+                        if (!(coreAgent && typeof coreAgent.continueCodingIteration === 'function')) return [3 /*break*/, 4];
+                        return [4 /*yield*/, coreAgent.continueCodingIteration()];
+                    case 3:
+                        _a.sent();
+                        return [3 /*break*/, 6];
+                    case 4:
+                    // Otherwise, just show a message that we're continuing
+                    return [4 /*yield*/, vscode.window.showInformationMessage('Continuing iteration process...')];
+                    case 5:
+                        // Otherwise, just show a message that we're continuing
+                        _a.sent();
+                        _a.label = 6;
+                    case 6: return [3 /*break*/, 9];
+                    case 7:
+                        error_1 = _a.sent();
+                        console.error('Error during continue iteration:', error_1);
+                        return [4 /*yield*/, vscode.window.showErrorMessage("Failed to continue iteration: ".concat(error_1 instanceof Error ? error_1.message : String(error_1)))];
+                    case 8:
+                        _a.sent();
+                        return [3 /*break*/, 9];
+                    case 9: return [3 /*break*/, 12];
+                    case 10:
+                    // User chose not to continue
+                    return [4 /*yield*/, vscode.window.showInformationMessage('Iteration stopped.')];
+                    case 11:
+                        // User chose not to continue
+                        _a.sent();
+                        _a.label = 12;
+                    case 12: return [2 /*return*/];
+                }
+            });
+        });
+    };
+
+    // Legacy continue iteration for backward compatibility
+    CommandParser.prototype.legacyContinueIteration = function (args) {
+        return __awaiter(this, void 0, void 0, function () {
             var response, CoreAgent, coreAgent, error_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -323,7 +387,7 @@ var CommandParser = /** @class */ (function () {
                     case 3:
                         _a.sent();
                         return [3 /*break*/, 6];
-                    case 4: 
+                    case 4:
                     // Otherwise, just show a message that we're continuing
                     return [4 /*yield*/, vscode.window.showInformationMessage('Continuing iteration process...')];
                     case 5:
@@ -339,7 +403,7 @@ var CommandParser = /** @class */ (function () {
                         _a.sent();
                         return [3 /*break*/, 9];
                     case 9: return [3 /*break*/, 12];
-                    case 10: 
+                    case 10:
                     // User chose not to continue
                     return [4 /*yield*/, vscode.window.showInformationMessage('Iteration stopped.')];
                     case 11:

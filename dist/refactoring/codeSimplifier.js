@@ -40,6 +40,7 @@ const providerManager_1 = require("../llm/providerManager");
  * Provides functionality for simplifying code using LLM-based analysis
  */
 class CodeSimplifier {
+    llmProvider;
     constructor() {
         this.llmProvider = (0, providerManager_1.getCurrentProvider)();
     }

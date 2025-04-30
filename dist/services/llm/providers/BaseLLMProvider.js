@@ -15,11 +15,18 @@ var ProviderState;
     ProviderState["Error"] = "error";
 })(ProviderState || (exports.ProviderState = ProviderState = {}));
 class BaseLLMProvider extends events_1.EventEmitter {
+    id;
+    name;
+    state = ProviderState.Unknown;
+    config;
+    currentModel;
+    lastError;
+    lastHealthCheck;
+    healthCheckTimer;
     constructor(id, name, config) {
         super();
         this.id = id;
         this.name = name;
-        this.state = ProviderState.Unknown;
         this.config = config;
         this.setupHealthCheck();
     }

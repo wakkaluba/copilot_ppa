@@ -6,6 +6,7 @@ const ConversationMemoryService_1 = require("./services/ConversationMemoryServic
  * Service for managing conversation history and state
  */
 class ConversationService {
+    conversationMemoryService;
     /**
      * Create a new ConversationService
      * @param context Extension context for state persistence

@@ -39,9 +39,14 @@ const RepositoryWebviewService_1 = require("./services/RepositoryWebviewService"
 const themeManager_1 = require("../services/ui/themeManager");
 const logger_1 = require("../utils/logger");
 class RepositoryPanel {
+    context;
+    static instance;
+    panel;
+    webviewService;
+    disposables = [];
+    logger;
     constructor(context) {
         this.context = context;
-        this.disposables = [];
         this.logger = logger_1.Logger.getInstance();
         this.webviewService = new RepositoryWebviewService_1.RepositoryWebviewService(themeManager_1.ThemeService.getInstance());
     }

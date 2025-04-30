@@ -17,11 +17,13 @@ exports.CodeExampleService = void 0;
 const vscode_1 = require("vscode");
 const inversify_1 = require("inversify");
 let CodeExampleService = class CodeExampleService {
+    githubApi;
+    searchIndex;
+    _onDidUpdateExamples = new vscode_1.EventEmitter();
+    disposables = [];
     constructor(githubApi, searchIndex) {
         this.githubApi = githubApi;
         this.searchIndex = searchIndex;
-        this._onDidUpdateExamples = new vscode_1.EventEmitter();
-        this.disposables = [];
         this.disposables.push(this._onDidUpdateExamples);
     }
     async searchExamples(query, language) {

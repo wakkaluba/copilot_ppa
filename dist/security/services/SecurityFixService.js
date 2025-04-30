@@ -41,9 +41,8 @@ const fs = __importStar(require("fs/promises"));
  * Service for applying automated fixes to security issues
  */
 class SecurityFixService {
-    constructor() {
-        this.disposables = [];
-    }
+    disposables = [];
+    constructor() { }
     /**
      * Apply an automated fix for a security issue
      */

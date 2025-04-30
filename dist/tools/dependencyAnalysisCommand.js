@@ -42,8 +42,11 @@ const dependencyGraphView_1 = require("../webview/dependencyGraphView");
  * Handles dependency analysis commands with comprehensive error handling
  */
 class DependencyAnalysisCommand {
+    service;
+    graphProvider;
+    logger;
+    disposables = [];
     constructor(context) {
-        this.disposables = [];
         this.service = new DependencyAnalysisService_1.DependencyAnalysisService(context);
         this.graphProvider = new dependencyGraphView_1.DependencyGraphProvider(context);
         this.logger = LoggerService_1.LoggerService.getInstance();

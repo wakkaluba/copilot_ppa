@@ -36,8 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityScanner = void 0;
 const crypto = __importStar(require("crypto"));
 class SecurityScanner {
+    keyCache;
+    MAX_CACHE_SIZE = 100;
     constructor() {
-        this.MAX_CACHE_SIZE = 100;
         this.keyCache = new Map();
     }
     async checkFilePermissions() {

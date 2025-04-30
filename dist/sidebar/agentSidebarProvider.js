@@ -40,10 +40,15 @@ const fs = __importStar(require("fs"));
  * Provides the agent sidebar webview implementation
  */
 class AgentSidebarProvider {
+    _extensionUri;
+    _connectionManager;
+    static viewType = 'copilot-ppa.agentSidebar';
+    _view;
+    _messageHandlers;
+    _disposables = [];
     constructor(_extensionUri, _connectionManager) {
         this._extensionUri = _extensionUri;
         this._connectionManager = _connectionManager;
-        this._disposables = [];
         this._messageHandlers = new Map();
         this.registerMessageHandlers();
         this.listenToConnectionChanges();
@@ -198,5 +203,4 @@ class AgentSidebarProvider {
     }
 }
 exports.AgentSidebarProvider = AgentSidebarProvider;
-AgentSidebarProvider.viewType = 'copilot-ppa.agentSidebar';
 //# sourceMappingURL=agentSidebarProvider.js.map

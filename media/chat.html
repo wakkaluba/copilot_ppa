@@ -13,14 +13,29 @@
             <span id="connection-indicator"></span>
             <span id="connection-message">Not connected</span>
         </div>
-        
+
         <div id="status-bar"></div>
-        
+
         <div id="messages-container"></div>
-        
+
+        <!-- Quick response options container -->
+        <div id="quick-responses"></div>
+
+        <div class="continue-prompt" style="display: none;">
+            <div class="continue-message">Continue generating?</div>
+            <div class="continue-actions">
+                <button id="btn-continue-yes" class="btn-continue">Yes</button>
+                <button id="btn-continue-no" class="btn-continue">No</button>
+            </div>
+        </div>
+
+        <div class="error-container" style="display: none;">
+            <div class="error-message"></div>
+        </div>
+
         <div id="input-container">
             <div id="message-input-container">
-                <textarea id="message-input" 
+                <textarea id="message-input"
                     placeholder="Type a message..."
                     rows="1"
                     disabled></textarea>

@@ -39,13 +39,14 @@ const crypto = __importStar(require("crypto"));
  * Service for managing conversation memory
  */
 class ConversationMemoryService {
+    messages = [];
+    context;
+    maxHistory = 100;
     /**
      * Create a new ConversationMemoryService
      * @param context Extension context for state persistence
      */
     constructor(context) {
-        this.messages = [];
-        this.maxHistory = 100;
         this.context = context;
     }
     /**

@@ -19,10 +19,13 @@ const types_1 = require("../types");
 const LLMCacheManager_1 = require("../LLMCacheManager");
 const LLMModelValidator_1 = require("./LLMModelValidator");
 let LLMModelInfoService = class LLMModelInfoService extends events_1.EventEmitter {
+    logger;
+    modelCache = new Map();
+    cacheManager;
+    validator;
     constructor(logger, cacheManager, validator) {
         super();
         this.logger = logger;
-        this.modelCache = new Map();
         this.cacheManager = cacheManager;
         this.validator = validator;
         this.setupEventListeners();

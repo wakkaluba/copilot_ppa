@@ -15,6 +15,11 @@ Object.defineProperty(exports, "CodeReviewReport", { enumerable: true, get: func
 const designImprovementSuggester_1 = require("./designImprovementSuggester");
 Object.defineProperty(exports, "DesignImprovementSuggester", { enumerable: true, get: function () { return designImprovementSuggester_1.DesignImprovementSuggester; } });
 class CodeQualityService {
+    _securityScanner;
+    _codeOptimizer;
+    _bestPracticesChecker;
+    _codeReviewer;
+    _designImprovementSuggester;
     constructor(context) {
         this._securityScanner = new securityScanner_1.SecurityScanner(context);
         this._codeOptimizer = new codeOptimizer_1.CodeOptimizer(context);

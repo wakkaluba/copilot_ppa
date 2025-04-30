@@ -51,10 +51,11 @@ var KeybindingCategory;
  * Manager for custom keybindings
  */
 class KeybindingManager {
+    context;
+    keybindings = new Map();
+    STORAGE_KEY = 'copilotPPA.customKeybindings';
     constructor(context) {
         this.context = context;
-        this.keybindings = new Map();
-        this.STORAGE_KEY = 'copilotPPA.customKeybindings';
         this.registerDefaultKeybindings();
         this.loadCustomKeybindings();
     }

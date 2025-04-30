@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { PerformanceManager } from '../../../src/performance/performanceManager';
-import { PerformanceProfiler } from '../../../src/performance/performanceProfiler';
+import { AsyncOptimizer } from '../../../src/performance/asyncOptimizer';
 import { BottleneckDetector } from '../../../src/performance/bottleneckDetector';
 import { CachingService } from '../../../src/performance/cachingService';
-import { AsyncOptimizer } from '../../../src/performance/asyncOptimizer';
+import { PerformanceManager } from '../../../src/performance/performanceManager';
+import { PerformanceProfiler } from '../../../src/performance/performanceProfiler';
 import { Logger } from '../../../src/utils/logger';
 
 jest.mock('vscode');
@@ -19,7 +19,7 @@ describe('PerformanceManager', () => {
     beforeEach(() => {
         // Reset all mocks
         jest.clearAllMocks();
-        
+
         // Get singleton instance
         performanceManager = PerformanceManager.getInstance();
     });
@@ -27,7 +27,7 @@ describe('PerformanceManager', () => {
     describe('Initialization', () => {
         test('should initialize with default configuration', () => {
             performanceManager.initialize();
-            
+
             expect(PerformanceProfiler.getInstance).toHaveBeenCalled();
             expect(BottleneckDetector.getInstance).toHaveBeenCalled();
             expect(CachingService.getInstance).toHaveBeenCalled();
@@ -44,7 +44,7 @@ describe('PerformanceManager', () => {
 
             performanceManager.initialize();
 
-            expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('localLLMAgent.performance');
+            expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('copilot-ppa.performance');
             expect(mockConfig.get).toHaveBeenCalledWith('profilingEnabled', false);
             expect(mockConfig.get).toHaveBeenCalledWith('bottleneckDetectionEnabled', false);
             expect(mockConfig.get).toHaveBeenCalledWith('cachingEnabled', true);

@@ -40,17 +40,19 @@ const defaults_1 = require("./themes/defaults");
  * Manages themes for the Copilot PPA UI
  */
 class ThemeManager {
+    static instance;
+    themes = [];
+    activeThemeId = 'default';
+    context;
+    uiLayoutOptions = {
+        chatInputPosition: 'bottom',
+        showTimestamps: true,
+        showAvatars: true,
+        compactMode: false,
+        expandCodeBlocks: true,
+        wordWrap: true
+    };
     constructor(context) {
-        this.themes = [];
-        this.activeThemeId = 'default';
-        this.uiLayoutOptions = {
-            chatInputPosition: 'bottom',
-            showTimestamps: true,
-            showAvatars: true,
-            compactMode: false,
-            expandCodeBlocks: true,
-            wordWrap: true
-        };
         this.context = context;
         this.initializeDefaultThemes();
         this.loadCustomThemes();

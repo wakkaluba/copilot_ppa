@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OptimizationGeneratorService = void 0;
 const BuildScriptAnalyzerService_1 = require("./BuildScriptAnalyzerService");
 class OptimizationGeneratorService {
+    analyzer;
     constructor() {
         this.analyzer = new BuildScriptAnalyzerService_1.BuildScriptAnalyzerService();
     }

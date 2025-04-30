@@ -43,6 +43,11 @@ const ComplexityReportService_1 = require("./services/ComplexityReportService");
  * Analyzes code complexity using various tools
  */
 class ComplexityAnalyzer {
+    context;
+    jsService;
+    pyService;
+    reportService;
+    outputChannel;
     constructor(context) {
         this.context = context;
         this.jsService = new JavaScriptComplexityService_1.JavaScriptComplexityService();

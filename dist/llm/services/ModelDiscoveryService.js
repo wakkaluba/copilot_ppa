@@ -53,13 +53,16 @@ const events_1 = require("events");
 const types_1 = require("../types");
 const ModelValidationService_1 = require("./ModelValidationService");
 let ModelDiscoveryService = class ModelDiscoveryService extends events_1.EventEmitter {
+    logger;
+    validationService;
+    outputChannel;
+    modelRegistry = new Map();
+    providers = [];
+    discoveryInProgress = false;
     constructor(logger, validationService) {
         super();
         this.logger = logger;
         this.validationService = validationService;
-        this.modelRegistry = new Map();
-        this.providers = [];
-        this.discoveryInProgress = false;
         this.outputChannel = vscode.window.createOutputChannel('Model Discovery');
     }
     registerProvider(provider) {

@@ -4,10 +4,11 @@ exports.LLMProviderRegistry = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class LLMProviderRegistry extends events_1.EventEmitter {
+    providers = new Map();
+    priorityQueue = [];
+    static instance;
     constructor() {
         super();
-        this.providers = new Map();
-        this.priorityQueue = [];
     }
     static getInstance() {
         if (!LLMProviderRegistry.instance) {

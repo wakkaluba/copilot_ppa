@@ -24,7 +24,16 @@ const ModelDiscoveryService_1 = require("./services/ModelDiscoveryService");
 const ModelMetricsService_1 = require("./services/ModelMetricsService");
 const ModelValidationService_1 = require("./services/ModelValidationService");
 const TelemetryService_1 = require("../services/TelemetryService");
-let ModelService = ModelService_1 = class ModelService extends vscode_1.EventEmitter {
+let ModelService = class ModelService extends vscode_1.EventEmitter {
+    static { ModelService_1 = this; }
+    logger;
+    discoveryService;
+    metricsService;
+    validationService;
+    telemetryService;
+    static instance;
+    models = new Map();
+    activeModelId;
     constructor(logger, discoveryService, metricsService, validationService, telemetryService) {
         super();
         this.logger = logger;
@@ -32,7 +41,6 @@ let ModelService = ModelService_1 = class ModelService extends vscode_1.EventEmi
         this.metricsService = metricsService;
         this.validationService = validationService;
         this.telemetryService = telemetryService;
-        this.models = new Map();
         this.setupEventListeners();
     }
     static getInstance(logger, discoveryService, metricsService, validationService, telemetryService) {

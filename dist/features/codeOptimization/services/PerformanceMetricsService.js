@@ -16,6 +16,7 @@ exports.PerformanceMetricsService = void 0;
 const inversify_1 = require("inversify");
 const events_1 = require("events");
 let PerformanceMetricsService = class PerformanceMetricsService extends events_1.EventEmitter {
+    logger;
     constructor(logger) {
         super();
         this.logger = logger;

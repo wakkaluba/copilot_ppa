@@ -1,0 +1,37 @@
+import { ILogger } from '../../../utils/logger';
+import { ModelResourceOptimizer } from './ModelResourceOptimizer';
+import { ModelMetricsService } from './ModelMetricsService';
+import { SchedulingRequest, SchedulingResult, ScheduledTask } from '../types';
+import { EventEmitter } from 'events';
+export declare class ModelSchedulerService extends EventEmitter {
+    private readonly logger;
+    private readonly resourceOptimizer;
+    private readonly metricsService;
+    private readonly activeSchedules;
+    private readonly schedulingHistory;
+    private readonly processing;
+    private readonly taskTimeout;
+    constructor(logger: ILogger, resourceOptimizer: ModelResourceOptimizer, metricsService: ModelMetricsService);
+    scheduleModel(modelId: string, request: SchedulingRequest): Promise<SchedulingResult>;
+    getSchedule(modelId: string): ScheduledTask[];
+    getSchedulingHistory(modelId: string): SchedulingResult[];
+    private createSchedule;
+    private generateTasks;
+    private calculateTimeSlots;
+    private allocateResources;
+    private optimizeSchedule;
+    private optimizeResources;
+    private calculateScalingFactor;
+    private calculateResourceAllocation;
+    private calculateEfficiencyScore;
+    private calculateUtilizationScore;
+    private calculatePerformanceScore;
+    private validateConstraints;
+    private exceedsTimeLimit;
+    private exceedsResourceLimits;
+    private applySchedule;
+    private executeTask;
+    private addToHistory;
+    private handleError;
+    dispose(): void;
+}

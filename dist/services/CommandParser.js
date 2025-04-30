@@ -4,8 +4,11 @@ exports.CommandParser = void 0;
 const WorkspaceManager_1 = require("./WorkspaceManager");
 const logger_1 = require("../utils/logger");
 class CommandParser {
+    static instance;
+    workspaceManager;
+    logger;
+    commands = new Map();
     constructor(workspaceManager, logger) {
-        this.commands = new Map();
         this.workspaceManager = workspaceManager;
         this.logger = logger;
         // Register built-in commands

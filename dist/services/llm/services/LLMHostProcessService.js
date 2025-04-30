@@ -37,12 +37,13 @@ exports.LLMHostProcessService = void 0;
 const events_1 = require("events");
 const child_process = __importStar(require("child_process"));
 class LLMHostProcessService extends events_1.EventEmitter {
+    outputChannel;
+    process = null;
+    processInfo = null;
+    metricsInterval = null;
     constructor(outputChannel) {
         super();
         this.outputChannel = outputChannel;
-        this.process = null;
-        this.processInfo = null;
-        this.metricsInterval = null;
     }
     async startProcess(config) {
         if (this.process) {

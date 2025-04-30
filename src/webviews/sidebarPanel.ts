@@ -1,9 +1,7 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 
 export class SidebarPanel {
-  public static readonly viewType = 'localLLMAgent.sidebarPanel';
+  public static readonly viewType = 'copilot-ppa.sidebarPanel';
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
@@ -22,7 +20,7 @@ export class SidebarPanel {
     // Otherwise, create a new panel.
     const panel = vscode.window.createWebviewPanel(
       SidebarPanel.viewType,
-      'Local LLM Agent',
+      'Copilot PPA',
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -87,13 +85,13 @@ export class SidebarPanel {
   private _handleSendPrompt(prompt: string) {
     // TODO: Implement LLM communication logic
     vscode.window.showInformationMessage(`Prompt sent: ${prompt}`);
-    
+
     // Mock response for now
-    const response = `I received your message: "${prompt}"\n\nThis is a placeholder response from the Local LLM Agent. The actual LLM integration will be implemented in a future update.`;
-    
-    this._panel.webview.postMessage({ 
-      type: 'response', 
-      text: response 
+    const response = `I received your message: "${prompt}"\n\nThis is a placeholder response from Copilot PPA. The actual LLM integration will be implemented in a future update.`;
+
+    this._panel.webview.postMessage({
+      type: 'response',
+      text: response
     });
   }
 
@@ -117,7 +115,7 @@ export class SidebarPanel {
 
   private _update() {
     const webview = this._panel.webview;
-    this._panel.title = "Local LLM Agent";
+    this._panel.title = "Copilot PPA";
     this._panel.webview.html = this._getHtmlForWebview(webview);
   }
 
@@ -140,28 +138,28 @@ export class SidebarPanel {
       <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link href="${styleUri}" rel="stylesheet">
-      <title>Local LLM Agent</title>
+      <title>Copilot PPA</title>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>Local LLM Agent</h1>
+          <h1>Copilot PPA</h1>
           <div class="connection-status">
             <span class="status-indicator disconnected"></span>
             <span class="status-text">Disconnected</span>
           </div>
         </div>
-        
+
         <div class="chat-container">
           <div id="chat-messages" class="chat-messages">
             <div class="message system">
               <div class="message-content">
-                <p>Welcome to the Local LLM Agent. How can I assist you with your code today?</p>
+                <p>Welcome to Copilot PPA. How can I assist you with your code today?</p>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="input-container">
           <textarea id="prompt-input" placeholder="Type your message here..." rows="3"></textarea>
           <div class="button-container">
@@ -170,7 +168,7 @@ export class SidebarPanel {
           </div>
         </div>
       </div>
-      
+
       <script nonce="${nonce}" src="${scriptUri}"></script>
     </body>
     </html>`;

@@ -41,6 +41,9 @@ const fs = __importStar(require("fs"));
  * Class responsible for test reporting, trend analysis, and export functionality
  */
 class TestReporter {
+    context;
+    historicalData;
+    outputChannel;
     constructor(context) {
         this.context = context;
         this.historicalData = new Map();

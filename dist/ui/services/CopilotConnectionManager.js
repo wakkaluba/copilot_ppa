@@ -2,12 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotConnectionManager = void 0;
 class CopilotConnectionManager {
+    copilotApi;
+    logger;
+    isInitialized = false;
+    retryCount = 0;
+    maxRetries = 3;
     constructor(copilotApi, logger) {
         this.copilotApi = copilotApi;
         this.logger = logger;
-        this.isInitialized = false;
-        this.retryCount = 0;
-        this.maxRetries = 3;
     }
     async initialize() {
         try {

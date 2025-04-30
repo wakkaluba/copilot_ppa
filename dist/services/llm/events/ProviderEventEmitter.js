@@ -4,6 +4,7 @@ exports.ProviderEventEmitter = void 0;
 const events_1 = require("events");
 const types_1 = require("../types");
 class ProviderEventEmitter extends events_1.EventEmitter {
+    static instance;
     constructor() {
         super();
         this.setMaxListeners(50); // Support many concurrent provider listeners
