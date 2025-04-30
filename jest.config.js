@@ -1,11 +1,13 @@
 module.exports = {
     preset: 'ts-jest',
-    testEnvironment: 'node',
+    testEnvironment: 'jsdom',  // Changed from 'node' to 'jsdom'
     testMatch: [
         "**/tests/**/*.test.ts",
         "**/tests/**/*.test.js",
         "**/__tests__/**/*.test.ts",
         "**/__tests__/**/*.test.js",
+        "**/media/**/*.test.js",  // Added to include media folder tests
+        "**/media/**/*.test.ts"   // Added to include media folder tests
     ],
     testPathIgnorePatterns: ['/node_modules/', '/out/', '/dist/'],
     collectCoverage: true,
@@ -56,7 +58,9 @@ module.exports = {
     errorOnDeprecated: true,
     verbose: true,
     testEnvironmentOptions: {
-        url: 'http://localhost'
+        url: 'http://localhost',
+        resources: 'usable',  // Added for JSDOM resource handling
+        runScripts: 'dangerously'  // Added for JSDOM script execution
     },
     reporters: [
         "default"
