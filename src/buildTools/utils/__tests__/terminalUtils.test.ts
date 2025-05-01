@@ -1,10 +1,11 @@
-const vscode = require('vscode');
-const {
+import * as vscode from 'vscode';
+import {
+    clearTerminal,
     executeCommand,
     getTerminal,
     runInTerminal,
-    clearTerminal
-} = require('../terminalUtils');
+    TerminalCommand
+} from '../terminalUtils';
 
 // Mock the vscode module
 jest.mock('vscode', () => ({
@@ -23,8 +24,8 @@ jest.mock('vscode', () => ({
     }
 }));
 
-describe('Terminal Utilities JavaScript Implementation', () => {
-    let mockTerminal;
+describe('Terminal Utilities', () => {
+    let mockTerminal: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -35,8 +36,8 @@ describe('Terminal Utilities JavaScript Implementation', () => {
             dispose: jest.fn(),
             processId: Promise.resolve(12345)
         };
-        vscode.window.createTerminal.mockReturnValue(mockTerminal);
-        vscode.window.terminals = [mockTerminal];
+        (vscode.window.createTerminal as jest.Mock).mockReturnValue(mockTerminal);
+        (vscode.window.terminals as any) = [mockTerminal];
     });
 
     describe('getTerminal', () => {
@@ -57,7 +58,7 @@ describe('Terminal Utilities JavaScript Implementation', () => {
 
     describe('executeCommand', () => {
         it('should execute command in terminal', async () => {
-            const command = {
+            const command: TerminalCommand = {
                 command: 'npm run build',
                 showTerminal: true
             };
@@ -69,7 +70,7 @@ describe('Terminal Utilities JavaScript Implementation', () => {
         });
 
         it('should not show terminal if specified', async () => {
-            const command = {
+            const command: TerminalCommand = {
                 command: 'npm run build',
                 showTerminal: false
             };
@@ -81,7 +82,7 @@ describe('Terminal Utilities JavaScript Implementation', () => {
         });
 
         it('should use provided terminal name', async () => {
-            const command = {
+            const command: TerminalCommand = {
                 command: 'npm run build',
                 terminalName: 'Custom Terminal'
             };
@@ -92,7 +93,7 @@ describe('Terminal Utilities JavaScript Implementation', () => {
         });
 
         it('should handle command arrays', async () => {
-            const command = {
+            const command: TerminalCommand = {
                 command: ['cd project', 'npm run build']
             };
 

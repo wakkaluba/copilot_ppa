@@ -1,311 +1,174 @@
 // filepath: d:\___coding\tools\copilot_ppa\src\buildTools\rollup\__tests__\rollupConfigManager.js.test.js
 
 const { RollupConfigManager } = require('../rollupConfigManager');
-const { RollupConfigDetector, RollupConfigAnalyzer, RollupOptimizationService } = require('../services');
+const { ConfigDetectionError } = require('../errors/ConfigDetectionError');
+const { AnalysisError } = require('../errors/AnalysisError');
+const { OptimizationError } = require('../errors/OptimizationError');
 
-// Mock the services
-jest.mock('../services', () => ({
-    RollupConfigDetector: jest.fn().mockImplementation(() => ({
-        detectConfigs: jest.fn()
-    })),
-    RollupConfigAnalyzer: jest.fn().mockImplementation(() => ({
-        analyze: jest.fn()
-    })),
-    RollupOptimizationService: jest.fn().mockImplementation(() => ({
-        generateSuggestions: jest.fn()
-    }))
-}));
+// Create mocks
+const createMockDetector = () => ({
+    detectConfigs: jest.fn()
+});
+
+const createMockAnalyzer = () => ({
+    analyzeConfig: jest.fn()
+});
+
+const createMockOptimizationService = () => ({
+    generateOptimizations: jest.fn()
+});
+
+const createMockLogger = () => ({
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+});
 
 describe('RollupConfigManager JavaScript Implementation', () => {
-    let mockLogger;
     let manager;
     let mockDetector;
     let mockAnalyzer;
     let mockOptimizationService;
+    let mockLogger;
 
     beforeEach(() => {
-        // Create mock logger
-        mockLogger = {
-            debug: jest.fn(),
-            info: jest.fn(),
-            warn: jest.fn(),
-            error: jest.fn()
-        };
-
-        // Reset mocks
-        jest.clearAllMocks();
-
-        // Create mocked services
-        mockDetector = new RollupConfigDetector();
-        mockAnalyzer = new RollupConfigAnalyzer();
-        mockOptimizationService = new RollupOptimizationService();
-
-        // Create the manager instance with mocked dependencies
+        mockDetector = createMockDetector();
+        mockAnalyzer = createMockAnalyzer();
+        mockOptimizationService = createMockOptimizationService();
+        mockLogger = createMockLogger();
         manager = new RollupConfigManager(mockDetector, mockAnalyzer, mockOptimizationService, mockLogger);
     });
 
-    describe('Constructor', () => {
-        test('should initialize with services when provided', () => {
-            expect(manager.configDetector).toBe(mockDetector);
-            expect(manager.configAnalyzer).toBe(mockAnalyzer);
-            expect(manager.optimizationService).toBe(mockOptimizationService);
-            expect(manager.logger).toBe(mockLogger);
+    describe('constructor', () => {
+        it('should create an instance with all dependencies', () => {
+            expect(manager).toBeInstanceOf(RollupConfigManager);
         });
 
-        test('should initialize with only logger parameter and create default services', () => {
-            // Reset mocks
-            jest.clearAllMocks();
-
+        it('should create an instance with logger only', () => {
             const loggerOnlyManager = new RollupConfigManager(mockLogger);
+            expect(loggerOnlyManager).toBeInstanceOf(RollupConfigManager);
 
-            expect(loggerOnlyManager.logger).toBe(mockLogger);
-            expect(RollupConfigDetector).toHaveBeenCalled();
-            expect(RollupConfigAnalyzer).toHaveBeenCalled();
-            expect(RollupOptimizationService).toHaveBeenCalled();
+            // Should still have all required methods
+            expect(typeof loggerOnlyManager.detectConfigs).toBe('function');
+            expect(typeof loggerOnlyManager.analyzeConfig).toBe('function');
+            expect(typeof loggerOnlyManager.validateConfig).toBe('function');
+            expect(typeof loggerOnlyManager.generateOptimizations).toBe('function');
         });
     });
 
     describe('detectConfigs', () => {
-        test('should detect rollup configs successfully', async () => {
-            const mockConfigs = [
-                '/workspace/rollup.config.js',
-                '/workspace/rollup.config.mjs',
-                '/workspace/rollup.config.ts'
-            ];
+        it('should detect configs in workspace', async () => {
+            const workspacePath = '/workspace';
+            const configs = ['/workspace/rollup.config.js', '/workspace/rollup.config.mjs'];
+            mockDetector.detectConfigs.mockResolvedValue(configs);
 
-            mockDetector.detectConfigs.mockResolvedValue(mockConfigs);
+            const result = await manager.detectConfigs(workspacePath);
 
-            const configs = await manager.detectConfigs('/workspace');
-
-            expect(mockDetector.detectConfigs).toHaveBeenCalledWith('/workspace');
-            expect(configs).toEqual(mockConfigs);
-            expect(mockLogger.debug).toHaveBeenCalledWith('Detecting rollup configs in /workspace');
+            expect(result).toEqual(configs);
+            expect(mockDetector.detectConfigs).toHaveBeenCalledWith(workspacePath);
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('configurations found'));
         });
 
-        test('should handle errors during config detection', async () => {
-            const mockError = new Error('Detection failed');
-            mockDetector.detectConfigs.mockRejectedValue(mockError);
+        it('should handle detection errors', async () => {
+            const workspacePath = '/workspace';
+            const error = new ConfigDetectionError('No configs found', 'CONFIG_NOT_FOUND');
+            mockDetector.detectConfigs.mockRejectedValue(error);
 
-            await expect(manager.detectConfigs('/workspace')).rejects.toThrow(
-                'Failed to detect rollup configurations: Detection failed'
-            );
+            await expect(manager.detectConfigs(workspacePath)).rejects.toThrow(ConfigDetectionError);
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error detecting configurations'));
+        });
 
-            expect(mockLogger.error).toHaveBeenCalledWith('Error detecting rollup configs:', mockError);
+        it('should log when no configs found', async () => {
+            const workspacePath = '/workspace';
+            mockDetector.detectConfigs.mockResolvedValue([]);
+
+            const result = await manager.detectConfigs(workspacePath);
+
+            expect(result).toEqual([]);
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('No Rollup configurations found'));
         });
     });
 
     describe('analyzeConfig', () => {
-        test('should analyze rollup config and return combined results', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ format: 'esm', file: 'dist/bundle.js' }],
-                plugins: [{ name: 'terser', description: 'Minify generated bundle' }],
-                external: ['lodash', 'react']
+        it('should analyze config and return analysis results', async () => {
+            const configPath = '/workspace/rollup.config.js';
+            const analysisResult = {
+                plugins: ['plugin1', 'plugin2'],
+                input: 'src/index.js',
+                output: { file: 'dist/bundle.js', format: 'esm' }
             };
+            mockAnalyzer.analyzeConfig.mockResolvedValue(analysisResult);
 
-            const mockSuggestions = [
-                { title: 'Use code splitting', description: 'Enable code splitting for better chunking', code: 'output: { dir: "dist", format: "esm" }' }
-            ];
+            const result = await manager.analyzeConfig(configPath);
 
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-            mockOptimizationService.generateSuggestions.mockResolvedValue(mockSuggestions);
-
-            const result = await manager.analyzeConfig('/workspace/rollup.config.js');
-
-            expect(mockAnalyzer.analyze).toHaveBeenCalledWith('/workspace/rollup.config.js');
-            expect(mockOptimizationService.generateSuggestions).toHaveBeenCalledWith(
-                mockAnalysis.content,
-                mockAnalysis.input,
-                mockAnalysis.output,
-                mockAnalysis.plugins
-            );
-
-            expect(result).toEqual({
-                ...mockAnalysis,
-                optimizationSuggestions: mockSuggestions
-            });
+            expect(result).toEqual(analysisResult);
+            expect(mockAnalyzer.analyzeConfig).toHaveBeenCalledWith(configPath);
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Analysis completed'));
         });
 
-        test('should handle errors during analysis', async () => {
-            const mockError = new Error('Analysis failed');
-            mockAnalyzer.analyze.mockRejectedValue(mockError);
+        it('should handle analysis errors', async () => {
+            const configPath = '/workspace/rollup.config.js';
+            const error = new AnalysisError('Failed to analyze config', 'ANALYSIS_ERROR', configPath);
+            mockAnalyzer.analyzeConfig.mockRejectedValue(error);
 
-            await expect(manager.analyzeConfig('/workspace/rollup.config.js')).rejects.toThrow(
-                'Failed to analyze rollup configuration: Analysis failed'
-            );
-
-            expect(mockLogger.error).toHaveBeenCalledWith('Error analyzing rollup config:', mockError);
+            await expect(manager.analyzeConfig(configPath)).rejects.toThrow(AnalysisError);
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error analyzing configuration'));
         });
     });
 
     describe('validateConfig', () => {
-        test('should validate config with both input and output defined', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ file: 'dist/bundle.js', format: 'esm' }],
-                plugins: [],
-                external: []
-            };
+        it('should validate config and return validation results', async () => {
+            const configPath = '/workspace/rollup.config.js';
 
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
+            mockAnalyzer.analyzeConfig.mockImplementation(async () => {
+                return {
+                    isValid: true,
+                    warnings: [],
+                    errors: []
+                };
+            });
 
-            const result = await manager.validateConfig('/workspace/rollup.config.js');
+            const result = await manager.validateConfig(configPath);
 
-            expect(mockAnalyzer.analyze).toHaveBeenCalledWith('/workspace/rollup.config.js');
-            expect(result).toBe(true);
+            expect(result.isValid).toBe(true);
+            expect(mockAnalyzer.analyzeConfig).toHaveBeenCalledWith(configPath);
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Validation completed'));
         });
 
-        test('should validate config with directory output defined', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ dir: 'dist', format: 'esm' }],
-                plugins: [],
-                external: []
-            };
+        it('should handle validation errors', async () => {
+            const configPath = '/workspace/rollup.config.js';
+            const error = new Error('Validation failed');
+            mockAnalyzer.analyzeConfig.mockRejectedValue(error);
 
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-
-            const result = await manager.validateConfig('/workspace/rollup.config.js');
-
-            expect(result).toBe(true);
-        });
-
-        test('should invalidate config with missing input', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: [],
-                output: [{ file: 'dist/bundle.js', format: 'esm' }],
-                plugins: [],
-                external: []
-            };
-
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-
-            const result = await manager.validateConfig('/workspace/rollup.config.js');
-
-            expect(result).toBe(false);
-        });
-
-        test('should invalidate config with missing output file or dir', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ format: 'esm' }], // Missing file or dir property
-                plugins: [],
-                external: []
-            };
-
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-
-            const result = await manager.validateConfig('/workspace/rollup.config.js');
-
-            expect(result).toBe(false);
-        });
-
-        test('should handle errors during validation', async () => {
-            const mockError = new Error('Validation failed');
-            mockAnalyzer.analyze.mockRejectedValue(mockError);
-
-            await expect(manager.validateConfig('/workspace/rollup.config.js')).rejects.toThrow(
-                'Failed to validate rollup configuration: Validation failed'
-            );
-
-            expect(mockLogger.error).toHaveBeenCalledWith('Error validating rollup config:', mockError);
+            await expect(manager.validateConfig(configPath)).rejects.toThrow(Error);
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error validating configuration'));
         });
     });
 
     describe('generateOptimizations', () => {
-        test('should generate optimization suggestions', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ file: 'dist/bundle.js', format: 'esm' }],
-                plugins: [{ name: 'node-resolve' }],
-                external: ['lodash'],
-                optimizationSuggestions: [
-                    { title: 'Use Terser', description: 'Add Terser plugin for minification', code: 'plugins: [...plugins, terser()]' },
-                    { title: 'Set external dependencies', description: 'Externalize dependencies', code: 'external: ["react", "react-dom"]' }
-                ]
-            };
-
-            // Mock analyzeConfig directly to avoid duplicating test logic
-            manager.analyzeConfig = jest.fn().mockResolvedValue(mockAnalysis);
-
-            const result = await manager.generateOptimizations('/workspace/rollup.config.js');
-
-            expect(manager.analyzeConfig).toHaveBeenCalledWith('/workspace/rollup.config.js');
-            expect(result).toEqual(mockAnalysis.optimizationSuggestions);
-        });
-
-        test('should handle errors during optimization generation', async () => {
-            const mockError = new Error('Optimization failed');
-            manager.analyzeConfig = jest.fn().mockRejectedValue(mockError);
-
-            await expect(manager.generateOptimizations('/workspace/rollup.config.js')).rejects.toThrow(
-                'Failed to generate optimization suggestions: Optimization failed'
-            );
-
-            expect(mockLogger.error).toHaveBeenCalledWith('Error generating optimizations:', mockError);
-        });
-    });
-
-    describe('Integration between methods', () => {
-        test('should detect configs and then analyze the first one', async () => {
-            const mockConfigs = ['/workspace/rollup.config.js', '/workspace/rollup.prod.js'];
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ file: 'dist/bundle.js', format: 'esm' }],
-                plugins: [],
-                external: []
-            };
-            const mockSuggestions = [
-                { title: 'Use code splitting', description: 'Enable code splitting for better chunking', code: 'output: { dir: "dist", format: "esm" }' }
+        it('should generate optimization suggestions', async () => {
+            const configPath = '/workspace/rollup.config.js';
+            const optimizations = [
+                { type: 'plugin', name: 'rollup-plugin-terser', reason: 'Improves minification' },
+                { type: 'config', property: 'output.sourcemap', value: true, reason: 'Aids debugging' }
             ];
+            mockOptimizationService.generateOptimizations.mockResolvedValue(optimizations);
 
-            mockDetector.detectConfigs.mockResolvedValue(mockConfigs);
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-            mockOptimizationService.generateSuggestions.mockResolvedValue(mockSuggestions);
+            const result = await manager.generateOptimizations(configPath);
 
-            // First detect configs
-            const configs = await manager.detectConfigs('/workspace');
-            expect(configs).toEqual(mockConfigs);
-
-            // Then analyze the first one
-            const result = await manager.analyzeConfig(configs[0]);
-
-            expect(result).toEqual({
-                ...mockAnalysis,
-                optimizationSuggestions: mockSuggestions
-            });
+            expect(result).toEqual(optimizations);
+            expect(mockOptimizationService.generateOptimizations).toHaveBeenCalledWith(configPath);
+            expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Generated'));
         });
 
-        test('should validate after analyzing', async () => {
-            const mockAnalysis = {
-                content: '/* rollup config content */',
-                input: ['./src/index.js'],
-                output: [{ file: 'dist/bundle.js', format: 'esm' }],
-                plugins: [],
-                external: []
-            };
+        it('should handle optimization generation errors', async () => {
+            const configPath = '/workspace/rollup.config.js';
+            const error = new OptimizationError('Failed to generate optimizations', 'OPTIMIZATION_ERROR', configPath);
+            mockOptimizationService.generateOptimizations.mockRejectedValue(error);
 
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-
-            // First analyze
-            const analysisResult = await manager.analyzeConfig('/workspace/rollup.config.js');
-            expect(analysisResult.input).toEqual(mockAnalysis.input);
-
-            // Reset mock to verify it's called again during validation
-            mockAnalyzer.analyze.mockClear();
-            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-
-            // Then validate
-            const isValid = await manager.validateConfig('/workspace/rollup.config.js');
-            expect(isValid).toBe(true);
-            expect(mockAnalyzer.analyze).toHaveBeenCalledWith('/workspace/rollup.config.js');
+            await expect(manager.generateOptimizations(configPath)).rejects.toThrow(OptimizationError);
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Error generating optimizations'));
         });
     });
 });

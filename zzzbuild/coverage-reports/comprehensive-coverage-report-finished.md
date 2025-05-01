@@ -142,6 +142,8 @@
     - Tested URI mock implementation
     - Validated VS Code types mock implementation
     - Verified mock behavior consistency
+- `src/buildTools/buildToolsManager.ts`
+- `src/buildTools/optimization/services/BuildScriptAnalyzerService.ts`
 - Added comprehensive tests for `src/buildTools/buildScriptOptimizer.ts` module
     - Created unit tests for script analysis and optimization functionality
     - Added test coverage for error handling
@@ -175,3 +177,144 @@
     - Added test coverage for processRequest abstract method
     - Verified model manager integration
     - Tested inheritance functionality
+- Added comprehensive tests for BuildToolsManager
+    - Created unit tests for webpack configuration detection
+    - Added test coverage for webpack optimization
+    - Tested bundle size analysis functionality
+    - Validated resource cleanup in dispose method
+    - Verified error handling for missing configurations
+    - Added tests for handling build directory detection
+    - Added tests for configuration analysis and rendering
+    - Added tests for build script optimization
+    - Added tests for file system monitoring
+- Added comprehensive tests for BundleAnalyzer
+    - Created unit tests for directory analysis
+    - Added test coverage for size calculations
+    - Tested recommendation generation
+    - Validated duplicate resource detection
+    - Added tests for CSS/JS/Image optimization suggestions
+- Added comprehensive tests for `src/__mocks__/vscode.js` module
+    - Created unit tests for window namespace mocking
+    - Added test coverage for workspace namespace mocking
+    - Added test coverage for workspace namespace mocking
+    - Verified commands namespace mocking
+    - Tested URI mock implementation
+    - Validated VS Code types mock implementation
+    - Verified mock behavior consistency
+- Added comprehensive tests for `src/services/testRunner/codeCoverageService.ts` module
+    - Created unit tests for code coverage configuration handling
+    - Added test coverage for report format detection
+    - Verified threshold validation functionality
+    - Tested reporting directory management
+    - Validated coverage report generation
+    - Verified HTML report parsing
+- Added comprehensive tests for `src/services/testRunner/services/CoverageToolService.ts` module
+    - Created unit tests for coverage tool execution
+    - Added test coverage for command formatting
+    - Verified different tool integrations (Jest, Istanbul, NYC)
+    - Tested error handling for missing tools
+    - Validated output parsing and normalization
+- Added comprehensive tests for `src/services/testRunner/services/CoverageParserService.ts` module
+    - Created unit tests for HTML report parsing
+    - Added test coverage for JSON report interpretation
+    - Verified coverage percentage extraction
+    - Tested file-specific coverage metrics
+    - Validated error handling for malformed reports
+- Added comprehensive tests for `src/services/testRunner/testRunnerService.ts` module
+    - Created unit tests for test runner orchestration
+    - Added test coverage for multiple test types (unit, integration, E2E, performance)
+    - Verified static analysis execution
+    - Tested code coverage functionality
+    - Validated security testing features
+    - Confirmed proper resource cleanup in dispose method
+    - Tested error handling across all test runner methods
+    - Added tests for constructor error handling
+- Added comprehensive tests for `src/services/staticAnalysis/StaticAnalysisServiceImpl.ts` module
+    - Created unit tests for ESLint and Prettier analysis integration
+    - Added test coverage for both mock and real linter implementations
+    - Verified error handling for both linting and formatting operations
+    - Tested edge cases including file read errors and missing Prettier methods
+    - Validated test result reporting for both successful and failed analyses
+    - Added tests for file format checking workflow
+    - Tested graceful fallback to mock implementations when real tools unavailable
+- Added comprehensive tests for `src/buildTools/buildToolsManager.js` module
+    - Created unit tests for command registration functionality
+    - Added test coverage for webpack configuration detection
+    - Verified bundle size analysis capabilities
+    - Tested file size formatting utility functions
+    - Added test coverage for build script optimization
+    - Validated error handling for missing configuration files
+    - Tested resource cleanup in dispose method
+    - Verified webpack recommendations generation
+- `src/buildTools/optimization/services/BuildScriptAnalyzerService.ts`
+- `src/buildTools/optimization/services/OptimizationGeneratorService.ts`
+- `src/buildTools/optimization/services/PackageJsonFileService.ts`
+- `src/buildTools/optimization/services/UserInteractionService.ts`
+- `src/buildTools/optimization/types.ts`
+- `src/buildTools/optimization/types/index.ts`
+- Added comprehensive tests for `src/buildTools/optimization/buildScriptOptimizer.js` module
+    - Created unit tests for cross-env suggestion functionality
+    - Added test coverage for parallel execution optimization
+    - Verified webpack and TypeScript-specific optimizations
+    - Tested build script cleaning and environment configurations
+    - Validated edge cases with non-build scripts
+    - Added tests for error handling with missing or invalid package.json
+    - Tested suggestions for environment-specific configurations
+    - Verified proper handling of projects without scripts
+- Added comprehensive tests for `src/buildTools/optimization/services/BuildScriptAnalyzerService.js` module
+    - Created unit tests for analyzing webpack and TypeScript build scripts
+    - Added test coverage for environment variable detection
+    - Verified sequential command execution analysis
+    - Tested identification of build output cleaning scripts
+    - Validated cross-platform compatibility issue detection
+    - Added tests for memory settings analysis
+    - Tested build tool identification logic
+    - Verified script complexity analysis
+    - Validated lifecycle script detection
+    - Tested error handling with empty or null script objects
+- Added comprehensive tests for `src/buildTools/optimization/services/OptimizationGeneratorService.js` module
+    - Created unit tests for cross-env suggestion generation
+    - Added test coverage for parallel execution optimization suggestions
+    - Verified webpack optimization recommendations
+    - Tested TypeScript-specific optimization suggestions
+    - Validated build output cleaning suggestions
+    - Added tests for environment-specific configuration recommendations
+    - Tested memory optimization suggestions for large builds
+    - Verified cache optimization suggestions
+    - Validated bundle analysis tool recommendations
+    - Tested suggestion prioritization logic
+    - Verified duplicate suggestion prevention
+- Added comprehensive tests for `src/buildTools/optimization/services/PackageJsonFileService.js` module
+    - Created unit tests for package.json file location functionality
+    - Added test coverage for file reading and parsing
+    - Verified handling of JSON parse errors
+    - Tested navigation through parent directories
+    - Validated error handling for missing files
+    - Added tests for package.json writing functionality
+    - Tested script extraction and update operations
+    - Verified proper formatting when saving files
+    - Validated handling of missing scripts section
+    - Tested error cases for file system operations
+- Added comprehensive tests for `src/buildTools/optimization/services/UserInteractionService.js` module
+    - Created unit tests for information message display functionality
+    - Added test coverage for warning and error message displays
+    - Verified confirmation dialog behavior with various responses
+    - Tested quick pick selection mechanisms
+    - Validated input box text collection
+    - Added tests for progress notification functionality
+    - Tested message display with multiple options
+    - Verified proper handling of canceled operations
+    - Validated progress reporting during long-running tasks
+    - Tested return values from various user interactions
+- Added comprehensive tests for `src/buildTools/optimization/types.js` module
+    - Created unit tests for type definition exports
+    - Added test coverage for script analysis interfaces
+    - Verified optimization type enum values
+    - Tested build tool type definitions
+    - Validated script complexity analysis interfaces
+    - Added tests for environment variable analysis interfaces
+    - Tested command type enumerations
+    - Verified package.json interfaces
+    - Validated optimization suggestion interfaces
+    - Tested build script optimizer interface exports
+
