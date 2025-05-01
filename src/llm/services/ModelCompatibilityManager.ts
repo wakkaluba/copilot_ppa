@@ -1,29 +1,101 @@
-import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
+import { inject, injectable } from 'inversify';
+import * as vscode from 'vscode';
 import { ILogger } from '../../services/logging/ILogger';
-import { ModelRequirements, HardwareSpecs, LLMModelInfo } from '../types';
+import { HardwareSpecs, ILLMModelInfo, ModelRequirements } from '../types';
+
+export interface ICompatibilityMatrix {
+    modelId: string;
+    compatibleWith: string[];
+    incompatibleWith: string[];
+    reason?: Record<string, string>;
+}
+
+export interface ICompatibilityCheckResult {
+    isCompatible: boolean;
+    issues: string[];
+    recommendations?: string[];
+}
+
+export interface ICompatibilityRule {
+    id: string;
+    check: (source: ILLMModelInfo, target: ILLMModelInfo) => ICompatibilityCheckResult;
+}
 
 @injectable()
 export class ModelCompatibilityManager extends EventEmitter implements vscode.Disposable {
     private readonly compatibilityCache = new Map<string, boolean>();
     private readonly outputChannel: vscode.OutputChannel;
+    private readonly compatibilityMap = new Map<string, ICompatibilityMatrix>();
+    private readonly rules: ICompatibilityRule[] = [];
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger
     ) {
         super();
         this.outputChannel = vscode.window.createOutputChannel('Model Compatibility');
+        this.initializeDefaultRules();
+    }
+
+    private initializeDefaultRules(): void {
+        this.rules.push({
+            id: 'provider-compatibility',
+            check: (source, target) => ({
+                isCompatible: source.provider === target.provider,
+                issues: source.provider !== target.provider ?
+                    [`Provider mismatch: ${source.provider} vs ${target.provider}`] : []
+            })
+        });
+
+        // Add more default rules as needed
+    }
+
+    public addRule(rule: ICompatibilityRule): void {
+        this.rules.push(rule);
+        this.emit('ruleAdded', rule);
+    }
+
+    public async checkCompatibility(sourceId: string, targetId: string): Promise<ICompatibilityCheckResult> {
+        try {
+            const matrix = this.compatibilityMap.get(sourceId);
+            if (matrix) {
+                const isCompatible = matrix.compatibleWith.includes(targetId);
+                return {
+                    isCompatible,
+                    issues: isCompatible ? [] : [matrix.reason?.[targetId] || 'Unknown compatibility issue']
+                };
+            }
+
+            // If no cached result, perform full check
+            return this.performCompatibilityCheck(sourceId, targetId);
+        } catch (error) {
+            this.handleError('Failed to check compatibility', error as Error);
+            throw error;
+        }
+    }
+
+    private async performCompatibilityCheck(sourceId: string, targetId: string): Promise<ICompatibilityCheckResult> {
+        // Implementation would integrate with actual model info and validation
+        throw new Error('Method not implemented');
+    }
+
+    public updateCompatibilityMatrix(matrix: ICompatibilityMatrix): void {
+        this.compatibilityMap.set(matrix.modelId, matrix);
+        this.emit('matrixUpdated', matrix);
+    }
+
+    public getCompatibilityMatrix(modelId: string): ICompatibilityMatrix | undefined {
+        return this.compatibilityMap.get(modelId);
     }
 
     public async checkModelCompatibility(
-        model: LLMModelInfo,
+        model: ILLMModelInfo,
         hardware: HardwareSpecs
     ): Promise<{ compatible: boolean; issues: string[] }> {
         try {
             const cacheKey = `${model.id}-${this.getHardwareHash(hardware)}`;
             if (this.compatibilityCache.has(cacheKey)) {
-                return { 
+                return {
                     compatible: this.compatibilityCache.get(cacheKey)!,
                     issues: []
                 };
@@ -57,7 +129,7 @@ export class ModelCompatibilityManager extends EventEmitter implements vscode.Di
 
             const compatible = issues.length === 0;
             this.compatibilityCache.set(cacheKey, compatible);
-            
+
             this.logCompatibilityCheck(model, hardware, compatible, issues);
             this.emit('compatibilityChecked', { modelId: model.id, compatible, issues });
 
@@ -93,7 +165,7 @@ export class ModelCompatibilityManager extends EventEmitter implements vscode.Di
         }
     }
 
-    private inferModelRequirements(model: LLMModelInfo): ModelRequirements {
+    private inferModelRequirements(model: ILLMModelInfo): ModelRequirements {
         const requirements: ModelRequirements = {
             minRAM: 4096,  // Base 4GB RAM requirement
             minCPUCores: 2 // Base 2 cores requirement
@@ -136,7 +208,7 @@ export class ModelCompatibilityManager extends EventEmitter implements vscode.Di
     }
 
     private logCompatibilityCheck(
-        model: LLMModelInfo,
+        model: ILLMModelInfo,
         hardware: HardwareSpecs,
         compatible: boolean,
         issues: string[]
@@ -144,7 +216,7 @@ export class ModelCompatibilityManager extends EventEmitter implements vscode.Di
         this.outputChannel.appendLine('\nModel Compatibility Check:');
         this.outputChannel.appendLine(`Model: ${model.id}`);
         this.outputChannel.appendLine(`Compatible: ${compatible}`);
-        
+
         if (issues.length > 0) {
             this.outputChannel.appendLine('Issues:');
             issues.forEach(issue => this.outputChannel.appendLine(`- ${issue}`));
@@ -158,7 +230,7 @@ export class ModelCompatibilityManager extends EventEmitter implements vscode.Di
             this.outputChannel.appendLine(`- CUDA: ${hardware.gpu.cudaSupport ? 'Yes' : 'No'}`);
         }
         this.outputChannel.appendLine(`- CPU Cores: ${hardware.cpu.cores}`);
-        
+
         this.outputChannel.appendLine(`Timestamp: ${new Date().toISOString()}`);
     }
 

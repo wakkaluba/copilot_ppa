@@ -1,21 +1,20 @@
-import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../../../logging/ILogger';
-import { EventEmitter } from 'events';
-import { LLMModelInfo, ModelEvent } from '../types';
-import { LLMCacheManager } from '../LLMCacheManager';
-import { LLMModelValidator } from './LLMModelValidator';
+import { ILLMCacheManager } from '../LLMCacheManager';
+import { ILLMModelInfo, ModelEvent } from '../types';
+import { ILLMModelValidator } from './LLMModelValidator';
 
 @injectable()
 export class LLMModelInfoService extends EventEmitter {
-    private readonly modelCache = new Map<string, LLMModelInfo>();
-    private readonly cacheManager: LLMCacheManager;
-    private readonly validator: LLMModelValidator;
+    private readonly modelCache = new Map<string, ILLMModelInfo>();
+    private readonly cacheManager: ILLMCacheManager;
+    private readonly validator: ILLMModelValidator;
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger,
-        @inject(LLMCacheManager) cacheManager: LLMCacheManager,
-        @inject(LLMModelValidator) validator: LLMModelValidator
+        @inject(ILLMCacheManager) cacheManager: ILLMCacheManager,
+        @inject(ILLMModelValidator) validator: ILLMModelValidator
     ) {
         super();
         this.cacheManager = cacheManager;
@@ -28,7 +27,7 @@ export class LLMModelInfoService extends EventEmitter {
         this.validator.on('validationComplete', this.handleValidationComplete.bind(this));
     }
 
-    public async getModelInfo(modelId: string, force: boolean = false): Promise<LLMModelInfo> {
+    public async getModelInfo(modelId: string, force: boolean = false): Promise<ILLMModelInfo> {
         try {
             // Check memory cache first
             if (!force && this.modelCache.has(modelId)) {
@@ -53,7 +52,7 @@ export class LLMModelInfoService extends EventEmitter {
         }
     }
 
-    private async loadModelInfo(modelId: string): Promise<LLMModelInfo> {
+    private async loadModelInfo(modelId: string): Promise<ILLMModelInfo> {
         try {
             // This would integrate with the model provider to get fresh info
             throw new Error('Method not implemented');
@@ -63,7 +62,7 @@ export class LLMModelInfoService extends EventEmitter {
         }
     }
 
-    public async updateModelInfo(modelId: string, info: Partial<LLMModelInfo>): Promise<void> {
+    public async updateModelInfo(modelId: string, info: Partial<ILLMModelInfo>): Promise<void> {
         try {
             const existing = await this.getModelInfo(modelId);
             const updated = { ...existing, ...info };
@@ -75,7 +74,7 @@ export class LLMModelInfoService extends EventEmitter {
         }
     }
 
-    private async validateAndCache(info: LLMModelInfo): Promise<void> {
+    private async validateAndCache(info: ILLMModelInfo): Promise<void> {
         try {
             const validationResult = await this.validator.validateModel(info);
             if (!validationResult.isValid) {
@@ -84,7 +83,7 @@ export class LLMModelInfoService extends EventEmitter {
 
             this.modelCache.set(info.id, info);
             await this.cacheManager.cacheModelInfo(info.id, info);
-            
+
             this.emit(ModelEvent.ModelInfoUpdated, {
                 modelId: info.id,
                 info
@@ -95,7 +94,7 @@ export class LLMModelInfoService extends EventEmitter {
         }
     }
 
-    public async getAvailableModels(): Promise<LLMModelInfo[]> {
+    public async getAvailableModels(): Promise<ILLMModelInfo[]> {
         return Array.from(this.modelCache.values()).map(info => ({ ...info }));
     }
 
@@ -110,7 +109,7 @@ export class LLMModelInfoService extends EventEmitter {
         this.emit('cacheCleared', modelId);
     }
 
-    private handleCacheUpdate(event: { modelId: string; info: LLMModelInfo }): void {
+    private handleCacheUpdate(event: { modelId: string; info: ILLMModelInfo }): void {
         this.modelCache.set(event.modelId, event.info);
         this.emit(ModelEvent.ModelInfoUpdated, event);
     }

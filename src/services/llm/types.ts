@@ -45,14 +45,13 @@ export interface ProviderConfig {
     };
 }
 
-export interface HealthCheckResult {
+export interface IHealthCheckResult {
     isHealthy: boolean;
-    latency: number;
     timestamp: number;
-    error?: Error;
+    details?: Record<string, any>;
 }
 
-export interface LLMModelInfo {
+export interface ILLMModelInfo {
     id: string;
     name: string;
     provider: string;
@@ -72,38 +71,38 @@ export enum ProviderState {
     Error = 'error'
 }
 
-export interface ProviderStatus {
+export interface IProviderStatus {
     state: ProviderState;
     activeModel?: string;
     error?: Error;
-    lastHealthCheck?: HealthCheckResult;
+    lastHealthCheck?: IHealthCheckResult;
 }
 
 export interface LLMProvider extends EventEmitter {
     readonly id: string;
     readonly name: string;
-    
+
     isAvailable(): Promise<boolean>;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
-    getStatus(): ProviderStatus;
-    getAvailableModels(): Promise<LLMModelInfo[]>;
-    getModelInfo(modelId: string): Promise<LLMModelInfo>;
+    getStatus(): IProviderStatus;
+    getAvailableModels(): Promise<ILLMModelInfo[]>;
+    getModelInfo(modelId: string): Promise<ILLMModelInfo>;
     getCapabilities(): Promise<ProviderCapabilities>;
-    
+
     generateCompletion(
         model: string,
         prompt: string,
         systemPrompt?: string,
         options?: LLMRequestOptions
     ): Promise<LLMResponse>;
-    
+
     generateChatCompletion(
         model: string,
         messages: LLMMessage[],
         options?: LLMRequestOptions
     ): Promise<LLMResponse>;
-    
+
     streamCompletion(
         model: string,
         prompt: string,
@@ -111,7 +110,7 @@ export interface LLMProvider extends EventEmitter {
         options?: LLMRequestOptions,
         callback?: (event: LLMStreamEvent) => void
     ): Promise<void>;
-    
+
     streamChatCompletion(
         model: string,
         messages: LLMMessage[],

@@ -1,151 +1,267 @@
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
+import { inject, injectable } from 'inversify';
 import { ILogger } from '../../utils/logger';
-import { ModelMetricsService } from './ModelMetricsService';
-import { ModelHealthMonitor } from './ModelHealthMonitor';
+import { ILLMRequest } from '../types';
 
-export interface OptimizationResult {
+export interface IResourceAllocation {
+    requestId: string;
     modelId: string;
-    timestamp: number;
-    recommendations: ResourceRecommendation[];
-    metrics: ResourceMetrics;
-    confidence: number;
+    memory: number;
+    cpu: number;
+    gpu?: number;
+    allocated: boolean;
+    startTime: number;
+    endTime?: number;
 }
 
-export interface ResourceRecommendation {
-    type: 'cpu' | 'memory' | 'gpu' | 'batch' | 'thread';
+export interface IResourceUsage {
+    memory: {
+        total: number;
+        used: number;
+        available: number;
+    };
+    cpu: {
+        total: number;
+        used: number;
+        available: number;
+    };
+    gpu?: {
+        total: number;
+        used: number;
+        available: number;
+    };
+}
+
+export interface IResourceConstraints {
+    maxMemoryPerRequest: number;
+    maxCpuPerRequest: number;
+    maxGpuPerRequest?: number;
+    maxConcurrentRequests: number;
+}
+
+export interface IOptimizationSuggestion {
+    type: 'scale_up' | 'scale_down' | 'rebalance';
+    priority: 'high' | 'medium' | 'low';
+    resource: 'memory' | 'cpu' | 'gpu';
     currentValue: number;
-    recommendedValue: number;
-    impact: number;
+    suggestedValue: number;
     reason: string;
 }
 
-export interface ResourceMetrics {
-    cpuUtilization: number;
-    memoryUtilization: number;
-    gpuUtilization?: number;
-    latency: number;
-    throughput: number;
-    errorRate: number;
-}
-
 @injectable()
-export class ModelResourceOptimizer extends EventEmitter {
+export class ModelResourceOptimizer extends EventEmitter implements IModelResourceOptimizer {
+    private readonly allocations = new Map<string, IResourceAllocation>();
+    private readonly constraints: IResourceConstraints = {
+        maxMemoryPerRequest: 1024 * 1024 * 1024, // 1GB
+        maxCpuPerRequest: 1,
+        maxGpuPerRequest: 1,
+        maxConcurrentRequests: 10
+    };
+
     constructor(
-        @inject(ILogger) private readonly logger: ILogger,
-        @inject(ModelMetricsService) private readonly metricsService: ModelMetricsService,
-        @inject(ModelHealthMonitor) private readonly healthMonitor: ModelHealthMonitor
+        @inject(ILogger) private readonly logger: ILogger
     ) {
         super();
     }
 
-    public async optimizeResources(modelId: string): Promise<OptimizationResult> {
+    public async allocateResources(request: ILLMRequest): Promise<IResourceAllocation> {
         try {
-            const metrics = await this.gatherMetrics(modelId);
-            const recommendations = this.generateRecommendations(metrics);
-            
-            const result: OptimizationResult = {
-                modelId,
-                timestamp: new Date(),
-                recommendations,
-                metrics,
-                confidence: this.calculateConfidence(recommendations)
+            await this.waitForAvailableResources();
+
+            const allocation: IResourceAllocation = {
+                requestId: request.id,
+                modelId: request.model,
+                memory: this.calculateMemoryRequirement(request),
+                cpu: this.calculateCpuRequirement(request),
+                gpu: this.calculateGpuRequirement(request),
+                allocated: false,
+                startTime: Date.now()
             };
 
-            this.emit('optimizationCompleted', result);
-            return result;
+            if (!this.validateAllocation(allocation)) {
+                throw new Error('Resource allocation exceeds constraints');
+            }
+
+            allocation.allocated = true;
+            this.allocations.set(request.id, allocation);
+
+            this.emit('resourcesAllocated', allocation);
+            return allocation;
         } catch (error) {
-            this.handleError('Resource optimization failed', error);
+            this.handleError(`Failed to allocate resources for request ${request.id}`, error as Error);
             throw error;
         }
     }
 
-    private async gatherMetrics(modelId: string): Promise<ResourceMetrics> {
-        const metrics = await this.metricsService.getLatestMetrics();
-        const modelMetrics = metrics.get(modelId);
-        
-        if (!modelMetrics) {
-            throw new Error(`No metrics available for model ${modelId}`);
+    public async releaseResources(requestId: string): Promise<void> {
+        try {
+            const allocation = this.allocations.get(requestId);
+            if (!allocation) {
+                throw new Error(`No allocation found for request ${requestId}`);
+            }
+
+            allocation.endTime = Date.now();
+            allocation.allocated = false;
+            this.allocations.delete(requestId);
+
+            this.emit('resourcesReleased', {
+                requestId,
+                duration: allocation.endTime - allocation.startTime
+            });
+        } catch (error) {
+            this.handleError(`Failed to release resources for request ${requestId}`, error as Error);
+            throw error;
+        }
+    }
+
+    private calculateMemoryRequirement(request: ILLMRequest): number {
+        // This would implement actual memory calculation based on model and request parameters
+        return Math.min(
+            this.constraints.maxMemoryPerRequest,
+            1024 * 1024 * 100 // 100MB default
+        );
+    }
+
+    private calculateCpuRequirement(request: ILLMRequest): number {
+        // This would implement actual CPU calculation based on model and request parameters
+        return Math.min(
+            this.constraints.maxCpuPerRequest,
+            0.5 // 0.5 CPU cores default
+        );
+    }
+
+    private calculateGpuRequirement(request: ILLMRequest): number | undefined {
+        // This would implement actual GPU calculation based on model and request parameters
+        if (!this.constraints.maxGpuPerRequest) {
+            return undefined;
         }
 
-        return {
-            cpuUtilization: modelMetrics.resourceUtilization.cpu,
-            memoryUtilization: modelMetrics.resourceUtilization.memory,
-            gpuUtilization: modelMetrics.resourceUtilization.gpu,
-            latency: modelMetrics.latency,
-            throughput: modelMetrics.throughput,
-            errorRate: modelMetrics.errorRate
+        return Math.min(
+            this.constraints.maxGpuPerRequest,
+            0.5 // 0.5 GPU units default
+        );
+    }
+
+    private validateAllocation(allocation: IResourceAllocation): boolean {
+        if (allocation.memory > this.constraints.maxMemoryPerRequest) {
+            return false;
+        }
+
+        if (allocation.cpu > this.constraints.maxCpuPerRequest) {
+            return false;
+        }
+
+        if (allocation.gpu && this.constraints.maxGpuPerRequest &&
+            allocation.gpu > this.constraints.maxGpuPerRequest) {
+            return false;
+        }
+
+        const activeAllocations = Array.from(this.allocations.values())
+            .filter(a => a.allocated);
+
+        if (activeAllocations.length >= this.constraints.maxConcurrentRequests) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async waitForAvailableResources(): Promise<void> {
+        // This would implement actual resource waiting logic
+        return Promise.resolve();
+    }
+
+    public getCurrentResourceUsage(): IResourceUsage {
+        const activeAllocations = Array.from(this.allocations.values())
+            .filter(a => a.allocated);
+
+        const usage: IResourceUsage = {
+            memory: {
+                total: this.constraints.maxMemoryPerRequest * this.constraints.maxConcurrentRequests,
+                used: activeAllocations.reduce((sum, a) => sum + a.memory, 0),
+                available: 0
+            },
+            cpu: {
+                total: this.constraints.maxCpuPerRequest * this.constraints.maxConcurrentRequests,
+                used: activeAllocations.reduce((sum, a) => sum + a.cpu, 0),
+                available: 0
+            }
         };
+
+        usage.memory.available = usage.memory.total - usage.memory.used;
+        usage.cpu.available = usage.cpu.total - usage.cpu.used;
+
+        if (this.constraints.maxGpuPerRequest) {
+            usage.gpu = {
+                total: this.constraints.maxGpuPerRequest * this.constraints.maxConcurrentRequests,
+                used: activeAllocations.reduce((sum, a) => sum + (a.gpu || 0), 0),
+                available: 0
+            };
+            usage.gpu.available = usage.gpu.total - usage.gpu.used;
+        }
+
+        return usage;
     }
 
-    private generateRecommendations(metrics: ResourceMetrics): ResourceRecommendation[] {
-        const recommendations: ResourceRecommendation[] = [];
+    public getResourceConstraints(): IResourceConstraints {
+        return { ...this.constraints };
+    }
 
-        // CPU optimization
-        if (metrics.cpuUtilization > 80) {
-            recommendations.push({
-                type: 'cpu',
-                currentValue: metrics.cpuUtilization,
-                recommendedValue: metrics.cpuUtilization * 1.5,
-                impact: 0.8,
-                reason: 'High CPU utilization detected'
+    public updateResourceConstraints(updates: Partial<IResourceConstraints>): void {
+        Object.assign(this.constraints, updates);
+        this.emit('constraintsUpdated', this.constraints);
+    }
+
+    public getActiveAllocations(): IResourceAllocation[] {
+        return Array.from(this.allocations.values())
+            .filter(a => a.allocated);
+    }
+
+    public getOptimizationSuggestions(): IOptimizationSuggestion[] {
+        const usage = this.getCurrentResourceUsage();
+        const suggestions: IOptimizationSuggestion[] = [];
+
+        // Check memory utilization
+        const memoryUtilization = usage.memory.used / usage.memory.total;
+        if (memoryUtilization > 0.9) {
+            suggestions.push({
+                type: 'scale_up',
+                priority: 'high',
+                resource: 'memory',
+                currentValue: this.constraints.maxMemoryPerRequest,
+                suggestedValue: this.constraints.maxMemoryPerRequest * 1.5,
+                reason: 'High memory utilization'
+            });
+        } else if (memoryUtilization < 0.3) {
+            suggestions.push({
+                type: 'scale_down',
+                priority: 'medium',
+                resource: 'memory',
+                currentValue: this.constraints.maxMemoryPerRequest,
+                suggestedValue: this.constraints.maxMemoryPerRequest * 0.75,
+                reason: 'Low memory utilization'
             });
         }
 
-        // Memory optimization
-        if (metrics.memoryUtilization > 85) {
-            recommendations.push({
-                type: 'memory',
-                currentValue: metrics.memoryUtilization,
-                recommendedValue: metrics.memoryUtilization * 1.3,
-                impact: 0.7,
-                reason: 'High memory usage detected'
+        // Similar checks would be implemented for CPU and GPU
+
+        return suggestions;
+    }
+
+    private handleError(message: string, error: Error): void {
+        this.logger.error('[ModelResourceOptimizer]', message, error);
+        this.emit('error', error);
+    }
+
+    public dispose(): void {
+        // Release all allocations
+        for (const [requestId] of this.allocations) {
+            this.releaseResources(requestId).catch(error => {
+                this.logger.error(`Failed to release resources for ${requestId}`, error);
             });
         }
 
-        // GPU optimization if available
-        if (metrics.gpuUtilization !== undefined && metrics.gpuUtilization < 50) {
-            recommendations.push({
-                type: 'gpu',
-                currentValue: metrics.gpuUtilization,
-                recommendedValue: Math.min(metrics.gpuUtilization * 2, 100),
-                impact: 0.6,
-                reason: 'Low GPU utilization detected'
-            });
-        }
-
-        // Batch size optimization based on latency and throughput
-        if (metrics.latency > 100 && metrics.throughput < 1000) {
-            recommendations.push({
-                type: 'batch',
-                currentValue: this.estimateCurrentBatchSize(metrics),
-                recommendedValue: this.calculateOptimalBatchSize(metrics),
-                impact: 0.5,
-                reason: 'Suboptimal batch size for current load'
-            });
-        }
-
-        return recommendations;
-    }
-
-    private estimateCurrentBatchSize(metrics: ResourceMetrics): number {
-        return Math.ceil(metrics.throughput / (1000 / metrics.latency));
-    }
-
-    private calculateOptimalBatchSize(metrics: ResourceMetrics): number {
-        const baseBatch = Math.ceil(metrics.throughput / (500 / metrics.latency));
-        return Math.min(Math.max(baseBatch, 1), 32);
-    }
-
-    private calculateConfidence(recommendations: ResourceRecommendation[]): number {
-        if (recommendations.length === 0) return 1;
-
-        const averageImpact = recommendations.reduce((sum, rec) => sum + rec.impact, 0) / recommendations.length;
-        return Math.min(Math.max(averageImpact, 0), 1);
-    }
-
-    private handleError(message: string, error: unknown): void {
-        this.logger.error(message, { error });
-        this.emit('error', { message, error });
+        this.allocations.clear();
+        this.removeAllListeners();
     }
 }

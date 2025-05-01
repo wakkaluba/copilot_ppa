@@ -1,6 +1,67 @@
-import { ProviderCapabilities, LLMRequest, TokenUsage } from './types';
+import { EventEmitter } from 'events';
+import {
+    ILLMMessage,
+    ILLMModelInfo,
+    ILLMRequest,
+    ILLMRequestOptions,
+    ILLMResponse,
+    ILLMStreamEvent,
+    IProviderCapabilities
+} from './types';
 
-export interface LLMRequestOptions {
+export interface ILLMProvider extends EventEmitter {
+    readonly id: string;
+    readonly name: string;
+
+    getCapabilities(): IProviderCapabilities;
+    isAvailable(): Promise<boolean>;
+    getStatus(): 'active' | 'inactive' | 'error';
+
+    connect(): Promise<void>;
+    disconnect(): Promise<void>;
+    isConnected(): boolean;
+
+    completePrompt(request: ILLMRequest): Promise<ILLMResponse>;
+    streamPrompt?(request: ILLMRequest): AsyncIterable<ILLMResponse>;
+    cancelRequest(requestId: string): Promise<boolean>;
+
+    generateCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: ILLMRequestOptions
+    ): Promise<ILLMResponse>;
+
+    streamCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: ILLMRequestOptions,
+        callback?: (event: ILLMStreamEvent) => void
+    ): Promise<void>;
+
+    generateChatCompletion(
+        model: string,
+        messages: ILLMMessage[],
+        options?: ILLMRequestOptions
+    ): Promise<ILLMResponse>;
+
+    streamChatCompletion(
+        model: string,
+        messages: ILLMMessage[],
+        options?: ILLMRequestOptions,
+        callback?: (event: ILLMStreamEvent) => void
+    ): Promise<void>;
+
+    getModelInfo(modelId: string): Promise<ILLMModelInfo>;
+    getAvailableModels(): Promise<ILLMModelInfo[]>;
+
+    setOfflineMode(enabled: boolean): void;
+    cacheResponse?(prompt: string, response: ILLMResponse): Promise<void>;
+    useCachedResponse?(prompt: string): Promise<ILLMResponse | null>;
+}
+
+export interface ILLMRequestOptions {
     temperature?: number;
     maxTokens?: number;
     topP?: number;
@@ -10,7 +71,7 @@ export interface LLMRequestOptions {
     stream?: boolean;
 }
 
-export interface LLMResponse {
+export interface ILLMResponse {
     content: string;
     usage?: {
         promptTokens?: number;
@@ -21,12 +82,12 @@ export interface LLMResponse {
     finishReason?: string;
 }
 
-export interface LLMMessage {
+export interface ILLMMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
 
-export interface LLMStreamEvent {
+export interface ILLMStreamEvent {
     content: string;
     done: boolean;
 }
@@ -47,7 +108,7 @@ export interface HardwareSpecs {
 /**
  * Information about an LLM model
  */
-export interface LLMModelInfo {
+export interface ILLMModelInfo {
     id: string;
     name: string;
     provider: string;
@@ -58,74 +119,4 @@ export interface LLMModelInfo {
     fileSize?: number;
     license?: string;
     supportsFinetuning?: boolean;
-}
-
-/**
- * Base class for LLM providers
- */
-export abstract class LLMProvider {
-    /**
-     * Name of the LLM provider
-     */
-    abstract readonly name: string;
-
-    /**
-     * Indicates if the provider is available on the system
-     */
-    abstract readonly isAvailable: boolean;
-
-    /**
-     * Connect to the LLM provider
-     */
-    abstract connect(): Promise<void>;
-    
-    /**
-     * Disconnect from the LLM provider
-     */
-    abstract disconnect(): Promise<void>;
-    
-    /**
-     * Check if the provider is connected
-     */
-    abstract isConnected(): boolean;
-    
-    /**
-     * List available models from the provider
-     */
-    abstract listModels(): Promise<string[]>;
-    
-    /**
-     * Get model info
-     */
-    abstract getModelInfo(modelId: string): Promise<LLMModelInfo>;
-    
-    /**
-     * Generate a completion from the LLM
-     */
-    abstract generateCompletion(
-        model: string, 
-        prompt: string, 
-        systemPrompt?: string, 
-        options?: LLMRequestOptions
-    ): Promise<LLMResponse>;
-    
-    /**
-     * Stream a completion from the LLM
-     */
-    abstract streamCompletion(
-        model: string, 
-        prompt: string, 
-        systemPrompt?: string, 
-        options?: LLMRequestOptions,
-        callback?: (event: LLMStreamEvent) => void
-    ): Promise<void>;
-}
-
-/**
- * LLM provider with cache capabilities
- */
-export interface LLMProviderWithCache extends LLMProvider {
-    useCachedResponse(prompt: string): Promise<string | null>;
-    cacheResponse(prompt: string, response: string): Promise<void>;
-    setOfflineMode(enabled: boolean): void;
 }

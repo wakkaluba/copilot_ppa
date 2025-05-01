@@ -1,13 +1,28 @@
-import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
+import { inject, injectable } from 'inversify';
+import * as vscode from 'vscode';
 import { ILogger } from '../types';
-import { ModelConfig, LLMModelInfo } from '../types';
+
+export interface IModelConfig {
+    maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+    stopSequences?: string[];
+    [key: string]: unknown;
+}
+
+export interface IConfigValidationResult {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+}
 
 @injectable()
 export class ModelConfigurationManager extends EventEmitter implements vscode.Disposable {
-    private readonly configMap = new Map<string, ModelConfig>();
-    private readonly defaultConfigs = new Map<string, ModelConfig>();
+    private readonly configMap = new Map<string, IModelConfig>();
+    private readonly defaultConfigs = new Map<string, IModelConfig>();
     private readonly outputChannel: vscode.OutputChannel;
     private readonly storageKey = 'model-configurations';
 
@@ -19,14 +34,14 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
         this.loadPersistedConfigs();
     }
 
-    public async updateConfig(modelId: string, config: Partial<ModelConfig>): Promise<void> {
+    public async updateConfig(modelId: string, config: Partial<IModelConfig>): Promise<void> {
         try {
             const currentConfig = this.configMap.get(modelId) || this.getDefaultConfig(modelId);
             const newConfig = { ...currentConfig, ...config };
-            
+
             await this.validateConfig(newConfig);
             this.configMap.set(modelId, newConfig);
-            
+
             this.emit('configUpdated', { modelId, config: newConfig });
             this.logConfigChange(modelId, currentConfig, newConfig);
             await this.persistConfigs();
@@ -36,11 +51,11 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
         }
     }
 
-    public getConfig(modelId: string): ModelConfig {
+    public getConfig(modelId: string): IModelConfig {
         return this.configMap.get(modelId) || this.getDefaultConfig(modelId);
     }
 
-    public setDefaultConfig(modelId: string, config: ModelConfig): void {
+    public setDefaultConfig(modelId: string, config: IModelConfig): void {
         this.defaultConfigs.set(modelId, config);
         this.emit('defaultConfigSet', { modelId, config });
     }
@@ -57,7 +72,7 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
         }
     }
 
-    private getDefaultConfig(modelId: string): ModelConfig {
+    private getDefaultConfig(modelId: string): IModelConfig {
         return this.defaultConfigs.get(modelId) || {
             maxTokens: 2048,
             temperature: 0.7,
@@ -68,7 +83,7 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
         };
     }
 
-    private async validateConfig(config: ModelConfig): Promise<void> {
+    private async validateConfig(config: IModelConfig): Promise<void> {
         const errors: string[] = [];
 
         // Validate maxTokens
@@ -124,7 +139,7 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
     private async loadPersistedConfigs(): Promise<void> {
         try {
             const configData = vscode.workspace.getConfiguration().get<any[]>(this.storageKey) || [];
-            
+
             for (const data of configData) {
                 if (data.modelId && data.config) {
                     await this.validateConfig(data.config);
@@ -137,20 +152,20 @@ export class ModelConfigurationManager extends EventEmitter implements vscode.Di
     }
 
     private logConfigChange(
-        modelId: string, 
-        oldConfig: ModelConfig, 
-        newConfig: ModelConfig
+        modelId: string,
+        oldConfig: IModelConfig,
+        newConfig: IModelConfig
     ): void {
         this.outputChannel.appendLine('\nModel Configuration Change:');
         this.outputChannel.appendLine(`Model: ${modelId}`);
         this.outputChannel.appendLine('Changes:');
-        
-        for (const key of Object.keys(newConfig) as Array<keyof ModelConfig>) {
+
+        for (const key of Object.keys(newConfig) as Array<keyof IModelConfig>) {
             if (oldConfig[key] !== newConfig[key]) {
                 this.outputChannel.appendLine(`  ${key}: ${oldConfig[key]} -> ${newConfig[key]}`);
             }
         }
-        
+
         this.outputChannel.appendLine(`Timestamp: ${new Date().toISOString()}`);
     }
 

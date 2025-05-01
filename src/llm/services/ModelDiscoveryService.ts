@@ -1,32 +1,31 @@
-import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { 
+import { inject, injectable } from 'inversify';
+import * as vscode from 'vscode';
+import { ILLMProvider } from '../llm-provider';
+import {
+    ILLMModelInfo,
     ILogger,
-    LLMModelInfo, 
-    ModelValidationResult,
     ModelEvent,
-    SystemInfo
+    ModelValidationResult
 } from '../types';
-import { ModelValidationService } from './ModelValidationService';
-import { LLMProvider } from '../llm-provider';
+import { IModelValidationService } from './ModelValidationService';
 
 @injectable()
 export class ModelDiscoveryService extends EventEmitter implements vscode.Disposable {
     private readonly outputChannel: vscode.OutputChannel;
-    private readonly modelRegistry = new Map<string, LLMModelInfo>();
-    private readonly providers: LLMProvider[] = [];
+    private readonly modelRegistry = new Map<string, ILLMModelInfo>();
+    private readonly providers: ILLMProvider[] = [];
     private discoveryInProgress = false;
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger,
-        @inject(ModelValidationService) private readonly validationService: ModelValidationService
+        @inject(IModelValidationService) private readonly validationService: IModelValidationService
     ) {
         super();
         this.outputChannel = vscode.window.createOutputChannel('Model Discovery');
     }
 
-    public registerProvider(provider: LLMProvider): void {
+    public registerProvider(provider: ILLMProvider): void {
         this.providers.push(provider);
         this.logger.debug(`[ModelDiscoveryService] Registered provider: ${provider.name}`);
     }
@@ -43,7 +42,7 @@ export class ModelDiscoveryService extends EventEmitter implements vscode.Dispos
         try {
             const startTime = Date.now();
             const models = await this.discoverModels();
-            
+
             this.logger.info(`[ModelDiscoveryService] Discovery completed in ${Date.now() - startTime}ms`);
             this.emit('discoveryCompleted', models);
         } catch (error) {
@@ -53,8 +52,8 @@ export class ModelDiscoveryService extends EventEmitter implements vscode.Dispos
         }
     }
 
-    private async discoverModels(): Promise<LLMModelInfo[]> {
-        const discoveredModels: LLMModelInfo[] = [];
+    private async discoverModels(): Promise<ILLMModelInfo[]> {
+        const discoveredModels: ILLMModelInfo[] = [];
 
         for (const provider of this.providers) {
             try {
@@ -80,11 +79,11 @@ export class ModelDiscoveryService extends EventEmitter implements vscode.Dispos
         return discoveredModels;
     }
 
-    public getDiscoveredModels(): LLMModelInfo[] {
+    public getDiscoveredModels(): ILLMModelInfo[] {
         return Array.from(this.modelRegistry.values());
     }
 
-    public getModel(modelId: string): LLMModelInfo | undefined {
+    public getModel(modelId: string): ILLMModelInfo | undefined {
         return this.modelRegistry.get(modelId);
     }
 
@@ -93,14 +92,14 @@ export class ModelDiscoveryService extends EventEmitter implements vscode.Dispos
         this.emit('registryCleared');
     }
 
-    private logModelDiscovered(model: LLMModelInfo, validation: ModelValidationResult): void {
+    private logModelDiscovered(model: ILLMModelInfo, validation: ModelValidationResult): void {
         this.outputChannel.appendLine(`\nDiscovered model: ${model.id}`);
         this.outputChannel.appendLine(`Provider: ${model.provider}`);
         this.outputChannel.appendLine(`Parameters: ${JSON.stringify(model.parameters)}`);
         this.outputChannel.appendLine(`Validation: Passed`);
     }
 
-    private logModelSkipped(model: LLMModelInfo, validation: ModelValidationResult): void {
+    private logModelSkipped(model: ILLMModelInfo, validation: ModelValidationResult): void {
         this.outputChannel.appendLine(`\nSkipped incompatible model: ${model.id}`);
         this.outputChannel.appendLine(`Provider: ${model.provider}`);
         this.outputChannel.appendLine(`Issues: ${validation.issues.join(', ')}`);

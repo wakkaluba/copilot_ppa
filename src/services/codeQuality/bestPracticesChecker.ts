@@ -1,16 +1,6 @@
 import * as vscode from 'vscode';
-import { BestPracticesService } from './BestPracticesService';
 import { Logger } from '../../utils/logger';
-
-export interface BestPracticeIssue {
-    file: string;
-    line: number;
-    column: number;
-    severity: 'suggestion' | 'warning' | 'error';
-    description: string;
-    recommendation: string;
-    category: 'antiPattern' | 'design' | 'consistency' | 'documentation' | 'naming';
-}
+import { BestPracticeIssue, BestPracticesService } from './BestPracticesService';
 
 /**
  * Checks and enforces best practices in code
@@ -99,17 +89,17 @@ export class BestPracticesChecker implements vscode.Disposable {
                 issue.line - 1, issue.column - 1,
                 issue.line - 1, issue.column + 20
             );
-            
+
             const diagnostic = new vscode.Diagnostic(
                 range,
                 `${issue.description}\n${issue.recommendation}`,
                 this.mapSeverityToDiagnosticSeverity(issue.severity)
             );
-            
+
             diagnostic.source = 'Best Practices';
             return diagnostic;
         });
-        
+
         this._diagnosticCollection.set(document.uri, diagnostics);
     }
 

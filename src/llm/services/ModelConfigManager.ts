@@ -1,8 +1,18 @@
-import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
 import { EventEmitter } from 'events';
-import { ILogger } from '../types';
-import { ModelConfig, ModelValidationResult } from '../types';
+import { inject, injectable } from 'inversify';
+import * as vscode from 'vscode';
+import { Logger } from '../../logging/Logger';
+
+export interface ModelConfig {
+    contextLength?: number;
+    temperature?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stopSequences?: string[];
+    maxTokens?: number;
+    [key: string]: unknown;
+}
 
 interface ConfigValidationResult {
     isValid: boolean;
@@ -12,12 +22,15 @@ interface ConfigValidationResult {
 
 @injectable()
 export class ModelConfigManager extends EventEmitter implements vscode.Disposable {
-    private readonly outputChannel: vscode.OutputChannel;
-    private readonly configStore = new Map<string, ModelConfig>();
-    private readonly storage: vscode.Memento;
+    private configStore: Map<string, ModelConfig> = new Map();
+    private outputChannel: vscode.OutputChannel;
+    private storage: vscode.Memento;
+    private pendingUpdates: Set<string> = new Set();
+    private batchSaveTimeout: NodeJS.Timeout | null = null;
+    private readonly BATCH_SAVE_DELAY = 1000; // 1 second
 
     constructor(
-        @inject(ILogger) private readonly logger: ILogger,
+        @inject(Logger) private readonly logger: Logger,
         @inject('GlobalState') storage: vscode.Memento
     ) {
         super();
@@ -39,15 +52,15 @@ export class ModelConfigManager extends EventEmitter implements vscode.Disposabl
         try {
             const currentConfig = this.configStore.get(modelId) || this.createDefaultConfig();
             const newConfig = { ...currentConfig, ...config };
-            
+
             const validation = await this.validateConfig(newConfig);
             if (!validation.isValid) {
                 throw new Error(`Invalid configuration: ${validation.errors.join(', ')}`);
             }
 
             this.configStore.set(modelId, newConfig);
-            await this.persistConfig(modelId, newConfig);
-            
+            this.scheduleBatchSave(modelId);
+
             this.emit('configUpdated', modelId, newConfig);
             this.logConfigUpdate(modelId, newConfig);
         } catch (error) {
@@ -141,7 +154,7 @@ export class ModelConfigManager extends EventEmitter implements vscode.Disposabl
         // Basic memory estimation based on context length and model size
         const bytesPerToken = 4; // Approximate bytes per token
         const baseMemory = 512 * 1024 * 1024; // 512MB base memory
-        
+
         return baseMemory + (config.contextLength || 2048) * bytesPerToken;
     }
 
@@ -175,7 +188,7 @@ export class ModelConfigManager extends EventEmitter implements vscode.Disposabl
         try {
             const keys = await this.storage.keys();
             const configKeys = keys.filter(key => key.startsWith('model-config-'));
-            
+
             for (const key of configKeys) {
                 const modelId = key.replace('model-config-', '');
                 const config = await this.storage.get<ModelConfig>(key);
@@ -187,6 +200,35 @@ export class ModelConfigManager extends EventEmitter implements vscode.Disposabl
             this.logConfigLoad(configKeys.length);
         } catch (error) {
             this.handleError('Failed to load persisted configs', error as Error);
+        }
+    }
+
+    private scheduleBatchSave(modelId: string): void {
+        this.pendingUpdates.add(modelId);
+
+        if (this.batchSaveTimeout) {
+            clearTimeout(this.batchSaveTimeout);
+        }
+
+        this.batchSaveTimeout = setTimeout(() => {
+            this.persistPendingUpdates();
+        }, this.BATCH_SAVE_DELAY);
+    }
+
+    private async persistPendingUpdates(): Promise<void> {
+        if (this.pendingUpdates.size === 0) return;
+
+        try {
+            for (const modelId of this.pendingUpdates) {
+                const config = this.configStore.get(modelId);
+                if (config) {
+                    const key = `model-config-${modelId}`;
+                    await this.storage.update(key, config);
+                }
+            }
+            this.pendingUpdates.clear();
+        } catch (error) {
+            this.handleError('Failed to persist configs', error as Error);
         }
     }
 

@@ -1,22 +1,25 @@
+import { EventEmitter } from 'events';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../../utils/logger';
-import { EventEmitter } from 'events';
-import { ModelVersioningService } from './ModelVersioningService';
-import { ModelDeploymentService, DeploymentConfig } from './ModelDeploymentService';
+import { IDeploymentConfig, IModelDeploymentService } from './ModelDeploymentService';
+import { IModelVersioningService } from './ModelVersioningService';
 
 export interface IDeploymentCreateOptions {
     modelId: string;
     version: string;
-    environmentId: string;
-    config?: DeploymentConfig;
-    metadata?: Record<string, any>;
+    config: IDeploymentConfig;
+    metadata?: Record<string, unknown>;
 }
 
 export interface IDeploymentMetadata {
-    name?: string;
-    description?: string;
-    tags?: string[];
-    [key: string]: any;
+    createdAt: number;
+    lastUpdated: number;
+    status: string;
+    health?: {
+        lastCheck: number;
+        status: string;
+        details?: Record<string, unknown>;
+    };
 }
 
 @injectable()
@@ -26,8 +29,8 @@ export class ModelDeploymentManagerService extends EventEmitter {
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger,
-        @inject(ModelVersioningService) private readonly versioningService: ModelVersioningService,
-        @inject(ModelDeploymentService) private readonly deploymentService: ModelDeploymentService = {} as ModelDeploymentService
+        @inject(IModelVersioningService) private readonly versioningService: IModelVersioningService,
+        @inject(IModelDeploymentService) private readonly deploymentService: IModelDeploymentService
     ) {
         super();
         this.logger.info('ModelDeploymentManagerService initialized');
@@ -41,10 +44,10 @@ export class ModelDeploymentManagerService extends EventEmitter {
     public async createDeployment(options: IDeploymentCreateOptions): Promise<string> {
         try {
             this.logger.info(`Creating deployment for model ${options.modelId}`, options);
-            
+
             // Verify model version exists
             await this.versioningService.verifyVersion(options.modelId, options.version);
-            
+
             // Set defaults for missing options
             const config = options.config || {
                 replicas: 1,
@@ -53,9 +56,9 @@ export class ModelDeploymentManagerService extends EventEmitter {
                     memory: '2Gi'
                 }
             };
-            
+
             const metadata = options.metadata || {};
-            
+
             // Create deployment
             const deploymentId = await this.deploymentService.createDeployment({
                 modelId: options.modelId,
@@ -64,9 +67,9 @@ export class ModelDeploymentManagerService extends EventEmitter {
                 config,
                 metadata
             });
-            
+
             this.logger.info(`Created deployment ${deploymentId} for model ${options.modelId}`);
-            
+
             // Store deployment reference
             this.deployments.set(deploymentId, {
                 id: deploymentId,
@@ -75,20 +78,20 @@ export class ModelDeploymentManagerService extends EventEmitter {
                 environmentId: options.environmentId,
                 createdAt: Date.now()
             });
-            
+
             this.emit('deployment.created', {
                 deploymentId,
                 modelId: options.modelId,
                 environment: options.environmentId
             });
-            
+
             return deploymentId;
         } catch (error) {
             this.logger.error(`Error creating deployment for model ${options.modelId}`, error);
             throw error;
         }
     }
-    
+
     /**
      * Get a deployment by ID
      * @param deploymentId Deployment ID
@@ -97,18 +100,18 @@ export class ModelDeploymentManagerService extends EventEmitter {
     public async getDeployment(deploymentId: string): Promise<any> {
         try {
             const deployment = await this.deploymentService.getDeployment(deploymentId);
-            
+
             if (!deployment) {
                 throw new Error(`Deployment ${deploymentId} not found`);
             }
-            
+
             return deployment;
         } catch (error) {
             this.logger.error(`Error getting deployment ${deploymentId}`, error);
             throw error;
         }
     }
-    
+
     /**
      * Update an existing deployment
      * @param deploymentId Deployment ID
@@ -118,7 +121,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
         try {
             await this.deploymentService.updateDeployment(deploymentId, { metadata });
             this.logger.info(`Updated deployment ${deploymentId}`);
-            
+
             this.emit('deployment.updated', {
                 deploymentId,
                 metadata
@@ -128,7 +131,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Delete a deployment
      * @param deploymentId Deployment ID
@@ -137,7 +140,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
         try {
             await this.deploymentService.deleteDeployment(deploymentId);
             this.deployments.delete(deploymentId);
-            
+
             this.logger.info(`Deleted deployment ${deploymentId}`);
             this.emit('deployment.deleted', { deploymentId });
         } catch (error) {
@@ -145,7 +148,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * List all deployments (optionally filtered by model ID)
      * @param modelId Optional model ID filter
@@ -160,7 +163,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Get the status of a deployment
      * @param deploymentId Deployment ID
@@ -174,7 +177,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Restart a deployment
      * @param deploymentId Deployment ID
@@ -182,12 +185,12 @@ export class ModelDeploymentManagerService extends EventEmitter {
     public async restartDeployment(deploymentId: string): Promise<void> {
         try {
             const deployment = await this.getDeployment(deploymentId);
-            
+
             // Simulate restart
             await this.deploymentService.updateDeployment(deploymentId, {
                 status: 'restarting'
             });
-            
+
             // Simulate restart completion after delay
             setTimeout(async () => {
                 try {
@@ -195,13 +198,13 @@ export class ModelDeploymentManagerService extends EventEmitter {
                         status: 'running',
                         updatedAt: Date.now()
                     });
-                    
+
                     this.emit('deployment.restarted', { deploymentId });
                 } catch (error) {
                     this.logger.error(`Error finishing restart for deployment ${deploymentId}`, error);
                 }
             }, 2000);
-            
+
             this.logger.info(`Restarted deployment ${deploymentId}`);
             this.emit('deployment.restarting', { deploymentId });
         } catch (error) {
@@ -209,7 +212,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Scale a deployment
      * @param deploymentId Deployment ID
@@ -220,7 +223,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             await this.deploymentService.updateDeployment(deploymentId, {
                 config: { replicas }
             });
-            
+
             this.logger.info(`Scaled deployment ${deploymentId} to ${replicas} replicas`);
             this.emit('deployment.scaled', { deploymentId, replicas });
         } catch (error) {
@@ -228,7 +231,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Update the resources for a deployment
      * @param deploymentId Deployment ID
@@ -239,7 +242,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             await this.deploymentService.updateDeployment(deploymentId, {
                 config: { resources }
             });
-            
+
             this.logger.info(`Updated resources for deployment ${deploymentId}`, resources);
             this.emit('deployment.resourcesUpdated', { deploymentId, resources });
         } catch (error) {
@@ -247,7 +250,7 @@ export class ModelDeploymentManagerService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Dispose of resources
      */

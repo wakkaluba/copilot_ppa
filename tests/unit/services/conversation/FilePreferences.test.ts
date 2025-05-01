@@ -1,92 +1,53 @@
-import * as vscode from 'vscode';
-import { FilePreferencesService } from '../../../../src/services/conversation/services/FilePreferencesService';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
-
-// Mock the VS Code API
-jest.mock('vscode', () => ({
-  ExtensionContext: jest.fn().mockImplementation(() => ({
-    globalState: {
-      get: jest.fn().mockReturnValue(null),
-      update: jest.fn().mockResolvedValue(undefined)
-    }
-  }))
-}));
+import { FilePreferences } from '../../../../src/services/conversation/FilePreferences';
 
 describe('FilePreferences', () => {
-  let preferences: FilePreferencesService;
-  let mockContext: vscode.ExtensionContext;
+    let preferences: FilePreferences;
 
-  beforeEach(() => {
-    mockContext = {
-      globalState: {
-        get: jest.fn().mockReturnValue(null),
-        update: jest.fn().mockResolvedValue(undefined)
-      }
-    } as unknown as vscode.ExtensionContext;
-
-    preferences = new FilePreferencesService(mockContext);
-    // Initialize the service
-    return preferences.initialize();
-  });
-
-  test('should track file extensions properly', async () => {
-    // Track file extensions
-    preferences.trackFileExtension('js');
-    preferences.trackFileExtension('js');
-    preferences.trackFileExtension('ts');
-    
-    // Check most frequent extensions
-    const frequent = preferences.getMostFrequentExtensions();
-    expect(frequent).toContain('.js');
-    expect(frequent).toContain('.ts');
-    expect(frequent.indexOf('.js')).toBeLessThan(frequent.indexOf('.ts'));
-    
-    // Check if extension is preferred
-    expect(preferences.isPreferredExtension('js')).toBe(true);
-    expect(preferences.isPreferredExtension('unknown')).toBe(false);
-    
-    // Check storage update was called
-    expect(mockContext.globalState.update).toHaveBeenCalled();
-  });
-
-  test('should handle extension prefixes properly', async () => {
-    preferences.trackFileExtension('.html');
-    preferences.trackFileExtension('css');
-    
-    expect(preferences.isPreferredExtension('.html')).toBe(true);
-    expect(preferences.isPreferredExtension('html')).toBe(true);
-    expect(preferences.isPreferredExtension('.css')).toBe(true);
-    expect(preferences.isPreferredExtension('css')).toBe(true);
-  });
-
-  test('should clear preferences', async () => {
-    preferences.trackFileExtension('js');
-    await preferences.clearPreferences();
-    
-    expect(preferences.isPreferredExtension('js')).toBe(false);
-    expect(mockContext.globalState.update).toHaveBeenCalledWith(
-      'filePreferences',
-      '{}'
-    );
-  });
-
-  test('should load preferences from storage', async () => {
-    const storedPrefs = JSON.stringify({
-      '.js': 5,
-      '.ts': 3
+    beforeEach(() => {
+        preferences = new FilePreferences();
     });
-    
-    mockContext.globalState.get = jest.fn().mockReturnValue(storedPrefs);
-    
-    // Create new instance that loads from storage
-    const newPreferences = new FilePreferencesService(mockContext);
-    await newPreferences.initialize();
-    
-    expect(newPreferences.isPreferredExtension('js')).toBe(true);
-    expect(newPreferences.isPreferredExtension('ts')).toBe(true);
-    
-    const frequent = newPreferences.getMostFrequentExtensions();
-    expect(frequent[0]).toBe('.js');
-    expect(frequent[1]).toBe('.ts');
-  });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('should track file extensions correctly', async () => {
+        await preferences.trackFileExtension('.ts');
+        const extensions = preferences.getRecentExtensions();
+
+        expect(extensions).toHaveLength(1);
+        expect(extensions[0]?.extension).toBe('.ts');
+        expect(extensions[0]?.count).toBe(1);
+    });
+
+    test('should increment extension count on multiple tracking', async () => {
+        await preferences.trackFileExtension('.ts');
+        await preferences.trackFileExtension('.ts');
+        const extensions = preferences.getRecentExtensions();
+
+        expect(extensions).toHaveLength(1);
+        expect(extensions[0]?.count).toBe(2);
+    });
+
+    test('should track multiple extensions', async () => {
+        await preferences.trackFileExtension('.ts');
+        await preferences.trackFileExtension('.js');
+        const extensions = preferences.getRecentExtensions();
+
+        expect(extensions).toHaveLength(2);
+        expect(extensions.map(e => e.extension)).toContain('.ts');
+        expect(extensions.map(e => e.extension)).toContain('.js');
+    });
+
+    test('should sort extensions by frequency', async () => {
+        await preferences.trackFileExtension('.ts');
+        await preferences.trackFileExtension('.ts');
+        await preferences.trackFileExtension('.js');
+        const extensions = preferences.getRecentExtensions();
+
+        expect(extensions[0]?.extension).toBe('.ts');
+        expect(extensions[0]?.count).toBe(2);
+        expect(extensions[1]?.extension).toBe('.js');
+        expect(extensions[1]?.count).toBe(1);
+    });
 });

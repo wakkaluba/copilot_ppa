@@ -1,14 +1,30 @@
-import * as vscode from 'vscode';
-import { inject, injectable } from 'inversify';
-import { EventEmitter } from 'events';
-import { ILogger } from '../../services/logging/ILogger';
-import { SystemMetrics, ProcessInfo, ResourceUsage } from '../types';
-import os from 'os';
-import { cpus, freemem, totalmem, loadavg } from 'os';
 import { exec } from 'child_process';
+import { EventEmitter } from 'events';
+import { inject, injectable } from 'inversify';
+import { cpus, freemem, loadavg, totalmem } from 'os';
 import { promisify } from 'util';
+import * as vscode from 'vscode';
+import { ILogger } from '../../services/logging/ILogger';
+import { ProcessInfo, ResourceUsage, SystemMetrics } from '../types';
 
 const execAsync = promisify(exec);
+
+export interface ISystemRequirements {
+    minMemory: number;
+    recommendedMemory: number;
+    minCPUCores: number;
+    gpuRequired: boolean;
+    diskSpace: number;
+}
+
+export interface IModelSystemState {
+    modelId: string;
+    status: 'starting' | 'running' | 'stopping' | 'stopped' | 'error';
+    memoryUsage?: number;
+    cpuUsage?: number;
+    gpuUsage?: number;
+    error?: Error;
+}
 
 @injectable()
 export class ModelSystemManager extends EventEmitter implements vscode.Disposable {
@@ -17,6 +33,8 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
     private readonly metricsHistory = new Array<SystemMetrics>();
     private readonly maxHistoryLength = 100;
     private readonly processMap = new Map<number, ProcessInfo>();
+    private modelStates = new Map<string, IModelSystemState>();
+    private systemRequirements = new Map<string, ISystemRequirements>();
 
     constructor(
         @inject(ILogger) private readonly logger: ILogger,
@@ -96,7 +114,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
 
     private async getProcessMetrics(): Promise<Map<number, ProcessInfo>> {
         const metrics = new Map<number, ProcessInfo>();
-        
+
         for (const [pid] of this.processMap) {
             try {
                 const info = await this.getProcessInfo(pid);
@@ -120,7 +138,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
             if (process.platform === 'win32') {
                 const { stdout } = await execAsync(`powershell "Get-Process -Id ${pid} | Select-Object CPU,WorkingSet,Path"`);
                 const [_, cpu, memory] = stdout.trim().split(/\s+/);
-                
+
                 return {
                     pid,
                     cpuUsagePercent: parseFloat(cpu),
@@ -130,7 +148,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
             } else {
                 const { stdout } = await execAsync(`ps -p ${pid} -o %cpu,%mem,rss`);
                 const [_, cpu, memPercent, rss] = stdout.trim().split(/\s+/);
-                
+
                 return {
                     pid,
                     cpuUsagePercent: parseFloat(cpu),
@@ -166,7 +184,7 @@ export class ModelSystemManager extends EventEmitter implements vscode.Disposabl
 
     private updateMetricsHistory(metrics: SystemMetrics): void {
         this.metricsHistory.push(metrics);
-        
+
         // Maintain fixed size history
         while (this.metricsHistory.length > this.maxHistoryLength) {
             this.metricsHistory.shift();

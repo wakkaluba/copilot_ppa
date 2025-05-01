@@ -1,23 +1,23 @@
 // Basic LLM types for the VS Code extension
 
-export interface LLMRequest {
+export interface ILLMRequest {
     id: string;
     prompt: string;
     model: string;
-    options?: LLMRequestOptions;
+    options?: ILLMRequestOptions;
     priority: LLMRequestPriority;
     timestamp: number;
     status: LLMRequestStatus;
     error?: LLMRequestError;
 }
 
-export interface LLMRequestOptions {
+export interface ILLMRequestOptions {
     temperature?: number;
     maxTokens?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    stop?: string[];
+    topK?: number;
+    presenceBonus?: number;
+    frequencyBonus?: number;
+    stopSequences?: string[];
     timeout?: number;
     stream?: boolean;
 }
@@ -42,7 +42,7 @@ export interface LLMRequestError {
     details?: unknown;
 }
 
-export interface LLMResponse {
+export interface ILLMResponse {
     id: string;
     requestId: string;
     content: string;
@@ -76,21 +76,21 @@ export interface TokenUsage {
 
 export interface LLMRequestEvent {
     type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
-    request: LLMRequest;
+    request: ILLMRequest;
     timestamp: number;
     details?: unknown;
 }
 
-export interface LLMStreamEvent {
+export interface ILLMStreamEvent {
     content: string;
-    isComplete?: boolean;
+    done: boolean;
     error?: LLMResponseError;
     timestamp?: number;
     tokenCount?: number;
 }
 
-// Add LLMMessage interface to match the one in services/llm/types.ts
-export interface LLMMessage {
+// Add ILLMMessage interface to match the one in services/llm/types.ts
+export interface ILLMMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
@@ -100,30 +100,30 @@ export enum ModelEvents {
     // Evaluation events
     EvaluationStarted = 'evaluation:started',
     EvaluationCompleted = 'evaluation:completed',
-    
+
     // Optimization events
     OptimizationStarted = 'optimization:started',
     OptimizationCompleted = 'optimization:completed',
     OptimizationProgress = 'optimization:progress',
-    
+
     // Scheduling events
     SchedulingStarted = 'scheduling:started',
     SchedulingCompleted = 'scheduling:completed',
-    
+
     // Execution events
     ExecutionStarted = 'execution:started',
     ExecutionCompleted = 'execution:completed',
-    
+
     // Task events
     TaskStarted = 'task:started',
     TaskCompleted = 'task:completed',
     TaskFailed = 'task:failed',
-    
+
     // Tuning events
     TuningStarted = 'tuning:started',
     TuningCompleted = 'tuning:completed',
     TuningProgress = 'tuning:progress',
-    
+
     // Metrics events
     MetricsUpdated = 'metrics:updated',
     MetricsExpired = 'metrics:expired',
@@ -133,7 +133,7 @@ export enum ModelEvents {
 export interface LLMSessionConfig {
     model: string;
     provider: string;
-    parameters: LLMRequestOptions;
+    parameters: ILLMRequestOptions;
     contextSize: number;
     historySize: number;
     systemPrompt?: string;
@@ -158,9 +158,11 @@ export interface SessionStats {
 }
 
 // Provider capability types
-export interface ProviderCapabilities {
-    maxContextTokens: number;
-    streamingSupport: boolean;
+export interface IProviderCapabilities {
+    maxContextLength: number;
+    supportsChatCompletion: boolean;
+    supportsStreaming: boolean;
+    supportsSystemPrompts: boolean;
     supportedFormats: LLMResponseFormat[];
     multimodalSupport: boolean;
     supportsTemperature: boolean;
@@ -173,24 +175,24 @@ export interface ProviderCapabilities {
 export interface LLMProvider {
     id: string; // Added id property to match what LLMProviderManager expects
     getName(): string;
-    getCapabilities(): ProviderCapabilities;
+    getCapabilities(): IProviderCapabilities;
     isAvailable(): Promise<boolean>;
     getStatus(): 'active' | 'inactive' | 'error';
-    completePrompt(request: LLMRequest): Promise<LLMResponse>;
-    streamPrompt?(request: LLMRequest): AsyncIterable<LLMResponse>;
+    completePrompt(request: ILLMRequest): Promise<ILLMResponse>;
+    streamPrompt?(request: ILLMRequest): AsyncIterable<ILLMResponse>;
     cancelRequest(requestId: string): Promise<boolean>;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
-    generateCompletion(model: string, prompt: string, systemPrompt?: string, options?: LLMRequestOptions): Promise<LLMResponse>;
-    streamCompletion(model: string, prompt: string, systemPrompt?: string, options?: LLMRequestOptions, callback?: (event: LLMStreamEvent) => void): Promise<void>;
-    
+    generateCompletion(model: string, prompt: string, systemPrompt?: string, options?: ILLMRequestOptions): Promise<ILLMResponse>;
+    streamCompletion(model: string, prompt: string, systemPrompt?: string, options?: ILLMRequestOptions, callback?: (event: ILLMStreamEvent) => void): Promise<void>;
+
     // Add missing methods that the LLMProviderManager expects
-    generateChatCompletion(model: string, messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse>;
-    streamChatCompletion(model: string, messages: LLMMessage[], options?: LLMRequestOptions, callback?: (event: LLMStreamEvent) => void): Promise<void>;
-    
+    generateChatCompletion(model: string, messages: ILLMMessage[], options?: ILLMRequestOptions): Promise<ILLMResponse>;
+    streamChatCompletion(model: string, messages: ILLMMessage[], options?: ILLMRequestOptions, callback?: (event: ILLMStreamEvent) => void): Promise<void>;
+
     setOfflineMode(enabled: boolean): void;
-    cacheResponse?(prompt: string, response: LLMResponse): Promise<void>;
-    useCachedResponse?(prompt: string): Promise<LLMResponse | null>;
+    cacheResponse?(prompt: string, response: ILLMResponse): Promise<void>;
+    useCachedResponse?(prompt: string): Promise<ILLMResponse | null>;
     isConnected(): boolean;
 }
 
@@ -206,7 +208,7 @@ export interface LLMPromptOptions {
     };
 }
 
-export interface LLMModelInfo {
+export interface ILLMModelInfo {
     id: string;
     name: string;
     provider: string;

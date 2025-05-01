@@ -1,5 +1,19 @@
 import * as vscode from 'vscode';
-import { BestPracticeIssue } from './bestPracticesChecker';
+
+export interface ICodeAnalyzer {
+    analyzeDocument(document: vscode.TextDocument): Promise<BestPracticeIssue[]>;
+}
+
+export interface BestPracticeIssue {
+    file: string;
+    line: number;
+    column: number;
+    severity: 'suggestion' | 'warning' | 'error';
+    description: string;
+    recommendation: string;
+    category: 'antiPattern' | 'design' | 'consistency' | 'documentation' | 'naming';
+    type?: string;
+}
 
 export class BestPracticesService implements vscode.Disposable {
     private readonly _context: vscode.ExtensionContext;
@@ -25,6 +39,9 @@ export class BestPracticesService implements vscode.Disposable {
             this.detectJavaAntiPatterns(document, text, issues);
         }
 
+        this.checkMethodLength(document, text, issues);
+        this.checkParameterCount(document, text, issues);
+
         return issues;
     }
 
@@ -35,9 +52,8 @@ export class BestPracticesService implements vscode.Disposable {
         const issues: BestPracticeIssue[] = [];
         const text = document.getText();
 
-        this.checkMethodLength(document, text, issues);
-        this.checkParameterCount(document, text, issues);
         this.checkComplexity(document, text, issues);
+        this.checkNamingConventions(document, text, issues);
 
         return issues;
     }
@@ -49,7 +65,6 @@ export class BestPracticesService implements vscode.Disposable {
         const issues: BestPracticeIssue[] = [];
         const text = document.getText();
 
-        this.checkNamingConventions(document, text, issues);
         this.checkStyleConsistency(document, text, issues);
         this.checkCommentConsistency(document, text, issues);
 
@@ -150,7 +165,7 @@ export class BestPracticesService implements vscode.Disposable {
         // Mix of camelCase and snake_case
         const camelCase = text.match(/[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*/g) || [];
         const snakeCase = text.match(/[a-z][a-z0-9]*_[a-z0-9_]*/g) || [];
-        
+
         if (camelCase.length > 0 && snakeCase.length > 0) {
             issues.push({
                 file: document.uri.fsPath,
@@ -168,7 +183,7 @@ export class BestPracticesService implements vscode.Disposable {
         // Check quote style consistency
         const singleQuotes = (text.match(/'/g) || []).length;
         const doubleQuotes = (text.match(/"/g) || []).length;
-        
+
         if (singleQuotes > 0 && doubleQuotes > 0) {
             issues.push({
                 file: document.uri.fsPath,
@@ -186,7 +201,7 @@ export class BestPracticesService implements vscode.Disposable {
         // Check JSDoc style consistency
         const jsdocStyle = text.match(/\/\*\*[\s\S]*?\*\//g) || [];
         const lineComments = text.match(/\/\/.*$/mg) || [];
-        
+
         if (jsdocStyle.length > 0 && lineComments.length > jsdocStyle.length * 2) {
             issues.push({
                 file: document.uri.fsPath,
@@ -232,7 +247,7 @@ export class BestPracticesService implements vscode.Disposable {
 
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
-            
+
             // Handle strings
             if ((char === '"' || char === "'") && text[i-1] !== '\\') {
                 if (!inString) {

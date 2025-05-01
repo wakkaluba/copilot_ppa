@@ -33,5 +33,9 @@ export const Services = {
     Config: Symbol('Config'),
     StatusBar: Symbol('StatusBar'),
     Commands: Symbol('Commands'),
-    Telemetry: Symbol('Telemetry')
+    Telemetry: Symbol('Telemetry'),
+    Logger: Symbol('Logger'),
+    ModelService: Symbol('ModelService'),
+    ChatService: Symbol('ChatService'),
+    CacheService: Symbol('CacheService')
 };

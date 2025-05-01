@@ -39,11 +39,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeFormatService = void 0;
 var vscode = require("vscode");
 var path = require("path");
+/**
+ * Service for handling code formatting and style improvements
+ */
 var CodeFormatService = /** @class */ (function () {
     function CodeFormatService() {
     }
     /**
      * Format the active document or selected text
+     * @returns {Promise<boolean>} True if formatting succeeded, false otherwise
      */
     CodeFormatService.prototype.formatCode = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -63,7 +67,7 @@ var CodeFormatService = /** @class */ (function () {
                         return [4 /*yield*/, vscode.commands.executeCommand('editor.action.formatSelection')];
                     case 2: return [2 /*return*/, _a.sent()];
                     case 3: return [4 /*yield*/, vscode.commands.executeCommand('editor.action.formatDocument')];
-                    case 4: 
+                    case 4:
                     // Otherwise format the entire document
                     return [2 /*return*/, _a.sent()];
                     case 5: return [3 /*break*/, 7];
@@ -78,7 +82,8 @@ var CodeFormatService = /** @class */ (function () {
         });
     };
     /**
-     * Optimize imports in the current file
+     * Optimize imports by organizing and removing unused ones
+     * @returns {Promise<boolean>} True if optimization succeeded, false otherwise
      */
     CodeFormatService.prototype.optimizeImports = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -107,15 +112,15 @@ var CodeFormatService = /** @class */ (function () {
                         }
                         return [3 /*break*/, 8];
                     case 2: return [4 /*yield*/, vscode.commands.executeCommand('typescript.organizeImports')];
-                    case 3: 
+                    case 3:
                     // For TypeScript/JavaScript files
                     return [2 /*return*/, _b.sent()];
                     case 4: return [4 /*yield*/, vscode.commands.executeCommand('python.sortImports')];
-                    case 5: 
+                    case 5:
                     // For Python files, if isort or other extension is available
                     return [2 /*return*/, _b.sent()];
                     case 6: return [4 /*yield*/, vscode.commands.executeCommand('java.action.organizeImports')];
-                    case 7: 
+                    case 7:
                     // For Java files, if Java extension is available
                     return [2 /*return*/, _b.sent()];
                     case 8:
@@ -134,6 +139,7 @@ var CodeFormatService = /** @class */ (function () {
     };
     /**
      * Apply code style rules to fix common issues
+     * @returns {Promise<boolean>} True if style fixes succeeded, false otherwise
      */
     CodeFormatService.prototype.applyCodeStyle = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -170,6 +176,7 @@ var CodeFormatService = /** @class */ (function () {
     };
     /**
      * Comprehensive code optimization including formatting, imports, and style fixes
+     * @returns {Promise<boolean>} True if optimization succeeded, false otherwise
      */
     CodeFormatService.prototype.optimizeCode = function () {
         return __awaiter(this, void 0, void 0, function () {

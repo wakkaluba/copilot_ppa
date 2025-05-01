@@ -1,5 +1,77 @@
 # Recent Improvements
 
+- Added comprehensive tests for `media/codeExamples.js` module
+    - Created unit tests for search functionality and UI interaction
+    - Added test coverage for search results rendering
+    - Verified source link handling and button actions
+    - Tested error handling and state management
+    - Added tests for loading state transitions
+    - Validated language filtering capability
+    - Tested empty and error state displays
+- Added comprehensive tests for `media/dependencyGraph.js` module
+    - Created unit tests for graph rendering and visualization
+    - Added test coverage for D3.js integration
+    - Verified node and link type handling
+    - Tested empty graph state management
+    - Added tests for message handling with extension host
+    - Validated visualization container updates
+    - Tested error handling for malformed data
+- Added comprehensive tests for `src/buildTools/utils/terminalUtils.js` module
+    - Created unit tests for terminal creation and command execution
+    - Added test coverage for background vs foreground task handling
+    - Verified error handling and terminal disposal
+    - Tested complex command handling with arguments
+    - Added tests for exit status handling
+    - Validated event listener registration behavior
+    - Simulated terminal exit conditions
+- Added comprehensive tests for `src/buildTools/buildScriptOptimizer.js` module
+    - Created unit tests for cross-environment variable handling
+    - Added test coverage for parallel task execution suggestions
+    - Verified webpack optimization recommendations
+    - Tested TypeScript compilation optimizations
+    - Verified build output cleaning suggestions
+    - Added tests for production environment configuration
+    - Tested complex multi-optimization scenarios
+- Added comprehensive tests for `src/buildTools/vite/viteConfigManager.js` module
+    - Created unit tests for Vite config detection
+    - Added test coverage for configuration analysis
+    - Verified validation rules and error handling
+    - Tested optimization suggestion generation
+    - Added tests for framework detection (Vue, React, Svelte)
+    - Tested NoOpLogger functionality when no logger is provided
+    - Verified integration between detection, analysis and framework detection
+- Added comprehensive tests for `src/buildTools/rollup/rollupConfigManager.js` module
+    - Created unit tests for rollup config detection
+    - Added test coverage for configuration analysis
+    - Verified validation rules for input and output settings
+    - Tested optimization suggestion generation
+    - Validated error handling across all methods
+    - Added tests for constructor variations with dependency injection
+    - Verified integration between detection, analysis and validation processes
+- Added comprehensive tests for `src/buildTools/webpack/webpackConfigManager.js` module
+    - Created unit tests for webpack config detection
+    - Added test coverage for configuration analysis
+    - Verified validation functionality
+    - Tested optimization suggestion generation
+    - Validated error handling across all methods
+    - Added tests for constructor variations with dependency injection
+    - Verified integration between detect, analyze, and optimize workflows
+- Added comprehensive tests for `src/buildTools/bundleAnalyzer.js` module
+    - Created unit tests for directory scanning and analysis
+    - Added test coverage for recommendation generation
+    - Verified file type detection and size calculations
+    - Tested handling of various file types (JS, CSS, images)
+    - Validated nested directory scanning
+    - Tested duplicate resource detection
+    - Added tests for file size formatting utilities
+- Added comprehensive tests for `src/buildTools/buildToolsManager.js` module
+    - Created unit tests for command registration
+    - Added test coverage for webpack configuration detection
+    - Verified HTML rendering functionality
+    - Tested file size formatting
+    - Added test coverage for bundle size analysis
+    - Tested package.json handling
+    - Validated resource cleanup in dispose method
 - Added comprehensive tests for `coverage/prettify.js` module
     - Created unit tests for syntax highlighting functionality
     - Added test coverage for JavaScript code highlighting
@@ -103,10 +175,3 @@
     - Added test coverage for processRequest abstract method
     - Verified model manager integration
     - Tested inheritance functionality
-- Added comprehensive tests for `src/__mocks__/vscode.js` module
-    - Created unit tests for window namespace mocking
-    - Added test coverage for workspace namespace mocking
-    - Verified commands namespace mocking
-    - Tested URI mock implementation
-    - Validated VS Code types mock implementation
-    - Verified mock behavior consistency

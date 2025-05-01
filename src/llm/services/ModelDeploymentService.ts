@@ -1,30 +1,25 @@
+import { EventEmitter } from 'events';
 import { inject, injectable } from 'inversify';
 import { Logger } from '../../utils/logger';
-import { EventEmitter } from 'events';
 
-export interface DeploymentConfig {
-    replicas: number;
-    resources?: {
-        cpu?: string;
-        memory?: string;
-        gpu?: string;
-    };
-    autoScaling?: {
-        enabled: boolean;
-        minReplicas?: number;
-        maxReplicas?: number;
-        targetCPUUtilization?: number;
-        targetMemoryUtilization?: number;
-    };
-    envVars?: Record<string, string>;
-}
-
-export interface DeploymentOptions {
+export interface IDeploymentConfig {
     modelId: string;
     version: string;
-    environmentId: string;
-    config: DeploymentConfig;
-    metadata?: Record<string, any>;
+    resources: {
+        memory?: number;
+        cpuLimit?: number;
+        gpuRequirement?: boolean;
+    };
+    runtime: {
+        environment: string;
+        dependencies: string[];
+    };
+}
+
+export interface IDeploymentOptions {
+    forceRestart?: boolean;
+    timeout?: number;
+    validateOnly?: boolean;
 }
 
 /**
@@ -45,11 +40,11 @@ export class ModelDeploymentService extends EventEmitter {
     /**
      * Create a new deployment
      */
-    public async createDeployment(options: DeploymentOptions): Promise<string> {
+    public async createDeployment(options: IDeploymentOptions): Promise<string> {
         try {
             this.deploymentCounter++;
             const deploymentId = `deploy-${this.deploymentCounter}-${Date.now()}`;
-            
+
             const deployment = {
                 id: deploymentId,
                 modelId: options.modelId,
@@ -61,17 +56,17 @@ export class ModelDeploymentService extends EventEmitter {
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             };
-            
+
             this.deployments.set(deploymentId, deployment);
-            
+
             this.logger.info(`Created deployment ${deploymentId} for model ${options.modelId}`);
             this.emit('deployment.created', { deployment });
-            
+
             // Simulate deployment completion after delay
             setTimeout(() => {
                 this.completeDeployment(deploymentId);
             }, 1000);
-            
+
             return deploymentId;
         } catch (error) {
             this.logger.error('Error creating deployment', error);
@@ -85,67 +80,67 @@ export class ModelDeploymentService extends EventEmitter {
     private completeDeployment(deploymentId: string): void {
         try {
             const deployment = this.deployments.get(deploymentId);
-            
+
             if (!deployment) {
                 return;
             }
-            
+
             deployment.status = 'running';
             deployment.updatedAt = Date.now();
-            
+
             this.deployments.set(deploymentId, deployment);
             this.emit('deployment.ready', { deploymentId, modelId: deployment.modelId });
-            
+
             this.logger.info(`Deployment ${deploymentId} is now running`);
         } catch (error) {
             this.logger.error(`Error completing deployment ${deploymentId}`, error);
         }
     }
-    
+
     /**
      * Get a deployment by ID
      */
     public async getDeployment(deploymentId: string): Promise<any | null> {
         const deployment = this.deployments.get(deploymentId);
-        
+
         if (!deployment) {
             return null;
         }
-        
+
         return { ...deployment };
     }
-    
+
     /**
      * List all deployments, optionally filtered by model ID
      */
     public async listDeployments(modelId?: string): Promise<any[]> {
         const allDeployments = Array.from(this.deployments.values());
-        
+
         if (!modelId) {
             return allDeployments;
         }
-        
+
         return allDeployments.filter(d => d.modelId === modelId);
     }
-    
+
     /**
      * Update a deployment
      */
     public async updateDeployment(
-        deploymentId: string, 
-        updates: Partial<{ 
-            config: Partial<DeploymentConfig>, 
+        deploymentId: string,
+        updates: Partial<{
+            config: Partial<IDeploymentConfig>,
             metadata: Record<string, any>,
             status: string
         }>
     ): Promise<void> {
         try {
             const deployment = this.deployments.get(deploymentId);
-            
+
             if (!deployment) {
                 throw new Error(`Deployment ${deploymentId} not found`);
             }
-            
+
             // Apply updates
             if (updates.config) {
                 deployment.config = {
@@ -157,22 +152,22 @@ export class ModelDeploymentService extends EventEmitter {
                     }
                 };
             }
-            
+
             if (updates.metadata) {
                 deployment.metadata = {
                     ...deployment.metadata,
                     ...updates.metadata
                 };
             }
-            
+
             if (updates.status) {
                 deployment.status = updates.status;
             }
-            
+
             deployment.updatedAt = Date.now();
-            
+
             this.deployments.set(deploymentId, deployment);
-            
+
             this.logger.info(`Updated deployment ${deploymentId}`);
             this.emit('deployment.updated', { deploymentId, updates });
         } catch (error) {
@@ -180,7 +175,7 @@ export class ModelDeploymentService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Delete a deployment
      */
@@ -189,10 +184,10 @@ export class ModelDeploymentService extends EventEmitter {
             if (!this.deployments.has(deploymentId)) {
                 throw new Error(`Deployment ${deploymentId} not found`);
             }
-            
+
             const deployment = this.deployments.get(deploymentId);
             this.deployments.delete(deploymentId);
-            
+
             this.logger.info(`Deleted deployment ${deploymentId}`);
             this.emit('deployment.deleted', { deploymentId, modelId: deployment.modelId });
         } catch (error) {
@@ -200,7 +195,7 @@ export class ModelDeploymentService extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Dispose of resources
      */

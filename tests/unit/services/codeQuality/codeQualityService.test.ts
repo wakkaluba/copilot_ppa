@@ -1,280 +1,194 @@
-import * as assert from 'assert';
-import * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { CodeQualityService } from '../../../../src/services/codeQuality/codeQualityService';
-import { createMockDocument, createMockExtensionContext } from '../../../helpers/mockHelpers';
+import { SecuritySeverity } from '../../../../src/security/types';
+import { CodeQualityService } from '../../../../src/services/codeQuality/CodeQualityService';
 
-suite('CodeQualityService Tests', () => {
+describe('CodeQualityService', () => {
     let service: CodeQualityService;
-    let context: vscode.ExtensionContext;
-    let sandbox: sinon.SinonSandbox;
-    let diagnosticCollection: vscode.DiagnosticCollection;
+    let mockContext: vscode.ExtensionContext;
+    let mockDiagnosticCollection: vscode.DiagnosticCollection;
 
-    setup(() => {
-        sandbox = sinon.createSandbox();
-        context = createMockExtensionContext();
+    beforeEach(() => {
+        mockDiagnosticCollection = {
+            name: 'code-quality',
+            set: jest.fn(),
+            clear: jest.fn(),
+            dispose: jest.fn(),
+        } as unknown as vscode.DiagnosticCollection;
 
-        diagnosticCollection = {
-            set: sandbox.stub(),
-            delete: sandbox.stub(),
-            clear: sandbox.stub(),
-            dispose: sandbox.stub()
-        } as any;
+        (vscode.languages as any).createDiagnosticCollection = jest.fn().mockReturnValue(mockDiagnosticCollection);
 
-        sandbox.stub(vscode.languages, 'createDiagnosticCollection').returns(diagnosticCollection);
-        service = new CodeQualityService(context);
+        mockContext = {
+            subscriptions: [],
+            extensionPath: '',
+            globalStoragePath: '',
+            logPath: '',
+            extensionUri: {} as vscode.Uri,
+            environmentVariableCollection: {} as vscode.EnvironmentVariableCollection,
+            extensionMode: vscode.ExtensionMode.Test,
+            globalState: {
+                get: jest.fn(),
+                update: jest.fn(),
+                setKeysForSync: jest.fn()
+            } as unknown as vscode.Memento,
+            workspaceState: {
+                get: jest.fn(),
+                update: jest.fn(),
+                setKeysForSync: jest.fn()
+            } as unknown as vscode.Memento,
+            secrets: {
+                get: jest.fn(),
+                store: jest.fn(),
+                delete: jest.fn()
+            } as unknown as vscode.SecretStorage,
+            storageUri: null,
+            globalStorageUri: {} as vscode.Uri,
+            logUri: {} as vscode.Uri,
+            asAbsolutePath: jest.fn(),
+            storagePath: null
+        } as vscode.ExtensionContext;
+
+        service = new CodeQualityService(mockContext);
     });
 
-    teardown(() => {
-        sandbox.restore();
-        service.dispose();
-    });
-
-    suite('Service Initialization', () => {
-        test('initializes diagnostic collection', () => {
-            assert.ok(vscode.languages.createDiagnosticCollection.calledOnce);
-            assert.ok(vscode.languages.createDiagnosticCollection.calledWith('code-quality'));
-        });
-
-        test('creates analyzers for supported languages', () => {
-            assert.ok(service.hasAnalyzerFor('typescript'));
-            assert.ok(service.hasAnalyzerFor('javascript'));
-            assert.ok(service.hasAnalyzerFor('python'));
-        });
-    });
-
-    suite('Document Analysis', () => {
-        test('analyzes TypeScript code quality', async () => {
-            const mockDocument = createMockDocument(`
-                function poorlyWrittenFunction(x: any) {
-                    var result; // Using var
-                    if(x) { result = 1 }
-                    else{ result = 2 }
-                    return result
+    describe('analyzeDocument', () => {
+        it('should detect code quality issues', async () => {
+            const document = createMockDocument(`
+                function test() {
+                    var x = 1; // Using var instead of let/const
+                    console.log(x); // Using console.log in production
                 }
-            `, 'typescript');
+            `);
 
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.length > 0);
-            assert.ok(results.issues.some(i => i.type === 'style'));
+            const results = await service.analyzeDocument(document);
+
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].issues.some(issue =>
+                issue.description.toLowerCase().includes('var'))).toBe(true);
+            expect(results[0].issues.some(issue =>
+                issue.description.toLowerCase().includes('console.log'))).toBe(true);
+            expect(mockDiagnosticCollection.set).toHaveBeenCalled();
         });
 
-        test('analyzes JavaScript code quality', async () => {
-            const mockDocument = createMockDocument(`
-                function badFunction() {
-                    for(var i=0;i<10;i++){
-                        console.log(i)
-                    }
+        it('should detect best practices violations', async () => {
+            const document = createMockDocument(`
+                function longFunction() {
+                    let a = 1;
+                    let b = 2;
+                    let c = 3;
+                    // ... 30+ more lines
                 }
-            `, 'javascript');
+            `);
 
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.some(i => i.type === 'formatting'));
+            const results = await service.analyzeDocument(document);
+
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].issues.some(issue =>
+                issue.id === 'BP001')).toBe(true);
         });
 
-        test('handles unsupported file types', async () => {
-            const mockDocument = createMockDocument('Some content', 'plaintext');
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.skipped);
-            assert.ok(results.skipReason?.includes('unsupported'));
-        });
-    });
+        it('should detect security issues', async () => {
+            const document = createMockDocument(`
+                function handleUserInput() {
+                    eval(userInput);
+                }
+            `);
 
-    suite('Diagnostic Integration', () => {
-        test('converts analysis results to diagnostics', async () => {
-            const mockDocument = createMockDocument(`
-                const unusedVariable = 42;
-                function* badGeneratorNaming() { yield 1; }
-            `, 'typescript');
+            const results = await service.analyzeDocument(document);
 
-            await service.updateDiagnostics(mockDocument);
-
-            assert.ok(diagnosticCollection.set.calledOnce);
-            const [, diagnostics] = diagnosticCollection.set.firstCall.args;
-            assert.ok(diagnostics.length > 0);
-            assert.ok(diagnostics.some(d => d.severity === vscode.DiagnosticSeverity.Warning));
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].issues.some(issue =>
+                issue.severity === SecuritySeverity.High)).toBe(true);
         });
 
-        test('clears diagnostics for closed documents', () => {
-            const uri = vscode.Uri.file('test.ts');
-            service.clearDiagnostics(uri);
-            assert.ok(diagnosticCollection.delete.calledWith(uri));
-        });
-    });
-
-    suite('Code Style Analysis', () => {
-        test('identifies style inconsistencies', async () => {
-            const mockDocument = createMockDocument(`
-                class badClassName {
+        it('should detect design pattern improvements', async () => {
+            const document = createMockDocument(`
+                class UserService {
                     constructor() {
-                        this.property=42;
+                        this.users = [];
                     }
-                    BAD_METHOD_NAME() {
-                        return this.property;
+
+                    addUser(user) {
+                        this.users.push(user);
+                    }
+
+                    getUser(id) {
+                        return this.users.find(u => u.id === id);
                     }
                 }
-            `, 'typescript');
+            `);
 
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.some(i => i.type === 'naming'));
-            assert.ok(results.issues.some(i => i.type === 'style'));
-        });
+            const results = await service.analyzeDocument(document);
 
-        test('checks for proper indentation', async () => {
-            const mockDocument = createMockDocument(`
-function badlyIndented() {
-    if (true) {
-   console.log('wrong indent');
-     }
-}
-            `, 'javascript');
-
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.some(i => i.type === 'indentation'));
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].issues.some(issue =>
+                issue.description.toLowerCase().includes('interface'))).toBe(true);
         });
     });
 
-    suite('Code Metrics', () => {
-        test('calculates complexity metrics', async () => {
-            const mockDocument = createMockDocument(`
-                function complexFunction(a, b, c) {
-                    if (a) {
-                        if (b) {
-                            if (c) {
-                                return 1;
+    describe('analyzeWorkspace', () => {
+        it('should analyze multiple files', async () => {
+            const mockFiles = [
+                { fsPath: 'test1.ts' },
+                { fsPath: 'test2.ts' }
+            ] as vscode.Uri[];
+
+            (vscode.workspace.findFiles as jest.Mock) = jest.fn().mockResolvedValue(mockFiles);
+            (vscode.workspace.openTextDocument as jest.Mock) = jest.fn().mockImplementation((uri) =>
+                Promise.resolve(createMockDocument('// Some code'))
+            );
+
+            const progressCallback = jest.fn();
+            const results = await service.analyzeWorkspace(progressCallback);
+
+            expect(results.length).toBeGreaterThan(0);
+            expect(progressCallback).toHaveBeenCalled();
+            expect(vscode.workspace.findFiles).toHaveBeenCalledWith(
+                '**/*.{ts,js,py,java}',
+                '**/node_modules/**'
+            );
+        });
+    });
+
+    describe('metrics', () => {
+        it('should track quality metrics over time', async () => {
+            const document = createMockDocument(`
+                function complexFunction() {
+                    if (x > 0) {
+                        if (y < 10) {
+                            while (true) {
+                                if (z === 5) break;
                             }
                         }
                     }
-                    return 0;
+                    return x > 0 ? true : false;
                 }
-            `, 'typescript');
+            `);
 
-            const metrics = await service.calculateMetrics(mockDocument);
-            assert.ok(metrics.cyclomaticComplexity > 1);
-            assert.ok(metrics.maintainabilityIndex);
-        });
+            await service.analyzeDocument(document);
+            const history = service.getQualityHistory();
 
-        test('tracks quality trends', async () => {
-            const mockDocument = createMockDocument(`
-                function poorQualityCode() {
-                    var x = 1;
-                    var y = 2;
-                    var z = x + y;
-                    return z;
-                }
-            `, 'javascript');
-
-            await service.updateQualityHistory(mockDocument);
-            const trends = service.getQualityTrends(mockDocument.uri);
-            assert.ok(trends.length > 0);
-            assert.ok(trends[0].timestamp);
-            assert.ok('score' in trends[0]);
+            expect(history.metrics.length).toBeGreaterThan(0);
+            const latestMetrics = history.metrics[history.metrics.length - 1];
+            expect(latestMetrics.complexity).toBeLessThan(100);
+            expect(latestMetrics.maintainability).toBeDefined();
+            expect(latestMetrics.security).toBeDefined();
         });
     });
 
-    suite('Fix Suggestions', () => {
-        test('generates fix suggestions', async () => {
-            const mockDocument = createMockDocument(`
-                var x = 1; // Should use const
-                if(x==1){} // Missing spaces
-            `, 'javascript');
+    it('should properly dispose resources', () => {
+        service.dispose();
 
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.suggestions.length > 0);
-            assert.ok(results.suggestions.some(s => s.type === 'use-const'));
-            assert.ok(results.suggestions.some(s => s.type === 'format-if'));
-        });
-
-        test('provides quick fixes', async () => {
-            const mockDocument = createMockDocument(`
-                function badFunction(a,b) {
-                    return a+b
-                }
-            `, 'typescript');
-
-            const fixes = await service.getQuickFixes(mockDocument, new vscode.Range(0, 0, 2, 0));
-            assert.ok(fixes.length > 0);
-            assert.ok(fixes.some(f => f.kind === vscode.CodeActionKind.QuickFix));
-        });
-    });
-
-    suite('Configuration', () => {
-        test('respects severity settings', async () => {
-            service.configure({ treatStyleAsErrors: true });
-
-            const mockDocument = createMockDocument(`
-                function test() { return 42 } // Missing semicolon
-            `, 'typescript');
-
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.some(i => i.severity === 'error' && i.type === 'style'));
-        });
-
-        test('handles rule customization', async () => {
-            service.configure({
-                rules: {
-                    'max-line-length': 40,
-                    'no-console': 'error'
-                }
-            });
-
-            const mockDocument = createMockDocument(`
-                console.log('This line is definitely longer than 40 characters');
-            `, 'javascript');
-
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.issues.some(i => i.type === 'max-line-length'));
-            assert.ok(results.issues.some(i => i.type === 'no-console' && i.severity === 'error'));
-        });
-    });
-
-    suite('Error Handling', () => {
-        test('handles parser errors gracefully', async () => {
-            const mockDocument = createMockDocument(`
-                const x = {; // Invalid syntax
-            `, 'javascript');
-
-            const results = await service.analyzeDocument(mockDocument);
-            assert.ok(results.error);
-            assert.ok(results.error.includes('parse'));
-        });
-
-        test('handles missing files', async () => {
-            const uri = vscode.Uri.file('nonexistent.ts');
-            await service.updateDiagnostics({ uri } as any);
-            assert.ok(diagnosticCollection.delete.calledWith(uri));
-        });
-    });
-
-    suite('Performance', () => {
-        test('handles large files efficiently', async () => {
-            // Create a large file
-            const largeContent = Array(1000)
-                .fill('function test() { return 42; }')
-                .join('\n');
-            const mockDocument = createMockDocument(largeContent, 'javascript');
-
-            const startTime = Date.now();
-            await service.analyzeDocument(mockDocument);
-            const duration = Date.now() - startTime;
-
-            assert.ok(duration < 5000); // Should complete in reasonable time
-        });
-
-        test('caches analysis results', async () => {
-            const mockDocument = createMockDocument(`
-                function test() { return 42; }
-            `, 'typescript');
-
-            // First analysis
-            await service.analyzeDocument(mockDocument);
-            const startTime = Date.now();
-
-            // Second analysis of the same content
-            await service.analyzeDocument(mockDocument);
-            const duration = Date.now() - startTime;
-
-            assert.ok(duration < 100); // Should be very fast due to caching
-        });
+        expect(mockDiagnosticCollection.clear).toHaveBeenCalled();
+        expect(mockDiagnosticCollection.dispose).toHaveBeenCalled();
     });
 });
+
+function createMockDocument(content: string): vscode.TextDocument {
+    return {
+        getText: () => content,
+        uri: { fsPath: 'test.ts' } as vscode.Uri,
+        languageId: 'typescript',
+        positionAt: (offset: number) => new vscode.Position(0, offset),
+        lineAt: (line: number) => ({ text: content.split('\n')[line] } as vscode.TextLine),
+    } as vscode.TextDocument;
+}

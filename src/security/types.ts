@@ -93,3 +93,16 @@ export interface SecurityHoverProvider {
     provideHover(document: vscode.TextDocument, position: vscode.Position): vscode.Hover | undefined;
     registerHoverProvider(): vscode.Disposable;
 }
+
+export interface SecurityPattern {
+    id: string;
+    regex: RegExp;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    description: string;
+    recommendation: string;
+}
+
+export interface CodeScanResult {
+    issues: SecurityIssue[];
+    scannedFiles: number;
+}

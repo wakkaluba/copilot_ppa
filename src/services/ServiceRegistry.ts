@@ -1,17 +1,17 @@
 import { Container } from 'inversify';
 import * as vscode from 'vscode';
-import { ConnectionStatusService } from '../status/connectionStatusService';
-import { ContextManager } from './conversation/ContextManager';
-import { DisplaySettingsService } from './displaySettingsService';
-import { ExtensionManager } from './ExtensionManager';
-import { ExtensionTelemetryService } from './ExtensionTelemetryService';
-import { ExtensionValidationService } from './ExtensionValidationService';
-import { LLMConnectionManager } from './llm/LLMConnectionManager';
-import { LLMHostManager } from './llm/LLMHostManager';
-import { LLMSessionManager } from './llm/LLMSessionManager';
-import { LLMProviderManager } from './llm/services/LLMProviderManager';
-import { PromptManager } from './PromptManager';
-import { ThemeManager } from './themeManager';
+import { IConnectionStatusService } from '../status/connectionStatusService';
+import { IContextManager } from './conversation/ContextManager';
+import { IDisplaySettingsService } from './displaySettingsService';
+import { IExtensionManager } from './ExtensionManager';
+import { IExtensionTelemetryService } from './ExtensionTelemetryService';
+import { IExtensionValidationService } from './ExtensionValidationService';
+import { ILLMConnectionManager } from './llm/LLMConnectionManager';
+import { ILLMHostManager } from './llm/LLMHostManager';
+import { ILLMSessionManager } from './llm/LLMSessionManager';
+import { ILLMProviderManager } from './llm/services/LLMProviderManager';
+import { IPromptManager } from './PromptManager';
+import { IThemeManager } from './themeManager';
 
 export interface IServiceRegistry {
     get<T>(serviceType: symbol): T;
@@ -34,49 +34,46 @@ export const Services = {
     ExtensionInstallation: Symbol('ExtensionInstallation'),
     ExtensionManager: Symbol('ExtensionManager'),
     ExtensionValidation: Symbol('ExtensionValidation'),
-    ExtensionTelemetry: Symbol('ExtensionTelemetry'),
+    ExtensionTelemetry: Symbol('ExtensionTelemetry')
 };
 
 export class ServiceRegistry implements IServiceRegistry {
     private static instance: ServiceRegistry;
-    private services: Map<symbol, any> = new Map();
+    private container: Container;
 
-    private constructor() {}
+    private constructor() {
+        this.container = new Container();
+        this.setupBindings();
+    }
 
-    static getInstance(): ServiceRegistry {
+    public static getInstance(): ServiceRegistry {
         if (!ServiceRegistry.instance) {
             ServiceRegistry.instance = new ServiceRegistry();
         }
         return ServiceRegistry.instance;
     }
 
-    get<T>(serviceType: symbol): T {
-        const service = this.services.get(serviceType);
-        if (!service) {
-            throw new Error(`Service not registered: ${serviceType.toString()}`);
-        }
-        return service as T;
+    private setupBindings(): void {
+        this.container.bind<ILLMConnectionManager>(Services.LLMConnectionManager).to(LLMConnectionManager);
+        this.container.bind<ILLMHostManager>(Services.LLMHostManager).to(LLMHostManager);
+        this.container.bind<ILLMSessionManager>(Services.LLMSessionManager).to(LLMSessionManager);
+        this.container.bind<ILLMProviderManager>(Services.LLMProviderManager).to(LLMProviderManager);
+        this.container.bind<IConnectionStatusService>(Services.ConnectionStatus).to(ConnectionStatusService);
+        this.container.bind<IContextManager>(Services.ContextManager).to(ContextManager);
+        this.container.bind<IPromptManager>(Services.PromptManager).to(PromptManager);
+        this.container.bind<IThemeManager>(Services.ThemeManager).to(ThemeManager);
+        this.container.bind<IDisplaySettingsService>(Services.DisplaySettings).to(DisplaySettingsService);
+        this.container.bind<IExtensionManager>(Services.ExtensionManager).to(ExtensionManager);
+        this.container.bind<IExtensionValidationService>(Services.ExtensionValidation).to(ExtensionValidationService);
+        this.container.bind<IExtensionTelemetryService>(Services.ExtensionTelemetry).to(ExtensionTelemetryService);
     }
 
-    register<T>(serviceType: symbol, instance: T): void {
-        this.services.set(serviceType, instance);
+    public get<T>(serviceType: symbol): T {
+        return this.container.get<T>(serviceType);
     }
 
-    async initialize(): Promise<void> {
-        const initPromises = Array.from(this.services.values())
-            .filter(service => service && typeof service.initialize === 'function')
-            .map(service => service.initialize());
-
-        await Promise.all(initPromises);
-    }
-
-    dispose(): void {
-        this.services.forEach(service => {
-            if (typeof service.dispose === 'function') {
-                service.dispose();
-            }
-        });
-        this.services.clear();
+    public register<T>(serviceType: symbol, instance: T): void {
+        this.container.bind<T>(serviceType).toConstantValue(instance);
     }
 }
 

@@ -1,109 +1,139 @@
+import { EventEmitter } from 'events';
+
 /**
- * Interface for all LLM providers (Ollama, LM Studio, etc.)
+ * Interface for all LLM providers
  */
-export interface ILLMProvider {
-  /**
-   * The name of the LLM provider
-   */
-  readonly name: string;
-  
-  /**
-   * The model being used by this provider
-   */
-  readonly model: string;
-  
-  /**
-   * Send a prompt to the LLM and get a response
-   * @param prompt The prompt to send to the LLM
-   * @param options Optional provider-specific options
-   * @returns A promise that resolves to the LLM's response
-   */
-  sendPrompt(prompt: string, options?: ILLMRequestOptions): Promise<ILLMResponse>;
-  
-  /**
-   * Check if the provider is connected and ready
-   * @returns A promise that resolves to true if connected, false otherwise
-   */
-  isConnected(): Promise<boolean>;
-  
-  /**
-   * Initialize the provider with the given configuration
-   * @param config The provider-specific configuration
-   * @returns A promise that resolves when initialization is complete
-   */
-  initialize(config: ILLMProviderConfig): Promise<void>;
+export interface ILLMProvider extends EventEmitter {
+    /**
+     * Unique identifier for this provider instance
+     */
+    readonly id: string;
+
+    /**
+     * The name of the LLM provider
+     */
+    readonly name: string;
+
+    /**
+     * The active model for this provider
+     */
+    readonly model: string;
+
+    /**
+     * Get provider capabilities
+     */
+    getCapabilities(): IProviderCapabilities;
+
+    /**
+     * Check if the provider is available
+     */
+    isAvailable(): Promise<boolean>;
+
+    /**
+     * Get current provider status
+     */
+    getStatus(): 'active' | 'inactive' | 'error';
+
+    /**
+     * Initialize the provider with configuration
+     */
+    initialize(config: ILLMProviderConfig): Promise<void>;
+
+    /**
+     * Connect to the provider
+     */
+    connect(): Promise<void>;
+
+    /**
+     * Disconnect from the provider
+     */
+    disconnect(): Promise<void>;
+
+    /**
+     * Generate a completion from a prompt
+     */
+    generateCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: ILLMRequestOptions
+    ): Promise<ILLMResponse>;
+
+    /**
+     * Stream a completion from a prompt
+     */
+    streamCompletion(
+        model: string,
+        prompt: string,
+        systemPrompt?: string,
+        options?: ILLMRequestOptions
+    ): AsyncIterableIterator<ILLMResponse>;
+
+    /**
+     * Cancel an ongoing completion request
+     */
+    cancelCompletion(requestId: string): Promise<void>;
+
+    /**
+     * Get available models for this provider
+     */
+    getAvailableModels(): Promise<string[]>;
+
+    /**
+     * Validate provider configuration
+     */
+    validateConfig(config: ILLMProviderConfig): Promise<boolean>;
 }
 
 /**
- * Common options for LLM requests
+ * Provider capabilities interface
+ */
+export interface IProviderCapabilities {
+    supportsStreaming: boolean;
+    supportsMultipleModels: boolean;
+    supportsSystemPrompts: boolean;
+    maxTokens: number;
+    supportedLanguages: string[];
+}
+
+/**
+ * Configuration interface for LLM providers
+ */
+export interface ILLMProviderConfig {
+    apiKey?: string;
+    model?: string;
+    baseUrl?: string;
+    organizationId?: string;
+    maxTokens?: number;
+    temperature?: number;
+    timeout?: number;
+}
+
+/**
+ * Options for LLM requests
  */
 export interface ILLMRequestOptions {
-  /**
-   * Temperature controls randomness (0.0 to 1.0)
-   */
-  temperature?: number;
-  
-  /**
-   * Maximum tokens to generate
-   */
-  maxTokens?: number;
-  
-  /**
-   * Stop sequences to end generation
-   */
-  stopSequences?: string[];
-  
-  /**
-   * Whether to stream the response
-   */
-  stream?: boolean;
-  
-  /**
-   * Provider-specific parameters
-   */
-  [key: string]: any;
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    stop?: string[];
+    timeout?: number;
 }
 
 /**
  * Response from an LLM
  */
 export interface ILLMResponse {
-  /**
-   * The generated text
-   */
-  text: string;
-  
-  /**
-   * Token usage information
-   */
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-  
-  /**
-   * Provider-specific metadata
-   */
-  metadata?: Record<string, any>;
-}
-
-/**
- * Base configuration for LLM providers
- */
-export interface ILLMProviderConfig {
-  /**
-   * API endpoint URL
-   */
-  apiEndpoint: string;
-  
-  /**
-   * Model to use
-   */
-  model: string;
-  
-  /**
-   * Default request options
-   */
-  defaultOptions?: ILLMRequestOptions;
+    text: string;
+    usage?: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+    };
+    metadata?: Record<string, any>;
+    requestId?: string;
+    model?: string;
+    finishReason?: 'stop' | 'length' | 'timeout' | 'error';
 }
