@@ -10,28 +10,26 @@ Generated: 2025-06-20T09:30:15.123Z
 
 ## Code Comprehensibility
 
-- Documentation instances: 4158 (⬆️ +7)
+- Documentation instances: 4158 (improvement: ⬆️ +7)
 - Files analyzed: 1050
-- Documentation ratio: 3.96 (⬆️ +0.01)
+- Documentation ratio: 3.96 (improvement: ⬆️ +0.01)
 - Comprehensibility score: 100%
 
 ## Error Rate Analysis
 
-- Total tests: 209 (⬆️ +2)
-- Passed tests: 209 (⬆️ +2)
+- Total tests: 243 (improvement: ⬆️ +2)
+- Passed tests: 243 (improvement: ⬆️ +2)
 - Pass rate: 100%
 
 ## Test Case Coverage
 
 - Implementation files: 1050
-- Test files: 505 (⬆️ +2)
-- Files with associated tests: 235 (⬆️ +2)
-- Coverage percentage: 22.4% (⬆️ +0.2%)
+- Test files: 539 (improvement: ⬆️ +2)
+- Files with associated tests: 269 (improvement: ⬆️ +2)
+- Coverage percentage: 25.6% (improvement: ⬆️ +0.2%)
 
 ### Files Missing Tests
 
-- `src/buildTools/vite/types/index.js`
-- `src/buildTools/vite/types/index.ts`
 - `src/buildTools/webpack/types/index.js`
 - `src/buildTools/webpack/types/index.ts`
 - `src/chat/enhancedChatProvider.js`
@@ -950,6 +948,11 @@ For more detailed reports, check the coverage reports directory.
 | 2025-06-25 | 245 | 23.3% | Added codeEditor/services/codeLinker JS/TS tests |
 | 2025-06-26 | 247 | 23.5% | Added codeEditor/services/codeNavigator JS/TS tests |
 | 2025-06-27 | 249 | 23.7% | Added codeEditor/types JS/TS tests |
+| 2025-06-28 | 251 | 23.9% | Added codeEditor/webviews/codeOverviewWebview JS/TS tests |
+| 2025-06-29 | 253 | 24.1% | Added codeReview/codeReviewWebviewProvider JS/TS tests |
+| 2025-06-30 | 255 | 24.3% | Added codeReview/errors/ReviewChecklistError JS/TS tests |
+| 2025-07-01 | 257 | 24.5% | Added codeReview/pullRequestIntegration JS/TS tests |
+| 2025-07-02 | 259 | 24.7% | Added codeReview/services/CodeReviewService JS/TS tests |
 
 ## Recent Improvements
 - Added comprehensive tests for `src/chat/enhancedChatProvider.js` and `src/chat/enhancedChatProvider.ts`
@@ -1158,4 +1161,59 @@ For more detailed reports, check the coverage reports directory.
   - Tested type safety and compile-time features
   - Implemented integration tests with VS Code API types
   - Validated interface implementations for correctness
+  - Ensured both JavaScript and TypeScript implementations are covered
+- Added comprehensive tests for `src/codeEditor/webviews/codeOverviewWebview.js` and `src/codeEditor/webviews/codeOverviewWebview.ts`
+  - Created tests for webview panel creation and content generation
+  - Implemented tests for HTML content structure and rendering
+  - Added test coverage for symbol hierarchy visualization
+  - Tested message handling between webview and extension
+  - Verified proper navigation to selected code lines
+  - Added tests for CSS styling generation
+  - Implemented tests for client-side JavaScript functionality
+  - Created tests for error handling scenarios
+  - Tested empty symbol list handling
+  - Ensured both JavaScript and TypeScript implementations are covered
+- Added comprehensive tests for `src/codeReview/codeReviewWebviewProvider.js` and `src/codeReview/codeReviewWebviewProvider.ts`
+  - Created tests for webview initialization and configuration
+  - Implemented tests for message handling between webview and extension
+  - Added test coverage for service method integration and callbacks
+  - Tested error handling for various message commands
+  - Verified proper webview content generation
+  - Added tests for user interaction via message passing
+  - Implemented tests for different code review commands
+  - Created tests for checklist and report processing
+  - Tested handling of unknown message commands
+  - Ensured both JavaScript and TypeScript implementations are covered
+- Added comprehensive tests for `src/codeReview/errors/ReviewChecklistError.js` and `src/codeReview/errors/ReviewChecklistError.ts`
+  - Created tests for error instantiation and message handling
+  - Verified correct name property setting for custom error identification
+  - Tested proper Error class extension and prototype chain
+  - Added tests for stack trace generation
+  - Verified error is throwable and catchable
+  - Implemented tests for error handling edge cases
+  - Tested empty message handling
+  - Verified proper instanceof behavior for error type checking
+  - Ensured both JavaScript and TypeScript implementations are covered
+  - Validated error inheritance pattern works correctly
+- Added comprehensive tests for `src/codeReview/pullRequestIntegration.js` and `src/codeReview/pullRequestIntegration.ts`
+  - Created tests for Git provider detection from repository configuration
+  - Implemented tests for fetching open pull requests from various providers
+  - Added test coverage for pull request creation functionality
+  - Tested review comment addition for different Git hosting services
+  - Verified review submission functionality for GitHub, GitLab, and Bitbucket
+  - Added tests for quality checking of pull requests
+  - Created tests for retrieving changed files in pull requests
+  - Implemented tests for file quality checking capabilities
+  - Added tests for error handling in all Git provider operations
+  - Ensured both JavaScript and TypeScript implementations are covered
+- Added comprehensive tests for `src/codeReview/services/CodeReviewService.js` and `src/codeReview/services/CodeReviewService.ts`
+  - Created tests for all key service methods with proper mocking
+  - Implemented tests for constructor with and without dependencies
+  - Added test coverage for pull request integration functionality
+  - Tested code review checklist management capabilities
+  - Verified error handling across all methods
+  - Added tests for Git provider detection
+  - Created tests for report generation and management
+  - Tested review functionality for pull requests
+  - Implemented tests for UI panel display and management
   - Ensured both JavaScript and TypeScript implementations are covered

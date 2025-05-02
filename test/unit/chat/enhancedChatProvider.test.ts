@@ -8,318 +8,361 @@ describe('EnhancedChatProvider - TypeScript', () => {
   let mockContextManager: any;
   let mockLLMProvider: any;
   let mockWebview: any;
-  let sandbox: sinon.SinonSandbox;
+  let clock: sinon.SinonFakeTimers;
 
   beforeEach(() => {
-    sandbox = sinon.createSandbox();
+    // Setup fake timers for testing delays and timeouts
+    clock = sinon.useFakeTimers();
 
-    // Create mock dependencies
+    // Mock the VS Code window
+    global.vscode = {
+      window: {
+        showErrorMessage: sinon.stub(),
+        showInformationMessage: sinon.stub(),
+        createOutputChannel: sinon.stub().returns({
+          appendLine: sinon.stub(),
+          show: sinon.stub(),
+          clear: sinon.stub(),
+          dispose: sinon.stub()
+        })
+      },
+      ProgressLocation: {
+        Notification: 1
+      },
+      Uri: {
+        parse: sinon.stub().returns({
+          fsPath: '/path/to/file'
+        })
+      },
+      Position: function(line: number, character: number) {
+        this.line = line;
+        this.character = character;
+      }
+    } as any;
+
+    // Setup mock webview
+    mockWebview = {
+      onDidReceiveMessage: sinon.stub().callsFake((callback) => {
+        mockWebview.messageCallback = callback;
+        return { dispose: sinon.stub() };
+      }),
+      postMessage: sinon.stub().resolves(true),
+      html: '',
+      dispose: sinon.stub()
+    };
+
+    // Setup mock context and other dependencies
     mockContext = {
       subscriptions: [],
       workspaceState: {
-        get: sandbox.stub().returns([]),
-        update: sandbox.stub().resolves()
+        get: sinon.stub().returns([]),
+        update: sinon.stub().resolves()
       }
     };
 
     mockContextManager = {
-      getContext: sandbox.stub().returns({
-        files: ['file1.ts', 'file2.ts'],
-        selectedText: 'selected typescript code'
+      getCurrentContext: sinon.stub().returns({
+        selectedCode: 'console.log("Hello World");',
+        selectedLanguage: 'javascript',
+        currentFilePath: '/path/to/file.js'
       }),
-      updateContext: sandbox.stub()
+      updateContext: sinon.stub()
     };
 
     mockLLMProvider = {
-      isConnected: sandbox.stub().returns(true),
-      generateResponse: sandbox.stub().resolves('AI response'),
-      generateStreamingResponse: sandbox.stub().returns({
-        on: sandbox.stub().callsFake((event: string, callback: Function) => {
-          if (event === 'data') {
-            callback('Streaming response chunk');
-          }
-          if (event === 'end') {
-            callback();
-          }
-          return { on: sandbox.stub() };
-        })
+      isConnected: sinon.stub().returns(true),
+      getStatus: sinon.stub().returns({ connected: true, status: 'online' }),
+      generateChatResponse: sinon.stub().callsFake(async (promptText, callbacks) => {
+        // Simulate streaming response
+        await Promise.resolve();
+        callbacks.onPartialResponse('Partial response');
+        await Promise.resolve();
+        callbacks.onCompletion('Final response');
+        return 'Final response';
+      }),
+      getModelInfo: sinon.stub().returns({
+        name: 'test-model',
+        parameters: '7B',
+        version: '1.0'
       })
-    };
-
-    mockWebview = {
-      postMessage: sandbox.stub().resolves(true),
-      onDidReceiveMessage: sandbox.stub()
     };
 
     // Create provider instance
     provider = new EnhancedChatProvider(mockContext, mockContextManager, mockLLMProvider);
-    provider.setWebview(mockWebview);
   });
 
   afterEach(() => {
-    sandbox.restore();
+    // Restore timers
+    clock.restore();
+    sinon.restore();
+    delete global.vscode;
   });
 
-  describe('Constructor and Initialization', () => {
-    it('should initialize correctly with dependencies', () => {
+  describe('Initialization', () => {
+    it('should initialize with provided dependencies', () => {
       expect(provider).to.be.instanceOf(EnhancedChatProvider);
-      expect(provider.context).to.equal(mockContext);
-      expect(provider.contextManager).to.equal(mockContextManager);
-      expect(provider.llmProvider).to.equal(mockLLMProvider);
     });
 
-    it('should initialize with empty messages array', () => {
-      expect(provider.messages).to.be.an('array').that.is.empty;
+    it('should register with context subscriptions', () => {
+      expect(mockContext.subscriptions).to.include.something.that.has.property('dispose');
     });
   });
 
-  describe('setWebview', () => {
-    it('should set the webview and register message handler', () => {
-      const newWebview = {
-        postMessage: sandbox.stub(),
-        onDidReceiveMessage: sandbox.stub()
-      };
-
-      provider.setWebview(newWebview);
-      expect(provider.webview).to.equal(newWebview);
-      expect(newWebview.onDidReceiveMessage.called).to.be.true;
+  describe('Webview Integration', () => {
+    it('should set webview and register message handler', () => {
+      provider.setWebview(mockWebview);
+      expect(mockWebview.onDidReceiveMessage.calledOnce).to.be.true;
     });
-  });
 
-  describe('renderChatInterface', () => {
-    it('should call sendMessagesToWebview and updateConnectionStatus', () => {
-      sandbox.stub(provider, 'sendMessagesToWebview');
-      sandbox.stub(provider, 'updateConnectionStatus');
-
+    it('should render chat interface', () => {
+      provider.setWebview(mockWebview);
       provider.renderChatInterface();
-
-      expect(provider.sendMessagesToWebview.calledOnce).to.be.true;
-      expect(provider.updateConnectionStatus.calledOnce).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'render',
+        messages: sinon.match.array
+      })).to.be.true;
     });
-  });
 
-  describe('sendMessagesToWebview', () => {
-    it('should post messages to the webview', () => {
-      provider.messages = [
-        { role: 'user', content: 'Hello', timestamp: Date.now() },
-        { role: 'assistant', content: 'Hi there', timestamp: Date.now() }
-      ];
-
+    it('should send messages to webview', () => {
+      provider.setWebview(mockWebview);
       provider.sendMessagesToWebview();
-
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      expect(mockWebview.postMessage.firstCall.args[0].command).to.equal('setMessages');
-      expect(mockWebview.postMessage.firstCall.args[0].messages).to.deep.equal(provider.messages);
+      expect(mockWebview.postMessage.calledWith({
+        type: 'messages',
+        messages: sinon.match.array
+      })).to.be.true;
     });
   });
 
-  describe('updateConnectionStatus', () => {
-    it('should post connection status to the webview when connected', () => {
+  describe('Connection Status', () => {
+    it('should update connection status in webview', () => {
+      provider.setWebview(mockWebview);
       provider.updateConnectionStatus();
-
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      expect(mockWebview.postMessage.firstCall.args[0].command).to.equal('updateConnectionStatus');
-      expect(mockWebview.postMessage.firstCall.args[0].connected).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'connectionStatus',
+        status: { connected: true, status: 'online' }
+      })).to.be.true;
     });
 
-    it('should post disconnected status when LLM provider is not connected', () => {
+    it('should handle offline mode gracefully', async () => {
       mockLLMProvider.isConnected.returns(false);
+      mockLLMProvider.getStatus.returns({ connected: false, status: 'offline' });
+      provider.setWebview(mockWebview);
 
-      provider.updateConnectionStatus();
+      await provider.handleUserMessage('Hello');
 
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      expect(mockWebview.postMessage.firstCall.args[0].connected).to.be.false;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'connectionStatus',
+        status: { connected: false, status: 'offline' }
+      })).to.be.true;
     });
   });
 
-  describe('handleUserMessage', () => {
-    it('should add user message to messages array and generate response', async () => {
-      sandbox.stub(provider, 'generateStreamingResponse').resolves('AI response');
-      sandbox.stub(provider, 'sendMessagesToWebview');
+  describe('Message Handling', () => {
+    it('should handle user messages', async () => {
+      provider.setWebview(mockWebview);
+      await provider.handleUserMessage('Hello world');
 
-      await provider.handleUserMessage('Hello AI');
-
-      expect(provider.messages).to.have.lengthOf(2);
-      expect(provider.messages[0]).to.deep.include({ role: 'user', content: 'Hello AI' });
-      expect(provider.generateStreamingResponse.calledOnce).to.be.true;
-      expect(provider.sendMessagesToWebview.called).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'messages',
+        messages: sinon.match.array
+      })).to.be.true;
     });
 
-    it('should handle errors during response generation', async () => {
-      const error = new Error('Generation failed');
-      sandbox.stub(provider, 'generateStreamingResponse').rejects(error);
-      sandbox.stub(provider, 'handleError');
+    it('should generate streaming responses', async () => {
+      provider.setWebview(mockWebview);
+      const response = provider.generateStreamingResponse('Hello world');
 
-      await provider.handleUserMessage('Hello AI');
+      // Advance timers to let the async operations complete
+      await clock.runAllAsync();
 
-      expect(provider.handleError.calledWith(error)).to.be.true;
-    });
-  });
-
-  describe('generateStreamingResponse', () => {
-    it('should generate streaming response from LLM provider', async () => {
-      const userMessage = { role: 'user', content: 'Hello', timestamp: Date.now() };
-      sandbox.stub(provider, 'updateStreamingContent');
-
-      await provider.generateStreamingResponse(userMessage);
-
-      expect(mockLLMProvider.generateStreamingResponse.calledOnce).to.be.true;
-      expect(provider.updateStreamingContent.called).to.be.true;
+      await response;
+      expect(mockLLMProvider.generateChatResponse.calledOnce).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'updateStreamingContent',
+        content: 'Partial response'
+      })).to.be.true;
     });
 
-    it('should handle offline mode when LLM provider is not connected', async () => {
+    it('should handle offline mode with stored message', async () => {
       mockLLMProvider.isConnected.returns(false);
-      sandbox.stub(provider, 'handleOfflineMode');
+      provider.setWebview(mockWebview);
 
-      const userMessage = { role: 'user', content: 'Hello', timestamp: Date.now() };
-      await provider.generateStreamingResponse(userMessage);
+      await provider.handleOfflineMode('Hello offline');
 
-      expect(provider.handleOfflineMode.calledOnce).to.be.true;
-    });
-  });
-
-  describe('handleOfflineMode', () => {
-    it('should add offline response message and cache user message', () => {
-      sandbox.stub(provider, 'sendMessagesToWebview');
-      const message = { role: 'user', content: 'Hello offline', timestamp: Date.now() };
-
-      provider.handleOfflineMode(message);
-
-      expect(provider.messages).to.have.lengthOf(1);
-      expect(provider.messages[0].role).to.equal('assistant');
-      expect(provider.messages[0].content).to.include('offline');
-      expect(provider.sendMessagesToWebview.calledOnce).to.be.true;
-    });
-  });
-
-  describe('handleError', () => {
-    it('should add error message and update status', () => {
-      sandbox.stub(provider, 'updateStatus');
-      sandbox.stub(provider, 'sendMessagesToWebview');
-
-      provider.handleError(new Error('Test error'));
-
-      expect(provider.messages).to.have.lengthOf(1);
-      expect(provider.messages[0].role).to.equal('system');
-      expect(provider.messages[0].content).to.include('error');
-      expect(provider.updateStatus.calledWith('error')).to.be.true;
-      expect(provider.sendMessagesToWebview.calledOnce).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'messages',
+        messages: sinon.match.array.and(sinon.match(arr =>
+          arr.some(msg => msg.content.includes('saved for later'))
+        ))
+      })).to.be.true;
     });
 
-    it('should retry on connection error after wait', async () => {
-      const retryError = new Error('Connection reset');
-      (retryError as any).code = 'ECONNRESET';
+    it('should sync offline messages when coming back online', async () => {
+      // Setup: first offline, then online
+      mockLLMProvider.isConnected.onFirstCall().returns(false);
+      mockLLMProvider.isConnected.onSecondCall().returns(true);
+      mockLLMProvider.getStatus.onFirstCall().returns({ connected: false, status: 'offline' });
+      mockLLMProvider.getStatus.onSecondCall().returns({ connected: true, status: 'online' });
 
-      sandbox.stub(provider, 'waitBeforeRetry').resolves();
-      sandbox.stub(provider, 'updateStatus');
-      sandbox.stub(provider, 'renderChatInterface');
+      provider.setWebview(mockWebview);
 
-      await provider.handleError(retryError);
+      // Send a message while offline
+      await provider.handleUserMessage('Hello offline');
 
-      expect(provider.waitBeforeRetry.calledOnce).to.be.true;
-      expect(provider.renderChatInterface.calledOnce).to.be.true;
-    });
-  });
-
-  describe('waitBeforeRetry', () => {
-    it('should wait for the specified retry delay', async () => {
-      const clock = sandbox.useFakeTimers();
-      let resolved = false;
-
-      const waitPromise = provider.waitBeforeRetry(1).then(() => {
-        resolved = true;
-      });
-
-      expect(resolved).to.be.false;
-      clock.tick(2000); // Default delay is 1000ms * retryCount
-      await waitPromise;
-      expect(resolved).to.be.true;
-    });
-  });
-
-  describe('updateStreamingContent', () => {
-    it('should post streaming content to the webview', () => {
-      provider.updateStreamingContent('New content');
-
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      expect(mockWebview.postMessage.firstCall.args[0].command).to.equal('updateStreamingContent');
-      expect(mockWebview.postMessage.firstCall.args[0].content).to.equal('New content');
-    });
-  });
-
-  describe('syncOfflineMessages', () => {
-    it('should process cached offline messages when reconnecting', async () => {
-      provider.offlineMessages = [
-        { role: 'user', content: 'Offline message 1', timestamp: Date.now() },
-        { role: 'user', content: 'Offline message 2', timestamp: Date.now() }
-      ];
-
-      sandbox.stub(provider, 'generateStreamingResponse').resolves();
+      // Now simulate coming back online
+      mockLLMProvider.isConnected.returns(true);
+      mockLLMProvider.getStatus.returns({ connected: true, status: 'online' });
 
       await provider.syncOfflineMessages();
+      await clock.runAllAsync();
 
-      expect(provider.generateStreamingResponse.callCount).to.equal(2);
-      expect(provider.offlineMessages).to.be.empty;
+      expect(mockLLMProvider.generateChatResponse.called).to.be.true;
     });
   });
 
-  describe('updateStatus', () => {
-    it('should post status update to the webview', () => {
-      provider.updateStatus('loading');
+  describe('Error Handling', () => {
+    it('should handle errors during streaming response', async () => {
+      mockLLMProvider.generateChatResponse.rejects(new Error('Connection error'));
+      provider.setWebview(mockWebview);
 
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      expect(mockWebview.postMessage.firstCall.args[0].command).to.equal('updateStatus');
-      expect(mockWebview.postMessage.firstCall.args[0].status).to.equal('loading');
+      const errorHandler = sinon.spy(provider, 'handleError');
+
+      try {
+        await provider.generateStreamingResponse('Hello with error');
+        await clock.runAllAsync();
+      } catch (error) {
+        // Expected to throw
+      }
+
+      expect(errorHandler.called).to.be.true;
+      expect(mockWebview.postMessage.calledWith(sinon.match({
+        type: 'messages',
+        messages: sinon.match.array.and(sinon.match(arr =>
+          arr.some(msg => msg.content.includes('error'))
+        ))
+      }))).to.be.true;
+    });
+
+    it('should implement retry with exponential backoff', async () => {
+      mockLLMProvider.generateChatResponse.rejects(new Error('Connection error'));
+      provider.setWebview(mockWebview);
+
+      const waitSpy = sinon.spy(provider, 'waitBeforeRetry');
+
+      try {
+        await provider.generateStreamingResponse('Hello with retry');
+        await clock.runAllAsync();
+      } catch (error) {
+        // Expected to throw
+      }
+
+      expect(waitSpy.called).to.be.true;
     });
   });
 
-  describe('createCodeSnippet', () => {
-    it('should create a properly formatted code snippet', () => {
-      const code = 'const x: number = 10;';
-      const language = 'typescript';
+  describe('Content Streaming and Updates', () => {
+    it('should update streaming content in webview', () => {
+      provider.setWebview(mockWebview);
+      provider.updateStreamingContent('New content');
+
+      expect(mockWebview.postMessage.calledWith({
+        type: 'updateStreamingContent',
+        content: 'New content'
+      })).to.be.true;
+    });
+  });
+
+  describe('Status Updates', () => {
+    it('should send status updates to webview', () => {
+      provider.setWebview(mockWebview);
+      provider.updateStatus('typing');
+
+      expect(mockWebview.postMessage.calledWith({
+        type: 'status',
+        status: 'typing'
+      })).to.be.true;
+    });
+  });
+
+  describe('Code Snippet Handling', () => {
+    it('should create formatted code snippets', () => {
+      const code = 'console.log("Hello world");';
+      const language = 'javascript';
 
       const snippet = provider.createCodeSnippet(code, language);
 
-      expect(snippet).to.include('```typescript');
+      expect(snippet).to.include('```javascript');
       expect(snippet).to.include(code);
       expect(snippet).to.include('```');
     });
 
-    it('should handle snippets without specified language', () => {
-      const code = 'const x: number = 10;';
+    it('should handle code snippets with no language specified', () => {
+      const code = 'print("Hello world")';
 
       const snippet = provider.createCodeSnippet(code);
 
       expect(snippet).to.include('```');
       expect(snippet).to.include(code);
-      expect(snippet).to.include('```');
     });
   });
 
-  describe('clearHistory', () => {
-    it('should clear messages and update webview', () => {
-      provider.messages = [
-        { role: 'user', content: 'Hello', timestamp: Date.now() },
-        { role: 'assistant', content: 'Hi there', timestamp: Date.now() }
-      ];
-
-      sandbox.stub(provider, 'sendMessagesToWebview');
-
+  describe('History Management', () => {
+    it('should clear chat history', () => {
+      provider.setWebview(mockWebview);
       provider.clearHistory();
 
-      expect(provider.messages).to.be.empty;
-      expect(provider.sendMessagesToWebview.calledOnce).to.be.true;
+      expect(mockWebview.postMessage.calledWith({
+        type: 'messages',
+        messages: []
+      })).to.be.true;
     });
   });
 
-  describe('dispose', () => {
-    it('should clean up resources', () => {
-      const disposable = { dispose: sandbox.stub() };
-      provider.disposables = [disposable];
-
+  describe('Resource Management', () => {
+    it('should dispose resources', () => {
+      provider.setWebview(mockWebview);
       provider.dispose();
 
-      expect(disposable.dispose.calledOnce).to.be.true;
+      expect(mockWebview.dispose.calledOnce).to.be.true;
+    });
+  });
+
+  describe('Message Event Handling', () => {
+    it('should handle message events from webview', async () => {
+      provider.setWebview(mockWebview);
+
+      const handleUserMessageSpy = sinon.spy(provider, 'handleUserMessage');
+
+      // Simulate a message from the webview
+      await mockWebview.messageCallback({
+        type: 'userMessage',
+        content: 'Hello from webview'
+      });
+
+      expect(handleUserMessageSpy.calledWith('Hello from webview')).to.be.true;
+    });
+
+    it('should handle clearHistory message from webview', () => {
+      provider.setWebview(mockWebview);
+
+      const clearHistorySpy = sinon.spy(provider, 'clearHistory');
+
+      // Simulate a clearHistory message
+      mockWebview.messageCallback({
+        type: 'clearHistory'
+      });
+
+      expect(clearHistorySpy.calledOnce).to.be.true;
+    });
+
+    it('should handle unknown message types gracefully', () => {
+      provider.setWebview(mockWebview);
+
+      // Should not throw an error
+      expect(() => mockWebview.messageCallback({
+        type: 'unknownType',
+        content: 'Unknown content'
+      })).to.not.throw();
     });
   });
 });

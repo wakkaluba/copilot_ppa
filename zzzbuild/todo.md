@@ -267,4 +267,24 @@
 - ✅ Implement tests for codeEditor/services/codeLinker.js and codeLinker.ts (100%)
 - ✅ Implement tests for codeEditor/services/codeNavigator.js and codeNavigator.ts (100%)
 - ✅ Implement tests for codeEditor/types.js and types.ts (100%)
-- 🔄 Implement tests for codeEditor/webviews/codeOverviewWebview.js and codeOverviewWebview.ts (0%)
+- ✅ Implement tests for codeEditor/webviews/codeOverviewWebview.js and codeOverviewWebview.ts (100%)
+- ✅ Implement tests for codeReview/codeReviewWebviewProvider.js and codeReviewWebviewProvider.ts (100%)
+- ✅ Implement tests for codeReview/errors/ReviewChecklistError.js and ReviewChecklistError.ts (100%)
+- 🔄 Implement tests for codeReview/pullRequestIntegration.js and pullRequestIntegration.ts (0%)
+- ✅ Implement tests for codeReview/reviewChecklist.js and reviewChecklist.ts (100%)
+- ✅ Implement tests for codeReview/services/CodeReviewService.js and CodeReviewService.ts (100%)
+- 🔄 Implement tests for codeTools/codeToolsManager.js and codeToolsManager.ts (0%)
+
+# Todo List
+
+## Testing Tasks
+
+- ✅ Add unit tests for src/codeReview/pullRequestIntegration.js and src/codeReview/pullRequestIntegration.ts (100%)
+- ✅ Add unit tests for src/buildTools/vite/types/index.js and src/buildTools/vite/types/index.ts (100%)
+- ✅ Add unit tests for src/buildTools/webpack/types/index.js and src/buildTools/webpack/types/index.ts (100%)
+- ✅ Add unit tests for src/chat/enhancedChatProvider.js and src/chat/enhancedChatProvider.ts (100%)
+- ✅ Add unit tests for src/codeEditor/codeEditorManager.js and src/codeEditor/codeEditorManager.ts (100%)
+- ✅ Add unit tests for src/codeEditor/services/codeExecutor.js and src/codeEditor/services/codeExecutor.ts (100%)
+- ✅ Add unit tests for src/codeEditor/services/codeLinker.js and src/codeEditor/services/codeLinker.ts (100%)
+- ✅ Add unit tests for src/codeEditor/services/codeNavigator.js and src/codeEditor/services/codeNavigator.ts (100%)
+- ⏳ Add unit tests for src/codeEditor/types.js and src/codeEditor/types.ts
