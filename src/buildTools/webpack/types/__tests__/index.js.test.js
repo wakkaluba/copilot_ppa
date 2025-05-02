@@ -1,15 +1,39 @@
 const WebpackTypes = require('../index');
 
 describe('Webpack Types JavaScript Implementation', () => {
-  describe('WebpackEntryPoint', () => {
+  describe('WebpackEntry', () => {
     it('should define a valid entry point structure', () => {
-      const entryPoint = {
+      const entry = {
         name: 'main',
         path: './src/index.js'
       };
 
-      expect(entryPoint.name).toBe('main');
-      expect(entryPoint.path).toBe('./src/index.js');
+      expect(entry.name).toBe('main');
+      expect(entry.path).toBe('./src/index.js');
+    });
+  });
+
+  describe('WebpackOutput', () => {
+    it('should define a valid output structure', () => {
+      const output = {
+        path: 'dist',
+        filename: '[name].[contenthash].js'
+      };
+
+      expect(output.path).toBe('dist');
+      expect(output.filename).toBe('[name].[contenthash].js');
+    });
+
+    it('should allow optional publicPath', () => {
+      const output = {
+        path: 'dist',
+        filename: '[name].[contenthash].js',
+        publicPath: '/assets/'
+      };
+
+      expect(output.path).toBe('dist');
+      expect(output.filename).toBe('[name].[contenthash].js');
+      expect(output.publicPath).toBe('/assets/');
     });
   });
 
@@ -50,21 +74,23 @@ describe('Webpack Types JavaScript Implementation', () => {
     });
   });
 
-  describe('WebpackOutputConfig', () => {
-    it('should define a valid output config structure', () => {
-      const output = {
-        path: 'dist',
-        filename: '[name].[contenthash].js'
+  describe('WebpackOptimization', () => {
+    it('should define a valid optimization structure', () => {
+      const optimization = {
+        title: 'Code Splitting',
+        description: 'Split code into separate chunks for better performance',
+        code: 'optimization: { splitChunks: { chunks: "all" } }'
       };
 
-      expect(output.path).toBe('dist');
-      expect(output.filename).toBe('[name].[contenthash].js');
+      expect(optimization.title).toBe('Code Splitting');
+      expect(optimization.description).toBe('Split code into separate chunks for better performance');
+      expect(optimization.code).toBe('optimization: { splitChunks: { chunks: "all" } }');
     });
   });
 
-  describe('WebpackConfig', () => {
-    it('should define a valid webpack config structure', () => {
-      const config = {
+  describe('WebpackConfigAnalysis', () => {
+    it('should define a valid config analysis structure', () => {
+      const analysis = {
         entryPoints: [
           { name: 'main', path: './src/index.js' }
         ],
@@ -73,46 +99,47 @@ describe('Webpack Types JavaScript Implementation', () => {
           filename: '[name].[contenthash].js'
         },
         loaders: [
-          { name: 'babel-loader', test: '/\\.js$/' }
+          { name: 'babel-loader', test: '/\\.js$/', options: {} }
         ],
         plugins: [
           { name: 'HtmlWebpackPlugin', description: 'Generates HTML files' }
+        ],
+        content: 'module.exports = { ... }',
+        optimizationSuggestions: [
+          {
+            title: 'Use Production Mode',
+            description: 'Enable production optimizations',
+            code: 'mode: "production"'
+          }
         ]
       };
 
-      expect(config.entryPoints).toHaveLength(1);
-      expect(config.entryPoints[0].name).toBe('main');
-      expect(config.output.path).toBe('dist');
-      expect(config.loaders).toHaveLength(1);
-      expect(config.plugins).toHaveLength(1);
+      expect(analysis.entryPoints).toHaveLength(1);
+      expect(analysis.entryPoints[0].name).toBe('main');
+      expect(analysis.output.path).toBe('dist');
+      expect(analysis.loaders).toHaveLength(1);
+      expect(analysis.plugins).toHaveLength(1);
+      expect(analysis.content).toBe('module.exports = { ... }');
+      expect(analysis.optimizationSuggestions).toHaveLength(1);
+      expect(analysis.optimizationSuggestions[0].title).toBe('Use Production Mode');
     });
   });
 
-  describe('WebpackOptimizationSuggestion', () => {
-    it('should define a valid optimization suggestion structure', () => {
-      const suggestion = {
-        type: 'performance',
-        description: 'Use code splitting',
-        code: 'optimization: { splitChunks: { chunks: "all" } }',
-        impact: 'high'
+  describe('WebpackConfigContent', () => {
+    it('should define a valid config content structure', () => {
+      const configContent = {
+        content: 'module.exports = { ... }',
+        entryPoints: ['./src/index.js'],
+        output: { path: 'dist', filename: 'bundle.js' },
+        loaders: [{ test: /\.js$/, use: 'babel-loader' }],
+        plugins: [{ name: 'HtmlWebpackPlugin' }]
       };
 
-      expect(suggestion.type).toBe('performance');
-      expect(suggestion.description).toBe('Use code splitting');
-      expect(suggestion.code).toBe('optimization: { splitChunks: { chunks: "all" } }');
-      expect(suggestion.impact).toBe('high');
-    });
-
-    it('should allow optional fields', () => {
-      const suggestion = {
-        type: 'bundle-size',
-        description: 'Enable tree shaking'
-      };
-
-      expect(suggestion.type).toBe('bundle-size');
-      expect(suggestion.description).toBe('Enable tree shaking');
-      expect(suggestion.code).toBeUndefined();
-      expect(suggestion.impact).toBeUndefined();
+      expect(configContent.content).toBe('module.exports = { ... }');
+      expect(configContent.entryPoints).toHaveLength(1);
+      expect(configContent.output).toBeDefined();
+      expect(configContent.loaders).toHaveLength(1);
+      expect(configContent.plugins).toHaveLength(1);
     });
   });
 

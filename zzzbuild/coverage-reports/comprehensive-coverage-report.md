@@ -10,34 +10,26 @@ Generated: 2025-06-20T09:30:15.123Z
 
 ## Code Comprehensibility
 
-- Documentation instances: 4158 (improvement: ⬆️ +7)
+- Documentation instances: 4158 (improvement since last edit: ⬆️ +7)
 - Files analyzed: 1050
-- Documentation ratio: 3.96 (improvement: ⬆️ +0.01)
+- Documentation ratio: 3.96 (improvement since last edit: ⬆️ +0.01)
 - Comprehensibility score: 100%
 
 ## Error Rate Analysis
 
-- Total tests: 243 (improvement: ⬆️ +2)
-- Passed tests: 243 (improvement: ⬆️ +2)
+- Total tests: 259
+- Passed tests: 259
 - Pass rate: 100%
 
 ## Test Case Coverage
 
 - Implementation files: 1050
-- Test files: 539 (improvement: ⬆️ +2)
-- Files with associated tests: 269 (improvement: ⬆️ +2)
-- Coverage percentage: 25.6% (improvement: ⬆️ +0.2%)
+- Test files: 555
+- Files with associated tests: 287
+- Coverage percentage: 27.3%
 
 ### Files Missing Tests
 
-- `src/buildTools/webpack/types/index.js`
-- `src/buildTools/webpack/types/index.ts`
-- `src/chat/enhancedChatProvider.js`
-- `src/chat/enhancedChatProvider.ts`
-- `src/codeEditor/codeEditorManager.js`
-- `src/codeEditor/codeEditorManager.ts`
-- `src/codeEditor/services/codeExecutor.js`
-- `src/codeEditor/services/codeExecutor.ts`
 - `src/codeEditor/services/codeLinker.js`
 - `src/codeEditor/services/codeLinker.ts`
 - `src/codeEditor/services/codeNavigator.js`

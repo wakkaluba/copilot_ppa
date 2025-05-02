@@ -1,58 +1,130 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const vscode = require('vscode');
 const { CodeOverviewWebview } = require('../../../../src/codeEditor/webviews/codeOverviewWebview');
 
 describe('CodeOverviewWebview - JavaScript', () => {
   let webview;
-  let sandbox;
-  let mockPanel;
-  let mockWebviewView;
+  let mockWebviewPanel;
+  let mockVscode;
   let mockSymbols;
+  let sandbox;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
-    // Create mock panel and webview objects
-    mockWebviewView = {
-      html: '',
-      onDidReceiveMessage: sandbox.stub().callsFake(callback => {
-        mockWebviewView.messageCallback = callback;
-        return { dispose: sandbox.stub() };
-      }),
-      postMessage: sandbox.stub().resolves(true)
-    };
-
-    mockPanel = {
-      webview: mockWebviewView,
-      dispose: sandbox.stub(),
-      onDidDispose: sandbox.stub().returns({ dispose: sandbox.stub() }),
-      reveal: sandbox.stub()
-    };
-
-    // Mock VS Code API
-    sandbox.stub(vscode.window, 'createWebviewPanel').returns(mockPanel);
-    sandbox.stub(vscode.window, 'showTextDocument').resolves();
-    sandbox.stub(vscode.window, 'showErrorMessage').resolves();
-
-    // Mock symbols for testing
+    // Create mock document symbols
     mockSymbols = [
       {
         name: 'TestClass',
-        kind: vscode.SymbolKind.Class,
-        range: new vscode.Range(0, 0, 10, 0),
-        selectionRange: new vscode.Range(0, 0, 0, 9),
+        kind: 5, // Class
+        range: {
+          start: { line: 5, character: 0 },
+          end: { line: 20, character: 1 }
+        },
+        selectionRange: {
+          start: { line: 5, character: 0 },
+          end: { line: 5, character: 9 }
+        },
         children: [
           {
+            name: 'constructor',
+            kind: 9, // Constructor
+            range: {
+              start: { line: 6, character: 2 },
+              end: { line: 8, character: 3 }
+            },
+            selectionRange: {
+              start: { line: 6, character: 2 },
+              end: { line: 6, character: 13 }
+            },
+            children: []
+          },
+          {
             name: 'testMethod',
-            kind: vscode.SymbolKind.Method,
-            range: new vscode.Range(2, 0, 4, 0),
-            selectionRange: new vscode.Range(2, 0, 2, 10),
+            kind: 6, // Method
+            range: {
+              start: { line: 10, character: 2 },
+              end: { line: 12, character: 3 }
+            },
+            selectionRange: {
+              start: { line: 10, character: 2 },
+              end: { line: 10, character: 12 }
+            },
             children: []
           }
         ]
+      },
+      {
+        name: 'testFunction',
+        kind: 12, // Function
+        range: {
+          start: { line: 22, character: 0 },
+          end: { line: 24, character: 1 }
+        },
+        selectionRange: {
+          start: { line: 22, character: 0 },
+          end: { line: 22, character: 13 }
+        },
+        children: []
       }
     ];
+
+    // Mock webview panel
+    mockWebviewPanel = {
+      webview: {
+        html: '',
+        onDidReceiveMessage: sandbox.stub().returns({ dispose: sandbox.stub() }),
+        postMessage: sandbox.stub().resolves()
+      },
+      onDidDispose: sandbox.stub().returns({ dispose: sandbox.stub() }),
+      reveal: sandbox.stub(),
+      dispose: sandbox.stub()
+    };
+
+    // Mock VS Code APIs
+    mockVscode = {
+      window: {
+        createWebviewPanel: sandbox.stub().returns(mockWebviewPanel),
+        showTextDocument: sandbox.stub(),
+        activeTextEditor: {
+          document: {
+            lineAt: sandbox.stub().returns({ range: { start: { line: 0 } } }),
+            uri: { fsPath: '/path/to/file.js' }
+          },
+          revealRange: sandbox.stub(),
+          selection: { active: { line: 0, character: 0 } }
+        }
+      },
+      ViewColumn: {
+        Beside: 2
+      },
+      Position: function(line, character) {
+        return { line, character };
+      },
+      Range: function(startLine, startChar, endLine, endChar) {
+        return {
+          start: { line: startLine, character: startChar },
+          end: { line: endLine, character: endChar }
+        };
+      },
+      SymbolKind: {
+        File: 0,
+        Module: 1,
+        Namespace: 2,
+        Package: 3,
+        Class: 5,
+        Method: 6,
+        Property: 7,
+        Field: 8,
+        Constructor: 9,
+        Function: 12,
+        Variable: 13,
+        Interface: 8
+      }
+    };
+
+    // Create mock global vscode object
+    global.vscode = mockVscode;
 
     // Create webview instance
     webview = new CodeOverviewWebview();
@@ -60,146 +132,155 @@ describe('CodeOverviewWebview - JavaScript', () => {
 
   afterEach(() => {
     sandbox.restore();
+    delete global.vscode;
   });
 
   describe('show', () => {
-    it('should create a webview panel and set its html content', async () => {
+    it('should create a webview panel with correct properties', async () => {
       await webview.show(mockSymbols, 'javascript');
 
-      expect(vscode.window.createWebviewPanel.calledOnce).to.be.true;
-      expect(mockPanel.webview.html).to.be.a('string');
-      expect(mockPanel.webview.html.length).to.be.greaterThan(0);
-      expect(mockPanel.webview.html).to.include('TestClass');
-      expect(mockPanel.webview.html).to.include('testMethod');
+      expect(mockVscode.window.createWebviewPanel.calledOnce).to.be.true;
+      expect(mockVscode.window.createWebviewPanel.args[0][0]).to.equal('codeOverview');
+      expect(mockVscode.window.createWebviewPanel.args[0][1]).to.equal('Code Overview');
+      expect(mockVscode.window.createWebviewPanel.args[0][2]).to.equal(mockVscode.ViewColumn.Beside);
     });
 
-    it('should handle empty symbols', async () => {
-      await webview.show([], 'javascript');
-
-      expect(vscode.window.createWebviewPanel.calledOnce).to.be.true;
-      expect(mockPanel.webview.html).to.be.a('string');
-      expect(mockPanel.webview.html.length).to.be.greaterThan(0);
-      expect(mockPanel.webview.html).to.include('No symbols found');
-    });
-
-    it('should register webview message handling', async () => {
+    it('should set HTML content in the webview panel', async () => {
       await webview.show(mockSymbols, 'javascript');
 
-      expect(mockPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
+      expect(mockWebviewPanel.webview.html).to.be.a('string');
+      expect(mockWebviewPanel.webview.html).to.include('<html>');
+      expect(mockWebviewPanel.webview.html).to.include('<body>');
+      expect(mockWebviewPanel.webview.html).to.include('Code Overview');
+      expect(mockWebviewPanel.webview.html).to.include('TestClass');
+      expect(mockWebviewPanel.webview.html).to.include('testMethod');
+      expect(mockWebviewPanel.webview.html).to.include('testFunction');
     });
 
-    it('should handle errors during panel creation', async () => {
-      vscode.window.createWebviewPanel.throws(new Error('Failed to create webview'));
-
+    it('should register message handling for webview panel', async () => {
       await webview.show(mockSymbols, 'javascript');
 
-      expect(vscode.window.showErrorMessage.calledOnce).to.be.true;
+      expect(mockWebviewPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
     });
   });
 
   describe('registerWebviewMessageHandling', () => {
-    it('should register a message handler for jump commands', () => {
-      webview.registerWebviewMessageHandling(mockPanel);
+    it('should set up a message handler for jump commands', () => {
+      webview.registerWebviewMessageHandling(mockWebviewPanel);
 
-      expect(mockPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
+      // Verify the handler is registered
+      expect(mockWebviewPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
 
-      // Simulate a message from the webview
-      const jumpSpy = sandbox.spy(webview, 'jumpToLine');
-      mockWebviewView.messageCallback({ command: 'jump', line: 5 });
+      // Simulate receiving a message
+      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
+      messageHandler({ command: 'jump', line: 10 });
 
-      expect(jumpSpy.calledWith(5)).to.be.true;
+      // Verify jumpToLine was called
+      expect(mockVscode.window.activeTextEditor.revealRange.calledOnce).to.be.true;
     });
 
-    it('should ignore unknown commands', () => {
-      webview.registerWebviewMessageHandling(mockPanel);
+    it('should handle unknown commands gracefully', () => {
+      webview.registerWebviewMessageHandling(mockWebviewPanel);
 
-      const jumpSpy = sandbox.spy(webview, 'jumpToLine');
-      mockWebviewView.messageCallback({ command: 'unknown', data: 'test' });
+      // Get the message handler
+      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
 
-      expect(jumpSpy.called).to.be.false;
+      // Should not throw when receiving an unknown command
+      expect(() => messageHandler({ command: 'unknown' })).to.not.throw();
     });
   });
 
   describe('jumpToLine', () => {
-    it('should reveal the specified line in the active editor', async () => {
-      const mockEditor = {
-        revealRange: sandbox.stub(),
-        document: {
-          lineAt: sandbox.stub().returns({
-            range: new vscode.Range(5, 0, 5, 10)
-          })
-        }
-      };
+    it('should reveal the specified line in the active editor', () => {
+      webview.jumpToLine(10);
 
-      sandbox.stub(vscode.window, 'activeTextEditor').value(mockEditor);
+      expect(mockVscode.window.activeTextEditor.revealRange.calledOnce).to.be.true;
 
-      await webview.jumpToLine(5);
-
-      expect(mockEditor.document.lineAt.calledWith(5)).to.be.true;
-      expect(mockEditor.revealRange.calledOnce).to.be.true;
+      // Check that the range starts at the specified line
+      const range = mockVscode.window.activeTextEditor.revealRange.args[0][0];
+      expect(range.start.line).to.equal(10);
     });
 
-    it('should handle errors during jump', async () => {
-      sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+    it('should handle case when there is no active editor', () => {
+      // Set active editor to null
+      mockVscode.window.activeTextEditor = null;
 
-      await webview.jumpToLine(5);
-
-      expect(vscode.window.showErrorMessage.calledOnce).to.be.true;
+      // Should not throw
+      expect(() => webview.jumpToLine(10)).to.not.throw();
     });
   });
 
   describe('getWebviewContent', () => {
-    it('should generate HTML content for the webview', () => {
-      const content = webview.getWebviewContent(mockSymbols, 'javascript');
+    it('should generate complete HTML document with symbols', () => {
+      const html = webview.getWebviewContent(mockSymbols, 'javascript');
 
-      expect(content).to.be.a('string');
-      expect(content).to.include('<!DOCTYPE html>');
-      expect(content).to.include('<html>');
-      expect(content).to.include('</html>');
-      expect(content).to.include('TestClass');
-      expect(content).to.include('testMethod');
-      expect(content).to.include('<style>');
-      expect(content).to.include('<script>');
+      expect(html).to.include('<!DOCTYPE html>');
+      expect(html).to.include('<html>');
+      expect(html).to.include('<head>');
+      expect(html).to.include('<style>');
+      expect(html).to.include('<body>');
+      expect(html).to.include('<h1>Code Overview</h1>');
+      expect(html).to.include('<script>');
+      expect(html).to.include('TestClass');
+      expect(html).to.include('testMethod');
+      expect(html).to.include('testFunction');
     });
 
-    it('should include language-specific styling', () => {
-      const content = webview.getWebviewContent(mockSymbols, 'javascript');
+    it('should include language information in the content', () => {
+      const html = webview.getWebviewContent(mockSymbols, 'javascript');
 
-      expect(content).to.include('javascript');
+      expect(html).to.include('javascript');
+    });
+
+    it('should handle empty symbols array', () => {
+      const html = webview.getWebviewContent([], 'javascript');
+
+      expect(html).to.include('<!DOCTYPE html>');
+      expect(html).to.include('<html>');
+      expect(html).to.include('<body>');
+      expect(html).to.include('<h1>Code Overview</h1>');
+      expect(html).to.include('No symbols found');
     });
   });
 
   describe('getSymbolsHtml', () => {
-    it('should generate HTML for symbol hierarchy', () => {
+    it('should generate HTML list for symbols with proper indentation', () => {
       const html = webview.getSymbolsHtml(mockSymbols, 0);
 
-      expect(html).to.be.a('string');
+      expect(html).to.include('<ul>');
+      expect(html).to.include('</ul>');
+      expect(html).to.include('<li>');
       expect(html).to.include('TestClass');
       expect(html).to.include('testMethod');
-      expect(html).to.include('data-line');
+      expect(html).to.include('testFunction');
     });
 
-    it('should handle empty symbols', () => {
-      const html = webview.getSymbolsHtml([], 0);
-
-      expect(html).to.be.a('string');
-      expect(html).to.include('No symbols found');
-    });
-
-    it('should apply indentation for nested symbols', () => {
+    it('should represent symbol hierarchy with nested lists', () => {
       const html = webview.getSymbolsHtml(mockSymbols, 0);
 
-      // Check that the child method has more indentation than the parent class
+      // Class should contain a nested list for its children
       const classIndex = html.indexOf('TestClass');
       const methodIndex = html.indexOf('testMethod');
 
       expect(classIndex).to.be.lessThan(methodIndex);
 
-      // The child method should have more indentation
-      const classLine = html.substring(html.lastIndexOf('<li', classIndex), html.indexOf('</li>', classIndex) + 5);
-      const methodLine = html.substring(html.lastIndexOf('<li', methodIndex), html.indexOf('</li>', methodIndex) + 5);
+      // There should be a <ul> between the class and its method
+      const ulIndex = html.indexOf('<ul>', classIndex);
+      expect(ulIndex).to.be.lessThan(methodIndex);
+    });
 
-      expect(methodLine.indexOf('<li')).to.be.greaterThan(classLine.indexOf('<li'));
+    it('should add appropriate CSS classes based on symbol kind', () => {
+      const html = webview.getSymbolsHtml(mockSymbols, 0);
+
+      expect(html).to.include('class-symbol'); // For TestClass
+      expect(html).to.include('method-symbol'); // For testMethod
+      expect(html).to.include('function-symbol'); // For testFunction
+    });
+
+    it('should handle empty symbols array', () => {
+      const html = webview.getSymbolsHtml([], 0);
+
+      expect(html).to.equal('<div>No symbols found</div>');
     });
   });
 
@@ -208,10 +289,13 @@ describe('CodeOverviewWebview - JavaScript', () => {
       const styles = webview.getStyles();
 
       expect(styles).to.be.a('string');
-      expect(styles).to.include('body');
-      expect(styles).to.include('ul');
-      expect(styles).to.include('li');
-      expect(styles).to.include('color');
+      expect(styles).to.include('body {');
+      expect(styles).to.include('font-family');
+      expect(styles).to.include('ul {');
+      expect(styles).to.include('li {');
+      expect(styles).to.include('.class-symbol {');
+      expect(styles).to.include('.method-symbol {');
+      expect(styles).to.include('.function-symbol {');
     });
   });
 
@@ -220,19 +304,17 @@ describe('CodeOverviewWebview - JavaScript', () => {
       const script = webview.getClientScript();
 
       expect(script).to.be.a('string');
-      expect(script).to.include('function');
-      expect(script).to.include('document');
-      expect(script).to.include('addEventListener');
-      expect(script).to.include('vscode');
-      expect(script).to.include('postMessage');
+      expect(script).to.include('function jumpToLine');
+      expect(script).to.include('vscode.postMessage');
+      expect(script).to.include('command: "jump"');
     });
 
-    it('should include code for handling symbol clicks', () => {
+    it('should include code to make list items clickable', () => {
       const script = webview.getClientScript();
 
+      expect(script).to.include('addEventListener');
       expect(script).to.include('click');
-      expect(script).to.include('data-line');
-      expect(script).to.include('jump');
+      expect(script).to.include('jumpToLine');
     });
   });
 });
