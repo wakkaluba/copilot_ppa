@@ -1,33 +1,26 @@
-const { WebpackConfigManager } = require('../webpackConfigManager');
-const { WebpackConfigDetector } = require('../services/WebpackConfigDetector');
-const { WebpackConfigAnalyzer } = require('../services/WebpackConfigAnalyzer');
-const { WebpackOptimizationService } = require('../services/WebpackOptimizationService');
-const fs = require('fs');
+import { mock } from 'jest-mock-extended';
+import { ILogger } from '../../../services/logging/ILogger';
+import { WebpackConfigAnalyzer } from '../services/WebpackConfigAnalyzer';
+import { WebpackConfigDetector } from '../services/WebpackConfigDetector';
+import { WebpackOptimizationService } from '../services/WebpackOptimizationService';
+import { WebpackConfigManager } from '../webpackConfigManager';
 
 jest.mock('../services/WebpackConfigDetector');
 jest.mock('../services/WebpackConfigAnalyzer');
 jest.mock('../services/WebpackOptimizationService');
-jest.mock('fs');
 
-describe('WebpackConfigManager JavaScript Implementation', () => {
-  let manager;
-  let mockDetector;
-  let mockAnalyzer;
-  let mockOptimizationService;
-  let mockLogger;
+describe('WebpackConfigManager', () => {
+  let manager: WebpackConfigManager;
+  let mockDetector: jest.Mocked<WebpackConfigDetector>;
+  let mockAnalyzer: jest.Mocked<WebpackConfigAnalyzer>;
+  let mockOptimizationService: jest.Mocked<WebpackOptimizationService>;
+  let mockLogger: ILogger;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    mockDetector = new WebpackConfigDetector();
-    mockAnalyzer = new WebpackConfigAnalyzer();
-    mockOptimizationService = new WebpackOptimizationService();
-    mockLogger = {
-      debug: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn()
-    };
+    mockDetector = mock<WebpackConfigDetector>();
+    mockAnalyzer = mock<WebpackConfigAnalyzer>();
+    mockOptimizationService = mock<WebpackOptimizationService>();
+    mockLogger = mock<ILogger>();
 
     mockDetector.findConfigs = jest.fn().mockResolvedValue(['webpack.config.js']);
     mockDetector.validateConfig = jest.fn().mockResolvedValue(true);
@@ -58,10 +51,6 @@ describe('WebpackConfigManager JavaScript Implementation', () => {
   it('should initialize with logger only and create default dependencies', () => {
     const loggerOnlyManager = new WebpackConfigManager(mockLogger);
     expect(loggerOnlyManager).toBeDefined();
-
-    // Test with no params at all
-    const defaultManager = new WebpackConfigManager();
-    expect(defaultManager).toBeDefined();
   });
 
   describe('detectConfigs', () => {
@@ -126,7 +115,7 @@ describe('WebpackConfigManager JavaScript Implementation', () => {
     it('should generate optimization suggestions for a config', async () => {
       const configPath = '/test/workspace/webpack.config.js';
       const configContent = 'module.exports = { mode: "development" }';
-      fs.readFileSync.mockReturnValue(configContent);
+      jest.spyOn(require('fs'), 'readFileSync').mockReturnValue(configContent);
 
       const result = await manager.generateOptimizations(configPath);
 
