@@ -1,9 +1,9 @@
-const { expect } = require('chai');
-const sinon = require('sinon');
-const vscode = require('vscode');
-const { CodeLinkerService } = require('../../../../src/codeEditor/services/codeLinker');
+import { expect } from 'chai';
+import * as sinon from 'sinon';
+import * as vscode from 'vscode';
+import { CodeLinkerService } from '../../services/codeLinker';
 
-describe('CodeLinkerService - JavaScript', () => {
+describe('CodeLinkerService', () => {
   let service;
   let sandbox;
   let mockEditor;
@@ -90,13 +90,6 @@ describe('CodeLinkerService - JavaScript', () => {
     });
     sandbox.stub(vscode.window, 'createTextEditorDecorationType').returns(mockDecorationType);
     sandbox.stub(vscode.Uri, 'parse').returns(mockUri);
-    sandbox.stub(vscode, 'Selection').returns(mockSelection);
-    sandbox.stub(vscode, 'Range').returns({
-      start: { line: 5, character: 10 },
-      end: { line: 5, character: 14 }
-    });
-    sandbox.stub(vscode, 'Position').callsFake((line, character) => ({ line, character }));
-    sandbox.stub(vscode, 'ConfigurationTarget').value({ Workspace: 1 });
 
     // Create service instance
     service = new CodeLinkerService();
@@ -278,7 +271,7 @@ describe('CodeLinkerService - JavaScript', () => {
       const result = service.getSelectionOrWordAtCursor(mockEditor);
 
       expect(result.text).to.equal('word');
-      expect(result.selection).to.be.an('object');
+      expect(result.selection).to.be.an.instanceOf(Object);
     });
 
     it('should return null when no selection and no word at cursor', () => {
@@ -380,6 +373,7 @@ describe('CodeLinkerService - JavaScript', () => {
       expect(vscode.Uri.parse.calledWith(link.target.uri)).to.be.true;
       expect(vscode.workspace.openTextDocument.called).to.be.true;
       expect(vscode.window.showTextDocument.called).to.be.true;
+      expect(mockEditor.selection).to.be.an.instanceOf(Object);
       expect(mockEditor.revealRange.called).to.be.true;
     });
 

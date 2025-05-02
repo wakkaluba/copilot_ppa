@@ -271,7 +271,7 @@
 - ✅ Implement tests for codeReview/codeReviewWebviewProvider.js and codeReviewWebviewProvider.ts (100%)
 - ✅ Implement tests for codeReview/errors/ReviewChecklistError.js and ReviewChecklistError.ts (100%)
 - ✅ Implement tests for codeReview/reviewChecklist.js and reviewChecklist.ts (100%)
-- ✅ Implement tests for codeReview/services/CodeReviewService.js and CodeReviewService.ts (100%)
+- ✅ Implement tests for codeReview/services/CodeReviewService.js and codeReview/services/CodeReviewService.ts (100%)
 - ✅ Implement tests for codeReview/pullRequestIntegration.js and pullRequestIntegration.ts (100%)
 - ✅ Implement tests for codeTools/codeToolsManager.js and codeToolsManager.ts (100%)
 
@@ -295,5 +295,11 @@
 - ✅ Add unit tests for src/codeReview/services/CodeReviewService.js and src/codeReview/services/CodeReviewService.ts (100%)
 - ✅ Add unit tests for src/codeTools/codeToolsManager.js and src/codeTools/codeToolsManager.ts (100%)
 - ✅ Add unit tests for src/codeTools/linterIntegration.js and src/codeTools/linterIntegration.ts (100%)
-- ⏳ Add unit tests for src/codeTools/refactoringTools.js and src/codeTools/refactoringTools.ts
-- ⏳ Add unit tests for src/codeTools/services/CodeDiffService.ts
+- ✅ Add unit tests for src/codeTools/refactoringTools.js and src/codeTools/refactoringTools.ts (100%)
+- ✅ Add unit tests for src/codeTools/services/CodeDiffService.ts (100%)
+- ✅ Add unit tests for src/codeTools/services/CodeSimplificationService.ts (100%)
+- ✅ Add unit tests for src/codeTools/services/LLMRefactoringService.ts (100%)
+- ✅ Add unit tests for src/codeTools/services/RefactoringOutputService.ts (100%)
+- ✅ Add unit tests for src/commands/ExtensionCommandRegistrar.ts (100%)
+- ✅ Add unit tests for src/commands/codeFormatCommands.js and src/commands/codeFormatCommands.ts (100%)
+- ✅ Add unit tests for src/commands/confirmationCommands.ts (100%)

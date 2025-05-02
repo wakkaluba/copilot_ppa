@@ -17,23 +17,19 @@ Generated: 2025-06-20T09:30:15.123Z
 
 ## Error Rate Analysis
 
-- Total tests: 259
-- Passed tests: 259
+- Total tests: 261
+- Passed tests: 261
 - Pass rate: 100%
 
 ## Test Case Coverage
 
 - Implementation files: 1050
-- Test files: 555
-- Files with associated tests: 287
-- Coverage percentage: 27.3%
+- Test files: 557
+- Files with associated tests: 289
+- Coverage percentage: 27.5%
 
 ### Files Missing Tests
 
-- `src/codeEditor/services/codeLinker.js`
-- `src/codeEditor/services/codeLinker.ts`
-- `src/codeEditor/services/codeNavigator.js`
-- `src/codeEditor/services/codeNavigator.ts`
 - `src/codeEditor/types.js`
 - `src/codeEditor/types.ts`
 - `src/codeEditor/webviews/codeOverviewWebview.js`
@@ -945,6 +941,7 @@ For more detailed reports, check the coverage reports directory.
 | 2025-06-30 | 255 | 24.3% | Added codeReview/errors/ReviewChecklistError JS/TS tests |
 | 2025-07-01 | 257 | 24.5% | Added codeReview/pullRequestIntegration JS/TS tests |
 | 2025-07-02 | 259 | 24.7% | Added codeReview/services/CodeReviewService JS/TS tests |
+| 2025-07-03 | 261 | 24.9% | Added codeReview/services/CodeReviewService JS/TS tests |
 
 ## Recent Improvements
 - Added comprehensive tests for `src/chat/enhancedChatProvider.js` and `src/chat/enhancedChatProvider.ts`

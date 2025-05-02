@@ -660,3 +660,135 @@ describe('CodeEditorManager - TypeScript', () => {
     });
   });
 });
+
+import { CodeExecutorService } from '../../../src/codeEditor/services/codeExecutor';
+import { CodeLinkerService } from '../../../src/codeEditor/services/codeLinker';
+import { CodeNavigatorService } from '../../../src/codeEditor/services/codeNavigator';
+
+describe('CodeEditorManager', () => {
+    let sandbox: sinon.SinonSandbox;
+    let mockContext: vscode.ExtensionContext;
+    let mockExecutorService: sinon.SinonStubbedInstance<CodeExecutorService>;
+    let mockNavigatorService: sinon.SinonStubbedInstance<CodeNavigatorService>;
+    let mockLinkerService: sinon.SinonStubbedInstance<CodeLinkerService>;
+    let editorManager: CodeEditorManager;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+
+        // Mock vscode APIs
+        sandbox.stub(vscode.window, 'showErrorMessage');
+        sandbox.stub(vscode.commands, 'executeCommand');
+
+        mockContext = {
+            subscriptions: [],
+            workspaceState: {
+                get: sandbox.stub(),
+                update: sandbox.stub()
+            }
+        } as unknown as vscode.ExtensionContext;
+
+        // Mock services
+        mockExecutorService = sandbox.createStubInstance(CodeExecutorService);
+        mockNavigatorService = sandbox.createStubInstance(CodeNavigatorService);
+        mockLinkerService = sandbox.createStubInstance(CodeLinkerService);
+
+        // Initialize the manager
+        editorManager = CodeEditorManager.getInstance(mockContext);
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    describe('Singleton Pattern', () => {
+        it('should create only one instance', () => {
+            const instance1 = CodeEditorManager.getInstance(mockContext);
+            const instance2 = CodeEditorManager.getInstance(mockContext);
+            expect(instance1).to.equal(instance2);
+        });
+    });
+
+    describe('ICodeExecutor Implementation', () => {
+        it('should track execution metrics when executing code', async () => {
+            await editorManager.executeSelectedCode();
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('executions')).to.equal(1);
+        });
+
+        it('should handle errors during code execution', async () => {
+            mockExecutorService.executeSelectedCode.rejects(new Error('Test error'));
+            await editorManager.executeSelectedCode();
+
+            expect(vscode.window.showErrorMessage).to.have.been.called;
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('errors')).to.equal(1);
+        });
+    });
+
+    describe('ICodeNavigator Implementation', () => {
+        it('should track navigation metrics when showing overview', async () => {
+            await editorManager.showCodeOverview();
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('navigations')).to.equal(1);
+        });
+
+        it('should track navigation metrics when finding references', async () => {
+            await editorManager.findReferences();
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('navigations')).to.equal(1);
+        });
+
+        it('should handle errors during navigation', async () => {
+            mockNavigatorService.findReferences.rejects(new Error('Navigation error'));
+            await editorManager.findReferences();
+
+            expect(vscode.window.showErrorMessage).to.have.been.called;
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('errors')).to.equal(1);
+        });
+    });
+
+    describe('ICodeLinker Implementation', () => {
+        it('should track linking metrics when creating links', async () => {
+            await editorManager.createCodeLink();
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('links')).to.equal(1);
+        });
+
+        it('should track linking metrics when navigating links', async () => {
+            await editorManager.navigateCodeLink();
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('navigations')).to.equal(1);
+        });
+
+        it('should handle errors during link operations', async () => {
+            mockLinkerService.createCodeLink.rejects(new Error('Link error'));
+            await editorManager.createCodeLink();
+
+            expect(vscode.window.showErrorMessage).to.have.been.called;
+            const metrics = editorManager.getMetrics();
+            expect(metrics.get('errors')).to.equal(1);
+        });
+    });
+
+    describe('Event Handling', () => {
+        it('should emit state change events', () => {
+            const listener = sandbox.spy();
+            editorManager.onEditorStateChange(listener);
+
+            editorManager.executeSelectedCode();
+            expect(listener).to.have.been.called;
+        });
+    });
+
+    describe('Resource Management', () => {
+        it('should clean up resources on disposal', () => {
+            const disposableSpy = sandbox.spy();
+            mockContext.subscriptions.push({ dispose: disposableSpy });
+
+            editorManager.dispose();
+            expect(disposableSpy).to.have.been.called;
+        });
+    });
+});

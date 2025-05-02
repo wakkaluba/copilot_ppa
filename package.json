@@ -165,6 +165,7 @@
     "@jest/globals": "^29.7.0",
     "@octokit/rest": "^20.0.2",
     "@types/axios": "^0.14.0",
+    "@types/chai": "^5.2.1",
     "@types/glob": "^8.1.0",
     "@types/inversify": "^2.0.33",
     "@types/jest": "^29.5.14",
