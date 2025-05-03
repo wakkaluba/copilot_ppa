@@ -303,3 +303,8 @@
 - ✅ Add unit tests for src/commands/ExtensionCommandRegistrar.ts (100%)
 - ✅ Add unit tests for src/commands/codeFormatCommands.js and src/commands/codeFormatCommands.ts (100%)
 - ✅ Add unit tests for src/commands/confirmationCommands.ts (100%)
+- ✅ Add unit tests for src/commands/confirmationSettingsCommand.ts (100%)
+- ✅ Add unit tests for src/commands/conversationExportCommand.js and src/commands/conversationExportCommand.ts (100%)
+- ✅ Add unit tests for src/commands/conversationImportCommand.js and src/commands/conversationImportCommand.ts (100%)
+- ✅ Add unit tests for src/commands/conversationManagementCommand.js and src/commands/conversationManagementCommand.ts (100%)
+- ✅ Add unit tests for src/commands/displaySettingsCommand.js and src/commands/displaySettingsCommand.ts (100%)

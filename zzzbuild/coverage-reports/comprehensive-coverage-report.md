@@ -5,8 +5,8 @@ Generated: 2025-06-20T09:30:15.123Z
 ## Code Performance Analysis
 
 - Files analyzed: 1458
-- Files with complexity issues: 117 (unchanged)
-- Performance score: 92.2% (unchanged)
+- Files with complexity issues: 117 (improvement since last edit: unchanged)
+- Performance score: 92.2% (improvement since last edit: unchanged)
 
 ## Code Comprehensibility
 
@@ -882,66 +882,66 @@ For more detailed reports, check the coverage reports directory.
 
 ## Test Progress Tracking
 
-| Date | Files Tested | Coverage % | Notes |
-|------|--------------|------------|-------|
-| 2025-04-30 | 117 | 11.0% | Initial analysis |
-| 2025-05-01 | 118 | 11.2% | Added terminal types tests |
-| 2025-05-01 | 119 | 11.3% | Added terminal manager tests |
-| 2025-05-05 | 151 | 14.4% | Added multiple component tests |
-| 2025-05-10 | 156 | 14.9% | Added test runner services tests |
-| 2025-05-13 | 169 | 16.1% | Added build tools manager tests |
-| 2025-05-14 | 170 | 16.2% | Added build script optimizer tests |
-| 2025-05-15 | 171 | 16.3% | Added build script analyzer service tests |
-| 2025-05-16 | 172 | 16.4% | Added optimization generator service tests |
-| 2025-05-17 | 173 | 16.5% | Added package json file service tests |
-| 2025-05-18 | 174 | 16.6% | Added user interaction service tests |
-| 2025-05-19 | 175 | 16.7% | Added build tools optimization types tests |
-| 2025-05-20 | 176 | 16.8% | Added build tools optimization types index tests |
-| 2025-05-21 | 177 | 16.9% | Added rollup analysis error JS tests |
-| 2025-05-22 | 178 | 17.0% | Added rollup analysis error TS tests |
-| 2025-05-23 | 179 | 17.1% | Added rollup config detection error JS tests |
-| 2025-05-24 | 180 | 17.2% | Added rollup config detection error TS tests |
-| 2025-05-25 | 181 | 17.3% | Added rollup optimization error JS tests |
-| 2025-05-26 | 182 | 17.4% | Added rollup optimization error TS tests |
-| 2025-05-27 | 183 | 17.5% | Added rollup config handler JS tests |
-| 2025-05-28 | 185 | 17.6% | Added rollup config manager JS/TS tests |
-| 2025-05-29 | 187 | 17.8% | Added rollup config analyzer JS/TS tests |
-| 2025-05-29 | 189 | 18.0% | Added rollup config detector JS/TS tests |
-| 2025-05-30 | 191 | 18.2% | Added rollup config UI service JS/TS tests |
-| 2025-05-31 | 193 | 18.4% | Added rollup config validation service JS/TS tests |
-| 2025-06-01 | 195 | 18.6% | Added rollup analysis error JS/TS tests |
-| 2025-06-02 | 197 | 18.8% | Added rollup config detection error JS/TS tests |
-| 2025-06-03 | 199 | 19.0% | Added rollup optimization error JS/TS tests |
-| 2025-06-04 | 201 | 19.1% | Added rollup config handler JS/TS tests |
-| 2025-06-05 | 203 | 19.3% | Enhanced rollup config manager JS/TS tests |
-| 2025-06-06 | 207 | 19.7% | Added rollup types and types/index JS/TS tests |
-| 2025-06-07 | 209 | 19.9% | Added buildTools types JS/TS tests |
-| 2025-06-08 | 211 | 20.1% | Added buildTools utils/terminalUtils JS/TS tests |
-| 2025-06-09 | 213 | 20.3% | Added buildTools vite/types/index JS/TS tests |
-| 2025-06-10 | 215 | 20.5% | Added buildTools vite/viteConfigHandler JS/TS tests |
-| 2025-06-11 | 217 | 20.7% | Added buildTools vite/viteConfigManager JS/TS tests |
-| 2025-06-12 | 219 | 20.9% | Added buildTools webpack/services/WebpackConfigAnalyzer JS/TS tests |
-| 2025-06-13 | 221 | 21.0% | Added buildTools webpack/services/WebpackConfigDetector JS/TS tests |
-| 2025-06-14 | 223 | 21.2% | Added buildTools webpack/services/WebpackOptimizationService JS/TS tests |
-| 2025-06-15 | 225 | 21.4% | Added buildTools webpack/services/index JS/TS tests |
-| 2025-06-16 | 227 | 21.6% | Added buildTools webpack/types JS/TS tests |
-| 2025-06-17 | 229 | 21.8% | Added buildTools webpack/webpackConfigHandler JS/TS tests |
-| 2025-06-18 | 231 | 22.0% | Added buildTools webpack/webpackConfigManager JS/TS tests |
-| 2025-06-19 | 233 | 22.2% | Added buildTools utils/terminalUtils JS/TS tests |
-| 2025-06-20 | 235 | 22.4% | Added buildTools vite/types/index JS/TS tests |
-| 2025-06-21 | 237 | 22.6% | Added buildTools webpack/types/index JS/TS tests |
-| 2025-06-22 | 239 | 22.8% | Added chat/enhancedChatProvider JS/TS tests |
-| 2025-06-23 | 241 | 23.0% | Added codeEditor/codeEditorManager JS/TS tests |
-| 2025-06-24 | 243 | 23.1% | Added codeEditor/services/codeExecutor JS/TS tests |
-| 2025-06-25 | 245 | 23.3% | Added codeEditor/services/codeLinker JS/TS tests |
-| 2025-06-26 | 247 | 23.5% | Added codeEditor/services/codeNavigator JS/TS tests |
-| 2025-06-27 | 249 | 23.7% | Added codeEditor/types JS/TS tests |
-| 2025-06-28 | 251 | 23.9% | Added codeEditor/webviews/codeOverviewWebview JS/TS tests |
-| 2025-06-29 | 253 | 24.1% | Added codeReview/codeReviewWebviewProvider JS/TS tests |
-| 2025-06-30 | 255 | 24.3% | Added codeReview/errors/ReviewChecklistError JS/TS tests |
-| 2025-07-01 | 257 | 24.5% | Added codeReview/pullRequestIntegration JS/TS tests |
-| 2025-07-02 | 259 | 24.7% | Added codeReview/services/CodeReviewService JS/TS tests |
-| 2025-07-03 | 261 | 24.9% | Added codeReview/services/CodeReviewService JS/TS tests |
+| Date       | Files Tested | Coverage % | Notes                                                       |
+|------------|--------------|------------|-------------------------------------------------------------|
+| 2025-04-30 | 117          | 11.0%      | Initial analysis                                            |
+| 2025-05-01 | 118          | 11.2%      | Added terminal types tests                                  |
+| 2025-05-01 | 119          | 11.3%      | Added terminal manager tests                                |
+| 2025-05-05 | 151          | 14.4%      | Added multiple component tests                              |
+| 2025-05-10 | 156          | 14.9%      | Added test runner services tests                            |
+| 2025-05-13 | 169          | 16.1%      | Added build tools manager tests                             |
+| 2025-05-14 | 170          | 16.2%      | Added build script optimizer tests                          |
+| 2025-05-15 | 171          | 16.3%      | Added build script analyzer service tests                   |
+| 2025-05-16 | 172          | 16.4%      | Added optimization generator service tests                  |
+| 2025-05-17 | 173          | 16.5%      | Added package json file service tests                       |
+| 2025-05-18 | 174          | 16.6%      | Added user interaction service tests                        |
+| 2025-05-19 | 175          | 16.7%      | Added build tools optimization types tests                  |
+| 2025-05-20 | 176          | 16.8%      | Added build tools optimization types index tests            |
+| 2025-05-21 | 177          | 16.9%      | Added rollup analysis error JS tests                        |
+| 2025-05-22 | 178          | 17.0%      | Added rollup analysis error TS tests                        |
+| 2025-05-23 | 179          | 17.1%      | Added rollup config detection error JS tests                |
+| 2025-05-24 | 180          | 17.2%      | Added rollup config detection error TS tests                |
+| 2025-05-25 | 181          | 17.3%      | Added rollup optimization error JS tests                    |
+| 2025-05-26 | 182          | 17.4%      | Added rollup optimization error TS tests                    |
+| 2025-05-27 | 183          | 17.5%      | Added rollup config handler JS tests                        |
+| 2025-05-28 | 185          | 17.6%      | Added rollup config manager JS/TS tests                     |
+| 2025-05-29 | 187          | 17.8%      | Added rollup config analyzer JS/TS tests                    |
+| 2025-05-29 | 189          | 18.0%      | Added rollup config detector JS/TS tests                    |
+| 2025-05-30 | 191          | 18.2%      | Added rollup config UI service JS/TS tests                  |
+| 2025-05-31 | 193          | 18.4%      | Added rollup config validation service JS/TS tests          |
+| 2025-06-01 | 195          | 18.6%      | Added rollup analysis error JS/TS tests                     |
+| 2025-06-02 | 197          | 18.8%      | Added rollup config detection error JS/TS tests             |
+| 2025-06-03 | 199          | 19.0%      | Added rollup optimization error JS/TS tests                 |
+| 2025-06-04 | 201          | 19.1%      | Added rollup config handler JS/TS tests                     |
+| 2025-06-05 | 203          | 19.3%      | Enhanced rollup config manager JS/TS tests                  |
+| 2025-06-06 | 207          | 19.7%      | Added rollup types and types/index JS/TS tests              |
+| 2025-06-07 | 209          | 19.9%      | Added buildTools types JS/TS tests                          |
+| 2025-06-08 | 211          | 20.1%      | Added buildTools utils/terminalUtils JS/TS tests            |
+| 2025-06-09 | 213          | 20.3%      | Added buildTools vite/types/index JS/TS tests               |
+| 2025-06-10 | 215          | 20.5%      | Added buildTools vite/viteConfigHandler JS/TS tests         |
+| 2025-06-11 | 217          | 20.7%      | Added buildTools vite/viteConfigManager JS/TS tests         |
+| 2025-06-12 | 219          | 20.9%      | Added buildTools webpack/services/WebpackConfigAnalyzer JS/TS tests |
+| 2025-06-13 | 221          | 21.0%      | Added buildTools webpack/services/WebpackConfigDetector JS/TS tests |
+| 2025-06-14 | 223          | 21.2%      | Added buildTools webpack/services/WebpackOptimizationService JS/TS tests |
+| 2025-06-15 | 225          | 21.4%      | Added buildTools webpack/services/index JS/TS tests         |
+| 2025-06-16 | 227          | 21.6%      | Added buildTools webpack/types JS/TS tests                  |
+| 2025-06-17 | 229          | 21.8%      | Added buildTools webpack/webpackConfigHandler JS/TS tests   |
+| 2025-06-18 | 231          | 22.0%      | Added buildTools webpack/webpackConfigManager JS/TS tests   |
+| 2025-06-19 | 233          | 22.2%      | Added buildTools utils/terminalUtils JS/TS tests            |
+| 2025-06-20 | 235          | 22.4%      | Added buildTools vite/types/index JS/TS tests               |
+| 2025-06-21 | 237          | 22.6%      | Added buildTools webpack/types/index JS/TS tests            |
+| 2025-06-22 | 239          | 22.8%      | Added chat/enhancedChatProvider JS/TS tests                 |
+| 2025-06-23 | 241          | 23.0%      | Added codeEditor/codeEditorManager JS/TS tests              |
+| 2025-06-24 | 243          | 23.1%      | Added codeEditor/services/codeExecutor JS/TS tests          |
+| 2025-06-25 | 245          | 23.3%      | Added codeEditor/services/codeLinker JS/TS tests            |
+| 2025-06-26 | 247          | 23.5%      | Added codeEditor/services/codeNavigator JS/TS tests         |
+| 2025-06-27 | 249          | 23.7%      | Added codeEditor/types JS/TS tests                          |
+| 2025-06-28 | 251          | 23.9%      | Added codeEditor/webviews/codeOverviewWebview JS/TS tests   |
+| 2025-06-29 | 253          | 24.1%      | Added codeReview/codeReviewWebviewProvider JS/TS tests      |
+| 2025-06-30 | 255          | 24.3%      | Added codeReview/errors/ReviewChecklistError JS/TS tests    |
+| 2025-07-01 | 257          | 24.5%      | Added codeReview/pullRequestIntegration JS/TS tests         |
+| 2025-07-02 | 259          | 24.7%      | Added codeReview/services/CodeReviewService JS/TS tests     |
+| 2025-07-03 | 261          | 24.9%      | Added codeReview/services/CodeReviewService JS/TS tests     |
 
 ## Recent Improvements
 - Added comprehensive tests for `src/chat/enhancedChatProvider.js` and `src/chat/enhancedChatProvider.ts`
@@ -1051,7 +1051,7 @@ For more detailed reports, check the coverage reports directory.
   - Tested error handling for terminal commands
   - Implemented tests for terminal finding and disposal
   - Added test coverage for command execution functionality
-- Created tests for terminal creation and management
+  - Created tests for terminal creation and management
 - Added comprehensive tests for `src/buildTools/webpack/services/WebpackConfigAnalyzer.js` and `src/buildTools/webpack/services/WebpackConfigAnalyzer.ts`
   - Created tests for analyzing webpack configuration files
   - Added test coverage for extracting entry points in various formats (string, object, array)
