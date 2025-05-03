@@ -1,315 +1,375 @@
 import * as fs from 'fs';
-import * as vscode from 'vscode';
-import { ViteOptimizationType } from '../types';
+import { ILogger } from '../../../services/logging/ILogger';
+import { ViteConfigAnalyzer, ViteConfigDetector, ViteOptimizationService } from '../services';
 import { ViteConfigManager } from '../viteConfigManager';
 
-// Mock the vscode module
-jest.mock('vscode', () => ({
-    window: {
-        showInformationMessage: jest.fn(),
-        showErrorMessage: jest.fn()
+// Mock the dependencies
+jest.mock('fs', () => ({
+    promises: {
+        readFile: jest.fn(),
     },
-    workspace: {
-        workspaceFolders: [],
-        getWorkspaceFolder: jest.fn(),
-        findFiles: jest.fn()
-    },
-    Uri: {
-        file: jest.fn((filePath) => ({ fsPath: filePath })),
-        parse: jest.fn()
-    }
+    existsSync: jest.fn()
 }));
 
-// Mock the fs module
-jest.mock('fs', () => ({
-    existsSync: jest.fn(),
-    readFileSync: jest.fn(),
-    readdirSync: jest.fn()
+jest.mock('path', () => ({
+    join: jest.fn((...args) => args.join('/')),
+    resolve: jest.fn((...args) => args.join('/')),
 }));
+
+jest.mock('glob', () => ({
+    sync: jest.fn()
+}));
+
+// Mock the services
+jest.mock('../services', () => ({
+    ViteConfigDetector: jest.fn().mockImplementation(() => ({
+        detect: jest.fn()
+    })),
+    ViteConfigAnalyzer: jest.fn().mockImplementation(() => ({
+        analyze: jest.fn()
+    })),
+    ViteOptimizationService: jest.fn().mockImplementation(() => ({
+        generateSuggestions: jest.fn()
+    }))
+}));
+
+// Mock logger
+class MockLogger implements ILogger {
+    debug = jest.fn();
+    info = jest.fn();
+    warn = jest.fn();
+    error = jest.fn();
+}
 
 describe('ViteConfigManager', () => {
     let manager: ViteConfigManager;
+    let mockLogger: MockLogger;
+    let mockDetector: jest.Mocked<ViteConfigDetector>;
+    let mockAnalyzer: jest.Mocked<ViteConfigAnalyzer>;
+    let mockOptimizationService: jest.Mocked<ViteOptimizationService>;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        // Setup test workspace
-        (vscode.workspace.workspaceFolders as any) = [{
-            uri: { fsPath: '/workspace' },
-            name: 'workspace',
-            index: 0
-        }];
-        (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue({
-            uri: { fsPath: '/workspace' }
+
+        // Setup mock logger and dependencies
+        mockLogger = new MockLogger();
+
+        // Initialize the manager with the mock logger
+        manager = new ViteConfigManager(mockLogger);
+
+        // Get references to the mocked services
+        mockDetector = (manager as any).configDetector;
+        mockAnalyzer = (manager as any).configAnalyzer;
+        mockOptimizationService = (manager as any).optimizationService;
+    });
+
+    describe('constructor', () => {
+        it('should initialize with provided logger', () => {
+            const customLogger = new MockLogger();
+            const customManager = new ViteConfigManager(customLogger);
+
+            expect((customManager as any).logger).toBe(customLogger);
+            expect(ViteConfigDetector).toHaveBeenCalledWith(customLogger);
+            expect(ViteConfigAnalyzer).toHaveBeenCalledWith(customLogger);
+            expect(ViteOptimizationService).toHaveBeenCalledWith(customLogger);
         });
 
-        manager = new ViteConfigManager();
+        it('should initialize with default NoOpLogger when no logger provided', () => {
+            const defaultManager = new ViteConfigManager();
+
+            expect((defaultManager as any).logger).toBeDefined();
+            expect(ViteConfigDetector).toHaveBeenCalled();
+            expect(ViteConfigAnalyzer).toHaveBeenCalled();
+            expect(ViteOptimizationService).toHaveBeenCalled();
+        });
     });
 
     describe('detectConfigs', () => {
-        it('should detect vite.config.js files', async () => {
-            const configFiles = [
-                { fsPath: '/workspace/vite.config.js' }
-            ];
-            (vscode.workspace.findFiles as jest.Mock).mockResolvedValue(configFiles);
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
+        it('should call detector service and return detected config paths', async () => {
+            const workspacePath = '/workspace';
+            const mockConfigPaths = ['/workspace/vite.config.js', '/workspace/app/vite.config.ts'];
 
-            const result = await manager.detectConfigs();
+            mockDetector.detect.mockResolvedValue(mockConfigPaths);
 
-            expect(result).toHaveLength(1);
-            expect(result[0]).toBe('/workspace/vite.config.js');
-            expect(vscode.workspace.findFiles).toHaveBeenCalledWith('**/vite.config.{js,ts,mjs,cjs}');
+            const result = await manager.detectConfigs(workspacePath);
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(workspacePath));
+            expect(mockDetector.detect).toHaveBeenCalledWith(workspacePath);
+            expect(result).toEqual(mockConfigPaths);
         });
 
-        it('should detect multiple config files', async () => {
-            const configFiles = [
-                { fsPath: '/workspace/vite.config.js' },
-                { fsPath: '/workspace/packages/app/vite.config.ts' }
-            ];
-            (vscode.workspace.findFiles as jest.Mock).mockResolvedValue(configFiles);
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
+        it('should handle errors from detector service', async () => {
+            const workspacePath = '/workspace';
+            const error = new Error('Detection failed');
 
-            const result = await manager.detectConfigs();
+            mockDetector.detect.mockRejectedValue(error);
 
-            expect(result).toHaveLength(2);
-            expect(result).toContain('/workspace/vite.config.js');
-            expect(result).toContain('/workspace/packages/app/vite.config.ts');
-        });
+            await expect(manager.detectConfigs(workspacePath)).rejects.toThrow(
+                /Failed to detect Vite configurations/
+            );
 
-        it('should return empty array when no configs are found', async () => {
-            (vscode.workspace.findFiles as jest.Mock).mockResolvedValue([]);
-
-            const result = await manager.detectConfigs();
-
-            expect(result).toHaveLength(0);
-        });
-
-        it('should handle errors during detection', async () => {
-            (vscode.workspace.findFiles as jest.Mock).mockRejectedValue(new Error('Test error'));
-
-            const result = await manager.detectConfigs();
-
-            expect(result).toHaveLength(0);
-            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                expect.stringContaining('Error detecting Vite configuration files')
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(workspacePath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error detecting Vite configs:',
+                error
             );
         });
     });
 
     describe('analyzeConfig', () => {
-        it('should analyze vite config file', async () => {
+        it('should analyze config and include optimization suggestions', async () => {
             const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    plugins: ['@vitejs/plugin-react'],
-                    build: {
-                        outDir: 'dist',
-                        minify: true
-                    },
-                    server: {
-                        port: 3000
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+            const mockAnalysis = {
+                content: 'export default {}',
+                plugins: [],
+                optimizationOptions: {},
+                isValid: true
+            };
+            const mockSuggestions = ['Use plugins', 'Enable minification'];
+
+            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
+            mockOptimizationService.generateSuggestions.mockResolvedValue(mockSuggestions);
 
             const result = await manager.analyzeConfig(configPath);
 
-            expect(result).toBeDefined();
-            expect(result.configPath).toBe(configPath);
-            expect(result.plugins).toContain('@vitejs/plugin-react');
-            expect(result.build).toHaveProperty('outDir', 'dist');
-            expect(result.server).toHaveProperty('port', 3000);
-            expect(result.warnings).toBeDefined();
-            expect(result.errors).toBeDefined();
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockAnalyzer.analyze).toHaveBeenCalledWith(configPath);
+            expect(mockOptimizationService.generateSuggestions).toHaveBeenCalledWith(
+                mockAnalysis.content,
+                mockAnalysis.plugins,
+                mockAnalysis.optimizationOptions
+            );
+
+            expect(result).toEqual({
+                ...mockAnalysis,
+                optimizationSuggestions: mockSuggestions
+            });
         });
 
-        it('should include warnings for potential issues', async () => {
+        it('should handle errors from analyzer service', async () => {
             const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    // Missing plugins
-                    build: {
-                        outDir: 'dist'
-                        // Missing minify option
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+            const error = new Error('Analysis failed');
 
-            const result = await manager.analyzeConfig(configPath);
+            mockAnalyzer.analyze.mockRejectedValue(error);
 
-            expect(result.warnings).toBeDefined();
-            expect(result.warnings.length).toBeGreaterThan(0);
+            await expect(manager.analyzeConfig(configPath)).rejects.toThrow(
+                /Failed to analyze Vite configuration/
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error analyzing Vite config:',
+                error
+            );
         });
 
-        it('should handle errors when config file does not exist', async () => {
+        it('should handle errors from optimization service', async () => {
             const configPath = '/workspace/vite.config.js';
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
+            const mockAnalysis = {
+                content: 'export default {}',
+                plugins: [],
+                optimizationOptions: {},
+                isValid: true
+            };
+            const error = new Error('Optimization failed');
 
-            const result = await manager.analyzeConfig(configPath);
+            mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
+            mockOptimizationService.generateSuggestions.mockRejectedValue(error);
 
-            expect(result.errors).toBeDefined();
-            expect(result.errors.length).toBeGreaterThan(0);
-            expect(result.errors[0]).toContain('Configuration file not found');
-        });
+            await expect(manager.analyzeConfig(configPath)).rejects.toThrow(
+                /Failed to analyze Vite configuration/
+            );
 
-        it('should handle invalid config files', async () => {
-            const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                // Invalid config
-                export default {
-                    plugins: [
-                        // Unclosed array
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const result = await manager.analyzeConfig(configPath);
-
-            expect(result.errors).toBeDefined();
-            expect(result.errors.length).toBeGreaterThan(0);
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error analyzing Vite config:',
+                error
+            );
         });
     });
 
     describe('validateConfig', () => {
-        it('should validate a correct config file', async () => {
+        it('should return true when config is valid', async () => {
             const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    plugins: ['@vitejs/plugin-react'],
-                    build: {
-                        outDir: 'dist',
-                        minify: true
-                    },
-                    server: {
-                        port: 3000
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+            const mockAnalysis = {
+                content: 'export default {}',
+                plugins: [],
+                optimizationOptions: {},
+                isValid: true,
+                optimizationSuggestions: []
+            };
+
+            jest.spyOn(manager, 'analyzeConfig').mockResolvedValue(mockAnalysis);
 
             const result = await manager.validateConfig(configPath);
 
-            expect(result.isValid).toBe(true);
-            expect(result.warnings).toBeDefined();
-            expect(result.errors).toHaveLength(0);
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(manager.analyzeConfig).toHaveBeenCalledWith(configPath);
+            expect(result).toBe(true);
         });
 
-        it('should detect validation issues', async () => {
+        it('should handle invalid configs', async () => {
             const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    // Missing plugins
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+            const mockAnalysis = {
+                content: 'export default {}',
+                plugins: [],
+                optimizationOptions: {},
+                isValid: false,
+                optimizationSuggestions: []
+            };
+
+            jest.spyOn(manager, 'analyzeConfig').mockResolvedValue(mockAnalysis);
 
             const result = await manager.validateConfig(configPath);
 
-            expect(result.isValid).toBe(true); // Still valid but with warnings
-            expect(result.warnings).toBeDefined();
-            expect(result.warnings.length).toBeGreaterThan(0);
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(manager.analyzeConfig).toHaveBeenCalledWith(configPath);
+            expect(result).toBe(false);
         });
 
-        it('should mark invalid configs as not valid', async () => {
+        it('should handle errors during validation', async () => {
             const configPath = '/workspace/vite.config.js';
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
+            const error = new Error('Validation failed');
 
-            const result = await manager.validateConfig(configPath);
+            jest.spyOn(manager, 'analyzeConfig').mockRejectedValue(error);
 
-            expect(result.isValid).toBe(false);
-            expect(result.errors).toBeDefined();
-            expect(result.errors.length).toBeGreaterThan(0);
+            await expect(manager.validateConfig(configPath)).rejects.toThrow(
+                /Failed to validate Vite configuration/
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error validating Vite config:',
+                error
+            );
         });
     });
 
     describe('generateOptimizations', () => {
-        it('should generate optimization suggestions', async () => {
+        it('should return optimization suggestions', async () => {
             const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    plugins: [],
-                    build: {
-                        outDir: 'dist'
-                        // Missing minify option
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+            const mockAnalysis = {
+                content: 'export default {}',
+                plugins: [],
+                optimizationOptions: {},
+                isValid: true,
+                optimizationSuggestions: ['Use plugins', 'Enable minification']
+            };
 
-            const optimizations = await manager.generateOptimizations(configPath);
+            jest.spyOn(manager, 'analyzeConfig').mockResolvedValue(mockAnalysis);
 
-            expect(optimizations).toBeDefined();
-            expect(optimizations.length).toBeGreaterThan(0);
+            const result = await manager.generateOptimizations(configPath);
 
-            // Look for specific optimization types
-            const pluginOpt = optimizations.find(o => o.type === ViteOptimizationType.Plugin);
-            expect(pluginOpt).toBeDefined();
-
-            const configOpt = optimizations.find(o => o.type === ViteOptimizationType.Config);
-            expect(configOpt).toBeDefined();
-        });
-
-        it('should suggest plugin optimizations', async () => {
-            const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    plugins: [],
-                    build: {
-                        outDir: 'dist',
-                        minify: true
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const optimizations = await manager.generateOptimizations(configPath);
-
-            // Should suggest at least one plugin optimization
-            const pluginOpts = optimizations.filter(o => o.type === ViteOptimizationType.Plugin);
-            expect(pluginOpts.length).toBeGreaterThan(0);
-
-            // Check for common plugin suggestions
-            const hasReactPlugin = pluginOpts.some(o => o.name && o.name.includes('react'));
-            const hasVuePlugin = pluginOpts.some(o => o.name && o.name.includes('vue'));
-            expect(hasReactPlugin || hasVuePlugin).toBe(true);
-        });
-
-        it('should suggest config optimizations', async () => {
-            const configPath = '/workspace/vite.config.js';
-            const configContent = `
-                export default {
-                    plugins: ['@vitejs/plugin-react'],
-                    build: {
-                        outDir: 'dist'
-                        // Missing minify option
-                    }
-                }
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const optimizations = await manager.generateOptimizations(configPath);
-
-            // Should suggest at least one config optimization
-            const configOpts = optimizations.filter(o => o.type === ViteOptimizationType.Config);
-            expect(configOpts.length).toBeGreaterThan(0);
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(manager.analyzeConfig).toHaveBeenCalledWith(configPath);
+            expect(result).toEqual(mockAnalysis.optimizationSuggestions);
         });
 
         it('should handle errors during optimization generation', async () => {
             const configPath = '/workspace/vite.config.js';
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
+            const error = new Error('Optimization generation failed');
 
-            const optimizations = await manager.generateOptimizations(configPath);
+            jest.spyOn(manager, 'analyzeConfig').mockRejectedValue(error);
 
-            expect(optimizations).toHaveLength(0);
-            expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+            await expect(manager.generateOptimizations(configPath)).rejects.toThrow(
+                /Failed to generate optimization suggestions/
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error generating optimizations:',
+                error
+            );
+        });
+    });
+
+    describe('detectFramework', () => {
+        it('should detect Vue framework', async () => {
+            const configPath = '/workspace/vite.config.js';
+            const configContent = `
+                import vue from '@vitejs/plugin-vue';
+                export default {
+                    plugins: [vue()]
+                }
+            `;
+
+            (fs.promises.readFile as jest.Mock).mockResolvedValue(configContent);
+
+            const result = await manager.detectFramework(configPath);
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(fs.promises.readFile).toHaveBeenCalledWith(configPath, 'utf-8');
+            expect(result).toBe('vue');
+        });
+
+        it('should detect React framework', async () => {
+            const configPath = '/workspace/vite.config.js';
+            const configContent = `
+                import react from '@vitejs/plugin-react';
+                export default {
+                    plugins: [react()]
+                }
+            `;
+
+            (fs.promises.readFile as jest.Mock).mockResolvedValue(configContent);
+
+            const result = await manager.detectFramework(configPath);
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(fs.promises.readFile).toHaveBeenCalledWith(configPath, 'utf-8');
+            expect(result).toBe('react');
+        });
+
+        it('should detect Svelte framework', async () => {
+            const configPath = '/workspace/vite.config.js';
+            const configContent = `
+                import svelte from '@sveltejs/vite-plugin-svelte';
+                export default {
+                    plugins: [svelte()]
+                }
+            `;
+
+            (fs.promises.readFile as jest.Mock).mockResolvedValue(configContent);
+
+            const result = await manager.detectFramework(configPath);
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(fs.promises.readFile).toHaveBeenCalledWith(configPath, 'utf-8');
+            expect(result).toBe('svelte');
+        });
+
+        it('should return null when no framework is detected', async () => {
+            const configPath = '/workspace/vite.config.js';
+            const configContent = `
+                export default {
+                    plugins: []
+                }
+            `;
+
+            (fs.promises.readFile as jest.Mock).mockResolvedValue(configContent);
+
+            const result = await manager.detectFramework(configPath);
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(fs.promises.readFile).toHaveBeenCalledWith(configPath, 'utf-8');
+            expect(result).toBeNull();
+        });
+
+        it('should handle errors during framework detection', async () => {
+            const configPath = '/workspace/vite.config.js';
+            const error = new Error('File read failed');
+
+            (fs.promises.readFile as jest.Mock).mockRejectedValue(error);
+
+            await expect(manager.detectFramework(configPath)).rejects.toThrow(
+                /Failed to detect framework/
+            );
+
+            expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining(configPath));
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                'Error detecting framework:',
+                error
+            );
         });
     });
 });

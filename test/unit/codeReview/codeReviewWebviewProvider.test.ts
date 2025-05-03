@@ -5,235 +5,152 @@ import { CodeReviewWebviewProvider } from '../../../src/codeReview/codeReviewWeb
 import { CodeReviewService } from '../../../src/codeReview/services/CodeReviewService';
 import { ILogger } from '../../../src/logging/ILogger';
 
-describe('CodeReviewWebviewProvider - TypeScript', () => {
-  let provider: CodeReviewWebviewProvider;
-  let sandbox: sinon.SinonSandbox;
-  let mockLogger: ILogger;
-  let mockContext: vscode.ExtensionContext;
-  let mockService: CodeReviewService;
-  let mockWebviewView: vscode.WebviewView;
-  let mockWebview: vscode.Webview;
+describe('CodeReviewWebviewProvider', () => {
+    let provider: CodeReviewWebviewProvider;
+    let sandbox: sinon.SinonSandbox;
+    let mockLogger: sinon.SinonStubbedInstance<ILogger>;
+    let mockContext: vscode.ExtensionContext;
+    let mockService: Partial<CodeReviewService>;
+    let mockWebviewView: vscode.WebviewView;
+    let mockWebview: vscode.Webview;
+    let resolveContext: vscode.WebviewViewResolveContext<unknown>;
 
-  beforeEach(() => {
-    sandbox = sinon.createSandbox();
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
 
-    // Create mock objects
-    mockLogger = {
-      info: sandbox.stub(),
-      error: sandbox.stub(),
-      debug: sandbox.stub(),
-      warn: sandbox.stub()
-    } as unknown as ILogger;
+        // Create mock objects
+        mockLogger = sandbox.createStubInstance<ILogger>({} as any);
 
-    mockService = {
-      getReviewChecklist: sandbox.stub().resolves({ items: [] }),
-      generateReport: sandbox.stub().resolves({ id: 'test-report', status: 'success', items: [] }),
-      updateReport: sandbox.stub().resolves(true),
-      performCodeReview: sandbox.stub().resolves({ success: true })
-    } as unknown as CodeReviewService;
+        mockService = {
+            getWebviewHtml: sandbox.stub().returns('<html>Test</html>'),
+            handleWebviewMessage: sandbox.stub().resolves({ command: 'test' })
+        };
 
-    mockWebview = {
-      html: '',
-      onDidReceiveMessage: sandbox.stub().returns({ dispose: sandbox.stub() }),
-      postMessage: sandbox.stub().resolves(true),
-      options: {
-        enableScripts: false,
-        localResourceRoots: []
-      }
-    } as unknown as vscode.Webview;
+        // Set up VS Code mocks
+        mockWebview = {
+            onDidReceiveMessage: sandbox.stub().returns({ dispose: sandbox.stub() }),
+            postMessage: sandbox.stub().resolves(true),
+            options: {
+                enableScripts: false,
+                localResourceRoots: []
+            },
+            html: '',
+            asWebviewUri: sandbox.stub(),
+            cspSource: ''
+        } as any;
 
-    mockWebviewView = {
-      webview: mockWebview,
-      title: 'Code Review'
-    } as unknown as vscode.WebviewView;
+        mockWebviewView = {
+            webview: mockWebview,
+            onDidDispose: sandbox.stub().returns({ dispose: sandbox.stub() }),
+            title: 'Code Review',
+            description: '',
+            visible: true,
+            show: sandbox.stub(),
+            dispose: sandbox.stub()
+        } as any;
 
-    mockContext = {
-      extensionUri: vscode.Uri.parse('file:///extension/path'),
-      subscriptions: [],
-      workspaceState: {
-        get: sandbox.stub(),
-        update: sandbox.stub().resolves()
-      }
-    } as unknown as vscode.ExtensionContext;
+        mockContext = {
+            extensionUri: vscode.Uri.parse('file:///extension/path'),
+            subscriptions: [],
+            workspaceState: {
+                get: sandbox.stub(),
+                update: sandbox.stub().resolves()
+            }
+        } as any;
 
-    // Initialize the provider
-    provider = new CodeReviewWebviewProvider(
-      mockLogger,
-      mockContext.extensionUri,
-      mockContext,
-      mockService
-    );
-  });
+        resolveContext = {
+            state: undefined
+        };
 
-  afterEach(() => {
-    sandbox.restore();
-  });
-
-  describe('resolveWebviewView', () => {
-    it('should initialize the webview properly', async () => {
-      await provider.resolveWebviewView(mockWebviewView, { webviewView: mockWebviewView } as vscode.WebviewViewResolveContext, null as unknown as vscode.CancellationToken);
-
-      // Verify webview options were set correctly
-      expect(mockWebviewView.webview.options.enableScripts).to.be.true;
-      expect(mockWebviewView.webview.options.localResourceRoots).to.be.an('array');
-
-      // Check that HTML content was set
-      expect(mockWebviewView.webview.html).to.be.a('string');
-      expect(mockWebviewView.webview.html.length).to.be.greaterThan(0);
-
-      // Verify message listener was registered
-      expect(mockWebviewView.webview.onDidReceiveMessage.calledOnce).to.be.true;
+        provider = new CodeReviewWebviewProvider(
+            mockLogger,
+            mockContext.extensionUri,
+            mockContext,
+            mockService as CodeReviewService
+        );
     });
 
-    it('should handle errors during initialization', async () => {
-      (mockWebviewView.webview.onDidReceiveMessage as sinon.SinonStub).throws(new Error('Failed to register listener'));
-
-      await provider.resolveWebviewView(mockWebviewView, { webviewView: mockWebviewView } as vscode.WebviewViewResolveContext, null as unknown as vscode.CancellationToken);
-
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-  });
-
-  describe('_setWebviewMessageListener', () => {
-    it('should register a message handler for the webview', () => {
-      provider['_setWebviewMessageListener'](mockWebview);
-
-      expect(mockWebview.onDidReceiveMessage.calledOnce).to.be.true;
+    afterEach(() => {
+        sandbox.restore();
     });
 
-    it('should handle "getChecklist" messages', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
+    describe('resolveWebviewView', () => {
+        it('should initialize the webview properly', async () => {
+            await provider.resolveWebviewView(mockWebviewView, resolveContext, {} as vscode.CancellationToken);
 
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+            expect(mockWebviewView.webview.options.enableScripts).to.be.true;
+            expect(mockWebviewView.webview.options.localResourceRoots).to.be.an('array');
+            expect(mockService.getWebviewHtml).to.have.been.called;
+            expect(mockWebview.onDidReceiveMessage).to.have.been.called;
+        });
 
-      // Call the handler with a getChecklist message
-      await messageHandler({ command: 'getChecklist' });
+        it('should handle webview initialization errors', async () => {
+            const error = new Error('HTML generation failed');
+            (mockService.getWebviewHtml as sinon.SinonStub).throws(error);
 
-      // Verify service call
-      expect(mockService.getReviewChecklist.calledOnce).to.be.true;
-
-      // Verify response was sent back
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      const response = (mockWebview.postMessage as sinon.SinonStub).firstCall.args[0];
-      expect(response).to.have.property('command', 'checklist');
+            try {
+                await provider.resolveWebviewView(mockWebviewView, resolveContext, {} as vscode.CancellationToken);
+                expect.fail('Should have thrown an error');
+            } catch (e) {
+                expect(e).to.equal(error);
+                expect(mockLogger.error).to.have.been.calledWith('Error resolving webview:', error);
+            }
+        });
     });
 
-    it('should handle "generateReport" messages', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
+    describe('message handling', () => {
+        let messageHandler: (message: any) => Promise<void>;
 
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+        beforeEach(async () => {
+            await provider.resolveWebviewView(mockWebviewView, resolveContext, {} as vscode.CancellationToken);
+            messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).args[0][0];
+        });
 
-      // Call the handler with a generateReport message
-      await messageHandler({
-        command: 'generateReport',
-        filepath: '/path/to/file.ts',
-        reviewType: 'standard'
-      });
+        it('should handle webview messages', async () => {
+            const testMessage = { command: 'test' };
+            await messageHandler(testMessage);
+            expect(mockService.handleWebviewMessage).to.have.been.calledWith(testMessage);
+        });
 
-      // Verify service call
-      expect(mockService.generateReport.calledOnce).to.be.true;
+        it('should handle message processing errors', async () => {
+            const error = new Error('Processing failed');
+            (mockService.handleWebviewMessage as sinon.SinonStub).rejects(error);
 
-      // Verify response was sent back
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      const response = (mockWebview.postMessage as sinon.SinonStub).firstCall.args[0];
-      expect(response).to.have.property('command', 'report');
+            await messageHandler({ command: 'test' });
+            expect(mockLogger.error).to.have.been.calledWith('Error handling webview message:', error);
+        });
+
+        it('should handle null responses from service', async () => {
+            (mockService.handleWebviewMessage as sinon.SinonStub).resolves(null);
+            await messageHandler({ command: 'test' });
+            expect(mockWebview.postMessage).not.to.have.been.called;
+        });
     });
 
-    it('should handle "updateReport" messages', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
+    describe('cleanup', () => {
+        it('should clean up resources when view is disposed', async () => {
+            await provider.resolveWebviewView(mockWebviewView, resolveContext, {} as vscode.CancellationToken);
 
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
+            const disposeSpy = sandbox.spy();
+            (mockWebview.onDidReceiveMessage as sinon.SinonStub).returns({ dispose: disposeSpy });
 
-      // Call the handler with an updateReport message
-      await messageHandler({
-        command: 'updateReport',
-        reportId: 'test-report',
-        results: [{ itemId: 'item1', passed: true }]
-      });
+            const disposeHandler = (mockWebviewView.onDidDispose as sinon.SinonStub).args[0][0];
+            disposeHandler();
 
-      // Verify service call
-      expect(mockService.updateReport.calledOnce).to.be.true;
+            expect(disposeSpy).to.have.been.called;
+        });
 
-      // Verify response was sent back
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      const response = (mockWebview.postMessage as sinon.SinonStub).firstCall.args[0];
-      expect(response).to.have.property('command', 'updateSuccess');
+        it('should handle multiple dispose calls gracefully', async () => {
+            await provider.resolveWebviewView(mockWebviewView, resolveContext, {} as vscode.CancellationToken);
+
+            const disposeSpy = sandbox.spy();
+            (mockWebview.onDidReceiveMessage as sinon.SinonStub).returns({ dispose: disposeSpy });
+
+            const disposeHandler = (mockWebviewView.onDidDispose as sinon.SinonStub).args[0][0];
+            disposeHandler();
+            disposeHandler();
+
+            expect(disposeSpy).to.have.been.calledOnce;
+        });
     });
-
-    it('should handle "reviewCode" messages', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
-
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-
-      // Call the handler with a reviewCode message
-      await messageHandler({
-        command: 'reviewCode',
-        filepath: '/path/to/file.ts'
-      });
-
-      // Verify service call
-      expect(mockService.performCodeReview.calledOnce).to.be.true;
-
-      // Verify response was sent back
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      const response = (mockWebview.postMessage as sinon.SinonStub).firstCall.args[0];
-      expect(response).to.have.property('command', 'reviewResult');
-    });
-
-    it('should handle errors during message processing', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
-
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-
-      // Set up the service to throw an error
-      (mockService.getReviewChecklist as sinon.SinonStub).rejects(new Error('Service error'));
-
-      // Call the handler with a getChecklist message
-      await messageHandler({ command: 'getChecklist' });
-
-      // Verify error was logged
-      expect(mockLogger.error.calledOnce).to.be.true;
-
-      // Verify error response was sent
-      expect(mockWebview.postMessage.calledOnce).to.be.true;
-      const response = (mockWebview.postMessage as sinon.SinonStub).firstCall.args[0];
-      expect(response).to.have.property('command', 'error');
-    });
-
-    it('should ignore unknown command messages', async () => {
-      // Set up message handler
-      provider['_setWebviewMessageListener'](mockWebview);
-
-      // Extract message handler function
-      const messageHandler = (mockWebview.onDidReceiveMessage as sinon.SinonStub).firstCall.args[0];
-
-      // Call the handler with an unknown command
-      await messageHandler({ command: 'unknownCommand' });
-
-      // Verify service was not called
-      expect(mockService.getReviewChecklist.called).to.be.false;
-      expect(mockService.generateReport.called).to.be.false;
-      expect(mockService.updateReport.called).to.be.false;
-      expect(mockService.performCodeReview.called).to.be.false;
-
-      // Verify no response was sent
-      expect(mockWebview.postMessage.called).to.be.false;
-    });
-  });
-
-  describe('static properties', () => {
-    it('should have a viewType property', () => {
-      expect(CodeReviewWebviewProvider.viewType).to.equal('codeReviewPanel');
-    });
-  });
 });

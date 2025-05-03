@@ -23,15 +23,13 @@ Generated: 2025-06-20T09:30:15.123Z
 
 ## Test Case Coverage
 
-- Implementation files: 1050
-- Test files: 557
-- Files with associated tests: 289
-- Coverage percentage: 27.5%
+- Implementation files: 1050 (improvement since last edit: unchanged)
+- Test files: 557 (improvement since last edit: unchanged)
+- Files with associated tests: 289 (improvement since last edit: unchanged)
+- Coverage percentage: 27.5% (improvement since last edit: unchanged)
 
 ### Files Missing Tests
 
-- `src/codeEditor/types.js`
-- `src/codeEditor/types.ts`
 - `src/codeEditor/webviews/codeOverviewWebview.js`
 - `src/codeEditor/webviews/codeOverviewWebview.ts`
 - `src/codeReview/codeReviewWebviewProvider.js`

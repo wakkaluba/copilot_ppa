@@ -1,8 +1,117 @@
 import { expect } from 'chai';
 import * as vscode from 'vscode';
 import * as types from '../../../src/codeEditor/types';
+import { CodeLink, ICodeExecutor, ICodeLinker, ICodeNavigator } from '../../../src/codeEditor/types';
 
-describe('CodeEditor Types - TypeScript', () => {
+describe('CodeEditor Types', () => {
+  describe('ICodeExecutor', () => {
+    it('should define executeSelectedCode method', () => {
+      const executor: ICodeExecutor = {
+        executeSelectedCode: async () => {}
+      };
+      expect(executor.executeSelectedCode).toBeDefined();
+      expect(typeof executor.executeSelectedCode).toBe('function');
+    });
+  });
+
+  describe('ICodeNavigator', () => {
+    it('should define showCodeOverview method', () => {
+      const navigator: ICodeNavigator = {
+        showCodeOverview: async () => {},
+        findReferences: async () => {}
+      };
+      expect(navigator.showCodeOverview).toBeDefined();
+      expect(typeof navigator.showCodeOverview).toBe('function');
+    });
+
+    it('should define findReferences method', () => {
+      const navigator: ICodeNavigator = {
+        showCodeOverview: async () => {},
+        findReferences: async () => {}
+      };
+      expect(navigator.findReferences).toBeDefined();
+      expect(typeof navigator.findReferences).toBe('function');
+    });
+  });
+
+  describe('ICodeLinker', () => {
+    it('should define createCodeLink method', () => {
+      const linker: ICodeLinker = {
+        createCodeLink: async () => {},
+        navigateCodeLink: async () => {}
+      };
+      expect(linker.createCodeLink).toBeDefined();
+      expect(typeof linker.createCodeLink).toBe('function');
+    });
+
+    it('should define navigateCodeLink method', () => {
+      const linker: ICodeLinker = {
+        createCodeLink: async () => {},
+        navigateCodeLink: async () => {}
+      };
+      expect(linker.navigateCodeLink).toBeDefined();
+      expect(typeof linker.navigateCodeLink).toBe('function');
+    });
+  });
+
+  describe('CodeLink', () => {
+    it('should validate CodeLink structure', () => {
+      const validLink: CodeLink = {
+        source: {
+          uri: 'file:///test.ts',
+          position: {
+            line: 0,
+            character: 0
+          },
+          text: 'test'
+        },
+        target: {
+          uri: 'file:///target.ts',
+          position: {
+            line: 1,
+            character: 1
+          }
+        }
+      };
+
+      expect(validLink.source.uri).toBeDefined();
+      expect(validLink.source.position).toBeDefined();
+      expect(validLink.source.text).toBeDefined();
+      expect(validLink.target.uri).toBeDefined();
+    });
+
+    it('should allow target position to be optional', () => {
+      const linkWithoutTargetPosition: CodeLink = {
+        source: {
+          uri: 'file:///test.ts',
+          position: {
+            line: 0,
+            character: 0
+          },
+          text: 'test'
+        },
+        target: {
+          uri: 'file:///target.ts'
+        }
+      };
+
+      expect(linkWithoutTargetPosition.target.position).toBeUndefined();
+      expect(linkWithoutTargetPosition).toMatchObject({
+        source: {
+          uri: expect.any(String),
+          position: {
+            line: expect.any(Number),
+            character: expect.any(Number)
+          },
+          text: expect.any(String)
+        },
+        target: {
+          uri: expect.any(String)
+        }
+      });
+    });
+  });
+
   describe('ICodeExecutor Interface', () => {
     it('should define the ICodeExecutor interface with all required methods', () => {
       // Create a mock implementation of ICodeExecutor

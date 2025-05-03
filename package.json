@@ -173,6 +173,7 @@
     "@types/node": "^20.10.0",
     "@types/reflect-metadata": "^0.1.0",
     "@types/sinon": "^17.0.3",
+    "@types/sinon-chai": "^4.0.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -200,7 +201,8 @@
     "reflect-metadata": "^0.2.1",
     "rimraf": "^5.0.5",
     "sinon": "^17.0.1",
-    "ts-jest": "^29.1.1",
+    "sinon-chai": "^4.0.0",
+    "ts-jest": "^29.3.2",
     "typescript": "^5.3.3",
     "uuid": "^9.0.1"
   },

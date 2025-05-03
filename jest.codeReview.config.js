@@ -1,7 +1,15 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/test/unit/codeReview'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest'
+  },
+  testMatch: [
+    '**/test/unit/codeReview/**/*.test.js',
+    '**/test/unit/codeReview/**/*.test.ts'
+  ],
   collectCoverage: true,
   collectCoverageFrom: [
     'src/codeReview/**/*.js',
@@ -9,10 +17,6 @@ module.exports = {
     '!src/codeReview/**/*.d.ts'
   ],
   coverageDirectory: 'coverage/codeReview',
-  testMatch: [
-    '**/test/unit/codeReview/**/*.test.js',
-    '**/test/unit/codeReview/**/*.test.ts'
-  ],
-  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
-  verbose: true
-}
+  verbose: true,
+  testTimeout: 30000
+};

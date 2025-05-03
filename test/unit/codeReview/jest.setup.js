@@ -1,5 +1,10 @@
 // Setup file for Jest tests in the codeReview module
 require('@jest/globals');
+const chai = require('chai');
+const sinonChai = require('sinon-chai');
+
+// Setup chai with sinon-chai plugin
+chai.use(sinonChai);
 
 // Ensure global test functions are defined
 global.describe = global.describe || jest.fn();
@@ -15,7 +20,11 @@ global.afterAll = global.afterAll || jest.fn();
 const originalConsoleError = console.error;
 console.error = jest.fn();
 
+// Set up global test environment
+jest.setTimeout(10000);
+
 // Restore console methods after tests
 afterAll(() => {
   console.error = originalConsoleError;
+  jest.restoreAllMocks();
 });

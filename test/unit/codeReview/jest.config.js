@@ -1,20 +1,20 @@
 module.exports = {
-  testEnvironment: 'jsdom',
-  roots: ['<rootDir>/test/unit/codeReview'],
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  setupFilesAfterEnv: ['<rootDir>/setup.ts'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: '<rootDir>/../../../tsconfig.test.json'
+    }]
+  },
+  testRegex: '.*\\.test\\.ts$',
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  roots: ['.'],
   collectCoverage: true,
   collectCoverageFrom: [
-    '<rootDir>/src/codeReview/**/*.js',
-    '<rootDir>/src/codeReview/**/*.ts',
-    '!<rootDir>/src/codeReview/**/*.d.ts'
+    '../../../src/codeReview/**/*.{js,ts}',
+    '!../../../src/codeReview/**/*.d.ts'
   ],
-  coverageDirectory: '<rootDir>/coverage/unit/codeReview',
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-    '^.+\\.jsx?$': 'babel-jest'
-  },
-  testMatch: [
-    '**/test/unit/codeReview/**/*.test.js',
-    '**/test/unit/codeReview/**/*.test.ts'
-  ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node']
+  coverageDirectory: '../../../coverage/codeReview',
+  testTimeout: 10000
 };

@@ -3,13 +3,13 @@ const sinon = require('sinon');
 const vscode = require('vscode');
 const { ReviewChecklist } = require('../../../src/codeReview/reviewChecklist');
 const { ReviewChecklistError } = require('../../../src/codeReview/errors/ReviewChecklistError');
+const { Logger } = require('../../../src/utils/logging');
 
 describe('ReviewChecklist - JavaScript', () => {
   let reviewChecklist;
   let sandbox;
   let mockContext;
-  let mockStorageService;
-  let mockFileSystem;
+  let mockService;
   let mockLogger;
 
   beforeEach(() => {
@@ -43,23 +43,15 @@ describe('ReviewChecklist - JavaScript', () => {
       asAbsolutePath: (relativePath) => `/path/to/extension/${relativePath}`
     };
 
-    // Mock storage service
-    mockStorageService = {
-      getItem: sandbox.stub(),
-      setItem: sandbox.stub().resolves(),
-      removeItem: sandbox.stub().resolves(),
-      keys: sandbox.stub().resolves([]),
-      clear: sandbox.stub().resolves()
-    };
-
-    // Mock file system
-    mockFileSystem = {
-      readdir: sandbox.stub(),
-      readFile: sandbox.stub(),
-      writeFile: sandbox.stub().resolves(),
-      exists: sandbox.stub().resolves(true),
-      mkdir: sandbox.stub().resolves(),
-      stat: sandbox.stub().resolves({ isDirectory: () => true })
+    // Mock ReviewChecklistService
+    mockService = {
+      getAvailableChecklists: sandbox.stub(),
+      getChecklist: sandbox.stub(),
+      createChecklist: sandbox.stub(),
+      generateReport: sandbox.stub(),
+      updateReport: sandbox.stub(),
+      getReportHistory: sandbox.stub(),
+      exportReportToHtml: sandbox.stub()
     };
 
     // Mock logger
@@ -71,13 +63,14 @@ describe('ReviewChecklist - JavaScript', () => {
       log: sandbox.stub()
     };
 
+    // Set up LoggerService.getInstance to return our mock
+    sandbox.stub(Logger, 'getInstance').returns(mockLogger);
+
     // Create ReviewChecklist instance
     reviewChecklist = new ReviewChecklist(mockContext);
 
-    // Replace private properties with mocks
-    reviewChecklist.storageService = mockStorageService;
-    reviewChecklist.fs = mockFileSystem;
-    reviewChecklist.logger = mockLogger;
+    // Replace the service with our mock
+    reviewChecklist.service = mockService;
   });
 
   afterEach(() => {
@@ -89,57 +82,37 @@ describe('ReviewChecklist - JavaScript', () => {
       const checklist = new ReviewChecklist(mockContext);
       expect(checklist).to.be.an.instanceOf(ReviewChecklist);
     });
+
+    it('should set up logger', () => {
+      const loggerStub = sandbox.stub(Logger, 'getInstance');
+      new ReviewChecklist(mockContext);
+      expect(loggerStub.called).to.be.true;
+    });
   });
 
   describe('getAvailableChecklists', () => {
-    it('should retrieve available checklist templates', async () => {
-      // Setup mock response
-      mockStorageService.keys.resolves(['checklist:template1', 'checklist:template2', 'otherKey']);
+    it('should return checklists from service', () => {
+      const mockChecklists = ['checklist1', 'checklist2'];
+      mockService.getAvailableChecklists.returns(mockChecklists);
 
-      const templates = await reviewChecklist.getAvailableChecklists();
+      const result = reviewChecklist.getAvailableChecklists();
 
-      expect(mockStorageService.keys.calledOnce).to.be.true;
-      expect(templates).to.be.an('array').with.lengthOf(2);
-      expect(templates).to.include('template1');
-      expect(templates).to.include('template2');
+      expect(mockService.getAvailableChecklists.calledOnce).to.be.true;
+      expect(result).to.deep.equal(mockChecklists);
     });
 
-    it('should filter only checklist keys', async () => {
-      mockStorageService.keys.resolves(['checklist:template1', 'report:report1', 'otherKey']);
+    it('should handle errors and return empty array', () => {
+      mockService.getAvailableChecklists.throws(new Error('Service error'));
 
-      const templates = await reviewChecklist.getAvailableChecklists();
+      const result = reviewChecklist.getAvailableChecklists();
 
-      expect(templates).to.be.an('array').with.lengthOf(1);
-      expect(templates).to.include('template1');
-      expect(templates).not.to.include('report1');
-    });
-
-    it('should throw ReviewChecklistError if templates cannot be retrieved', async () => {
-      mockStorageService.keys.rejects(new Error('Storage error'));
-
-      let error;
-      try {
-        await reviewChecklist.getAvailableChecklists();
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to retrieve available checklists');
       expect(mockLogger.error.calledOnce).to.be.true;
-    });
-
-    it('should return empty array if no checklists found', async () => {
-      mockStorageService.keys.resolves(['report:report1', 'otherKey']);
-
-      const templates = await reviewChecklist.getAvailableChecklists();
-
-      expect(templates).to.be.an('array').with.lengthOf(0);
+      expect(result).to.be.an('array').that.is.empty;
     });
   });
 
   describe('getChecklist', () => {
-    it('should retrieve a specific checklist by name', async () => {
+    it('should return checklist from service', () => {
       const mockChecklist = {
         name: 'testChecklist',
         items: [
@@ -147,575 +120,276 @@ describe('ReviewChecklist - JavaScript', () => {
           { id: 'item2', description: 'Test item 2' }
         ]
       };
+      mockService.getChecklist.withArgs('testChecklist').returns(mockChecklist);
 
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
+      const result = reviewChecklist.getChecklist('testChecklist');
 
-      const checklist = await reviewChecklist.getChecklist('testChecklist');
-
-      expect(mockStorageService.getItem.calledOnce).to.be.true;
-      expect(checklist).to.deep.equal(mockChecklist);
+      expect(mockService.getChecklist.calledWith('testChecklist')).to.be.true;
+      expect(result).to.deep.equal(mockChecklist);
     });
 
-    it('should throw ReviewChecklistError if checklist not found', async () => {
-      mockStorageService.getItem.withArgs('checklist:nonexistent').resolves(null);
+    it('should handle errors and return undefined', () => {
+      mockService.getChecklist.throws(new Error('Service error'));
 
-      let error;
       try {
-        await reviewChecklist.getChecklist('nonexistent');
-      } catch (err) {
-        error = err;
+        reviewChecklist.getChecklist('testChecklist');
+        // This line should not be reached
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(mockLogger.error.calledOnce).to.be.true;
       }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Checklist not found');
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-
-    it('should throw ReviewChecklistError if there is an error retrieving checklist', async () => {
-      mockStorageService.getItem.rejects(new Error('Storage error'));
-
-      let error;
-      try {
-        await reviewChecklist.getChecklist('testChecklist');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to retrieve checklist');
-      expect(mockLogger.error.calledOnce).to.be.true;
     });
   });
 
   describe('createChecklist', () => {
-    it('should create a new checklist', async () => {
-      const newChecklist = {
-        name: 'newChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' },
-          { id: 'item2', description: 'Test item 2' }
-        ]
-      };
-
-      mockStorageService.setItem.resolves();
-
-      const result = await reviewChecklist.createChecklist(newChecklist);
-
-      expect(mockStorageService.setItem.calledOnce).to.be.true;
-      expect(mockStorageService.setItem.firstCall.args[0]).to.equal('checklist:newChecklist');
-      expect(JSON.parse(mockStorageService.setItem.firstCall.args[1])).to.deep.equal(newChecklist);
-      expect(result).to.be.true;
-    });
-
-    it('should throw ReviewChecklistError if checklist validation fails', async () => {
-      const invalidChecklist = {
-        name: 'invalidChecklist',
-        items: [] // Empty array is invalid
-      };
-
-      let error;
-      try {
-        await reviewChecklist.createChecklist(invalidChecklist);
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Checklist items must be a non-empty array');
-      expect(mockStorageService.setItem.called).to.be.false;
-    });
-
-    it('should throw ReviewChecklistError if there is an error saving checklist', async () => {
-      const newChecklist = {
-        name: 'newChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' }
-        ]
-      };
-
-      mockStorageService.setItem.rejects(new Error('Storage error'));
-
-      let error;
-      try {
-        await reviewChecklist.createChecklist(newChecklist);
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to create checklist');
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-
-    it('should throw ReviewChecklistError if checklist items are invalid', async () => {
-      const invalidChecklist = {
-        name: 'invalidChecklist',
-        items: [
-          { id: 'item1' } // Missing description
-        ]
-      };
-
-      let error;
-      try {
-        await reviewChecklist.createChecklist(invalidChecklist);
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Each checklist item must have an id and description');
-      expect(mockStorageService.setItem.called).to.be.false;
-    });
-  });
-
-  describe('generateReport', () => {
-    it('should generate a review report for a checklist', async () => {
-      const mockChecklist = {
-        name: 'testChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' },
-          { id: 'item2', description: 'Test item 2' }
-        ]
-      };
-
-      const filePaths = ['/path/to/file1.js', '/path/to/file2.js'];
-      const reviewerId = 'tester';
-
-      // Mock checklist retrieval
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
-
-      // Mock report saving
-      mockStorageService.setItem.resolves();
-
-      // Mock UUID generation
-      sandbox.stub(global, 'Date').returns({
-        now: () => 1234567890
-      });
-
-      // Create a mock UUID for testing
-      global.crypto = {
-        randomUUID: () => 'test-uuid-123'
-      };
-
-      const report = await reviewChecklist.generateReport('testChecklist', filePaths, reviewerId);
-
-      expect(mockStorageService.getItem.calledOnce).to.be.true;
-      expect(mockStorageService.setItem.calledOnce).to.be.true;
-      expect(report).to.be.an('object');
-      expect(report.id).to.equal('test-uuid-123');
-      expect(report.checklistName).to.equal('testChecklist');
-      expect(report.filePaths).to.deep.equal(filePaths);
-      expect(report.reviewerId).to.equal('reviewerId' in report ? 'tester' : undefined);
-      expect(report.timestamp).to.be.a('number');
-      expect(report.results).to.be.an('array').that.is.empty;
-      expect(report.summary).to.equal('');
-      expect(report.approved).to.be.false;
-    });
-
-    it('should throw ReviewChecklistError if checklist not found', async () => {
-      mockStorageService.getItem.withArgs('checklist:nonexistent').resolves(null);
-
-      let error;
-      try {
-        await reviewChecklist.generateReport('nonexistent', ['/path/to/file.js']);
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Checklist not found');
-      expect(mockStorageService.setItem.called).to.be.false;
-    });
-
-    it('should throw ReviewChecklistError if results validation fails', async () => {
-      const mockChecklist = {
-        name: 'testChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' }
-        ]
-      };
-
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
-
-      // Invalid results (not an array)
-      const invalidResults = {};
-
-      let error;
-      try {
-        await reviewChecklist.generateReport('testChecklist', ['/path/to/file.js'], 'tester', invalidResults);
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(mockStorageService.setItem.called).to.be.false;
-    });
-  });
-
-  describe('updateReport', () => {
-    it('should update an existing report', async () => {
-      const existingReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      const updatedResults = [
-        { itemId: 'item1', passed: true, comment: 'Looks good' }
-      ];
-
-      const updatedSummary = 'Updated summary';
-      const updatedApproved = true;
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(existingReport));
-      mockStorageService.setItem.resolves();
-
-      const result = await reviewChecklist.updateReport('report1', updatedResults, updatedSummary, updatedApproved);
-
-      expect(mockStorageService.getItem.calledOnce).to.be.true;
-      expect(mockStorageService.setItem.calledOnce).to.be.true;
-      expect(result).to.be.true;
-
-      const savedReport = JSON.parse(mockStorageService.setItem.firstCall.args[1]);
-      expect(savedReport.id).to.equal('report1');
-      expect(savedReport.results).to.deep.equal(updatedResults);
-      expect(savedReport.summary).to.equal(updatedSummary);
-      expect(savedReport.approved).to.equal(updatedApproved);
-    });
-
-    it('should throw ReviewChecklistError if report not found', async () => {
-      mockStorageService.getItem.withArgs('report:nonexistent').resolves(null);
-
-      let error;
-      try {
-        await reviewChecklist.updateReport('nonexistent', [], '');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Report not found');
-      expect(mockStorageService.setItem.called).to.be.false;
-    });
-
-    it('should throw ReviewChecklistError if there is an error updating report', async () => {
-      const existingReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(existingReport));
-      mockStorageService.setItem.rejects(new Error('Storage error'));
-
-      let error;
-      try {
-        await reviewChecklist.updateReport('report1', [], 'Updated summary');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to update report');
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-  });
-
-  describe('getReport', () => {
-    it('should retrieve a specific report by id', async () => {
-      const mockReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(mockReport));
-
-      const report = await reviewChecklist.getReport('report1');
-
-      expect(mockStorageService.getItem.calledOnce).to.be.true;
-      expect(report).to.deep.equal(mockReport);
-    });
-
-    it('should throw ReviewChecklistError if report not found', async () => {
-      mockStorageService.getItem.withArgs('report:nonexistent').resolves(null);
-
-      let error;
-      try {
-        await reviewChecklist.getReport('nonexistent');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Report not found');
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-
-    it('should throw ReviewChecklistError if there is an error retrieving report', async () => {
-      mockStorageService.getItem.rejects(new Error('Storage error'));
-
-      let error;
-      try {
-        await reviewChecklist.getReport('report1');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to retrieve report');
-      expect(mockLogger.error.calledOnce).to.be.true;
-    });
-  });
-
-  describe('exportReport', () => {
-    it('should export a report to markdown format', async () => {
-      // Mock report and checklist retrieval
-      const mockReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [
-          { itemId: 'item1', passed: true, comment: 'Looks good' },
-          { itemId: 'item2', passed: false, comment: 'Needs work' }
-        ],
-        summary: 'Report summary',
-        approved: true
-      };
-
-      const mockChecklist = {
-        name: 'testChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' },
-          { id: 'item2', description: 'Test item 2' }
-        ]
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(mockReport));
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
-
-      // Mock VS Code APIs for file saving
-      const mockUri = { fsPath: '/path/to/export.md' };
-      sandbox.stub(vscode.window, 'showSaveDialog').resolves(mockUri);
-
-      const writeFileMock = sandbox.stub().resolves();
-      sandbox.stub(vscode.workspace, 'fs').value({
-        writeFile: writeFileMock
-      });
-
-      await reviewChecklist.exportReport('report1', 'markdown');
-
-      expect(mockStorageService.getItem.calledTwice).to.be.true;
-      expect(vscode.window.showSaveDialog.calledOnce).to.be.true;
-      expect(writeFileMock.calledOnce).to.be.true;
-    });
-
-    it('should throw ReviewChecklistError if report not found', async () => {
-      mockStorageService.getItem.withArgs('report:nonexistent').resolves(null);
-
-      let error;
-      try {
-        await reviewChecklist.exportReport('nonexistent', 'markdown');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Report not found');
-    });
-
-    it('should throw ReviewChecklistError if checklist not found', async () => {
-      const mockReport = {
-        id: 'report1',
-        checklistName: 'nonexistentChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(mockReport));
-      mockStorageService.getItem.withArgs('checklist:nonexistentChecklist').resolves(null);
-
-      let error;
-      try {
-        await reviewChecklist.exportReport('report1', 'markdown');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Checklist not found');
-    });
-
-    it('should throw ReviewChecklistError if user cancels the save dialog', async () => {
-      const mockReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      const mockChecklist = {
-        name: 'testChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' }
-        ]
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(mockReport));
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
-
-      sandbox.stub(vscode.window, 'showSaveDialog').resolves(undefined);
-
-      let error;
-      try {
-        await reviewChecklist.exportReport('report1', 'markdown');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Export cancelled');
-    });
-
-    it('should throw ReviewChecklistError if there is an error writing the file', async () => {
-      const mockReport = {
-        id: 'report1',
-        checklistName: 'testChecklist',
-        filePaths: ['/path/to/file.js'],
-        timestamp: Date.now(),
-        results: [],
-        summary: '',
-        approved: false
-      };
-
-      const mockChecklist = {
-        name: 'testChecklist',
-        items: [
-          { id: 'item1', description: 'Test item 1' }
-        ]
-      };
-
-      mockStorageService.getItem.withArgs('report:report1').resolves(JSON.stringify(mockReport));
-      mockStorageService.getItem.withArgs('checklist:testChecklist').resolves(JSON.stringify(mockChecklist));
-
-      const mockUri = { fsPath: '/path/to/export.md' };
-      sandbox.stub(vscode.window, 'showSaveDialog').resolves(mockUri);
-
-      const writeFileError = new Error('Write file error');
-      sandbox.stub(vscode.workspace, 'fs').value({
-        writeFile: sandbox.stub().rejects(writeFileError)
-      });
-
-      let error;
-      try {
-        await reviewChecklist.exportReport('report1', 'markdown');
-      } catch (err) {
-        error = err;
-      }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.include('Failed to export report');
-    });
-  });
-
-  describe('validateChecklistItems', () => {
-    it('should validate valid checklist items', () => {
-      const validItems = [
+    it('should validate and create checklist via service', () => {
+      const name = 'newChecklist';
+      const items = [
         { id: 'item1', description: 'Test item 1' },
         { id: 'item2', description: 'Test item 2' }
       ];
 
-      // Should not throw an error
-      reviewChecklist.validateChecklistItems(validItems);
+      reviewChecklist.createChecklist(name, items);
+
+      expect(mockService.createChecklist.calledWith(name, items)).to.be.true;
     });
 
-    it('should throw error for empty items array', () => {
-      let error;
+    it('should validate checklist items', () => {
+      const name = 'newChecklist';
+      const invalidItems = []; // Empty array is invalid
+
       try {
-        reviewChecklist.validateChecklistItems([]);
-      } catch (err) {
-        error = err;
+        reviewChecklist.createChecklist(name, invalidItems);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(error.message).to.include('Checklist items must be a non-empty array');
+        expect(mockService.createChecklist.called).to.be.false;
       }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.equal('Checklist items must be a non-empty array');
     });
 
-    it('should throw error for items without required properties', () => {
+    it('should validate each checklist item has id and description', () => {
+      const name = 'newChecklist';
       const invalidItems = [
-        { id: 'item1' }, // Missing description
-        { description: 'Test item 2' } // Missing id
+        { id: 'item1' } // Missing description
       ];
 
-      let error;
       try {
-        reviewChecklist.validateChecklistItems(invalidItems);
-      } catch (err) {
-        error = err;
+        reviewChecklist.createChecklist(name, invalidItems);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(error.message).to.include('Each checklist item must have an id and description');
+        expect(mockService.createChecklist.called).to.be.false;
       }
+    });
 
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.equal('Each checklist item must have an id and description');
+    it('should handle service errors', () => {
+      const name = 'newChecklist';
+      const items = [
+        { id: 'item1', description: 'Test item 1' }
+      ];
+
+      mockService.createChecklist.throws(new Error('Service error'));
+
+      try {
+        reviewChecklist.createChecklist(name, items);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(mockLogger.error.calledOnce).to.be.true;
+      }
     });
   });
 
-  describe('validateResults', () => {
-    it('should validate valid results', () => {
-      const validResults = [
-        { itemId: 'item1', passed: true, comment: 'Looks good' },
-        { itemId: 'item2', passed: false, comment: 'Needs work' }
+  describe('generateReport', () => {
+    it('should generate report via service', () => {
+      const checklistName = 'testChecklist';
+      const filePaths = ['/path/to/file1.ts', '/path/to/file2.ts'];
+      const reviewerId = 'user123';
+      const mockReport = {
+        id: 'report-123',
+        checklistName,
+        filePaths,
+        reviewerId,
+        results: [],
+        summary: '',
+        approved: false,
+        timestamp: new Date().toISOString()
+      };
+
+      mockService.generateReport.returns(mockReport);
+
+      const result = reviewChecklist.generateReport(checklistName, filePaths, reviewerId);
+
+      expect(mockService.generateReport.calledWith(checklistName, filePaths, reviewerId)).to.be.true;
+      expect(result).to.deep.equal(mockReport);
+    });
+
+    it('should handle service errors and return an empty report', () => {
+      const checklistName = 'testChecklist';
+      const filePaths = ['/path/to/file.ts'];
+      const reviewerId = 'user123';
+
+      mockService.generateReport.throws(new Error('Service error'));
+
+      const result = reviewChecklist.generateReport(checklistName, filePaths, reviewerId);
+
+      expect(mockLogger.error.calledOnce).to.be.true;
+      expect(result).to.be.an('object');
+      expect(result.id).to.include('error-');
+      expect(result.checklistName).to.equal(checklistName);
+      expect(result.filePaths).to.deep.equal(filePaths);
+      expect(result.reviewerId).to.equal(reviewerId);
+      expect(result.results).to.be.an('array').that.is.empty;
+      expect(result.summary).to.equal('Error generating report');
+      expect(result.approved).to.be.false;
+    });
+  });
+
+  describe('updateReport', () => {
+    it('should validate and update report via service', () => {
+      const reportId = 'report-123';
+      const results = [
+        { itemId: 'item1', passed: true, comment: 'Looks good' }
       ];
+      const summary = 'Report summary';
+      const approved = true;
 
-      // Should not throw an error
-      reviewChecklist.validateResults(validResults);
+      reviewChecklist.updateReport(reportId, results, summary, approved);
+
+      expect(mockService.updateReport.calledWith(reportId, results, summary, approved)).to.be.true;
     });
 
-    it('should throw error for non-array results', () => {
-      let error;
+    it('should validate results', () => {
+      const reportId = 'report-123';
+      const invalidResults = 'not an array'; // Not an array
+      const summary = 'Report summary';
+      const approved = true;
+
       try {
-        reviewChecklist.validateResults({});
-      } catch (err) {
-        error = err;
+        reviewChecklist.updateReport(reportId, invalidResults, summary, approved);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(error.message).to.include('Results must be an array');
+        expect(mockService.updateReport.called).to.be.false;
       }
-
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.equal('Results must be an array');
     });
 
-    it('should throw error for results without required properties', () => {
+    it('should validate each result has itemId and passed property', () => {
+      const reportId = 'report-123';
       const invalidResults = [
-        { itemId: 'item1' }, // Missing passed
-        { passed: true } // Missing itemId
+        { itemId: 'item1' } // Missing passed property
+      ];
+      const summary = 'Report summary';
+      const approved = true;
+
+      try {
+        reviewChecklist.updateReport(reportId, invalidResults, summary, approved);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(error.message).to.include('Each result must have an itemId and passed status');
+        expect(mockService.updateReport.called).to.be.false;
+      }
+    });
+
+    it('should handle service errors', () => {
+      const reportId = 'report-123';
+      const results = [
+        { itemId: 'item1', passed: true, comment: 'Looks good' }
+      ];
+      const summary = 'Report summary';
+      const approved = true;
+
+      mockService.updateReport.throws(new Error('Service error'));
+
+      try {
+        reviewChecklist.updateReport(reportId, results, summary, approved);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(ReviewChecklistError);
+        expect(mockLogger.error.calledOnce).to.be.true;
+      }
+    });
+  });
+
+  describe('getReportHistory', () => {
+    it('should get report history via service with default limit', () => {
+      const mockReports = [
+        { id: 'report-1', timestamp: new Date().toISOString() },
+        { id: 'report-2', timestamp: new Date().toISOString() }
+      ];
+      mockService.getReportHistory.returns(mockReports);
+
+      const result = reviewChecklist.getReportHistory();
+
+      expect(mockService.getReportHistory.calledWith(10)).to.be.true;
+      expect(result).to.deep.equal(mockReports);
+    });
+
+    it('should get report history via service with custom limit', () => {
+      const mockReports = [
+        { id: 'report-1', timestamp: new Date().toISOString() }
+      ];
+      mockService.getReportHistory.returns(mockReports);
+
+      const result = reviewChecklist.getReportHistory(1);
+
+      expect(mockService.getReportHistory.calledWith(1)).to.be.true;
+      expect(result).to.deep.equal(mockReports);
+    });
+
+    it('should handle service errors and return empty array', () => {
+      mockService.getReportHistory.throws(new Error('Service error'));
+
+      const result = reviewChecklist.getReportHistory();
+
+      expect(mockLogger.error.calledOnce).to.be.true;
+      expect(result).to.be.an('array').that.is.empty;
+    });
+  });
+
+  describe('exportReportToHtml', () => {
+    it('should export report to HTML via service', () => {
+      const reportId = 'report-123';
+      const mockHtml = '<html><body>Report content</body></html>';
+      mockService.exportReportToHtml.returns(mockHtml);
+
+      const result = reviewChecklist.exportReportToHtml(reportId);
+
+      expect(mockService.exportReportToHtml.calledWith(reportId)).to.be.true;
+      expect(result).to.equal(mockHtml);
+    });
+
+    it('should handle service errors and return error HTML', () => {
+      const reportId = 'report-123';
+      mockService.exportReportToHtml.throws(new Error('Service error'));
+
+      const result = reviewChecklist.exportReportToHtml(reportId);
+
+      expect(mockLogger.error.calledOnce).to.be.true;
+      expect(result).to.include('<h1>Error Exporting Report</h1>');
+      expect(result).to.include(reportId);
+    });
+  });
+
+  describe('dispose', () => {
+    it('should dispose all disposables', () => {
+      const disposeStub1 = sandbox.stub();
+      const disposeStub2 = sandbox.stub();
+      reviewChecklist.disposables = [
+        { dispose: disposeStub1 },
+        { dispose: disposeStub2 }
       ];
 
-      let error;
-      try {
-        reviewChecklist.validateResults(invalidResults);
-      } catch (err) {
-        error = err;
-      }
+      reviewChecklist.dispose();
 
-      expect(error).to.be.instanceOf(ReviewChecklistError);
-      expect(error.message).to.equal('Each result must have an itemId and passed status');
+      expect(disposeStub1.calledOnce).to.be.true;
+      expect(disposeStub2.calledOnce).to.be.true;
+      expect(reviewChecklist.disposables.length).to.equal(0);
     });
   });
 });

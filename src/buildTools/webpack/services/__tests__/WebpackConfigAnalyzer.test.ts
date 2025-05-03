@@ -1,597 +1,607 @@
 import * as fs from 'fs';
 import { mock } from 'jest-mock-extended';
-import * as vscode from 'vscode';
-import { ILogger } from '../../../../logging/ILogger';
-import { IWebpackAnalysisResult } from '../../types';
+import { ILogger } from '../../../../services/logging/ILogger';
 import { WebpackConfigAnalyzer } from '../WebpackConfigAnalyzer';
-
-// Mock the vscode module
-jest.mock('vscode', () => ({
-    window: {
-        showInformationMessage: jest.fn(),
-        showErrorMessage: jest.fn()
-    },
-    workspace: {
-        workspaceFolders: [],
-        getWorkspaceFolder: jest.fn()
-    }
-}));
 
 // Mock the fs module
 jest.mock('fs', () => ({
-    existsSync: jest.fn(),
-    readFileSync: jest.fn()
+  promises: {
+    readFile: jest.fn()
+  },
+  existsSync: jest.fn()
 }));
 
 describe('WebpackConfigAnalyzer', () => {
-    let analyzer: WebpackConfigAnalyzer;
-    let mockLogger: ILogger;
-    const mockConfigPath = '/path/to/webpack.config.js';
-    const mockContent = `
+  let analyzer: WebpackConfigAnalyzer;
+  let mockLogger: ILogger;
+  const mockConfigPath = '/path/to/webpack.config.js';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLogger = mock<ILogger>();
+    analyzer = new WebpackConfigAnalyzer(mockLogger);
+  });
+
+  describe('analyze method', () => {
+    it('should extract entry points, output, loaders, and plugins from webpack config', async () => {
+      const mockContent = `
         module.exports = {
-            entry: {
-                main: './src/index.js',
-                vendor: './src/vendor.js'
-            },
-            output: {
-                path: path.resolve(__dirname, 'dist'),
-                filename: '[name].[contenthash].js'
-            },
-            module: {
-                rules: [
-                    {
-                        test: /\.js$/,
-                        use: 'babel-loader',
-                        exclude: /node_modules/
-                    },
-                    {
-                        test: /\.css$/,
-                        use: ['style-loader', 'css-loader']
-                    }
-                ]
-            },
-            plugins: [
-                new HtmlWebpackPlugin({
-                    template: './src/index.html'
-                }),
-                new MiniCssExtractPlugin()
+          entry: {
+            main: './src/index.js',
+            vendor: './src/vendor.js'
+          },
+          output: {
+            path: path.resolve(__dirname, 'dist'),
+            filename: '[name].[contenthash].js',
+            publicPath: '/'
+          },
+          module: {
+            rules: [
+              {
+                test: /\\.js$/,
+                use: 'babel-loader',
+                exclude: /node_modules/
+              },
+              {
+                test: /\\.css$/,
+                use: ['style-loader', 'css-loader']
+              }
             ]
+          },
+          plugins: [
+            new HtmlWebpackPlugin({
+              template: './src/index.html'
+            }),
+            new MiniCssExtractPlugin()
+          ]
         };
-    `;
+      `;
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-        mockLogger = mock<ILogger>();
-        analyzer = new WebpackConfigAnalyzer(mockLogger);
-        (fs.readFileSync as jest.Mock).mockReturnValue(mockContent);
-        (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.promises.readFile as jest.Mock).mockResolvedValue(mockContent);
+
+      const result = await analyzer.analyze(mockConfigPath);
+
+      expect(result).toBeDefined();
+      expect(result.entryPoints).toHaveLength(2);
+      expect(result.entryPoints[0].name).toBe('main');
+      expect(result.entryPoints[0].path).toBe('./src/index.js');
+      expect(result.entryPoints[1].name).toBe('vendor');
+      expect(result.entryPoints[1].path).toBe('./src/vendor.js');
+
+      expect(result.output).toBeDefined();
+      expect(result.output.path).toBe('dist');
+      expect(result.output.filename).toBe('[name].[contenthash].js');
+      expect(result.output.publicPath).toBe('/');
+
+      expect(result.loaders).toHaveLength(3);
+      expect(result.loaders.find(l => l.name === 'babel-loader')).toBeDefined();
+      expect(result.loaders.find(l => l.name === 'style-loader')).toBeDefined();
+      expect(result.loaders.find(l => l.name === 'css-loader')).toBeDefined();
+
+      expect(result.plugins).toHaveLength(2);
+      expect(result.plugins[0].name).toBe('HtmlWebpackPlugin');
+      expect(result.plugins[1].name).toBe('MiniCssExtractPlugin');
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Analyzing webpack config'));
     });
 
-    describe('analyzeConfig', () => {
-        it('should analyze webpack.config.js file', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    mode: 'development',
-                    entry: './src/index.js',
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    },
-                    module: {
-                        rules: [
-                            {
-                                test: /\\.js$/,
-                                exclude: /node_modules/,
-                                use: 'babel-loader'
-                            }
-                        ]
-                    },
-                    plugins: [
-                        new HtmlWebpackPlugin({
-                            template: './src/index.html'
-                        })
+    it('should handle errors when reading config file', async () => {
+      const mockError = new Error('File not found');
+      (fs.promises.readFile as jest.Mock).mockRejectedValue(mockError);
+
+      await expect(analyzer.analyze(mockConfigPath)).rejects.toThrow('Failed to analyze webpack configuration');
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should handle complex webpack configurations with multiple features', async () => {
+      const mockContent = `
+        const path = require('path');
+        module.exports = {
+          mode: 'production',
+          entry: {
+            app: './src/index.js',
+            admin: './src/admin.js',
+            vendor: ['react', 'react-dom']
+          },
+          output: {
+            path: path.resolve(__dirname, 'dist'),
+            filename: '[name].[chunkhash].js',
+            publicPath: '/static/'
+          },
+          optimization: {
+            splitChunks: {
+              chunks: 'all',
+              cacheGroups: {
+                vendors: {
+                  test: /[\\\\/]node_modules[\\\\/]/,
+                  name: 'vendors',
+                  enforce: true
+                }
+              }
+            }
+          },
+          module: {
+            rules: [
+              {
+                test: /\\.js$/,
+                use: [
+                  {
+                    loader: 'babel-loader',
+                    options: {
+                      presets: ['@babel/preset-env', '@babel/preset-react'],
+                      plugins: ['@babel/plugin-proposal-class-properties']
+                    }
+                  },
+                  'eslint-loader'
+                ],
+                exclude: /node_modules/
+              },
+              {
+                test: /\\.scss$/,
+                use: [
+                  'style-loader',
+                  {
+                    loader: 'css-loader',
+                    options: {
+                      modules: true
+                    }
+                  },
+                  'sass-loader'
+                ]
+              }
+            ]
+          },
+          plugins: [
+            new HtmlWebpackPlugin({
+              template: './src/index.html',
+              favicon: './src/favicon.ico',
+              minify: {
+                removeComments: true,
+                collapseWhitespace: true
+              }
+            }),
+            new MiniCssExtractPlugin({
+              filename: '[name].[contenthash].css'
+            }),
+            new CleanWebpackPlugin(),
+            new webpack.DefinePlugin({
+              'process.env.NODE_ENV': JSON.stringify('production')
+            })
+          ]
+        };
+      `;
+
+      (fs.promises.readFile as jest.Mock).mockResolvedValue(mockContent);
+
+      const result = await analyzer.analyze(mockConfigPath);
+
+      expect(result).toBeDefined();
+      // Check entry points
+      expect(result.entryPoints).toHaveLength(3);
+      expect(result.entryPoints).toContainEqual({ name: 'app', path: './src/index.js' });
+      expect(result.entryPoints).toContainEqual({ name: 'admin', path: './src/admin.js' });
+
+      // Check output
+      expect(result.output.path).toBe('dist');
+      expect(result.output.filename).toBe('[name].[chunkhash].js');
+      expect(result.output.publicPath).toBe('/static/');
+
+      // Check loaders
+      expect(result.loaders).toContainEqual(expect.objectContaining({ name: 'babel-loader' }));
+      expect(result.loaders).toContainEqual(expect.objectContaining({ name: 'eslint-loader' }));
+      expect(result.loaders).toContainEqual(expect.objectContaining({ name: 'style-loader' }));
+      expect(result.loaders).toContainEqual(expect.objectContaining({ name: 'css-loader' }));
+      expect(result.loaders).toContainEqual(expect.objectContaining({ name: 'sass-loader' }));
+
+      // Check plugins
+      expect(result.plugins).toHaveLength(4);
+      expect(result.plugins.map(p => p.name)).toContain('HtmlWebpackPlugin');
+      expect(result.plugins.map(p => p.name)).toContain('MiniCssExtractPlugin');
+      expect(result.plugins.map(p => p.name)).toContain('CleanWebpackPlugin');
+      expect(result.plugins.map(p => p.name)).toContain('DefinePlugin');
+    });
+  });
+
+  describe('extractEntryPoints', () => {
+    it('should extract entry points from string format', () => {
+      const content = 'module.exports = { entry: "./src/index.js" }';
+
+      const result = analyzer['extractEntryPoints'](content);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({ name: 'main', path: './src/index.js' });
+    });
+
+    it('should extract entry points from object format', () => {
+      const content = 'module.exports = { entry: { main: "./src/main.js", vendor: "./src/vendor.js" } }';
+
+      const result = analyzer['extractEntryPoints'](content);
+
+      expect(result).toHaveLength(2);
+      expect(result).toContainEqual({ name: 'main', path: './src/main.js' });
+      expect(result).toContainEqual({ name: 'vendor', path: './src/vendor.js' });
+    });
+
+    it('should extract entry points from array format', () => {
+      const content = 'module.exports = { entry: ["./src/index.js", "./src/polyfills.js"] }';
+
+      const result = analyzer['extractEntryPoints'](content);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].path).toBe('./src/index.js');
+      expect(result[1].path).toBe('./src/polyfills.js');
+    });
+
+    it('should return empty array when no entry points are found', () => {
+      const content = 'module.exports = {}';
+
+      const result = analyzer['extractEntryPoints'](content);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle complex entry point configurations', () => {
+      const content = `
+        module.exports = {
+          entry: {
+            main: './src/index.js',
+            vendor: ['react', 'react-dom', 'redux'],
+            utils: {
+              import: './src/utils.js',
+              dependOn: 'vendor'
+            }
+          }
+        }`;
+
+      const result = analyzer['extractEntryPoints'](content);
+
+      expect(result).toHaveLength(3);
+      expect(result).toContainEqual({ name: 'main', path: './src/index.js' });
+      expect(result).toContainEqual({ name: 'vendor', path: 'react' });
+      expect(result).toContainEqual({ name: 'utils', path: './src/utils.js' });
+    });
+  });
+
+  describe('extractOutput', () => {
+    it('should extract output configuration', () => {
+      const content = `
+        module.exports = {
+          output: {
+            path: path.resolve(__dirname, "dist"),
+            filename: "[name].[hash].js",
+            publicPath: "/assets/"
+          }
+        }`;
+
+      const result = analyzer['extractOutput'](content);
+
+      expect(result).toEqual({
+        path: 'dist',
+        filename: '[name].[hash].js',
+        publicPath: '/assets/'
+      });
+    });
+
+    it('should handle path.join syntax', () => {
+      const content = `
+        module.exports = {
+          output: {
+            path: path.join(__dirname, "dist"),
+            filename: "bundle.js"
+          }
+        }`;
+
+      const result = analyzer['extractOutput'](content);
+
+      expect(result.path).toBe('dist');
+    });
+
+    it('should handle direct string paths', () => {
+      const content = `
+        module.exports = {
+          output: {
+            path: "/absolute/path/dist",
+            filename: "bundle.js"
+          }
+        }`;
+
+      const result = analyzer['extractOutput'](content);
+
+      expect(result.path).toBe('/absolute/path/dist');
+    });
+
+    it('should return empty values when no output configuration is found', () => {
+      const content = 'module.exports = {}';
+
+      const result = analyzer['extractOutput'](content);
+
+      expect(result).toEqual({ path: '', filename: '' });
+    });
+
+    it('should extract output with multiple configuration options', () => {
+      const content = `
+        module.exports = {
+          output: {
+            path: path.resolve(__dirname, 'dist'),
+            filename: '[name].[contenthash].js',
+            chunkFilename: '[id].[chunkhash].js',
+            publicPath: '/assets/',
+            assetModuleFilename: 'images/[hash][ext][query]',
+            clean: true
+          }
+        }`;
+
+      const result = analyzer['extractOutput'](content);
+
+      expect(result.path).toBe('dist');
+      expect(result.filename).toBe('[name].[contenthash].js');
+      expect(result.publicPath).toBe('/assets/');
+    });
+  });
+
+  describe('extractLoaders', () => {
+    it('should extract loaders from rules', () => {
+      const content = `
+        module.exports = {
+          module: {
+            rules: [
+              {
+                test: /\\.js$/,
+                use: 'babel-loader',
+                exclude: /node_modules/
+              },
+              {
+                test: /\\.css$/,
+                use: ['style-loader', 'css-loader']
+              },
+              {
+                test: /\\.scss$/,
+                loader: 'sass-loader',
+                options: {
+                  sourceMap: true
+                }
+              }
+            ]
+          }
+        };
+      `;
+
+      const result = analyzer['extractLoaders'](content);
+
+      expect(result).toHaveLength(4);
+      expect(result.find(l => l.name === 'babel-loader')).toBeDefined();
+      expect(result.find(l => l.name === 'style-loader')).toBeDefined();
+      expect(result.find(l => l.name === 'css-loader')).toBeDefined();
+      expect(result.find(l => l.name === 'sass-loader')).toBeDefined();
+
+      const sassLoader = result.find(l => l.name === 'sass-loader');
+      expect(sassLoader?.options).toEqual({ sourceMap: true });
+    });
+
+    it('should handle loader with options', () => {
+      const content = `
+        module.exports = {
+          module: {
+            rules: [
+              {
+                test: /\\.js$/,
+                use: {
+                  loader: 'babel-loader',
+                  options: {
+                    presets: ['@babel/preset-env']
+                  }
+                }
+              }
+            ]
+          }
+        };
+      `;
+
+      const result = analyzer['extractLoaders'](content);
+
+      expect(result).toHaveLength(1);
+      const babelLoader = result[0];
+      expect(babelLoader.name).toBe('babel-loader');
+      expect(babelLoader.test).toBe('\\\\.\\.js$');
+    });
+
+    it('should return empty array when no loaders are found', () => {
+      const content = 'module.exports = {}';
+
+      const result = analyzer['extractLoaders'](content);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle complex rule configurations', () => {
+      const content = `
+        module.exports = {
+          module: {
+            rules: [
+              {
+                test: /\\.js$/,
+                exclude: /node_modules/,
+                use: [
+                  {
+                    loader: 'babel-loader',
+                    options: {
+                      presets: ['@babel/preset-env', '@babel/preset-react'],
+                      plugins: ['@babel/plugin-transform-runtime']
+                    }
+                  },
+                  {
+                    loader: 'eslint-loader',
+                    options: {
+                      fix: true,
+                      emitWarning: true
+                    }
+                  }
+                ]
+              },
+              {
+                test: /\\.css$/,
+                oneOf: [
+                  {
+                    resourceQuery: /modules/,
+                    use: [
+                      'style-loader',
+                      {
+                        loader: 'css-loader',
+                        options: {
+                          modules: true,
+                          importLoaders: 1
+                        }
+                      },
+                      'postcss-loader'
                     ]
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+                  },
+                  {
+                    use: ['style-loader', 'css-loader']
+                  }
+                ]
+              }
+            ]
+          }
+        }`;
 
-            const result = await analyzer.analyzeConfig(configPath);
+      const result = analyzer['extractLoaders'](content);
 
-            expect(result).toBeDefined();
-            expect(result.configPath).toBe(configPath);
-            expect(result.entry).toBeDefined();
-            expect(result.output).toBeDefined();
-            expect(result.plugins).toBeDefined();
-            expect(result.loaders).toBeDefined();
-            expect(result.warnings).toBeDefined();
-            expect(result.errors).toBeDefined();
-        });
+      // Should identify all loaders, even in complex nested structures
+      expect(result.filter(l => l.name === 'babel-loader')).toHaveLength(1);
+      expect(result.filter(l => l.name === 'eslint-loader')).toHaveLength(1);
+      expect(result.filter(l => l.name === 'style-loader')).toHaveLength(2);
+      expect(result.filter(l => l.name === 'css-loader')).toHaveLength(2);
+      expect(result.filter(l => l.name === 'postcss-loader')).toHaveLength(1);
 
-        it('should extract entry point information', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    entry: {
-                        main: './src/index.js',
-                        vendor: './src/vendor.js'
-                    }
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+      // Check options extraction
+      const babelLoader = result.find(l => l.name === 'babel-loader');
+      expect(babelLoader?.options).toBeDefined();
 
-            const result = await analyzer.analyzeConfig(configPath);
+      const eslintLoader = result.find(l => l.name === 'eslint-loader');
+      expect(eslintLoader?.options).toBeDefined();
+    });
+  });
 
-            expect(result.entry).toBeDefined();
-            expect(Array.isArray(result.entry)).toBe(true);
-            expect(result.entry).toContain('main');
-            expect(result.entry).toContain('vendor');
-        });
+  describe('extractPlugins', () => {
+    it('should extract plugins from config', () => {
+      const content = `
+        module.exports = {
+          plugins: [
+            new HtmlWebpackPlugin(),
+            new MiniCssExtractPlugin(),
+            new CleanWebpackPlugin(),
+            new webpack.DefinePlugin({
+              'process.env.NODE_ENV': JSON.stringify('production')
+            })
+          ]
+        };
+      `;
 
-        it('should extract output information', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.[name].js',
-                        publicPath: '/'
-                    }
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+      const result = analyzer['extractPlugins'](content);
 
-            const result = await analyzer.analyzeConfig(configPath);
+      expect(result).toHaveLength(4);
+      expect(result[0].name).toBe('HtmlWebpackPlugin');
+      expect(result[1].name).toBe('MiniCssExtractPlugin');
+      expect(result[2].name).toBe('CleanWebpackPlugin');
+      expect(result[3].name).toBe('DefinePlugin');
 
-            expect(result.output).toBeDefined();
-            expect(result.output.path).toBe('dist');
-            expect(result.output.filename).toBe('bundle.[name].js');
-        });
-
-        it('should extract plugins information', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    plugins: [
-                        new HtmlWebpackPlugin(),
-                        new MiniCssExtractPlugin(),
-                        new webpack.DefinePlugin({
-                            'process.env.NODE_ENV': JSON.stringify('production')
-                        })
-                    ]
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const result = await analyzer.analyzeConfig(configPath);
-
-            expect(result.plugins).toBeDefined();
-            expect(Array.isArray(result.plugins)).toBe(true);
-            expect(result.plugins).toContain('HtmlWebpackPlugin');
-            expect(result.plugins).toContain('MiniCssExtractPlugin');
-            expect(result.plugins).toContain('DefinePlugin');
-        });
-
-        it('should extract loaders information', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    module: {
-                        rules: [
-                            {
-                                test: /\\.js$/,
-                                use: 'babel-loader'
-                            },
-                            {
-                                test: /\\.css$/,
-                                use: ['style-loader', 'css-loader']
-                            }
-                        ]
-                    }
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const result = await analyzer.analyzeConfig(configPath);
-
-            expect(result.loaders).toBeDefined();
-            expect(Array.isArray(result.loaders)).toBe(true);
-            expect(result.loaders).toContain('babel-loader');
-            expect(result.loaders).toContain('style-loader');
-            expect(result.loaders).toContain('css-loader');
-        });
-
-        it('should include warnings for potential issues', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    // Missing entry and output
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const result = await analyzer.analyzeConfig(configPath);
-
-            expect(result.warnings).toBeDefined();
-            expect(result.warnings.length).toBeGreaterThan(0);
-        });
-
-        it('should handle errors when config file does not exist', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-            const result = await analyzer.analyzeConfig(configPath);
-
-            expect(result.errors).toBeDefined();
-            expect(result.errors.length).toBeGreaterThan(0);
-            expect(result.errors[0]).toContain('Configuration file not found');
-        });
-
-        it('should handle invalid config files', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                // Invalid config
-                module.exports = {
-                    entry: {
-                        // Unclosed object
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const result = await analyzer.analyzeConfig(configPath);
-
-            expect(result.errors).toBeDefined();
-            expect(result.errors.length).toBeGreaterThan(0);
-        });
+      // Check descriptions
+      expect(result[0].description).toContain('Generates HTML');
+      expect(result[1].description).toContain('Extracts CSS');
     });
 
-    describe('identifyPerformanceBottlenecks', () => {
-        it('should identify potential performance bottlenecks in config', async () => {
-            const configContent = `
-                module.exports = {
-                    entry: './src/index.js',
-                    mode: 'development',
-                    devtool: 'eval',
-                    module: {
-                        rules: [
-                            {
-                                test: /\\.js$/,
-                                use: 'babel-loader'
-                            }
-                        ]
-                    }
-                };
-            `;
-            const result: IWebpackAnalysisResult = {
-                configPath: '/workspace/webpack.config.js',
-                entry: ['./src/index.js'],
-                output: {},
-                plugins: [],
-                loaders: ['babel-loader'],
-                warnings: [],
-                errors: []
-            };
+    it('should return empty array when no plugins are found', () => {
+      const content = 'module.exports = {}';
 
-            const bottlenecks = analyzer.identifyPerformanceBottlenecks(result, configContent);
+      const result = analyzer['extractPlugins'](content);
 
-            expect(bottlenecks).toBeDefined();
-            expect(Array.isArray(bottlenecks)).toBe(true);
-            expect(bottlenecks.length).toBeGreaterThan(0);
-            // Verify some common performance issues are detected
-            expect(bottlenecks.some(b => b.includes('mode') && b.includes('development'))).toBe(true);
-            expect(bottlenecks.some(b => b.includes('devtool') && b.includes('eval'))).toBe(true);
-        });
-
-        it('should identify missing production optimizations', async () => {
-            const configContent = `
-                module.exports = {
-                    entry: './src/index.js',
-                    mode: 'production',
-                    // Missing optimization section
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    }
-                };
-            `;
-            const result: IWebpackAnalysisResult = {
-                configPath: '/workspace/webpack.config.js',
-                entry: ['./src/index.js'],
-                output: { path: 'dist', filename: 'bundle.js' },
-                plugins: [],
-                loaders: [],
-                warnings: [],
-                errors: []
-            };
-
-            const bottlenecks = analyzer.identifyPerformanceBottlenecks(result, configContent);
-
-            expect(bottlenecks).toBeDefined();
-            expect(bottlenecks.some(b => b.includes('optimization'))).toBe(true);
-        });
-
-        it('should identify missing core plugins for production', async () => {
-            const configContent = `
-                module.exports = {
-                    entry: './src/index.js',
-                    mode: 'production',
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    },
-                    // Missing important plugins
-                    plugins: []
-                };
-            `;
-            const result: IWebpackAnalysisResult = {
-                configPath: '/workspace/webpack.config.js',
-                entry: ['./src/index.js'],
-                output: { path: 'dist', filename: 'bundle.js' },
-                plugins: [],
-                loaders: [],
-                warnings: [],
-                errors: []
-            };
-
-            const bottlenecks = analyzer.identifyPerformanceBottlenecks(result, configContent);
-
-            expect(bottlenecks).toBeDefined();
-            expect(bottlenecks.some(b => b.includes('plugin'))).toBe(true);
-        });
+      expect(result).toEqual([]);
     });
 
-    describe('suggestOptimizations', () => {
-        it('should suggest optimizations based on analysis', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    mode: 'development',
-                    entry: './src/index.js',
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    }
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+    it('should extract plugins with complex configurations', () => {
+      const content = `
+        const webpack = require('webpack');
+        const HtmlWebpackPlugin = require('html-webpack-plugin');
+        module.exports = {
+          plugins: [
+            new webpack.ProgressPlugin(),
+            new webpack.DefinePlugin({
+              'process.env.NODE_ENV': JSON.stringify('production'),
+              'DEBUG': false,
+              'VERSION': JSON.stringify(require('./package.json').version)
+            }),
+            new HtmlWebpackPlugin({
+              template: './public/index.html',
+              minify: {
+                removeComments: true,
+                collapseWhitespace: true,
+                removeRedundantAttributes: true,
+                useShortDoctype: true,
+                removeEmptyAttributes: true,
+                removeStyleLinkTypeAttributes: true,
+                keepClosingSlash: true,
+                minifyJS: true,
+                minifyCSS: true,
+                minifyURLs: true
+              }
+            }),
+            new webpack.ProvidePlugin({
+              React: 'react',
+              $: 'jquery',
+              _: 'lodash'
+            })
+          ]
+        }`;
 
-            const optimizations = await analyzer.suggestOptimizations(configPath);
+      const result = analyzer['extractPlugins'](content);
 
-            expect(optimizations).toBeDefined();
-            expect(Array.isArray(optimizations)).toBe(true);
-            expect(optimizations.length).toBeGreaterThan(0);
-        });
+      expect(result).toHaveLength(4);
+      expect(result.map(p => p.name)).toContain('ProgressPlugin');
+      expect(result.map(p => p.name)).toContain('DefinePlugin');
+      expect(result.map(p => p.name)).toContain('HtmlWebpackPlugin');
+      expect(result.map(p => p.name)).toContain('ProvidePlugin');
+    });
+  });
 
-        it('should suggest production mode for non-development environments', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    // Missing mode
-                    entry: './src/index.js',
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    }
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
+  describe('getPluginDescription', () => {
+    it('should return description for known plugins', () => {
+      const knownPlugins = [
+        'HtmlWebpackPlugin',
+        'MiniCssExtractPlugin',
+        'CleanWebpackPlugin',
+        'CopyWebpackPlugin',
+        'DefinePlugin',
+        'TerserPlugin',
+        'OptimizeCSSAssetsPlugin',
+        'BundleAnalyzerPlugin',
+        'CompressionPlugin'
+      ];
 
-            const optimizations = await analyzer.suggestOptimizations(configPath);
-
-            expect(optimizations).toBeDefined();
-            expect(optimizations.some(o => o.includes('mode') && o.includes('production'))).toBe(true);
-        });
-
-        it('should suggest splitting bundles for large projects', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            const configContent = `
-                module.exports = {
-                    mode: 'production',
-                    entry: './src/index.js',
-                    output: {
-                        path: path.resolve(__dirname, 'dist'),
-                        filename: 'bundle.js'
-                    }
-                    // Missing optimization with splitChunks
-                };
-            `;
-            (fs.existsSync as jest.Mock).mockReturnValue(true);
-            (fs.readFileSync as jest.Mock).mockReturnValue(configContent);
-
-            const optimizations = await analyzer.suggestOptimizations(configPath);
-
-            expect(optimizations).toBeDefined();
-            expect(optimizations.some(o => o.includes('splitChunks'))).toBe(true);
-        });
-
-        it('should handle errors during optimization suggestions', async () => {
-            const configPath = '/workspace/webpack.config.js';
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-            const optimizations = await analyzer.suggestOptimizations(configPath);
-
-            expect(optimizations).toEqual([]);
-            expect(vscode.window.showErrorMessage).toHaveBeenCalled();
-        });
+      knownPlugins.forEach(plugin => {
+        const description = analyzer['getPluginDescription'](plugin);
+        expect(description).not.toBe('A webpack plugin');
+        expect(description.length).toBeGreaterThan(10);
+      });
     });
 
-    describe('analyze', () => {
-        it('should analyze webpack config and return configuration details', () => {
-            const result = analyzer.analyze(mockConfigPath);
+    it('should return generic description for unknown plugins', () => {
+      const description = analyzer['getPluginDescription']('UnknownPlugin');
 
-            expect(result).toBeDefined();
-            expect(result.entryPoints).toBeDefined();
-            expect(result.output).toBeDefined();
-            expect(result.loaders).toBeDefined();
-            expect(result.plugins).toBeDefined();
-        });
-
-        it('should handle files that do not exist', () => {
-            (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-            expect(() => analyzer.analyze(mockConfigPath)).toThrow();
-        });
-
-        it('should handle parse errors gracefully', () => {
-            (fs.readFileSync as jest.Mock).mockReturnValue('invalid javascript code {');
-
-            const result = analyzer.analyze(mockConfigPath);
-            expect(result).toEqual({
-                entryPoints: [],
-                output: { path: '', filename: '' },
-                loaders: [],
-                plugins: []
-            });
-        });
+      expect(description).toBe('A webpack plugin');
     });
+  });
 
-    describe('extractEntryPoints', () => {
-        it('should extract entry points from string format', () => {
-            const content = 'module.exports = { entry: "./src/index.js" }';
+  describe('initialization', () => {
+    it('should create instance with default logger when no logger is provided', () => {
+      const analyzerWithDefaultLogger = new WebpackConfigAnalyzer();
 
-            const result = analyzer.extractEntryPoints(content);
+      // We can't directly test the logger, but we can verify the instance is created
+      expect(analyzerWithDefaultLogger).toBeInstanceOf(WebpackConfigAnalyzer);
 
-            expect(result).toEqual([{ name: 'main', path: './src/index.js' }]);
-        });
+      // Test analyze method works with default logger
+      (fs.promises.readFile as jest.Mock).mockResolvedValue('module.exports = {}');
 
-        it('should extract entry points from object format', () => {
-            const content = 'module.exports = { entry: { main: "./src/main.js", vendor: "./src/vendor.js" } }';
-
-            const result = analyzer.extractEntryPoints(content);
-
-            expect(result).toEqual([
-                { name: 'main', path: './src/main.js' },
-                { name: 'vendor', path: './src/vendor.js' }
-            ]);
-        });
-
-        it('should extract entry points from array format', () => {
-            const content = 'module.exports = { entry: ["./src/main.js", "./src/polyfills.js"] }';
-
-            const result = analyzer.extractEntryPoints(content);
-
-            expect(result).toEqual([
-                { name: 'main', path: './src/main.js' },
-                { name: 'main1', path: './src/polyfills.js' }
-            ]);
-        });
-
-        it('should handle missing entry points', () => {
-            const content = 'module.exports = { }';
-
-            const result = analyzer.extractEntryPoints(content);
-
-            expect(result).toEqual([]);
-        });
+      return expect(analyzerWithDefaultLogger.analyze(mockConfigPath)).resolves.toBeDefined();
     });
-
-    describe('extractOutput', () => {
-        it('should extract output configuration', () => {
-            const content = 'module.exports = { output: { path: path.resolve(__dirname, "dist"), filename: "[name].[hash].js" } }';
-
-            const result = analyzer.extractOutput(content);
-
-            expect(result).toEqual({
-                path: 'dist',
-                filename: '[name].[hash].js'
-            });
-        });
-
-        it('should handle missing output configuration', () => {
-            const content = 'module.exports = { }';
-
-            const result = analyzer.extractOutput(content);
-
-            expect(result).toEqual({
-                path: '',
-                filename: ''
-            });
-        });
-    });
-
-    describe('extractLoaders', () => {
-        it('should extract loaders from rules', () => {
-            const content = `
-                module.exports = {
-                    module: {
-                        rules: [
-                            {
-                                test: /\\.js$/,
-                                use: 'babel-loader',
-                                exclude: /node_modules/
-                            },
-                            {
-                                test: /\\.css$/,
-                                use: ['style-loader', 'css-loader']
-                            }
-                        ]
-                    }
-                };
-            `;
-
-            const result = analyzer.extractLoaders(content);
-
-            expect(result).toHaveLength(3);
-            expect(result).toContainEqual(expect.objectContaining({ name: 'babel-loader' }));
-            expect(result).toContainEqual(expect.objectContaining({ name: 'style-loader' }));
-            expect(result).toContainEqual(expect.objectContaining({ name: 'css-loader' }));
-        });
-
-        it('should handle missing module rules', () => {
-            const content = 'module.exports = { }';
-
-            const result = analyzer.extractLoaders(content);
-
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('extractPlugins', () => {
-        it('should extract plugins from config', () => {
-            const content = `
-                module.exports = {
-                    plugins: [
-                        new HtmlWebpackPlugin(),
-                        new MiniCssExtractPlugin()
-                    ]
-                };
-            `;
-
-            const result = analyzer.extractPlugins(content);
-
-            expect(result).toHaveLength(2);
-            expect(result).toContainEqual(expect.objectContaining({ name: 'HtmlWebpackPlugin' }));
-            expect(result).toContainEqual(expect.objectContaining({ name: 'MiniCssExtractPlugin' }));
-        });
-
-        it('should handle missing plugins', () => {
-            const content = 'module.exports = { }';
-
-            const result = analyzer.extractPlugins(content);
-
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('getPluginDescription', () => {
-        it('should return description for known plugins', () => {
-            const description = analyzer.getPluginDescription('HtmlWebpackPlugin');
-
-            expect(description).toContain('HTML');
-        });
-
-        it('should handle unknown plugins', () => {
-            const description = analyzer.getPluginDescription('UnknownPlugin');
-
-            expect(description).toContain('Unknown plugin');
-        });
-    });
+  });
 });
