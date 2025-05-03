@@ -8,6 +8,7 @@
 - Don't tell me exhaustingly what your changes will be, generate the code instead.
 - iterate through the tasks without stopping in between
 - execute commands without waiting for user input
+- the default command interpreter is bash
 
 ## zzzbuild
 - zzzbuild/ - folder for local build items like:
@@ -69,7 +70,7 @@
 ## default behaviour
 - check if the zzzbuild/ideas.md file has new content and incorporate it to the todo.md
   - delete ideas from zzzbuild\ideas.md if they are not relevant anymore
-- use at each prompt the following: 
+- use at each prompt the following:
   - @workspace
   - #codebase
   - #prompt:default.prompt.md
@@ -86,7 +87,7 @@ tests/ - folder for test items like:
   - code smells
   - code duplication
   - code complexity
-  
+
 # updating
 ## task list
 - review the zzzbuild\todo.md and update the status of completed and in-progress tasks.
@@ -95,7 +96,7 @@ tests/ - folder for test items like:
 - add an indicator as prefix if missing. it shall be like:
   - Status indicators:
     - ⏳ Pending
-    - 🔄 In Progress 
+    - 🔄 In Progress
     - ✅ Completed
     - 🚫 Skipped
     - 🚀 Scheduled
@@ -139,7 +140,7 @@ Commence with the next most reasonable task in zzzbuild\todo.md.
 - add an indicator as prefix if missing. it shall be like:
   - Status indicators:
     - ⏳ Pending
-    - 🔄 In Progress 
+    - 🔄 In Progress
     - ✅ Completed
     - 🚫 Skipped
     - 🚀 Scheduled
@@ -179,4 +180,4 @@ reorganize zzzbuild\finished.md
 - email: wakkaluba@gmail.com
 - ssh-key: <ssh-key>
 
-## 
+##
