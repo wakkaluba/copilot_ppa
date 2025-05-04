@@ -22,28 +22,32 @@ describe('RefactoringTools', () => {
   let mockOutputService: jest.Mocked<RefactoringOutputService>;
   let mockLLMService: jest.Mocked<LLMRefactoringService>;
   let mockEditor: any;
+  let mockDocument: any;
+  let mockSelection: any;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
 
     // Create mock for active text editor
+    mockSelection = { isEmpty: true };
+    mockDocument = {
+      uri: { path: '/test/file.ts' },
+      languageId: 'typescript',
+      getText: jest.fn().mockReturnValue('const test = "code";'),
+      lineCount: 1
+    };
     mockEditor = {
-      document: {
-        uri: { fsPath: 'test/file.ts' },
-        getText: jest.fn().mockReturnValue('original code'),
-        languageId: 'typescript',
-        lineCount: 10
-      },
-      edit: jest.fn().mockResolvedValue(true),
-      selection: { isEmpty: true }
+      document: mockDocument,
+      selection: mockSelection,
+      edit: jest.fn().mockResolvedValue(true)
     };
 
     // Setup VSCode mocks
     (vscode.window.activeTextEditor as any) = mockEditor;
     vscode.window.showWarningMessage = jest.fn();
     vscode.window.showInformationMessage = jest.fn().mockResolvedValue('Replace');
-    vscode.workspace.openTextDocument = jest.fn().mockResolvedValue(mockEditor.document);
+    vscode.workspace.openTextDocument = jest.fn().mockResolvedValue(mockDocument);
     vscode.window.showTextDocument = jest.fn().mockResolvedValue(mockEditor);
     vscode.Range = jest.fn().mockImplementation((startLine, startChar, endLine, endChar) => ({
       startLine,

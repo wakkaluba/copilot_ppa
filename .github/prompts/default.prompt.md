@@ -1,5 +1,7 @@
 # setup
 ## general targets
+- An addon in VSCode to connect a pair programmer with a locally or remote running instance of the LLM.
+  - The addon should integrate into the co-pilot chat prompt
 
 ## AI behaviour
 - Don't create too large files.
@@ -9,6 +11,9 @@
 - iterate through the tasks without stopping in between
 - execute commands without waiting for user input
 - the default command interpreter is bash
+- ALWAYS work with markdown files in zzzbuild/ or zzzrefactoring to keep track of the work
+  - one file for tasks at hand
+  - one file for completed tasks
 
 ## zzzbuild
 - zzzbuild/ - folder for local build items like:

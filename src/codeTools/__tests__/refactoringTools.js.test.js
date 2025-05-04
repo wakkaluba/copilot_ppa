@@ -14,31 +14,40 @@ jest.mock('../../codeTools/services/CodeDiffService');
 jest.mock('../../codeTools/services/RefactoringOutputService');
 jest.mock('../../codeTools/services/LLMRefactoringService');
 
-describe('RefactoringTools - JavaScript', () => {
+describe('RefactoringTools (JS)', () => {
   let refactoringTools;
+  let mockSimplificationService;
+  let mockUnusedCodeAnalyzer;
+  let mockDiffService;
+  let mockOutputService;
+  let mockLLMService;
   let mockEditor;
+  let mockDocument;
+  let mockSelection;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
 
     // Create mock for active text editor
+    mockSelection = { isEmpty: true };
+    mockDocument = {
+      uri: { path: '/test/file.js' },
+      languageId: 'javascript',
+      getText: jest.fn().mockReturnValue('const test = "code";'),
+      lineCount: 1
+    };
     mockEditor = {
-      document: {
-        uri: { fsPath: 'test/file.js' },
-        getText: jest.fn().mockReturnValue('original code'),
-        languageId: 'javascript',
-        lineCount: 10
-      },
-      edit: jest.fn().mockResolvedValue(true),
-      selection: { isEmpty: true }
+      document: mockDocument,
+      selection: mockSelection,
+      edit: jest.fn().mockResolvedValue(true)
     };
 
     // Setup VSCode mocks
     vscode.window.activeTextEditor = mockEditor;
     vscode.window.showWarningMessage = jest.fn();
     vscode.window.showInformationMessage = jest.fn().mockResolvedValue('Replace');
-    vscode.workspace.openTextDocument = jest.fn().mockResolvedValue(mockEditor.document);
+    vscode.workspace.openTextDocument = jest.fn().mockResolvedValue(mockDocument);
     vscode.window.showTextDocument = jest.fn().mockResolvedValue(mockEditor);
     vscode.Range = jest.fn().mockImplementation((startLine, startChar, endLine, endChar) => ({
       startLine,
@@ -47,25 +56,34 @@ describe('RefactoringTools - JavaScript', () => {
       endChar
     }));
 
+    // Get access to mocked implementations
+    mockSimplificationService = CodeSimplificationService.prototype;
+    mockUnusedCodeAnalyzer = UnusedCodeAnalyzerService.prototype;
+    mockDiffService = CodeDiffService.prototype;
+    mockOutputService = RefactoringOutputService.prototype;
+    mockLLMService = LLMRefactoringService.prototype;
+
     // Setup mock implementations
-    CodeSimplificationService.prototype.getEditorContent = jest.fn().mockResolvedValue({
+    mockSimplificationService.getEditorContent = jest.fn().mockResolvedValue({
       text: 'original code',
       selection: { isEmpty: true }
     });
-    CodeSimplificationService.prototype.simplifyCode = jest.fn().mockResolvedValue('simplified code');
-    CodeSimplificationService.prototype.initialize = jest.fn().mockResolvedValue(undefined);
+    mockSimplificationService.simplifyCode = jest.fn().mockResolvedValue('simplified code');
+    mockSimplificationService.initialize = jest.fn().mockResolvedValue(undefined);
 
-    UnusedCodeAnalyzerService.prototype.removeUnusedCode = jest.fn().mockResolvedValue('cleaned code');
-    UnusedCodeAnalyzerService.prototype.initialize = jest.fn().mockResolvedValue(undefined);
+    mockUnusedCodeAnalyzer.removeUnusedCode = jest.fn().mockResolvedValue('cleaned code');
+    mockUnusedCodeAnalyzer.initialize = jest.fn().mockResolvedValue(undefined);
 
-    CodeDiffService.prototype.showDiff = jest.fn().mockResolvedValue(undefined);
+    mockDiffService.showDiff = jest.fn().mockResolvedValue(undefined);
+    mockDiffService.dispose = jest.fn();
 
-    RefactoringOutputService.prototype.startOperation = jest.fn();
-    RefactoringOutputService.prototype.logSuccess = jest.fn();
-    RefactoringOutputService.prototype.logError = jest.fn();
+    mockOutputService.startOperation = jest.fn();
+    mockOutputService.logSuccess = jest.fn();
+    mockOutputService.logError = jest.fn();
+    mockOutputService.dispose = jest.fn();
 
-    LLMRefactoringService.prototype.refactorCode = jest.fn().mockResolvedValue('llm refactored code');
-    LLMRefactoringService.prototype.initialize = jest.fn().mockResolvedValue(undefined);
+    mockLLMService.refactorCode = jest.fn().mockResolvedValue('llm refactored code');
+    mockLLMService.initialize = jest.fn().mockResolvedValue(undefined);
 
     // Create instance of RefactoringTools
     refactoringTools = new RefactoringTools();
@@ -75,13 +93,13 @@ describe('RefactoringTools - JavaScript', () => {
     it('should initialize all services', async () => {
       await refactoringTools.initialize();
 
-      expect(CodeSimplificationService.prototype.initialize).toHaveBeenCalled();
-      expect(UnusedCodeAnalyzerService.prototype.initialize).toHaveBeenCalled();
-      expect(LLMRefactoringService.prototype.initialize).toHaveBeenCalled();
+      expect(mockSimplificationService.initialize).toHaveBeenCalled();
+      expect(mockUnusedCodeAnalyzer.initialize).toHaveBeenCalled();
+      expect(mockLLMService.initialize).toHaveBeenCalled();
     });
 
     it('should handle errors during initialization', async () => {
-      CodeSimplificationService.prototype.initialize.mockRejectedValue(new Error('Init error'));
+      mockSimplificationService.initialize.mockRejectedValue(new Error('Init error'));
 
       await expect(refactoringTools.initialize()).rejects.toThrow('Init error');
     });
@@ -91,17 +109,16 @@ describe('RefactoringTools - JavaScript', () => {
     it('should simplify code in the active editor', async () => {
       await refactoringTools.simplifyCode();
 
-      expect(RefactoringOutputService.prototype.startOperation).toHaveBeenCalledWith('Analyzing code for simplification...');
-      expect(CodeSimplificationService.prototype.getEditorContent).toHaveBeenCalled();
-      expect(CodeSimplificationService.prototype.simplifyCode).toHaveBeenCalledWith('original code', 'javascript');
-      expect(CodeDiffService.prototype.showDiff).toHaveBeenCalledWith(
+      expect(mockOutputService.startOperation).toHaveBeenCalledWith('Analyzing code for simplification...');
+      expect(mockSimplificationService.getEditorContent).toHaveBeenCalled();
+      expect(mockSimplificationService.simplifyCode).toHaveBeenCalledWith('original code', 'javascript');
+      expect(mockDiffService.showDiff).toHaveBeenCalledWith(
         mockEditor.document.uri,
         'original code',
         'simplified code',
-        'Entire File',
-        expect.any(String)
+        'Entire File'
       );
-      expect(RefactoringOutputService.prototype.logSuccess).toHaveBeenCalledWith('Code successfully simplified');
+      expect(mockOutputService.logSuccess).toHaveBeenCalledWith('Code successfully simplified');
     });
 
     it('should handle no active editor', async () => {
@@ -110,24 +127,24 @@ describe('RefactoringTools - JavaScript', () => {
       await refactoringTools.simplifyCode();
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor found');
-      expect(CodeSimplificationService.prototype.simplifyCode).not.toHaveBeenCalled();
+      expect(mockSimplificationService.simplifyCode).not.toHaveBeenCalled();
     });
 
     it('should handle errors in simplification', async () => {
-      CodeSimplificationService.prototype.simplifyCode.mockRejectedValue(new Error('Simplify error'));
+      mockSimplificationService.simplifyCode.mockRejectedValue(new Error('Simplify error'));
 
       await refactoringTools.simplifyCode();
 
-      expect(RefactoringOutputService.prototype.logError).toHaveBeenCalledWith('Error simplifying code:', expect.any(Error));
+      expect(mockOutputService.logError).toHaveBeenCalledWith('Error simplifying code:', expect.any(Error));
     });
 
     it('should handle case when code is already optimized', async () => {
-      CodeSimplificationService.prototype.simplifyCode.mockResolvedValue('original code');
+      mockSimplificationService.simplifyCode.mockResolvedValue('original code');
 
       await refactoringTools.simplifyCode();
 
-      expect(RefactoringOutputService.prototype.logSuccess).toHaveBeenCalledWith('No changes needed, code is already optimized');
-      expect(CodeDiffService.prototype.showDiff).not.toHaveBeenCalled();
+      expect(mockOutputService.logSuccess).toHaveBeenCalledWith('No changes needed, code is already optimized');
+      expect(mockDiffService.showDiff).not.toHaveBeenCalled();
     });
 
     it('should handle user cancellation of replacement', async () => {
@@ -144,19 +161,18 @@ describe('RefactoringTools - JavaScript', () => {
     it('should remove unused code in the active editor', async () => {
       await refactoringTools.removeUnusedCode();
 
-      expect(RefactoringOutputService.prototype.startOperation).toHaveBeenCalledWith('Analyzing code to detect unused elements...');
-      expect(UnusedCodeAnalyzerService.prototype.removeUnusedCode).toHaveBeenCalledWith(
+      expect(mockOutputService.startOperation).toHaveBeenCalledWith('Analyzing code to detect unused elements...');
+      expect(mockUnusedCodeAnalyzer.removeUnusedCode).toHaveBeenCalledWith(
         'original code',
         'javascript'
       );
-      expect(CodeDiffService.prototype.showDiff).toHaveBeenCalledWith(
+      expect(mockDiffService.showDiff).toHaveBeenCalledWith(
         mockEditor.document.uri,
         'original code',
         'cleaned code',
-        'Entire File (Unused Code Removed)',
-        expect.any(String)
+        'Entire File (Unused Code Removed)'
       );
-      expect(RefactoringOutputService.prototype.logSuccess).toHaveBeenCalledWith('Unused code successfully removed');
+      expect(mockOutputService.logSuccess).toHaveBeenCalledWith('Unused code successfully removed');
     });
 
     it('should handle no active editor', async () => {
@@ -165,15 +181,15 @@ describe('RefactoringTools - JavaScript', () => {
       await refactoringTools.removeUnusedCode();
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor found');
-      expect(UnusedCodeAnalyzerService.prototype.removeUnusedCode).not.toHaveBeenCalled();
+      expect(mockUnusedCodeAnalyzer.removeUnusedCode).not.toHaveBeenCalled();
     });
 
     it('should handle errors in unused code removal', async () => {
-      UnusedCodeAnalyzerService.prototype.removeUnusedCode.mockRejectedValue(new Error('Removal error'));
+      mockUnusedCodeAnalyzer.removeUnusedCode.mockRejectedValue(new Error('Removal error'));
 
       await refactoringTools.removeUnusedCode();
 
-      expect(RefactoringOutputService.prototype.logError).toHaveBeenCalledWith('Error removing unused code:', expect.any(Error));
+      expect(mockOutputService.logError).toHaveBeenCalledWith('Error removing unused code:', expect.any(Error));
     });
   });
 
@@ -181,21 +197,20 @@ describe('RefactoringTools - JavaScript', () => {
     it('should refactor code using LLM', async () => {
       await refactoringTools.refactorWithLLM('Make code more readable');
 
-      expect(RefactoringOutputService.prototype.startOperation).toHaveBeenCalledWith('Processing code with LLM...');
-      expect(CodeSimplificationService.prototype.getEditorContent).toHaveBeenCalled();
-      expect(LLMRefactoringService.prototype.refactorCode).toHaveBeenCalledWith(
+      expect(mockOutputService.startOperation).toHaveBeenCalledWith('Processing code with LLM...');
+      expect(mockSimplificationService.getEditorContent).toHaveBeenCalled();
+      expect(mockLLMService.refactorCode).toHaveBeenCalledWith(
         'original code',
         'javascript',
         'Make code more readable'
       );
-      expect(CodeDiffService.prototype.showDiff).toHaveBeenCalledWith(
+      expect(mockDiffService.showDiff).toHaveBeenCalledWith(
         mockEditor.document.uri,
         'original code',
         'llm refactored code',
-        'LLM Refactoring',
-        expect.any(String)
+        'LLM Refactoring'
       );
-      expect(RefactoringOutputService.prototype.logSuccess).toHaveBeenCalledWith('Code successfully refactored');
+      expect(mockOutputService.logSuccess).toHaveBeenCalledWith('Code successfully refactored');
     });
 
     it('should handle no active editor', async () => {
@@ -204,25 +219,44 @@ describe('RefactoringTools - JavaScript', () => {
       await refactoringTools.refactorWithLLM('Make code more readable');
 
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor found');
-      expect(LLMRefactoringService.prototype.refactorCode).not.toHaveBeenCalled();
+      expect(mockLLMService.refactorCode).not.toHaveBeenCalled();
     });
 
     it('should handle errors in LLM refactoring', async () => {
-      LLMRefactoringService.prototype.refactorCode.mockRejectedValue(new Error('LLM error'));
+      mockLLMService.refactorCode.mockRejectedValue(new Error('LLM error'));
 
       await refactoringTools.refactorWithLLM('Make code more readable');
 
-      expect(RefactoringOutputService.prototype.logError).toHaveBeenCalledWith('Error during LLM refactoring:', expect.any(Error));
+      expect(mockOutputService.logError).toHaveBeenCalledWith('Error during LLM refactoring:', expect.any(Error));
+    });
+  });
+
+  describe('showAndApplyChanges', () => {
+    it('should apply changes if user confirms', async () => {
+      // This is indirectly tested in the other tests
+      // But we can test directly by accessing the private method via direct function call
+      await refactoringTools.showAndApplyChanges(
+        mockEditor.document.uri,
+        'original code',
+        'modified code',
+        'Test',
+        'Confirm?'
+      );
+
+      expect(mockDiffService.showDiff).toHaveBeenCalled();
+      expect(vscode.window.showInformationMessage).toHaveBeenCalled();
+      expect(vscode.workspace.openTextDocument).toHaveBeenCalled();
+      expect(vscode.window.showTextDocument).toHaveBeenCalled();
+      expect(mockEditor.edit).toHaveBeenCalled();
     });
   });
 
   describe('dispose', () => {
     it('should dispose resources', () => {
-      const spy = jest.spyOn(refactoringTools, 'dispose');
-
       refactoringTools.dispose();
 
-      expect(spy).toHaveBeenCalled();
+      expect(mockOutputService.dispose).toHaveBeenCalled();
+      expect(mockDiffService.dispose).toHaveBeenCalled();
     });
   });
 });

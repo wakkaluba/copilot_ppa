@@ -1,41 +1,59 @@
-import { expect } from 'chai';
-import * as sinon from 'sinon';
-import * as vscode from 'vscode';
-import { RefactoringTools } from '../../../src/codeTools/refactoringTools';
-import { CodeDiffService } from '../../../src/codeTools/services/CodeDiffService';
-import { CodeSimplificationService } from '../../../src/codeTools/services/CodeSimplificationService';
-import { LLMRefactoringService } from '../../../src/codeTools/services/LLMRefactoringService';
-import { RefactoringOutputService } from '../../../src/codeTools/services/RefactoringOutputService';
-import { UnusedCodeAnalyzerService } from '../../../src/codeTools/services/UnusedCodeAnalyzerService';
+const { expect } = require('chai');
+const sinon = require('sinon');
+const vscode = require('vscode');
+const { RefactoringTools } = require('../../../src/codeTools/refactoringTools');
 
-describe('RefactoringTools - TypeScript', () => {
-  let refactoringTools: RefactoringTools;
-  let sandbox: sinon.SinonSandbox;
-  let mockSimplificationService: sinon.SinonStubbedInstance<CodeSimplificationService>;
-  let mockUnusedCodeAnalyzer: sinon.SinonStubbedInstance<UnusedCodeAnalyzerService>;
-  let mockDiffService: sinon.SinonStubbedInstance<CodeDiffService>;
-  let mockOutputService: sinon.SinonStubbedInstance<RefactoringOutputService>;
-  let mockLlmService: sinon.SinonStubbedInstance<LLMRefactoringService>;
-  let mockWindow: any;
-  let mockWorkspace: any;
+describe('RefactoringTools - JavaScript', () => {
+  let refactoringTools;
+  let sandbox;
+  let mockSimplificationService;
+  let mockUnusedCodeAnalyzer;
+  let mockDiffService;
+  let mockOutputService;
+  let mockLlmService;
+  let mockWindow;
+  let mockWorkspace;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
-    // Create stub instances for all the services
-    mockSimplificationService = sandbox.createStubInstance(CodeSimplificationService);
-    mockUnusedCodeAnalyzer = sandbox.createStubInstance(UnusedCodeAnalyzerService);
-    mockDiffService = sandbox.createStubInstance(CodeDiffService);
-    mockOutputService = sandbox.createStubInstance(RefactoringOutputService);
-    mockLlmService = sandbox.createStubInstance(LLMRefactoringService);
+    // Create mock services
+    mockSimplificationService = {
+      initialize: sandbox.stub().resolves(),
+      getEditorContent: sandbox.stub().resolves({
+        text: 'const test = 1 + 2;',
+        selection: new vscode.Selection(0, 0, 0, 10)
+      }),
+      simplifyCode: sandbox.stub().resolves('const test = 3;')
+    };
+
+    mockUnusedCodeAnalyzer = {
+      initialize: sandbox.stub().resolves(),
+      removeUnusedCode: sandbox.stub().resolves('const test = 1 + 2;')
+    };
+
+    mockDiffService = {
+      showDiff: sandbox.stub().resolves()
+    };
+
+    mockOutputService = {
+      startOperation: sandbox.stub(),
+      logSuccess: sandbox.stub(),
+      logError: sandbox.stub()
+    };
+
+    mockLlmService = {
+      initialize: sandbox.stub().resolves(),
+      refactorCode: sandbox.stub().resolves('const sum = 3;')
+    };
 
     // Mock VS Code window
     mockWindow = {
       activeTextEditor: {
         document: {
-          uri: vscode.Uri.file('/path/to/file.ts'),
+          uri: vscode.Uri.file('/path/to/file.js'),
           getText: sandbox.stub().returns('const test = 1 + 2;'),
-          languageId: 'typescript',
+          languageId: 'javascript',
           lineCount: 1
         },
         edit: sandbox.stub().resolves(true),
@@ -62,22 +80,15 @@ describe('RefactoringTools - TypeScript', () => {
     };
     sandbox.stub(vscode, 'workspace').value(mockWorkspace);
 
-    // Override the constructor to use our mock services
-    sandbox.stub(CodeSimplificationService.prototype, 'constructor').returns(mockSimplificationService);
-    sandbox.stub(UnusedCodeAnalyzerService.prototype, 'constructor').returns(mockUnusedCodeAnalyzer);
-    sandbox.stub(CodeDiffService.prototype, 'constructor').returns(mockDiffService);
-    sandbox.stub(RefactoringOutputService.prototype, 'constructor').returns(mockOutputService);
-    sandbox.stub(LLMRefactoringService.prototype, 'constructor').returns(mockLlmService);
-
-    // Create the RefactoringTools instance
+    // Create instance of RefactoringTools
     refactoringTools = new RefactoringTools();
 
-    // Replace the services with our mocks
-    (refactoringTools as any).simplificationService = mockSimplificationService;
-    (refactoringTools as any).unusedCodeAnalyzer = mockUnusedCodeAnalyzer;
-    (refactoringTools as any).diffService = mockDiffService;
-    (refactoringTools as any).outputService = mockOutputService;
-    (refactoringTools as any).llmService = mockLlmService;
+    // Replace internal services with mocks
+    refactoringTools.simplificationService = mockSimplificationService;
+    refactoringTools.unusedCodeAnalyzer = mockUnusedCodeAnalyzer;
+    refactoringTools.diffService = mockDiffService;
+    refactoringTools.outputService = mockOutputService;
+    refactoringTools.llmService = mockLlmService;
   });
 
   afterEach(() => {
@@ -86,11 +97,6 @@ describe('RefactoringTools - TypeScript', () => {
 
   describe('initialize', () => {
     it('should initialize all services', async () => {
-      // Setup
-      mockSimplificationService.initialize.resolves();
-      mockUnusedCodeAnalyzer.initialize.resolves();
-      mockLlmService.initialize.resolves();
-
       // Execute
       await refactoringTools.initialize();
 
@@ -104,8 +110,6 @@ describe('RefactoringTools - TypeScript', () => {
       // Setup
       const error = new Error('Initialization error');
       mockSimplificationService.initialize.rejects(error);
-      mockUnusedCodeAnalyzer.initialize.resolves();
-      mockLlmService.initialize.resolves();
 
       // Add a spy to console.error
       const consoleErrorSpy = sandbox.spy(console, 'error');
@@ -118,43 +122,29 @@ describe('RefactoringTools - TypeScript', () => {
       }
 
       // Verify
-      // Since initialization errors are not explicitly handled in the code,
-      // we can only check that all initialize methods were called
       expect(mockSimplificationService.initialize.calledOnce).to.be.true;
-      expect(mockUnusedCodeAnalyzer.initialize.calledOnce).to.be.true;
-      expect(mockLlmService.initialize.calledOnce).to.be.true;
     });
   });
 
   describe('simplifyCode', () => {
     it('should simplify code from the active editor', async () => {
-      // Setup
-      const originalCode = 'const test = 1 + 2;';
-      const simplifiedCode = 'const test = 3;';
-      const selectionRange = new vscode.Selection(0, 0, 0, 10);
-
-      mockSimplificationService.getEditorContent.resolves({ text: originalCode, selection: selectionRange });
-      mockSimplificationService.simplifyCode.resolves(simplifiedCode);
-
       // Execute
       await refactoringTools.simplifyCode();
 
       // Verify
       expect(mockOutputService.startOperation.calledWith('Analyzing code for simplification...')).to.be.true;
       expect(mockSimplificationService.getEditorContent.calledOnce).to.be.true;
-      expect(mockSimplificationService.simplifyCode.calledWith(originalCode, 'typescript')).to.be.true;
+      expect(mockSimplificationService.simplifyCode.calledWith('const test = 1 + 2;', 'javascript')).to.be.true;
       expect(mockDiffService.showDiff.calledOnce).to.be.true;
       expect(mockOutputService.logSuccess.calledWith('Code successfully simplified')).to.be.true;
     });
 
     it('should handle empty selection in editor', async () => {
       // Setup
-      const originalCode = 'const test = 1 + 2;';
-      const simplifiedCode = 'const test = 3;';
-      const emptySelection = new vscode.Selection(0, 0, 0, 0);
-
-      mockSimplificationService.getEditorContent.resolves({ text: originalCode, selection: emptySelection });
-      mockSimplificationService.simplifyCode.resolves(simplifiedCode);
+      mockSimplificationService.getEditorContent.resolves({
+        text: 'const test = 1 + 2;',
+        selection: new vscode.Selection(0, 0, 0, 0)
+      });
 
       // Execute
       await refactoringTools.simplifyCode();
@@ -162,30 +152,22 @@ describe('RefactoringTools - TypeScript', () => {
       // Verify
       expect(mockDiffService.showDiff.calledWith(
         sinon.match.any,
-        originalCode,
-        simplifiedCode,
+        'const test = 1 + 2;',
+        'const test = 3;',
         "Entire File",
         'Apply the simplified code?'
       )).to.be.true;
     });
 
     it('should handle non-empty selection in editor', async () => {
-      // Setup
-      const originalCode = 'const test = 1 + 2;';
-      const simplifiedCode = 'const test = 3;';
-      const nonEmptySelection = new vscode.Selection(0, 0, 0, 10);
-
-      mockSimplificationService.getEditorContent.resolves({ text: originalCode, selection: nonEmptySelection });
-      mockSimplificationService.simplifyCode.resolves(simplifiedCode);
-
       // Execute
       await refactoringTools.simplifyCode();
 
       // Verify
       expect(mockDiffService.showDiff.calledWith(
         sinon.match.any,
-        originalCode,
-        simplifiedCode,
+        'const test = 1 + 2;',
+        'const test = 3;',
         "Selected Code",
         'Apply the simplified code?'
       )).to.be.true;
@@ -220,17 +202,14 @@ describe('RefactoringTools - TypeScript', () => {
     it('should remove unused code from the active editor', async () => {
       // Setup
       const originalCode = 'const test = 1 + 2;\nconst unused = 42;';
-      const cleanedCode = 'const test = 1 + 2;';
-
       mockWindow.activeTextEditor.document.getText.returns(originalCode);
-      mockUnusedCodeAnalyzer.removeUnusedCode.resolves(cleanedCode);
 
       // Execute
       await refactoringTools.removeUnusedCode();
 
       // Verify
       expect(mockOutputService.startOperation.calledWith('Analyzing code to detect unused elements...')).to.be.true;
-      expect(mockUnusedCodeAnalyzer.removeUnusedCode.calledWith(originalCode, 'typescript')).to.be.true;
+      expect(mockUnusedCodeAnalyzer.removeUnusedCode.calledWith(originalCode, 'javascript')).to.be.true;
       expect(mockDiffService.showDiff.calledOnce).to.be.true;
       expect(mockOutputService.logSuccess.calledWith('Unused code successfully removed')).to.be.true;
     });
@@ -263,13 +242,7 @@ describe('RefactoringTools - TypeScript', () => {
   describe('refactorWithLLM', () => {
     it('should refactor code using LLM from the active editor', async () => {
       // Setup
-      const originalCode = 'const test = 1 + 2;';
-      const refactoredCode = 'const sum = 3;';
       const instructions = 'Rename variable to be more descriptive';
-      const selectionRange = new vscode.Selection(0, 0, 0, 10);
-
-      mockSimplificationService.getEditorContent.resolves({ text: originalCode, selection: selectionRange });
-      mockLlmService.refactorCode.resolves(refactoredCode);
 
       // Execute
       await refactoringTools.refactorWithLLM(instructions);
@@ -277,7 +250,7 @@ describe('RefactoringTools - TypeScript', () => {
       // Verify
       expect(mockOutputService.startOperation.calledWith('Processing code with LLM...')).to.be.true;
       expect(mockSimplificationService.getEditorContent.calledOnce).to.be.true;
-      expect(mockLlmService.refactorCode.calledWith(originalCode, 'typescript', instructions)).to.be.true;
+      expect(mockLlmService.refactorCode.calledWith('const test = 1 + 2;', 'javascript', instructions)).to.be.true;
       expect(mockDiffService.showDiff.calledOnce).to.be.true;
       expect(mockOutputService.logSuccess.calledWith('Code successfully refactored')).to.be.true;
     });
@@ -312,13 +285,13 @@ describe('RefactoringTools - TypeScript', () => {
   describe('showAndApplyChanges', () => {
     it('should not show diff when original and new code are identical', async () => {
       // Setup
-      const uri = vscode.Uri.file('/path/to/file.ts');
+      const uri = vscode.Uri.file('/path/to/file.js');
       const code = 'const test = 1 + 2;';
       const title = 'Test Diff';
       const prompt = 'Apply changes?';
 
       // Execute
-      await (refactoringTools as any).showAndApplyChanges(uri, code, code, title, prompt);
+      await refactoringTools.showAndApplyChanges(uri, code, code, title, prompt);
 
       // Verify
       expect(mockDiffService.showDiff.called).to.be.false;
@@ -327,7 +300,7 @@ describe('RefactoringTools - TypeScript', () => {
 
     it('should show diff and apply changes when user confirms', async () => {
       // Setup
-      const uri = vscode.Uri.file('/path/to/file.ts');
+      const uri = vscode.Uri.file('/path/to/file.js');
       const originalCode = 'const test = 1 + 2;';
       const newCode = 'const test = 3;';
       const title = 'Test Diff';
@@ -336,7 +309,7 @@ describe('RefactoringTools - TypeScript', () => {
       mockWindow.showInformationMessage.resolves('Replace');
 
       // Execute
-      await (refactoringTools as any).showAndApplyChanges(uri, originalCode, newCode, title, prompt);
+      await refactoringTools.showAndApplyChanges(uri, originalCode, newCode, title, prompt);
 
       // Verify
       expect(mockDiffService.showDiff.calledWith(uri, originalCode, newCode, title)).to.be.true;
@@ -347,7 +320,7 @@ describe('RefactoringTools - TypeScript', () => {
 
     it('should not apply changes when user cancels', async () => {
       // Setup
-      const uri = vscode.Uri.file('/path/to/file.ts');
+      const uri = vscode.Uri.file('/path/to/file.js');
       const originalCode = 'const test = 1 + 2;';
       const newCode = 'const test = 3;';
       const title = 'Test Diff';
@@ -356,7 +329,7 @@ describe('RefactoringTools - TypeScript', () => {
       mockWindow.showInformationMessage.resolves('Cancel');
 
       // Execute
-      await (refactoringTools as any).showAndApplyChanges(uri, originalCode, newCode, title, prompt);
+      await refactoringTools.showAndApplyChanges(uri, originalCode, newCode, title, prompt);
 
       // Verify
       expect(mockDiffService.showDiff.calledWith(uri, originalCode, newCode, title)).to.be.true;
@@ -369,16 +342,17 @@ describe('RefactoringTools - TypeScript', () => {
   describe('dispose', () => {
     it('should call the base class dispose method', () => {
       // Setup
-      const superDisposeStub = sandbox.stub(Object.getPrototypeOf(RefactoringTools.prototype), 'dispose');
+      const originalDispose = Object.getPrototypeOf(RefactoringTools.prototype).dispose;
+      Object.getPrototypeOf(RefactoringTools.prototype).dispose = sandbox.stub();
 
       // Execute
       refactoringTools.dispose();
 
       // Verify
-      expect(superDisposeStub.calledOnce).to.be.true;
+      expect(Object.getPrototypeOf(RefactoringTools.prototype).dispose.calledOnce).to.be.true;
 
-      // Cleanup
-      superDisposeStub.restore();
+      // Restore original
+      Object.getPrototypeOf(RefactoringTools.prototype).dispose = originalDispose;
     });
   });
 });

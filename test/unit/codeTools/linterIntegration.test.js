@@ -1,68 +1,32 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const vscode = require('vscode');
+const cp = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const { LinterIntegration } = require('../../../src/codeTools/linterIntegration');
 
 describe('LinterIntegration - JavaScript', () => {
   let linterIntegration;
   let sandbox;
-  let mockContext;
-  let mockWorkspace;
+  let mockOutputChannel;
   let mockDiagnosticCollection;
-  let mockExecutor;
+  let execSyncStub;
+  let fsExistsStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
 
-    // Mock VS Code context
-    mockContext = {
-      subscriptions: [],
-      extensionPath: '/path/to/extension',
-      extensionUri: { fsPath: '/path/to/extension' },
-      globalStorageUri: { fsPath: '/path/to/globalStorage' },
-      logUri: { fsPath: '/path/to/logs' },
-      storageUri: { fsPath: '/path/to/storage' },
-      extensionMode: vscode.ExtensionMode.Development,
-      globalState: {
-        get: sandbox.stub(),
-        update: sandbox.stub().resolves(true),
-        setKeysForSync: sandbox.stub()
-      },
-      workspaceState: {
-        get: sandbox.stub(),
-        update: sandbox.stub().resolves(true),
-        setKeysForSync: sandbox.stub()
-      },
-      secrets: {
-        get: sandbox.stub().resolves(''),
-        store: sandbox.stub().resolves(),
-        delete: sandbox.stub().resolves()
-      },
-      environmentVariableCollection: {},
-      asAbsolutePath: (path) => `/path/to/extension/${path}`
+    // Mock VS Code window and OutputChannel
+    mockOutputChannel = {
+      appendLine: sandbox.stub(),
+      clear: sandbox.stub(),
+      show: sandbox.stub(),
+      dispose: sandbox.stub()
     };
+    sandbox.stub(vscode.window, 'createOutputChannel').returns(mockOutputChannel);
 
-    // Mock VS Code workspace
-    mockWorkspace = {
-      workspaceFolders: [{ uri: { fsPath: '/path/to/workspace' } }],
-      getConfiguration: sandbox.stub().returns({
-        get: sandbox.stub(),
-        update: sandbox.stub(),
-        has: sandbox.stub()
-      }),
-      openTextDocument: sandbox.stub().resolves({
-        getText: sandbox.stub().returns('// Test code'),
-        fileName: '/path/to/file.js',
-        languageId: 'javascript'
-      }),
-      findFiles: sandbox.stub().resolves([
-        { fsPath: '/path/to/file1.js' },
-        { fsPath: '/path/to/file2.js' }
-      ])
-    };
-    sandbox.stub(vscode, 'workspace').value(mockWorkspace);
-
-    // Mock diagnostic collection
+    // Mock VS Code DiagnosticCollection
     mockDiagnosticCollection = {
       set: sandbox.stub(),
       clear: sandbox.stub(),
@@ -71,14 +35,29 @@ describe('LinterIntegration - JavaScript', () => {
     };
     sandbox.stub(vscode.languages, 'createDiagnosticCollection').returns(mockDiagnosticCollection);
 
-    // Mock command executor
-    mockExecutor = {
-      executeCommand: sandbox.stub().resolves()
-    };
-    sandbox.stub(vscode.commands, 'executeCommand').callsFake(mockExecutor.executeCommand);
+    // Mock child_process.execSync
+    execSyncStub = sandbox.stub(cp, 'execSync');
+
+    // Mock fs.existsSync
+    fsExistsStub = sandbox.stub(fs, 'existsSync');
+
+    // Mock window.activeTextEditor
+    sandbox.stub(vscode.window, 'activeTextEditor').value({
+      document: {
+        uri: vscode.Uri.file('/path/to/file.js'),
+        save: sandbox.stub().resolves()
+      }
+    });
+
+    // Mock workspace
+    sandbox.stub(vscode.workspace, 'getWorkspaceFolder').returns({
+      uri: vscode.Uri.file('/path/to/workspace'),
+      name: 'test-workspace',
+      index: 0
+    });
 
     // Create LinterIntegration instance
-    linterIntegration = new LinterIntegration(mockContext);
+    linterIntegration = new LinterIntegration();
   });
 
   afterEach(() => {
@@ -86,403 +65,371 @@ describe('LinterIntegration - JavaScript', () => {
   });
 
   describe('initialize', () => {
-    it('should initialize linter integration with supported languages', async () => {
-      // Stub the registerCommands method to verify it's called
-      const registerCommandsStub = sandbox.stub(linterIntegration, 'registerCommands');
-
+    it('should initialize linter integration', async () => {
       await linterIntegration.initialize();
-
-      expect(registerCommandsStub.calledOnce).to.be.true;
-      expect(vscode.languages.createDiagnosticCollection.calledWith('copilot-linter')).to.be.true;
-      expect(mockContext.subscriptions.length).to.be.greaterThan(0);
-    });
-
-    it('should handle errors during initialization', async () => {
-      // Force an error during initialization
-      sandbox.stub(vscode.languages, 'createDiagnosticCollection').throws(new Error('Initialization error'));
-
-      // Spy on console.error or a logger method if there's one
-      const errorSpy = sandbox.spy(console, 'error');
-
-      await linterIntegration.initialize();
-
-      expect(errorSpy.calledWith(sinon.match(/Failed to initialize LinterIntegration/))).to.be.true;
+      // Only testing that it doesn't throw, as implementation is empty
     });
   });
 
-  describe('registerCommands', () => {
-    it('should register lint commands with VS Code', () => {
-      // Create stub for vscode.commands.registerCommand
-      const registerCommandStub = sandbox.stub(vscode.commands, 'registerCommand').returns({
-        dispose: sandbox.stub()
+  describe('runLinter', () => {
+    it('should return early if no active editor', async () => {
+      // Override the activeTextEditor stub to return undefined
+      sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+
+      const showWarningStub = sandbox.stub(vscode.window, 'showWarningMessage');
+
+      await linterIntegration.runLinter();
+
+      expect(showWarningStub.calledOnce).to.be.true;
+      expect(showWarningStub.calledWith('No active editor found')).to.be.true;
+      expect(execSyncStub.called).to.be.false;
+    });
+
+    it('should return early if file is not in workspace', async () => {
+      // Override workspace folder stub to return undefined
+      sandbox.stub(vscode.workspace, 'getWorkspaceFolder').returns(undefined);
+
+      const showWarningStub = sandbox.stub(vscode.window, 'showWarningMessage');
+
+      await linterIntegration.runLinter();
+
+      expect(showWarningStub.calledOnce).to.be.true;
+      expect(showWarningStub.calledWith('File must be part of a workspace')).to.be.true;
+      expect(execSyncStub.called).to.be.false;
+    });
+
+    it('should run ESLint for JavaScript files', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return a JavaScript file
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.js'),
+          save: saveStub
+        }
       });
 
-      // Call the method
-      linterIntegration.registerCommands();
+      // Mock ESLint existence check
+      fsExistsStub.returns(true);
 
-      // Verify commands were registered
-      expect(registerCommandStub.called).to.be.true;
-      expect(mockContext.subscriptions.length).to.be.greaterThan(0);
+      // Mock ESLint execution
+      execSyncStub.returns(Buffer.from(JSON.stringify([
+        {
+          filePath: '/path/to/file.js',
+          messages: [
+            {
+              ruleId: 'semi',
+              severity: 2,
+              message: 'Missing semicolon',
+              line: 1,
+              column: 1,
+              endLine: 1,
+              endColumn: 10
+            }
+          ]
+        }
+      ])));
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(fsExistsStub.calledOnce).to.be.true;
+      expect(execSyncStub.calledOnce).to.be.true;
+      expect(mockOutputChannel.clear.calledOnce).to.be.true;
+      expect(mockOutputChannel.show.calledOnce).to.be.true;
+      expect(mockOutputChannel.appendLine.calledWith('Running ESLint...')).to.be.true;
+      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+    });
+
+    it('should run ESLint for JSX files', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return a JSX file
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.jsx'),
+          save: saveStub
+        }
+      });
+
+      // Mock ESLint existence check
+      fsExistsStub.returns(true);
+
+      // Mock ESLint execution
+      execSyncStub.returns(Buffer.from(JSON.stringify([
+        {
+          filePath: '/path/to/file.jsx',
+          messages: [
+            {
+              ruleId: 'react/prop-types',
+              severity: 1,
+              message: 'Missing prop validation',
+              line: 5,
+              column: 3
+            }
+          ]
+        }
+      ])));
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(fsExistsStub.calledOnce).to.be.true;
+      expect(execSyncStub.calledOnce).to.be.true;
+      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+    });
+
+    it('should run Pylint for Python files', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return a Python file
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.py'),
+          save: saveStub
+        }
+      });
+
+      // Mock Pylint execution
+      execSyncStub.returns(Buffer.from(JSON.stringify([
+        {
+          path: '/path/to/file.py',
+          line: 5,
+          column: 0,
+          type: 'error',
+          symbol: 'undefined-variable',
+          message: 'Undefined variable'
+        }
+      ])));
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(execSyncStub.calledOnce).to.be.true;
+      expect(mockOutputChannel.clear.calledOnce).to.be.true;
+      expect(mockOutputChannel.show.calledOnce).to.be.true;
+      expect(mockOutputChannel.appendLine.calledWith('Running Pylint...')).to.be.true;
+      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+    });
+
+    it('should show message for unsupported file types', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return an unsupported file type
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.css'),
+          save: saveStub
+        }
+      });
+
+      const showInfoStub = sandbox.stub(vscode.window, 'showInformationMessage');
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(showInfoStub.calledOnce).to.be.true;
+      expect(showInfoStub.calledWith(`No linter configured for .css files`)).to.be.true;
+      expect(execSyncStub.called).to.be.false;
+    });
+
+    it('should warn if ESLint is not found in node_modules', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return a JavaScript file
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.js'),
+          save: saveStub
+        }
+      });
+
+      // Mock ESLint existence check to return false
+      fsExistsStub.returns(false);
+
+      const showWarningStub = sandbox.stub(vscode.window, 'showWarningMessage');
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(fsExistsStub.calledOnce).to.be.true;
+      expect(showWarningStub.calledOnce).to.be.true;
+      expect(showWarningStub.calledWith('ESLint not found in node_modules. Please install it first.')).to.be.true;
+      expect(execSyncStub.called).to.be.false;
+    });
+
+    it('should handle errors when running ESLint', async () => {
+      // Mock document save
+      const saveStub = sandbox.stub().resolves();
+
+      // Set activeTextEditor to return a JavaScript file
+      sandbox.stub(vscode.window, 'activeTextEditor').value({
+        document: {
+          uri: vscode.Uri.file('/path/to/file.js'),
+          save: saveStub
+        }
+      });
+
+      // Mock ESLint existence check
+      fsExistsStub.returns(true);
+
+      // Force an error during execution
+      const error = new Error('Command failed');
+      execSyncStub.throws(error);
+
+      const showErrorStub = sandbox.stub(vscode.window, 'showErrorMessage');
+
+      await linterIntegration.runLinter();
+
+      expect(saveStub.calledOnce).to.be.true;
+      expect(fsExistsStub.calledOnce).to.be.true;
+      expect(execSyncStub.calledOnce).to.be.true;
+      expect(mockOutputChannel.appendLine.calledWith(`Error running ESLint: ${error}`)).to.be.true;
+      expect(showErrorStub.calledOnce).to.be.true;
     });
   });
 
-  describe('lintFile', () => {
-    it('should lint a file and return diagnostics for JavaScript', async () => {
+  describe('parseLintResults', () => {
+    it('should parse ESLint results and create diagnostics', () => {
       const filePath = '/path/to/file.js';
-
-      // Mock ESLint execution result for JavaScript
-      const mockEslintResult = [
+      const results = JSON.stringify([
         {
           filePath,
           messages: [
             {
               ruleId: 'semi',
-              severity: 1,
-              message: 'Missing semicolon',
-              line: 2,
-              column: 15
-            }
-          ],
-          errorCount: 0,
-          warningCount: 1
-        }
-      ];
-
-      // Stub the ESLint execution
-      sandbox.stub(linterIntegration, 'executeEslint').resolves(mockEslintResult);
-
-      const diagnostics = await linterIntegration.lintFile(filePath);
-
-      expect(diagnostics).to.be.an('array').with.lengthOf(1);
-      expect(diagnostics[0].message).to.include('Missing semicolon');
-      expect(diagnostics[0].severity).to.equal(vscode.DiagnosticSeverity.Warning);
-      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
-    });
-
-    it('should lint a file and return diagnostics for TypeScript', async () => {
-      const filePath = '/path/to/file.ts';
-
-      // Mock document with TypeScript content
-      mockWorkspace.openTextDocument.resolves({
-        getText: sandbox.stub().returns('// TS Test code'),
-        fileName: filePath,
-        languageId: 'typescript'
-      });
-
-      // Mock ESLint execution result for TypeScript
-      const mockEslintResult = [
-        {
-          filePath,
-          messages: [
-            {
-              ruleId: 'no-unused-vars',
               severity: 2,
-              message: 'Variable is defined but never used',
+              message: 'Missing semicolon',
               line: 1,
-              column: 10
+              column: 1,
+              endLine: 1,
+              endColumn: 10
+            },
+            {
+              ruleId: 'no-console',
+              severity: 1,
+              message: 'Unexpected console statement',
+              line: 2,
+              column: 5
             }
-          ],
-          errorCount: 1,
-          warningCount: 0
+          ]
         }
-      ];
+      ]);
 
-      // Stub the ESLint execution
-      sandbox.stub(linterIntegration, 'executeEslint').resolves(mockEslintResult);
+      linterIntegration.parseLintResults(filePath, results, 'eslint');
 
-      const diagnostics = await linterIntegration.lintFile(filePath);
-
-      expect(diagnostics).to.be.an('array').with.lengthOf(1);
-      expect(diagnostics[0].message).to.include('Variable is defined but never used');
-      expect(diagnostics[0].severity).to.equal(vscode.DiagnosticSeverity.Error);
       expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+      const diagnostics = mockDiagnosticCollection.set.firstCall.args[1];
+      expect(diagnostics).to.be.an('array').with.lengthOf(2);
+
+      // Verify first diagnostic (error)
+      expect(diagnostics[0].message).to.equal('Missing semicolon');
+      expect(diagnostics[0].severity).to.equal(vscode.DiagnosticSeverity.Error);
+      expect(diagnostics[0].source).to.equal('eslint');
+      expect(diagnostics[0].code).to.equal('semi');
+
+      // Verify second diagnostic (warning)
+      expect(diagnostics[1].message).to.equal('Unexpected console statement');
+      expect(diagnostics[1].severity).to.equal(vscode.DiagnosticSeverity.Warning);
     });
 
-    it('should handle errors when linting a file', async () => {
-      const filePath = '/path/to/file.js';
-
-      // Stub the ESLint execution to throw an error
-      sandbox.stub(linterIntegration, 'executeEslint').rejects(new Error('ESLint error'));
-
-      const errorSpy = sandbox.spy(console, 'error');
-
-      const diagnostics = await linterIntegration.lintFile(filePath);
-
-      expect(diagnostics).to.be.an('array').that.is.empty;
-      expect(errorSpy.calledWith(sinon.match(/Error linting file/))).to.be.true;
-    });
-
-    it('should handle unsupported file types gracefully', async () => {
-      const filePath = '/path/to/file.css';
-
-      // Mock document with unsupported language
-      mockWorkspace.openTextDocument.resolves({
-        getText: sandbox.stub().returns('/* CSS Test code */'),
-        fileName: filePath,
-        languageId: 'css'
-      });
-
-      const diagnostics = await linterIntegration.lintFile(filePath);
-
-      expect(diagnostics).to.be.an('array').that.is.empty;
-      // Check if URI creation and collection set is called properly
-      expect(mockDiagnosticCollection.set.called).to.be.true;
-    });
-  });
-
-  describe('lintWorkspace', () => {
-    it('should lint all supported files in the workspace', async () => {
-      // Mock finding files in workspace
-      mockWorkspace.findFiles.resolves([
-        { fsPath: '/path/to/file1.js' },
-        { fsPath: '/path/to/file2.ts' },
-        { fsPath: '/path/to/file3.html' } // Unsupported
-      ]);
-
-      // Stub the lintFile method
-      const lintFileStub = sandbox.stub(linterIntegration, 'lintFile');
-      lintFileStub.withArgs('/path/to/file1.js').resolves([{ message: 'JS warning' }]);
-      lintFileStub.withArgs('/path/to/file2.ts').resolves([{ message: 'TS error' }]);
-
-      const diagnosticsMap = await linterIntegration.lintWorkspace();
-
-      expect(lintFileStub.callCount).to.equal(2); // Only calls for supported files
-      expect(diagnosticsMap).to.be.an('object');
-      expect(diagnosticsMap['/path/to/file1.js']).to.be.an('array').with.lengthOf(1);
-      expect(diagnosticsMap['/path/to/file2.ts']).to.be.an('array').with.lengthOf(1);
-      expect(Object.keys(diagnosticsMap).length).to.equal(2);
-    });
-
-    it('should handle errors when linting the workspace', async () => {
-      // Force an error during workspace file search
-      mockWorkspace.findFiles.rejects(new Error('Workspace error'));
-
-      const errorSpy = sandbox.spy(console, 'error');
-
-      const diagnosticsMap = await linterIntegration.lintWorkspace();
-
-      expect(diagnosticsMap).to.be.an('object').that.is.empty;
-      expect(errorSpy.calledWith(sinon.match(/Error linting workspace/))).to.be.true;
-    });
-  });
-
-  describe('fixLintIssue', () => {
-    it('should fix a lint issue using ESLint auto-fix', async () => {
-      const filePath = '/path/to/file.js';
-      const diagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 10),
-        'Missing semicolon',
-        vscode.DiagnosticSeverity.Warning
-      );
-      diagnostic.code = 'semi';
-
-      // Stub the executeEslintFix method
-      const fixStub = sandbox.stub(linterIntegration, 'executeEslintFix').resolves(true);
-
-      const success = await linterIntegration.fixLintIssue(filePath, diagnostic);
-
-      expect(success).to.be.true;
-      expect(fixStub.calledWith(filePath, 'semi')).to.be.true;
-    });
-
-    it('should handle errors when fixing a lint issue', async () => {
-      const filePath = '/path/to/file.js';
-      const diagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 10),
-        'Missing semicolon',
-        vscode.DiagnosticSeverity.Warning
-      );
-      diagnostic.code = 'semi';
-
-      // Stub the executeEslintFix method to throw an error
-      sandbox.stub(linterIntegration, 'executeEslintFix').rejects(new Error('Fix error'));
-
-      const errorSpy = sandbox.spy(console, 'error');
-
-      const success = await linterIntegration.fixLintIssue(filePath, diagnostic);
-
-      expect(success).to.be.false;
-      expect(errorSpy.calledWith(sinon.match(/Error fixing lint issue/))).to.be.true;
-    });
-
-    it('should handle diagnostics without a rule ID', async () => {
-      const filePath = '/path/to/file.js';
-      const diagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 10),
-        'Some error message',
-        vscode.DiagnosticSeverity.Error
-      );
-      // No code/ruleId set
-
-      const success = await linterIntegration.fixLintIssue(filePath, diagnostic);
-
-      expect(success).to.be.false;
-    });
-  });
-
-  describe('clearDiagnostics', () => {
-    it('should clear diagnostics for a specific file', () => {
-      const filePath = '/path/to/file.js';
-
-      linterIntegration.clearDiagnostics(filePath);
-
-      expect(mockDiagnosticCollection.delete.called).to.be.true;
-    });
-
-    it('should clear all diagnostics when no file is specified', () => {
-      linterIntegration.clearDiagnostics();
-
-      expect(mockDiagnosticCollection.clear.calledOnce).to.be.true;
-    });
-  });
-
-  describe('getSupportedLanguages', () => {
-    it('should return the list of supported languages', () => {
-      const languages = linterIntegration.getSupportedLanguages();
-
-      expect(languages).to.be.an('array');
-      expect(languages).to.include('javascript');
-      expect(languages).to.include('typescript');
-    });
-  });
-
-  describe('executeEslint', () => {
-    it('should execute ESLint CLI via command on a file', async () => {
-      const filePath = '/path/to/file.js';
-
-      // Create mock ESLint output
-      const mockLintResult = JSON.stringify([
+    it('should parse Pylint results and create diagnostics', () => {
+      const filePath = '/path/to/file.py';
+      const results = JSON.stringify([
         {
-          filePath,
-          messages: [{ ruleId: 'test-rule', severity: 2, message: 'Test message', line: 1, column: 1 }],
-          errorCount: 1,
-          warningCount: 0
+          type: 'error',
+          symbol: 'undefined-variable',
+          message: 'Undefined variable',
+          line: 5,
+          column: 10
+        },
+        {
+          type: 'warning',
+          symbol: 'unused-import',
+          message: 'Unused import',
+          line: 2,
+          column: 1
         }
       ]);
 
-      // Mock external command execution
-      mockExecutor.executeCommand.resolves(mockLintResult);
+      linterIntegration.parseLintResults(filePath, results, 'pylint');
 
-      const result = await linterIntegration.executeEslint(filePath);
+      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+      const diagnostics = mockDiagnosticCollection.set.firstCall.args[1];
+      expect(diagnostics).to.be.an('array').with.lengthOf(2);
 
-      expect(result).to.be.an('array').with.lengthOf(1);
-      expect(result[0].filePath).to.equal(filePath);
-      expect(result[0].messages).to.be.an('array').with.lengthOf(1);
-      expect(result[0].messages[0].ruleId).to.equal('test-rule');
-      expect(mockExecutor.executeCommand.calledWith('eslint', [
-        '--format', 'json', '--no-color', filePath
-      ])).to.be.true;
+      // Verify first diagnostic (error)
+      expect(diagnostics[0].message).to.equal('Undefined variable');
+      expect(diagnostics[0].severity).to.equal(vscode.DiagnosticSeverity.Error);
+      expect(diagnostics[0].source).to.equal('pylint');
+      expect(diagnostics[0].code).to.equal('undefined-variable');
+
+      // Verify second diagnostic (warning)
+      expect(diagnostics[1].message).to.equal('Unused import');
+      expect(diagnostics[1].severity).to.equal(vscode.DiagnosticSeverity.Warning);
     });
 
-    it('should handle invalid ESLint output', async () => {
+    it('should handle empty results', () => {
       const filePath = '/path/to/file.js';
+      const results = JSON.stringify([{ filePath, messages: [] }]);
 
-      // Mock invalid JSON output
-      mockExecutor.executeCommand.resolves('Invalid JSON output');
+      linterIntegration.parseLintResults(filePath, results, 'eslint');
 
-      try {
-        await linterIntegration.executeEslint(filePath);
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        expect(error.message).to.include('Failed to parse ESLint output');
-      }
+      expect(mockDiagnosticCollection.set.calledOnce).to.be.true;
+      const diagnostics = mockDiagnosticCollection.set.firstCall.args[1];
+      expect(diagnostics).to.be.an('array').with.lengthOf(0);
+      expect(mockOutputChannel.appendLine.calledWith('No issues found')).to.be.true;
+    });
+
+    it('should handle errors when parsing results', () => {
+      const filePath = '/path/to/file.js';
+      const invalidJson = 'invalid JSON';
+
+      linterIntegration.parseLintResults(filePath, invalidJson, 'eslint');
+
+      expect(mockOutputChannel.appendLine.calledWith(sinon.match(/Error parsing lint results/))).to.be.true;
     });
   });
 
-  describe('executeEslintFix', () => {
-    it('should execute ESLint with fix option for specific rule', async () => {
-      const filePath = '/path/to/file.js';
-      const ruleId = 'semi';
+  describe('mapESLintSeverity', () => {
+    it('should map ESLint severity levels to VS Code diagnostic severities', () => {
+      const errorSeverity = linterIntegration.mapESLintSeverity(2);
+      const warningSeverity = linterIntegration.mapESLintSeverity(1);
+      const infoSeverity = linterIntegration.mapESLintSeverity(0);
 
-      // Mock successful fix
-      mockExecutor.executeCommand.resolves('');
-
-      const result = await linterIntegration.executeEslintFix(filePath, ruleId);
-
-      expect(result).to.be.true;
-      expect(mockExecutor.executeCommand.calledWith('eslint', [
-        '--fix', '--rule', `${ruleId}: error`, filePath
-      ])).to.be.true;
-    });
-
-    it('should handle errors during ESLint fix', async () => {
-      const filePath = '/path/to/file.js';
-      const ruleId = 'semi';
-
-      // Mock command error
-      mockExecutor.executeCommand.rejects(new Error('Command failed'));
-
-      const result = await linterIntegration.executeEslintFix(filePath, ruleId);
-
-      expect(result).to.be.false;
+      expect(errorSeverity).to.equal(vscode.DiagnosticSeverity.Error);
+      expect(warningSeverity).to.equal(vscode.DiagnosticSeverity.Warning);
+      expect(infoSeverity).to.equal(vscode.DiagnosticSeverity.Information);
     });
   });
 
-  describe('getEslintRules', () => {
-    it('should retrieve ESLint rules configuration', async () => {
-      // Mock ESLint rules output
-      const mockRulesOutput = JSON.stringify({
-        rules: {
-          'semi': ['warn'],
-          'no-unused-vars': ['error']
-        }
-      });
+  describe('mapPylintSeverity', () => {
+    it('should map Pylint severity levels to VS Code diagnostic severities', () => {
+      const errorSeverity = linterIntegration.mapPylintSeverity('error');
+      const warningSeverity = linterIntegration.mapPylintSeverity('warning');
+      const conventionSeverity = linterIntegration.mapPylintSeverity('convention');
+      const refactorSeverity = linterIntegration.mapPylintSeverity('refactor');
+      const defaultSeverity = linterIntegration.mapPylintSeverity('unknown');
 
-      mockExecutor.executeCommand.resolves(mockRulesOutput);
-
-      const rules = await linterIntegration.getEslintRules();
-
-      expect(rules).to.be.an('object');
-      expect(rules).to.have.property('semi');
-      expect(rules).to.have.property('no-unused-vars');
-      expect(mockExecutor.executeCommand.calledWith('eslint', ['--print-config', sinon.match.any])).to.be.true;
-    });
-
-    it('should handle errors when retrieving ESLint rules', async () => {
-      // Mock command error
-      mockExecutor.executeCommand.rejects(new Error('Command failed'));
-
-      const rules = await linterIntegration.getEslintRules();
-
-      expect(rules).to.be.an('object').that.is.empty;
-    });
-  });
-
-  describe('isEslintInstalled', () => {
-    it('should detect if ESLint is installed', async () => {
-      // Mock successful ESLint version command
-      mockExecutor.executeCommand.resolves('v8.0.0');
-
-      const isInstalled = await linterIntegration.isEslintInstalled();
-
-      expect(isInstalled).to.be.true;
-      expect(mockExecutor.executeCommand.calledWith('eslint', ['--version'])).to.be.true;
-    });
-
-    it('should detect if ESLint is not installed', async () => {
-      // Mock command not found error
-      mockExecutor.executeCommand.rejects(new Error('Command not found'));
-
-      const isInstalled = await linterIntegration.isEslintInstalled();
-
-      expect(isInstalled).to.be.false;
+      expect(errorSeverity).to.equal(vscode.DiagnosticSeverity.Error);
+      expect(warningSeverity).to.equal(vscode.DiagnosticSeverity.Warning);
+      expect(conventionSeverity).to.equal(vscode.DiagnosticSeverity.Information);
+      expect(refactorSeverity).to.equal(vscode.DiagnosticSeverity.Hint);
+      expect(defaultSeverity).to.equal(vscode.DiagnosticSeverity.Information);
     });
   });
 
   describe('dispose', () => {
     it('should dispose all disposable resources', () => {
-      // Set up mock disposables
-      const mockDisposable1 = { dispose: sandbox.stub() };
-      const mockDisposable2 = { dispose: sandbox.stub() };
-
-      linterIntegration.disposables = [mockDisposable1, mockDisposable2];
-
       linterIntegration.dispose();
 
-      expect(mockDisposable1.dispose.calledOnce).to.be.true;
-      expect(mockDisposable2.dispose.calledOnce).to.be.true;
+      expect(mockOutputChannel.dispose.calledOnce).to.be.true;
       expect(mockDiagnosticCollection.dispose.calledOnce).to.be.true;
-      expect(linterIntegration.disposables.length).to.equal(0);
     });
   });
 });

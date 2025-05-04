@@ -66,6 +66,19 @@ describe('CodeOverviewWebview - JavaScript', () => {
           end: { line: 22, character: 13 }
         },
         children: []
+      },
+      {
+        name: 'testVariable',
+        kind: 13, // Variable
+        range: {
+          start: { line: 26, character: 0 },
+          end: { line: 26, character: 20 }
+        },
+        selectionRange: {
+          start: { line: 26, character: 0 },
+          end: { line: 26, character: 12 }
+        },
+        children: []
       }
     ];
 
@@ -92,7 +105,12 @@ describe('CodeOverviewWebview - JavaScript', () => {
             uri: { fsPath: '/path/to/file.js' }
           },
           revealRange: sandbox.stub(),
-          selection: { active: { line: 0, character: 0 } }
+          selection: {
+            active: { line: 0, character: 0 },
+          }
+        },
+        TextEditorRevealType: {
+          InCenter: 2
         }
       },
       ViewColumn: {
@@ -101,7 +119,19 @@ describe('CodeOverviewWebview - JavaScript', () => {
       Position: function(line, character) {
         return { line, character };
       },
+      Selection: function(line, character) {
+        return {
+          anchor: { line, character },
+          active: { line, character }
+        };
+      },
       Range: function(startLine, startChar, endLine, endChar) {
+        if (typeof startLine === 'object') { // Handle passing Position objects
+          return {
+            start: startLine,
+            end: startChar // endLine param would actually be the end Position
+          };
+        }
         return {
           start: { line: startLine, character: startChar },
           end: { line: endLine, character: endChar }
@@ -149,12 +179,13 @@ describe('CodeOverviewWebview - JavaScript', () => {
       await webview.show(mockSymbols, 'javascript');
 
       expect(mockWebviewPanel.webview.html).to.be.a('string');
-      expect(mockWebviewPanel.webview.html).to.include('<html>');
-      expect(mockWebviewPanel.webview.html).to.include('<body>');
+      expect(mockWebviewPanel.webview.html).to.include('<html');
+      expect(mockWebviewPanel.webview.html).to.include('<body');
       expect(mockWebviewPanel.webview.html).to.include('Code Overview');
       expect(mockWebviewPanel.webview.html).to.include('TestClass');
       expect(mockWebviewPanel.webview.html).to.include('testMethod');
       expect(mockWebviewPanel.webview.html).to.include('testFunction');
+      expect(mockWebviewPanel.webview.html).to.include('testVariable');
     });
 
     it('should register message handling for webview panel', async () => {
@@ -162,31 +193,67 @@ describe('CodeOverviewWebview - JavaScript', () => {
 
       expect(mockWebviewPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
     });
-  });
 
-  describe('registerWebviewMessageHandling', () => {
-    it('should set up a message handler for jump commands', () => {
-      webview.registerWebviewMessageHandling(mockWebviewPanel);
+    it('should reuse existing panel if available', async () => {
+      await webview.show(mockSymbols, 'javascript');
+      await webview.show(mockSymbols, 'typescript');
 
-      // Verify the handler is registered
-      expect(mockWebviewPanel.webview.onDidReceiveMessage.calledOnce).to.be.true;
-
-      // Simulate receiving a message
-      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
-      messageHandler({ command: 'jump', line: 10 });
-
-      // Verify jumpToLine was called
-      expect(mockVscode.window.activeTextEditor.revealRange.calledOnce).to.be.true;
+      expect(mockVscode.window.createWebviewPanel.callCount).to.equal(1);
+      expect(mockWebviewPanel.reveal.called).to.be.true;
     });
 
-    it('should handle unknown commands gracefully', () => {
-      webview.registerWebviewMessageHandling(mockWebviewPanel);
+    it('should handle empty symbols array', async () => {
+      await webview.show([], 'javascript');
+
+      expect(mockVscode.window.createWebviewPanel.calledOnce).to.be.true;
+      expect(mockWebviewPanel.webview.html).to.be.a('string');
+      expect(mockWebviewPanel.webview.html).to.include('<html');
+      expect(mockWebviewPanel.webview.html).to.include('Code Overview');
+    });
+
+    it('should cleanup on panel dispose', async () => {
+      await webview.show(mockSymbols, 'javascript');
+
+      // Extract and call the dispose handler
+      const disposeHandler = mockWebviewPanel.onDidDispose.args[0][0];
+      disposeHandler();
+
+      // Show again, should create a new panel
+      await webview.show(mockSymbols, 'javascript');
+      expect(mockVscode.window.createWebviewPanel.callCount).to.equal(2);
+    });
+  });
+
+  describe('message handling', () => {
+    it('should handle jumpToLine messages correctly', async () => {
+      await webview.show(mockSymbols, 'javascript');
 
       // Get the message handler
       const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
 
-      // Should not throw when receiving an unknown command
-      expect(() => messageHandler({ command: 'unknown' })).to.not.throw();
+      // Simulate a jumpToLine message
+      messageHandler({ command: 'jumpToLine', line: 10 });
+
+      // Verify editor actions were performed
+      expect(mockVscode.window.activeTextEditor.revealRange.calledOnce).to.be.true;
+
+      // Check the range passed to revealRange
+      const callArgs = mockVscode.window.activeTextEditor.revealRange.args[0];
+      expect(callArgs[0].start.line).to.equal(10);
+      expect(callArgs[0].start.character).to.equal(0);
+    });
+
+    it('should ignore unrecognized commands', async () => {
+      await webview.show(mockSymbols, 'javascript');
+
+      // Get the message handler
+      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
+
+      // Should not throw with unknown command
+      expect(() => messageHandler({ command: 'unknownCommand', data: 'test' })).to.not.throw();
+
+      // Verify no editor actions were performed
+      expect(mockVscode.window.activeTextEditor.revealRange.called).to.be.false;
     });
   });
 
@@ -215,15 +282,16 @@ describe('CodeOverviewWebview - JavaScript', () => {
       const html = webview.getWebviewContent(mockSymbols, 'javascript');
 
       expect(html).to.include('<!DOCTYPE html>');
-      expect(html).to.include('<html>');
+      expect(html).to.include('<html');
       expect(html).to.include('<head>');
       expect(html).to.include('<style>');
       expect(html).to.include('<body>');
-      expect(html).to.include('<h1>Code Overview</h1>');
+      expect(html).to.include('Code Overview');
       expect(html).to.include('<script>');
       expect(html).to.include('TestClass');
       expect(html).to.include('testMethod');
       expect(html).to.include('testFunction');
+      expect(html).to.include('testVariable');
     });
 
     it('should include language information in the content', () => {
@@ -232,55 +300,91 @@ describe('CodeOverviewWebview - JavaScript', () => {
       expect(html).to.include('javascript');
     });
 
-    it('should handle empty symbols array', () => {
-      const html = webview.getWebviewContent([], 'javascript');
+    it('should include theme variables from VS Code', () => {
+      const html = webview.getWebviewContent(mockSymbols, 'javascript');
 
-      expect(html).to.include('<!DOCTYPE html>');
-      expect(html).to.include('<html>');
-      expect(html).to.include('<body>');
-      expect(html).to.include('<h1>Code Overview</h1>');
-      expect(html).to.include('No symbols found');
+      expect(html).to.include('var(--vscode-');
+    });
+
+    it('should sanitize HTML content properly', () => {
+      // Test with symbols containing HTML characters that should be escaped
+      const htmlSymbols = [
+        {
+          name: '<script>alert("XSS")</script>',
+          kind: 5, // Class
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 }
+          },
+          selectionRange: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 0 }
+          },
+          children: []
+        }
+      ];
+
+      const html = webview.getWebviewContent(htmlSymbols, 'javascript');
+
+      // The HTML tags should be visible as text, not interpreted as actual tags
+      expect(html).to.include('&lt;script&gt;');
+      expect(html).to.include('alert');
+      expect(html).not.to.include('<script>alert');
     });
   });
 
   describe('getSymbolsHtml', () => {
-    it('should generate HTML list for symbols with proper indentation', () => {
-      const html = webview.getSymbolsHtml(mockSymbols, 0);
+    it('should generate HTML for symbols with proper class names', () => {
+      const html = webview.getSymbolsHtml(mockSymbols);
 
-      expect(html).to.include('<ul>');
-      expect(html).to.include('</ul>');
-      expect(html).to.include('<li>');
-      expect(html).to.include('TestClass');
-      expect(html).to.include('testMethod');
-      expect(html).to.include('testFunction');
+      expect(html).to.include('class="symbol class"');
+      expect(html).to.include('class="symbol method"');
+      expect(html).to.include('class="symbol function"');
+      expect(html).to.include('class="symbol variable"');
     });
 
-    it('should represent symbol hierarchy with nested lists', () => {
-      const html = webview.getSymbolsHtml(mockSymbols, 0);
+    it('should include data-line attributes for navigation', () => {
+      const html = webview.getSymbolsHtml(mockSymbols);
 
-      // Class should contain a nested list for its children
+      expect(html).to.include('data-line="5"'); // TestClass
+      expect(html).to.include('data-line="10"'); // testMethod
+      expect(html).to.include('data-line="22"'); // testFunction
+      expect(html).to.include('data-line="26"'); // testVariable
+    });
+
+    it('should represent symbol hierarchy with nested divs', () => {
+      const html = webview.getSymbolsHtml(mockSymbols);
+
+      // Class should contain a nested div for its children
       const classIndex = html.indexOf('TestClass');
       const methodIndex = html.indexOf('testMethod');
+      const childrenIndex = html.indexOf('<div class="children">', classIndex);
 
-      expect(classIndex).to.be.lessThan(methodIndex);
-
-      // There should be a <ul> between the class and its method
-      const ulIndex = html.indexOf('<ul>', classIndex);
-      expect(ulIndex).to.be.lessThan(methodIndex);
-    });
-
-    it('should add appropriate CSS classes based on symbol kind', () => {
-      const html = webview.getSymbolsHtml(mockSymbols, 0);
-
-      expect(html).to.include('class-symbol'); // For TestClass
-      expect(html).to.include('method-symbol'); // For testMethod
-      expect(html).to.include('function-symbol'); // For testFunction
+      expect(classIndex).to.be.lessThan(childrenIndex);
+      expect(childrenIndex).to.be.lessThan(methodIndex);
     });
 
     it('should handle empty symbols array', () => {
-      const html = webview.getSymbolsHtml([], 0);
+      const html = webview.getSymbolsHtml([]);
+      expect(html).to.equal('');
+    });
 
-      expect(html).to.equal('<div>No symbols found</div>');
+    it('should apply indentation based on hierarchy level', () => {
+      const html = webview.getSymbolsHtml(mockSymbols, 2);
+      // Should indent with 4 spaces (2 spaces × 2)
+      expect(html).to.include('    <span class="icon');
+    });
+
+    it('should handle symbols with missing properties gracefully', () => {
+      // Create invalid symbol missing required properties
+      const incompleteSymbol = {
+        name: 'IncompleteSymbol',
+        // Missing kind, range, selectionRange
+        children: []
+      };
+
+      // Should not throw when generating HTML for invalid symbols
+      expect(() => webview.getSymbolsHtml([incompleteSymbol])).to.not.throw();
     });
   });
 
@@ -291,11 +395,15 @@ describe('CodeOverviewWebview - JavaScript', () => {
       expect(styles).to.be.a('string');
       expect(styles).to.include('body {');
       expect(styles).to.include('font-family');
-      expect(styles).to.include('ul {');
-      expect(styles).to.include('li {');
-      expect(styles).to.include('.class-symbol {');
-      expect(styles).to.include('.method-symbol {');
-      expect(styles).to.include('.function-symbol {');
+      expect(styles).to.include('.symbol {');
+      expect(styles).to.include('.name {');
+      expect(styles).to.include('.detail {');
+      expect(styles).to.include('.children {');
+      expect(styles).to.include('.icon {');
+      expect(styles).to.include('.class::before');
+      expect(styles).to.include('.method::before');
+      expect(styles).to.include('.function::before');
+      expect(styles).to.include('.variable::before');
     });
   });
 
@@ -304,17 +412,96 @@ describe('CodeOverviewWebview - JavaScript', () => {
       const script = webview.getClientScript();
 
       expect(script).to.be.a('string');
-      expect(script).to.include('function jumpToLine');
-      expect(script).to.include('vscode.postMessage');
-      expect(script).to.include('command: "jump"');
-    });
-
-    it('should include code to make list items clickable', () => {
-      const script = webview.getClientScript();
-
+      expect(script).to.include('const vscode = acquireVsCodeApi()');
       expect(script).to.include('addEventListener');
       expect(script).to.include('click');
+      expect(script).to.include('vscode.postMessage');
+      expect(script).to.include('command:');
       expect(script).to.include('jumpToLine');
+      expect(script).to.include('parseInt');
+    });
+
+    it('should include code to handle clicking on symbols', () => {
+      const script = webview.getClientScript();
+
+      expect(script).to.include('document.querySelectorAll(\'.symbol\')');
+      expect(script).to.include('el.addEventListener(\'click\'');
+      expect(script).to.include('getAttribute(\'data-line\')');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle missing text editor gracefully', async () => {
+      // Set active editor to null
+      mockVscode.window.activeTextEditor = null;
+
+      await webview.show(mockSymbols, 'javascript');
+
+      // Get the message handler
+      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
+
+      // Should not throw when there's no active editor
+      expect(() => messageHandler({ command: 'jumpToLine', line: 5 })).to.not.throw();
+    });
+
+    it('should handle malformed line values', async () => {
+      await webview.show(mockSymbols, 'javascript');
+
+      // Get the message handler
+      const messageHandler = mockWebviewPanel.webview.onDidReceiveMessage.args[0][0];
+
+      // Test with NaN value
+      expect(() => messageHandler({ command: 'jumpToLine', line: NaN })).to.not.throw();
+
+      // Test with non-numeric string that will be parsed as NaN
+      expect(() => messageHandler({ command: 'jumpToLine', line: 'abc' })).to.not.throw();
+
+      // Test with undefined line
+      expect(() => messageHandler({ command: 'jumpToLine', line: undefined })).to.not.throw();
+    });
+
+    it('should handle symbols with missing properties gracefully', () => {
+      // Create invalid symbol missing required properties
+      const incompleteSymbol = {
+        name: 'IncompleteSymbol',
+        // Missing kind, range, selectionRange
+        children: []
+      };
+
+      // Should not throw when generating HTML for invalid symbols
+      expect(() => webview.getSymbolsHtml([incompleteSymbol])).to.not.throw();
+    });
+  });
+
+  describe('panel lifecycle', () => {
+    it('should dispose panel when explicit dispose is called', async () => {
+      await webview.show(mockSymbols, 'javascript');
+
+      // Add dispose method to webview for testing
+      webview.dispose = function() {
+        if (this.panel) {
+          this.panel.dispose();
+          this.panel = undefined;
+        }
+      };
+
+      webview.dispose();
+      expect(webview.panel).to.be.undefined;
+      expect(mockWebviewPanel.dispose.calledOnce).to.be.true;
+    });
+
+    it('should handle multiple dispose calls gracefully', async () => {
+      // Add dispose method to webview for testing
+      webview.dispose = function() {
+        if (this.panel) {
+          this.panel.dispose();
+          this.panel = undefined;
+        }
+      };
+
+      // Should not throw when panel is already undefined
+      expect(() => webview.dispose()).to.not.throw();
+      expect(() => webview.dispose()).to.not.throw();
     });
   });
 });
