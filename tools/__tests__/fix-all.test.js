@@ -12,19 +12,21 @@ describe('fix-all script', () => {
   const originalConsoleLog = console.log;
   const originalConsoleError = console.error;
 
-  beforeEach(() => {
-    // Clear all mocks before each test
-    jest.clearAllMocks();
-
+  beforeAll(() => {
     // Mock console methods
     console.log = jest.fn();
     console.error = jest.fn();
   });
 
-  afterEach(() => {
+  afterAll(() => {
     // Restore original console methods
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
+  });
+
+  afterEach(() => {
+    // Clear all mocks after each test
+    jest.clearAllMocks();
   });
 
   test('should run all fix scripts in the correct order', () => {

@@ -1092,6 +1092,25 @@ For more detailed reports, check the coverage reports directory.
 
 ## Recent Improvements
 
+- Added comprehensive tests for `tools/fix-casing.js`
+  - Created self-contained test runner that directly evaluates the script
+  - Implemented tests for the script's basic functionality with all files
+  - Added tests for handling non-existent files
+  - Verified proper fallback to filesystem operations when git commands fail
+  - Tested error handling for filesystem operations
+  - Added test for path mismatch detection and skipping
+  - Created proper mocking of all external dependencies (fs, path, child_process)
+  - Ensured tests don't interfere with each other through proper cleanup
+  - Validated all console output messages for various scenarios
+- Added comprehensive tests for `tools/fix-all.js`
+  - Created tests to verify all fix scripts are called in the correct order
+  - Implemented test for sequential execution of all fixing utilities
+  - Added error handling test to verify proper process exit on failure
+  - Verified console output messages for each step
+  - Added mock for child_process.execSync to prevent actual script execution during tests
+  - Implemented proper test cleanup to restore console methods
+  - Created test isolation to ensure tests don't interfere with each other
+  - Ensured all edge cases are covered with comprehensive assertions
 - Added comprehensive tests for `src/codeTools/refactoringTools.js` and `src/codeTools/refactoringTools.ts`
   - Created tests for all key methods including initialize, simplifyCode, removeUnusedCode, and refactorWithLLM
   - Implemented tests for constructor behavior and proper service dependency setup
@@ -1105,7 +1124,6 @@ For more detailed reports, check the coverage reports directory.
   - Ensured both JavaScript and TypeScript implementations are covered
   - Added test coverage for private utility methods and error propagation
   - Created tests for various refactoring scenarios with and without active editor
-
 - Added comprehensive tests for `src/chat/enhancedChatProvider.js` and `src/chat/enhancedChatProvider.ts`
   - Created tests for all methods in the EnhancedChatProvider class
   - Implemented tests for initialization and dependency injection
