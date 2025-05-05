@@ -12,12 +12,16 @@ describe('Code Format Commands', () => {
     let mockContext: vscode.ExtensionContext;
     let mockCommandsRegister: sinon.SinonStub;
     let mockCodeFormatService: jest.Mocked<CodeFormatService>;
+    let mockDisposable: vscode.Disposable;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
 
+        // Create mock disposable
+        mockDisposable = { dispose: sandbox.stub() };
+
         // Create a mock for vscode.commands.registerCommand
-        mockCommandsRegister = sandbox.stub();
+        mockCommandsRegister = sandbox.stub().returns(mockDisposable);
         sandbox.stub(vscode.commands, 'registerCommand').value(mockCommandsRegister);
 
         // Create a mock for ExtensionContext
@@ -76,6 +80,14 @@ describe('Code Format Commands', () => {
             // Verify CodeFormatService constructor was called
             expect(CodeFormatService).toHaveBeenCalledTimes(1);
         });
+
+        it('should add command disposables to context subscriptions', () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Verify disposables were added to context.subscriptions
+            expect(mockContext.subscriptions).toContain(mockDisposable);
+            expect(mockContext.subscriptions.length).toBe(4);
+        });
     });
 
     describe('formatCode command', () => {
@@ -106,6 +118,20 @@ describe('Code Format Commands', () => {
             mockCodeFormatService.formatCode.mockResolvedValueOnce(false);
             const result2 = await formatCodeCallback();
             expect(result2).toBe(false);
+        });
+
+        it('should handle errors from CodeFormatService.formatCode', async () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Get the formatCode command callback
+            const formatCodeCallback = mockCommandsRegister.getCall(0).args[1];
+
+            // Setup error mock
+            const testError = new Error('Format code error');
+            mockCodeFormatService.formatCode.mockRejectedValueOnce(testError);
+
+            // Execute the command callback and check that error is propagated
+            await expect(formatCodeCallback()).rejects.toThrow('Format code error');
         });
     });
 
@@ -138,6 +164,20 @@ describe('Code Format Commands', () => {
             const result2 = await optimizeImportsCallback();
             expect(result2).toBe(false);
         });
+
+        it('should handle errors from CodeFormatService.optimizeImports', async () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Get the optimizeImports command callback
+            const optimizeImportsCallback = mockCommandsRegister.getCall(1).args[1];
+
+            // Setup error mock
+            const testError = new Error('Optimize imports error');
+            mockCodeFormatService.optimizeImports.mockRejectedValueOnce(testError);
+
+            // Execute the command callback and check that error is propagated
+            await expect(optimizeImportsCallback()).rejects.toThrow('Optimize imports error');
+        });
     });
 
     describe('applyCodeStyle command', () => {
@@ -169,6 +209,20 @@ describe('Code Format Commands', () => {
             const result2 = await applyCodeStyleCallback();
             expect(result2).toBe(false);
         });
+
+        it('should handle errors from CodeFormatService.applyCodeStyle', async () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Get the applyCodeStyle command callback
+            const applyCodeStyleCallback = mockCommandsRegister.getCall(2).args[1];
+
+            // Setup error mock
+            const testError = new Error('Apply code style error');
+            mockCodeFormatService.applyCodeStyle.mockRejectedValueOnce(testError);
+
+            // Execute the command callback and check that error is propagated
+            await expect(applyCodeStyleCallback()).rejects.toThrow('Apply code style error');
+        });
     });
 
     describe('optimizeCode command', () => {
@@ -199,6 +253,36 @@ describe('Code Format Commands', () => {
             mockCodeFormatService.optimizeCode.mockResolvedValueOnce(false);
             const result2 = await optimizeCodeCallback();
             expect(result2).toBe(false);
+        });
+
+        it('should handle errors from CodeFormatService.optimizeCode', async () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Get the optimizeCode command callback
+            const optimizeCodeCallback = mockCommandsRegister.getCall(3).args[1];
+
+            // Setup error mock
+            const testError = new Error('Optimize code error');
+            mockCodeFormatService.optimizeCode.mockRejectedValueOnce(testError);
+
+            // Execute the command callback and check that error is propagated
+            await expect(optimizeCodeCallback()).rejects.toThrow('Optimize code error');
+        });
+    });
+
+    describe('command disposal', () => {
+        it('should provide disposable objects that call dispose when invoked', () => {
+            registerCodeFormatCommands(mockContext);
+
+            // Check that the disposables were created and added to subscriptions
+            expect(mockContext.subscriptions.length).toBe(4);
+
+            // Simulate VS Code calling dispose() on the registered command
+            const disposable = mockContext.subscriptions[0];
+            if (disposable && typeof disposable.dispose === 'function') {
+                disposable.dispose();
+                expect(mockDisposable.dispose).toHaveBeenCalled();
+            }
         });
     });
 });

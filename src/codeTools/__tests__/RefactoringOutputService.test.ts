@@ -44,6 +44,19 @@ describe('RefactoringOutputService', () => {
         it('should create an output channel with the correct name', () => {
             expect(vscode.window.createOutputChannel).toHaveBeenCalledWith('Code Refactoring');
         });
+
+        it('should create only one output channel when multiple instances are created', () => {
+            // Create additional instances
+            const service2 = new RefactoringOutputService();
+            const service3 = new RefactoringOutputService();
+
+            // Verify createOutputChannel was called the correct number of times
+            // Once in beforeEach and once for each new instance
+            expect(vscode.window.createOutputChannel).toHaveBeenCalledTimes(3);
+            expect(vscode.window.createOutputChannel).toHaveBeenNthCalledWith(1, 'Code Refactoring');
+            expect(vscode.window.createOutputChannel).toHaveBeenNthCalledWith(2, 'Code Refactoring');
+            expect(vscode.window.createOutputChannel).toHaveBeenNthCalledWith(3, 'Code Refactoring');
+        });
     });
 
     describe('startOperation', () => {
@@ -72,6 +85,27 @@ describe('RefactoringOutputService', () => {
             // Restore original Date
             global.Date = originalDate;
         });
+
+        it('should handle empty message', () => {
+            service.startOperation('');
+
+            expect(mockOutputChannel.clear).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.show).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+                expect.stringMatching(/\[\d{1,2}\/\d{1,2}\/\d{4}.*\] /)
+            );
+        });
+
+        it('should handle very long messages', () => {
+            const longMessage = 'This is a very long message that exceeds the typical length of a log message. '.repeat(10);
+            service.startOperation(longMessage);
+
+            expect(mockOutputChannel.clear).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.show).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining(longMessage)
+            );
+        });
     });
 
     describe('logSuccess', () => {
@@ -81,6 +115,30 @@ describe('RefactoringOutputService', () => {
 
             // Verify message was appended with checkmark
             expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ Operation completed successfully');
+        });
+
+        it('should handle empty message', () => {
+            service.logSuccess('');
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ ');
+        });
+
+        it('should handle special characters in message', () => {
+            const messageWithSpecialChars = 'Operation completed with <special> "characters" & symbols!';
+            service.logSuccess(messageWithSpecialChars);
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(`✅ ${messageWithSpecialChars}`);
+        });
+
+        it('should handle multiple calls in sequence', () => {
+            service.logSuccess('First success');
+            service.logSuccess('Second success');
+            service.logSuccess('Third success');
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledTimes(3);
+            expect(mockOutputChannel.appendLine).toHaveBeenNthCalledWith(1, '✅ First success');
+            expect(mockOutputChannel.appendLine).toHaveBeenNthCalledWith(2, '✅ Second success');
+            expect(mockOutputChannel.appendLine).toHaveBeenNthCalledWith(3, '✅ Third success');
         });
     });
 
@@ -137,6 +195,119 @@ describe('RefactoringOutputService', () => {
             expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
                 expect.stringContaining('[object Object]')
             );
+        });
+
+        it('should handle null and undefined error objects', () => {
+            service.logError('Failed with null', null);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Failed with null');
+            // No additional lines should be appended since error is null
+
+            service.logError('Failed with undefined', undefined);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Failed with undefined');
+            // No additional lines should be appended since error is undefined
+        });
+
+        it('should handle numeric error values', () => {
+            service.logError('Numeric error', 404);
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Numeric error');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   404');
+        });
+
+        it('should handle deeply nested error objects', () => {
+            const complexError = {
+                code: 500,
+                details: {
+                    reason: 'Server error',
+                    context: {
+                        request: '/api/refactor',
+                        timestamp: '2025-05-04T12:00:00Z'
+                    }
+                }
+            };
+
+            service.logError('Complex error object', complexError);
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Complex error object');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(
+                expect.stringContaining('[object Object]')
+            );
+        });
+
+        it('should handle errors with custom properties', () => {
+            interface CustomError extends Error {
+                code: string;
+                details: string;
+            }
+
+            const customError = new Error('Custom error') as CustomError;
+            customError.code = 'INVALID_OPERATION';
+            customError.details = 'Additional error details';
+
+            service.logError('Error with custom properties', customError);
+
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Error with custom properties');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   Custom error');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('Error: Custom error'));
+        });
+    });
+
+    describe('integration tests', () => {
+        it('should properly chain multiple operation steps', () => {
+            // Start an operation
+            service.startOperation('Starting complex refactoring');
+
+            // Log a few success messages
+            service.logSuccess('Step 1 completed');
+            service.logSuccess('Step 2 completed');
+
+            // Log an error
+            service.logError('Step 3 failed', new Error('Unexpected token'));
+
+            // Continue with more success messages
+            service.logSuccess('Step 4 completed (recovery)');
+
+            // Verify the sequence of calls
+            expect(mockOutputChannel.clear).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.show).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('Starting complex refactoring'));
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ Step 1 completed');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ Step 2 completed');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Step 3 failed');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   Unexpected token');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ Step 4 completed (recovery)');
+        });
+
+        it('should handle operation lifecycle with various error types', () => {
+            // Start an operation
+            service.startOperation('Comprehensive refactoring operation');
+
+            // Log success messages
+            service.logSuccess('File analysis complete');
+
+            // Log different types of errors
+            service.logError('String error encountered', 'Invalid syntax');
+            service.logError('Number error encountered', 404);
+            service.logError('Error object encountered', new Error('Parse error'));
+            service.logError('Complex error encountered', { type: 'ValidationError', code: 1001 });
+
+            // Log final success
+            service.logSuccess('Operation completed with warnings');
+
+            // Verify all expected messages were logged
+            expect(mockOutputChannel.clear).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.show).toHaveBeenCalledTimes(1);
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('Comprehensive refactoring operation'));
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ File analysis complete');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ String error encountered');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   Invalid syntax');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Number error encountered');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   404');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Error object encountered');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('   Parse error');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('❌ Complex error encountered');
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith(expect.stringContaining('[object Object]'));
+            expect(mockOutputChannel.appendLine).toHaveBeenCalledWith('✅ Operation completed with warnings');
         });
     });
 });

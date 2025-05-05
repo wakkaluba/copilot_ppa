@@ -1,70 +1,80 @@
-// filepath: d:\___coding\tools\copilot_ppa\src\commands\__tests__\ExtensionCommandRegistrar.test.ts
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
+import { ExtensionManager } from '../../services/ExtensionManager';
 import { ExtensionCommandRegistrar } from '../ExtensionCommandRegistrar';
 
 describe('ExtensionCommandRegistrar', () => {
-    let registrar: ExtensionCommandRegistrar;
-    let managerMock: any;
-    let contextMock: any;
-    let commandsMock: any;
-    let windowMock: any;
-    let workspaceMock: any;
-    let extensionsMock: any;
+    let commandRegistrar: ExtensionCommandRegistrar;
+    let extensionManagerMock: sinon.SinonStubbedInstance<ExtensionManager>;
+    let mockContext: vscode.ExtensionContext;
     let sandbox: sinon.SinonSandbox;
+
+    // Mock extension list for testing
+    const mockExtensions = [
+        {
+            id: 'publisher1.extension1',
+            packageJSON: {
+                displayName: 'Extension 1'
+            }
+        },
+        {
+            id: 'publisher2.extension2',
+            packageJSON: {
+                displayName: 'Extension 2'
+            }
+        }
+    ];
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
 
-        // Mock the ExtensionManager
-        managerMock = {
-            requestAccess: sandbox.stub().resolves(),
-            getExtension: sandbox.stub().resolves({ id: 'test.extension' }),
-            updateConfiguration: sandbox.stub().resolves(),
-            getRecommendations: sandbox.stub().resolves([
-                { id: 'recommendation1', reason: 'Reason 1' },
-                { id: 'recommendation2', reason: 'Reason 2' }
-            ]),
-            installRecommendedExtension: sandbox.stub().resolves()
-        };
-
-        // Mock VS Code APIs
-        commandsMock = {
-            registerCommand: sandbox.stub().returns({ dispose: sandbox.stub() })
-        };
-
-        windowMock = {
-            showInputBox: sandbox.stub(),
-            showQuickPick: sandbox.stub(),
-            showErrorMessage: sandbox.stub()
-        };
-
-        workspaceMock = {
-            getConfiguration: sandbox.stub().returns({
-                get: sandbox.stub().returns('currentValue')
-            })
-        };
-
-        extensionsMock = {
-            all: [
-                { id: 'test.extension1', packageJSON: { displayName: 'Test Extension 1' } },
-                { id: 'test.extension2', packageJSON: { displayName: 'Test Extension 2' } }
-            ]
-        };
-
-        // Mock the VS Code namespace
-        sandbox.stub(vscode, 'commands').value(commandsMock);
-        sandbox.stub(vscode, 'window').value(windowMock);
-        sandbox.stub(vscode, 'workspace').value(workspaceMock);
-        sandbox.stub(vscode, 'extensions').value(extensionsMock);
-
-        // Mock the extension context
-        contextMock = {
-            subscriptions: []
-        };
+        // Mock ExtensionManager
+        extensionManagerMock = sandbox.createStubInstance(ExtensionManager);
 
         // Create the registrar with the mocked manager
-        registrar = new ExtensionCommandRegistrar(managerMock);
+        commandRegistrar = new ExtensionCommandRegistrar(extensionManagerMock as unknown as ExtensionManager);
+
+        // Mock extension context
+        mockContext = {
+            subscriptions: [],
+            // Add other required properties for the ExtensionContext interface
+            workspaceState: {} as any,
+            globalState: {} as any,
+            extensionUri: {} as any,
+            extensionPath: '',
+            asAbsolutePath: sandbox.stub(),
+            storagePath: '',
+            globalStoragePath: '',
+            logPath: '',
+            subscriptionPath: '',
+            extension: {} as any,
+            environmentVariableCollection: {} as any,
+            extensionMode: vscode.ExtensionMode.Development,
+            storageUri: null,
+            globalStorageUri: null,
+            logUri: null,
+            secrets: {} as any
+        };
+
+        // Stub vscode.commands.registerCommand
+        sandbox.stub(vscode.commands, 'registerCommand').callsFake((commandId, handler) => {
+            return { dispose: () => {} };
+        });
+
+        // Stub vscode.window methods
+        sandbox.stub(vscode.window, 'showInputBox');
+        sandbox.stub(vscode.window, 'showQuickPick');
+        sandbox.stub(vscode.window, 'showErrorMessage');
+
+        // Stub vscode.extensions
+        sandbox.stub(vscode.extensions, 'all').value(mockExtensions);
+
+        // Stub vscode.workspace
+        sandbox.stub(vscode.workspace, 'getConfiguration').returns({
+            get: sandbox.stub().returns({ someConfig: 'value' }),
+            update: sandbox.stub().resolves()
+        } as any);
     });
 
     afterEach(() => {
@@ -72,178 +82,516 @@ describe('ExtensionCommandRegistrar', () => {
     });
 
     describe('registerCommands', () => {
-        it('should register three commands with VS Code', () => {
-            registrar.registerCommands(contextMock);
+        it('should register the correct commands with the extension context', () => {
+            // Arrange
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            expect(commandsMock.registerCommand.calledThrice).toBe(true);
-            expect(commandsMock.registerCommand.getCall(0).args[0]).toBe('copilot-ppa.requestExtensionAccess');
-            expect(commandsMock.registerCommand.getCall(1).args[0]).toBe('copilot-ppa.configureExtension');
-            expect(commandsMock.registerCommand.getCall(2).args[0]).toBe('copilot-ppa.showRecommendedExtensions');
+            // Act
+            commandRegistrar.registerCommands(mockContext);
 
-            expect(contextMock.subscriptions.length).toBe(3);
+            // Assert
+            expect(registerCommandStub.calledThrice).to.be.true;
+            expect(registerCommandStub.getCall(0).args[0]).to.equal('copilot-ppa.requestExtensionAccess');
+            expect(registerCommandStub.getCall(1).args[0]).to.equal('copilot-ppa.configureExtension');
+            expect(registerCommandStub.getCall(2).args[0]).to.equal('copilot-ppa.showRecommendedExtensions');
+            expect(mockContext.subscriptions.length).to.equal(3);
+        });
+
+        it('should return disposables from registerCommand', () => {
+            // Arrange
+            const mockDisposable1 = { dispose: sandbox.stub() };
+            const mockDisposable2 = { dispose: sandbox.stub() };
+            const mockDisposable3 = { dispose: sandbox.stub() };
+
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+            registerCommandStub.onFirstCall().returns(mockDisposable1);
+            registerCommandStub.onSecondCall().returns(mockDisposable2);
+            registerCommandStub.onThirdCall().returns(mockDisposable3);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+
+            // Assert
+            expect(mockContext.subscriptions).to.include(mockDisposable1);
+            expect(mockContext.subscriptions).to.include(mockDisposable2);
+            expect(mockContext.subscriptions).to.include(mockDisposable3);
         });
     });
 
     describe('requestExtensionAccess command', () => {
-        it('should request access with provided extension ID', async () => {
-            windowMock.showInputBox.resolves('test.extension');
+        it('should prompt user for extension ID and request access when ID is provided', async () => {
+            // Arrange
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            showInputBoxStub.resolves('publisher.extension');
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const requestAccessCommand = commandsMock.registerCommand.getCall(0).args[1];
-            await requestAccessCommand();
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const requestAccessHandler = registerCommandStub.getCall(0).args[1];
+            await requestAccessHandler();
 
-            expect(windowMock.showInputBox.calledOnce).toBe(true);
-            expect(managerMock.requestAccess.calledOnceWith('test.extension')).toBe(true);
+            // Assert
+            expect(showInputBoxStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledWith('publisher.extension')).to.be.true;
         });
 
-        it('should not request access when input is canceled', async () => {
-            windowMock.showInputBox.resolves(undefined);
+        it('should not request access when user cancels the input', async () => {
+            // Arrange
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            showInputBoxStub.resolves(undefined);
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const requestAccessCommand = commandsMock.registerCommand.getCall(0).args[1];
-            await requestAccessCommand();
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const requestAccessHandler = registerCommandStub.getCall(0).args[1];
+            await requestAccessHandler();
 
-            expect(windowMock.showInputBox.calledOnce).toBe(true);
-            expect(managerMock.requestAccess.called).toBe(false);
+            // Assert
+            expect(showInputBoxStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.called).to.be.false;
+        });
+
+        it('should handle errors when requesting extension access', async () => {
+            // Arrange
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            showInputBoxStub.resolves('publisher.extension');
+            extensionManagerMock.requestAccess.rejects(new Error('Access denied'));
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const requestAccessHandler = registerCommandStub.getCall(0).args[1];
+            await requestAccessHandler();
+
+            // Assert
+            expect(showInputBoxStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledWith('publisher.extension')).to.be.true;
+            // Note: Error handling is not implemented in the class, so we don't expect showErrorMessage to be called
+            // This test indicates an area for improvement in the class implementation
+        });
+
+        it('should handle empty string input for extension ID', async () => {
+            // Arrange
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            showInputBoxStub.resolves('');
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const requestAccessHandler = registerCommandStub.getCall(0).args[1];
+            await requestAccessHandler();
+
+            // Assert
+            expect(showInputBoxStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledOnce).to.be.true;
+            expect(extensionManagerMock.requestAccess.calledWith('')).to.be.true;
+            // Note: This test indicates that empty strings are not filtered, an area for improvement
         });
     });
 
     describe('configureExtension command', () => {
-        it('should update configuration with valid JSON input', async () => {
-            const mockExtensionQuickPick = { label: 'Test Extension', description: 'test.extension' };
-            windowMock.showQuickPick.resolves(mockExtensionQuickPick);
-            windowMock.showInputBox.onFirstCall().resolves('section.path');
-            windowMock.showInputBox.onSecondCall().resolves('{"key": "value"}');
+        it('should show quick pick with extensions and configure the selected extension', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const configureCommand = commandsMock.registerCommand.getCall(1).args[1];
-            await configureCommand();
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            showInputBoxStub.onFirstCall().resolves('typescript.preferences');
+            showInputBoxStub.onSecondCall().resolves('{"tabSize": 4}');
 
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.getExtension.calledOnceWith('test.extension')).toBe(true);
-            expect(windowMock.showInputBox.calledTwice).toBe(true);
-            expect(managerMock.updateConfiguration.calledOnceWith(
-                'test.extension', 'section.path', { key: 'value' }
-            )).toBe(true);
+            extensionManagerMock.getExtension.resolves({ id: 'publisher1.extension1' } as any);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledWith('publisher1.extension1')).to.be.true;
+            expect(showInputBoxStub.calledTwice).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.calledOnce).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.calledWith(
+                'publisher1.extension1',
+                'typescript.preferences',
+                { tabSize: 4 }
+            )).to.be.true;
         });
 
-        it('should show error message with invalid JSON input', async () => {
-            const mockExtensionQuickPick = { label: 'Test Extension', description: 'test.extension' };
-            windowMock.showQuickPick.resolves(mockExtensionQuickPick);
-            windowMock.showInputBox.onFirstCall().resolves('section.path');
-            windowMock.showInputBox.onSecondCall().resolves('invalid json');
+        it('should not configure when user cancels extension selection', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            showQuickPickStub.resolves(undefined);
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const configureCommand = commandsMock.registerCommand.getCall(1).args[1];
-            await configureCommand();
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
 
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.getExtension.calledOnceWith('test.extension')).toBe(true);
-            expect(windowMock.showInputBox.calledTwice).toBe(true);
-            expect(windowMock.showErrorMessage.calledOnceWith('Invalid JSON value')).toBe(true);
-            expect(managerMock.updateConfiguration.called).toBe(false);
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.called).to.be.false;
+            expect(extensionManagerMock.updateConfiguration.called).to.be.false;
         });
 
-        it('should do nothing when extension selection is canceled', async () => {
-            windowMock.showQuickPick.resolves(undefined);
+        it('should not configure when extension not found', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const configureCommand = commandsMock.registerCommand.getCall(1).args[1];
-            await configureCommand();
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            extensionManagerMock.getExtension.resolves(undefined);
 
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.getExtension.called).toBe(false);
-            expect(windowMock.showInputBox.called).toBe(false);
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledOnce).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.called).to.be.false;
         });
 
-        it('should do nothing when section input is canceled', async () => {
-            const mockExtensionQuickPick = { label: 'Test Extension', description: 'test.extension' };
-            windowMock.showQuickPick.resolves(mockExtensionQuickPick);
-            windowMock.showInputBox.onFirstCall().resolves(undefined);
+        it('should not configure when user cancels section input', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const configureCommand = commandsMock.registerCommand.getCall(1).args[1];
-            await configureCommand();
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            showInputBoxStub.onFirstCall().resolves(undefined);
 
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.getExtension.calledOnce).toBe(true);
-            expect(windowMock.showInputBox.calledOnce).toBe(true);
-            expect(windowMock.showInputBox.secondCall).toBe(null);
+            extensionManagerMock.getExtension.resolves({ id: 'publisher1.extension1' } as any);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledOnce).to.be.true;
+            expect(showInputBoxStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.called).to.be.false;
         });
 
-        it('should do nothing when value input is canceled', async () => {
-            const mockExtensionQuickPick = { label: 'Test Extension', description: 'test.extension' };
-            windowMock.showQuickPick.resolves(mockExtensionQuickPick);
-            windowMock.showInputBox.onFirstCall().resolves('section.path');
-            windowMock.showInputBox.onSecondCall().resolves(undefined);
+        it('should not configure when user cancels value input', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            registrar.registerCommands(contextMock);
-            const configureCommand = commandsMock.registerCommand.getCall(1).args[1];
-            await configureCommand();
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            showInputBoxStub.onFirstCall().resolves('typescript.preferences');
+            showInputBoxStub.onSecondCall().resolves(undefined);
 
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.getExtension.calledOnce).toBe(true);
-            expect(windowMock.showInputBox.calledTwice).toBe(true);
-            expect(managerMock.updateConfiguration.called).toBe(false);
+            extensionManagerMock.getExtension.resolves({ id: 'publisher1.extension1' } as any);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledOnce).to.be.true;
+            expect(showInputBoxStub.calledTwice).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.called).to.be.false;
+        });
+
+        it('should handle invalid JSON value input', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            showInputBoxStub.onFirstCall().resolves('typescript.preferences');
+            showInputBoxStub.onSecondCall().resolves('invalid json');
+
+            extensionManagerMock.getExtension.resolves({ id: 'publisher1.extension1' } as any);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledOnce).to.be.true;
+            expect(showInputBoxStub.calledTwice).to.be.true;
+            expect(showErrorMessageStub.calledOnce).to.be.true;
+            expect(showErrorMessageStub.calledWith('Invalid JSON value')).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.called).to.be.false;
+        });
+
+        it('should handle extensions without displayName', async () => {
+            // Arrange
+            // Create a modified extensions list where one extension has no displayName
+            const noDisplayNameExtensions = [
+                {
+                    id: 'publisher1.extension1',
+                    packageJSON: {
+                        displayName: 'Extension 1'
+                    }
+                },
+                {
+                    id: 'publisher2.extension2',
+                    packageJSON: {} // No displayName
+                }
+            ];
+
+            (vscode.extensions.all as any) = noDisplayNameExtensions;
+
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+
+            // Verify the items passed to quickPick have the correct format
+            const quickPickItems = showQuickPickStub.firstCall.args[0];
+            const extension2Item = quickPickItems.find((item: any) => item.description === 'publisher2.extension2');
+            expect(extension2Item).to.exist;
+            expect(extension2Item.label).to.equal('publisher2.extension2'); // Falls back to id when no displayName
+        });
+
+        it('should handle configuration update errors', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showInputBoxStub = vscode.window.showInputBox as sinon.SinonStub;
+            const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            showQuickPickStub.resolves({ label: 'Extension 1', description: 'publisher1.extension1' });
+            showInputBoxStub.onFirstCall().resolves('typescript.preferences');
+            showInputBoxStub.onSecondCall().resolves('{"tabSize": 4}');
+
+            extensionManagerMock.getExtension.resolves({ id: 'publisher1.extension1' } as any);
+            extensionManagerMock.updateConfiguration.rejects(new Error('Configuration update failed'));
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const configureExtensionHandler = registerCommandStub.getCall(1).args[1];
+            await configureExtensionHandler();
+
+            // Assert
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.getExtension.calledOnce).to.be.true;
+            expect(showInputBoxStub.calledTwice).to.be.true;
+            expect(extensionManagerMock.updateConfiguration.calledOnce).to.be.true;
+            // Note: Error handling is not implemented in the class, so we don't expect showErrorMessage to be called
+            // This test indicates an area for improvement in the class implementation
         });
     });
 
     describe('showRecommendedExtensions command', () => {
-        it('should install selected recommended extensions', async () => {
-            const mockSelections = [
-                { label: 'recommendation1', description: 'Reason 1' }
+        it('should show quickpick with recommended extensions and install selected ones', async () => {
+            // Arrange
+            const mockRecommendations = [
+                { id: 'publisher1.extension1', reason: 'Improves workflow' },
+                { id: 'publisher2.extension2', reason: 'Enhances editing' }
             ];
-            windowMock.showQuickPick.resolves(mockSelections);
 
-            registrar.registerCommands(contextMock);
-            const recommendedCommand = commandsMock.registerCommand.getCall(2).args[1];
-            await recommendedCommand();
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            expect(managerMock.getRecommendations.calledOnce).toBe(true);
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.installRecommendedExtension.calledOnceWith('recommendation1')).toBe(true);
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+            showQuickPickStub.resolves([
+                { label: 'publisher1.extension1', description: 'Improves workflow' }
+            ]);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.calledOnce).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.calledWith('publisher1.extension1')).to.be.true;
         });
 
-        it('should install multiple selected recommended extensions', async () => {
-            const mockSelections = [
-                { label: 'recommendation1', description: 'Reason 1' },
-                { label: 'recommendation2', description: 'Reason 2' }
+        it('should handle multiple selected extensions', async () => {
+            // Arrange
+            const mockRecommendations = [
+                { id: 'publisher1.extension1', reason: 'Improves workflow' },
+                { id: 'publisher2.extension2', reason: 'Enhances editing' },
+                { id: 'publisher3.extension3', reason: 'Debugging tools' }
             ];
-            windowMock.showQuickPick.resolves(mockSelections);
 
-            registrar.registerCommands(contextMock);
-            const recommendedCommand = commandsMock.registerCommand.getCall(2).args[1];
-            await recommendedCommand();
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            expect(managerMock.getRecommendations.calledOnce).toBe(true);
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.installRecommendedExtension.calledTwice).toBe(true);
-            expect(managerMock.installRecommendedExtension.firstCall.args[0]).toBe('recommendation1');
-            expect(managerMock.installRecommendedExtension.secondCall.args[0]).toBe('recommendation2');
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+            showQuickPickStub.resolves([
+                { label: 'publisher1.extension1', description: 'Improves workflow' },
+                { label: 'publisher3.extension3', description: 'Debugging tools' }
+            ]);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.calledTwice).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.firstCall.args[0]).to.equal('publisher1.extension1');
+            expect(extensionManagerMock.installRecommendedExtension.secondCall.args[0]).to.equal('publisher3.extension3');
         });
 
-        it('should not install extensions when selection is canceled', async () => {
-            windowMock.showQuickPick.resolves(undefined);
+        it('should not install any extensions when user cancels', async () => {
+            // Arrange
+            const mockRecommendations = [
+                { id: 'publisher1.extension1', reason: 'Improves workflow' },
+                { id: 'publisher2.extension2', reason: 'Enhances editing' }
+            ];
 
-            registrar.registerCommands(contextMock);
-            const recommendedCommand = commandsMock.registerCommand.getCall(2).args[1];
-            await recommendedCommand();
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            expect(managerMock.getRecommendations.calledOnce).toBe(true);
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.installRecommendedExtension.called).toBe(false);
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+            showQuickPickStub.resolves(undefined);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.called).to.be.false;
         });
 
-        it('should not install extensions when empty selection', async () => {
-            windowMock.showQuickPick.resolves([]);
+        it('should handle empty recommendations list', async () => {
+            // Arrange
+            const mockRecommendations: any[] = [];
 
-            registrar.registerCommands(contextMock);
-            const recommendedCommand = commandsMock.registerCommand.getCall(2).args[1];
-            await recommendedCommand();
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
 
-            expect(managerMock.getRecommendations.calledOnce).toBe(true);
-            expect(windowMock.showQuickPick.calledOnce).toBe(true);
-            expect(managerMock.installRecommendedExtension.called).toBe(false);
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(showQuickPickStub.firstCall.args[0]).to.be.an('array').that.is.empty;
+            expect(extensionManagerMock.installRecommendedExtension.called).to.be.false;
+        });
+
+        it('should handle errors during extension installation', async () => {
+            // Arrange
+            const mockRecommendations = [
+                { id: 'publisher1.extension1', reason: 'Improves workflow' }
+            ];
+
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+            showQuickPickStub.resolves([
+                { label: 'publisher1.extension1', description: 'Improves workflow' }
+            ]);
+            extensionManagerMock.installRecommendedExtension.rejects(new Error('Installation failed'));
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+            expect(extensionManagerMock.installRecommendedExtension.calledOnce).to.be.true;
+            // Note: Error handling is not implemented in the class, so we don't expect showErrorMessage to be called
+            // This test indicates an area for improvement in the class implementation
+        });
+
+        it('should handle errors when fetching recommendations', async () => {
+            // Arrange
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const showErrorMessageStub = vscode.window.showErrorMessage as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            extensionManagerMock.getRecommendations.rejects(new Error('Failed to fetch recommendations'));
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            // Note: Error handling is not implemented in the class, so we don't expect showQuickPick or showErrorMessage to be called
+            // This test indicates an area for improvement in the class implementation
+        });
+
+        it('should correctly format recommendation items for the quick pick', async () => {
+            // Arrange
+            const mockRecommendations = [
+                { id: 'publisher1.extension1', reason: 'Improves workflow' },
+                { id: 'publisher2.extension2', reason: 'Enhances editing' }
+            ];
+
+            const showQuickPickStub = vscode.window.showQuickPick as sinon.SinonStub;
+            const registerCommandStub = vscode.commands.registerCommand as sinon.SinonStub;
+
+            extensionManagerMock.getRecommendations.resolves(mockRecommendations);
+            showQuickPickStub.resolves(undefined); // User cancels, but we still want to check the format
+
+            // Act
+            commandRegistrar.registerCommands(mockContext);
+            const showRecommendedExtensionsHandler = registerCommandStub.getCall(2).args[1];
+            await showRecommendedExtensionsHandler();
+
+            // Assert
+            expect(extensionManagerMock.getRecommendations.calledOnce).to.be.true;
+            expect(showQuickPickStub.calledOnce).to.be.true;
+
+            // Verify the items passed to quickPick have the correct format
+            const quickPickItems = showQuickPickStub.firstCall.args[0];
+            expect(quickPickItems).to.have.lengthOf(2);
+            expect(quickPickItems[0].label).to.equal('publisher1.extension1');
+            expect(quickPickItems[0].description).to.equal('Improves workflow');
+            expect(quickPickItems[1].label).to.equal('publisher2.extension2');
+            expect(quickPickItems[1].description).to.equal('Enhances editing');
+        });
+    });
+
+    describe('constructor', () => {
+        it('should properly initialize with ExtensionManager', () => {
+            // Arrange
+            const manager = new ExtensionManager({} as vscode.ExtensionContext);
+
+            // Act
+            const registrar = new ExtensionCommandRegistrar(manager);
+
+            // Assert - if injection fails, this would typically throw an error
+            // This is mostly a structural test to ensure constructor works
+            expect(registrar).to.be.instanceOf(ExtensionCommandRegistrar);
         });
     });
 });

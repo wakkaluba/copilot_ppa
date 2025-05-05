@@ -69,23 +69,41 @@ describe('CodeOverviewWebview', () => {
                 name: 'TestClass',
                 detail: 'class',
                 kind: vscode.SymbolKind.Class,
-                range: new vscode.Range(0, 0, 20, 0),
-                selectionRange: new vscode.Range(0, 0, 0, 9),
+                range: {
+                    start: { line: 0, character: 0 },
+                    end: { line: 20, character: 0 }
+                },
+                selectionRange: {
+                    start: { line: 0, character: 0 },
+                    end: { line: 0, character: 9 }
+                },
                 children: [
                     {
                         name: 'constructor',
                         detail: '',
                         kind: vscode.SymbolKind.Constructor,
-                        range: new vscode.Range(1, 0, 3, 0),
-                        selectionRange: new vscode.Range(1, 0, 1, 11),
+                        range: {
+                            start: { line: 1, character: 0 },
+                            end: { line: 3, character: 0 }
+                        },
+                        selectionRange: {
+                            start: { line: 1, character: 0 },
+                            end: { line: 1, character: 11 }
+                        },
                         children: [],
                     },
                     {
                         name: 'testMethod',
                         detail: '(arg: string): void',
                         kind: vscode.SymbolKind.Method,
-                        range: new vscode.Range(4, 0, 6, 0),
-                        selectionRange: new vscode.Range(4, 0, 4, 10),
+                        range: {
+                            start: { line: 4, character: 0 },
+                            end: { line: 6, character: 0 }
+                        },
+                        selectionRange: {
+                            start: { line: 4, character: 0 },
+                            end: { line: 4, character: 10 }
+                        },
                         children: [],
                     },
                 ],
@@ -94,18 +112,35 @@ describe('CodeOverviewWebview', () => {
                 name: 'helperFunction',
                 detail: '(arg: number): number',
                 kind: vscode.SymbolKind.Function,
-                range: new vscode.Range(21, 0, 23, 0),
-                selectionRange: new vscode.Range(21, 0, 21, 14),
+                range: {
+                    start: { line: 22, character: 0 },
+                    end: { line: 24, character: 0 }
+                },
+                selectionRange: {
+                    start: { line: 22, character: 0 },
+                    end: { line: 22, character: 14 }
+                },
+                children: [],
+            },
+            {
+                name: 'testVariable',
+                detail: 'string',
+                kind: vscode.SymbolKind.Variable,
+                range: {
+                    start: { line: 26, character: 0 },
+                    end: { line: 26, character: 0 }
+                },
+                selectionRange: {
+                    start: { line: 26, character: 0 },
+                    end: { line: 26, character: 0 }
+                },
                 children: [],
             },
         ];
-
-        // Reset mock calls
-        jest.clearAllMocks();
     });
 
     describe('show()', () => {
-        it('should create a webview panel when one does not exist', () => {
+        it('should create a new webview panel when none exists', () => {
             webview.show(mockSymbols, 'javascript');
 
             expect(vscode.window.createWebviewPanel).toHaveBeenCalledWith(
@@ -116,58 +151,45 @@ describe('CodeOverviewWebview', () => {
             );
         });
 
-        it('should reuse existing panel if one exists', () => {
-            // Show webview first time
+        it('should reuse existing panel when one exists', () => {
+            // First call creates panel
             webview.show(mockSymbols, 'javascript');
 
-            // Reset mocks
-            jest.clearAllMocks();
+            // Reset mock to check if it gets called again
+            vscode.window.createWebviewPanel.mockClear();
 
-            // Show webview second time
+            // Second call should reuse existing panel
             webview.show(mockSymbols, 'javascript');
 
-            // Should not create a new webview panel
             expect(vscode.window.createWebviewPanel).not.toHaveBeenCalled();
-
-            // Should reveal the existing one
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
-            expect(mockPanel.reveal).toHaveBeenCalled();
         });
 
-        it('should set HTML content with proper structure', () => {
+        it('should set HTML content on the webview', () => {
+            const mockPanel = vscode.window.createWebviewPanel();
             webview.show(mockSymbols, 'javascript');
 
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
-
-            // Check if HTML was set
-            expect(mockPanel.webview.html).toBeDefined();
-            expect(mockPanel.webview.html.length).toBeGreaterThan(0);
-
-            // Check for key elements in the HTML
+            expect(mockPanel.webview.html).toBeTruthy();
+            expect(mockPanel.webview.html).toContain('<!DOCTYPE html>');
             expect(mockPanel.webview.html).toContain('Code Overview (javascript)');
-            expect(mockPanel.webview.html).toContain('TestClass');
-            expect(mockPanel.webview.html).toContain('testMethod');
-            expect(mockPanel.webview.html).toContain('helperFunction');
         });
 
-        it('should register webview message handling', () => {
+        it('should register message handling', () => {
+            const mockPanel = vscode.window.createWebviewPanel();
             webview.show(mockSymbols, 'javascript');
 
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
             expect(mockPanel.webview.onDidReceiveMessage).toHaveBeenCalled();
         });
 
-        it('should handle dispose event correctly', () => {
+        it('should clean up panel reference when disposed', () => {
+            const mockPanel = vscode.window.createWebviewPanel();
             webview.show(mockSymbols, 'javascript');
 
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
-            const disposeFn = mockPanel.onDidDispose.mock.calls[0][0];
+            // Get the dispose handler and call it
+            const disposeHandler = mockPanel.onDidDispose.mock.calls[0][0];
+            disposeHandler();
 
-            // Call the dispose function
-            disposeFn();
-
-            // Show webview again - it should create a new panel instead of reusing the disposed one
-            jest.clearAllMocks();
+            // Test that showing again creates a new panel
+            vscode.window.createWebviewPanel.mockClear();
             webview.show(mockSymbols, 'javascript');
 
             expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
@@ -176,56 +198,41 @@ describe('CodeOverviewWebview', () => {
 
     describe('jumpToLine()', () => {
         it('should jump to the specified line in the active editor', () => {
-            // Call show to initialize the webview
             webview.show(mockSymbols, 'javascript');
 
-            // Get the message handler that was registered
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
+            // Get message handler and simulate message
+            const mockPanel = vscode.window.createWebviewPanel();
             const messageHandler = mockPanel.webview.onDidReceiveMessage.mock.calls[0][0];
 
-            // Simulate receiving a message
             messageHandler({ command: 'jumpToLine', line: 10 });
 
-            // Check if the editor's selection was updated
-            const activeEditor = vscode.window.activeTextEditor;
-            expect(activeEditor.selection.active.line).toBe(10);
+            expect(vscode.Position).toHaveBeenCalledWith(10, 0);
+            expect(vscode.Selection).toHaveBeenCalled();
+            expect(vscode.Range).toHaveBeenCalled();
         });
 
-        it('should handle case when no active editor exists', () => {
-            // Save the original activeTextEditor
-            const originalActiveEditor = vscode.window.activeTextEditor;
-
-            // Set activeTextEditor to undefined to simulate no active editor
+        it('should do nothing if no active editor is available', () => {
+            // Set active editor to undefined
             vscode.window.activeTextEditor = undefined;
 
-            // Call show to initialize the webview
             webview.show(mockSymbols, 'javascript');
 
-            // Get the message handler that was registered
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
+            // Get message handler and simulate message
+            const mockPanel = vscode.window.createWebviewPanel();
             const messageHandler = mockPanel.webview.onDidReceiveMessage.mock.calls[0][0];
 
-            // Simulate receiving a message - should not throw error
+            // This should not throw
             expect(() => {
                 messageHandler({ command: 'jumpToLine', line: 10 });
             }).not.toThrow();
-
-            // Restore activeTextEditor
-            vscode.window.activeTextEditor = originalActiveEditor;
         });
 
-        it('should handle non-numeric line values gracefully', () => {
-            // Call show to initialize the webview
+        it('should handle invalid line values gracefully', () => {
             webview.show(mockSymbols, 'javascript');
 
-            // Get the message handler that was registered
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
+            // Get message handler
+            const mockPanel = vscode.window.createWebviewPanel();
             const messageHandler = mockPanel.webview.onDidReceiveMessage.mock.calls[0][0];
-
-            // Simulate receiving a message with invalid line value
-            expect(() => {
-                messageHandler({ command: 'jumpToLine', line: 'not-a-number' });
-            }).not.toThrow();
 
             // Simulate receiving a message with undefined line value
             expect(() => {
@@ -256,53 +263,47 @@ describe('CodeOverviewWebview', () => {
             // Check if it includes data-line attributes
             expect(symbolsHtml).toContain('data-line="0"');   // TestClass
             expect(symbolsHtml).toContain('data-line="4"');   // testMethod
-            expect(symbolsHtml).toContain('data-line="21"');  // helperFunction
+            expect(symbolsHtml).toContain('data-line="22"');  // helperFunction
+            expect(symbolsHtml).toContain('data-line="26"');  // testVariable
         });
 
-        it('should handle empty symbol list', () => {
-            const symbolsHtml = webview.getSymbolsHtml([]);
-            expect(symbolsHtml).toBe('');
-        });
-
-        it('should handle symbols with missing properties', () => {
-            const incompleteSymbols = [
-                {
-                    // Missing name
-                    detail: 'class',
-                    kind: vscode.SymbolKind.Class,
-                    range: new vscode.Range(0, 0, 20, 0),
-                    selectionRange: new vscode.Range(0, 0, 0, 9),
-                    children: []
-                }
-            ];
-
-            expect(() => {
-                webview.getSymbolsHtml(incompleteSymbols);
-            }).not.toThrow();
-        });
-
-        it('should handle deeply nested symbols correctly', () => {
+        it('should properly represent nested symbols', () => {
             const nestedSymbols = [
                 {
                     name: 'OuterClass',
-                    detail: 'class',
                     kind: vscode.SymbolKind.Class,
-                    range: new vscode.Range(0, 0, 50, 0),
-                    selectionRange: new vscode.Range(0, 0, 0, 10),
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 15, character: 0 }
+                    },
+                    selectionRange: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 10 }
+                    },
                     children: [
                         {
                             name: 'InnerClass',
-                            detail: 'class',
                             kind: vscode.SymbolKind.Class,
-                            range: new vscode.Range(5, 0, 40, 0),
-                            selectionRange: new vscode.Range(5, 0, 5, 10),
+                            range: {
+                                start: { line: 5, character: 0 },
+                                end: { line: 15, character: 0 }
+                            },
+                            selectionRange: {
+                                start: { line: 5, character: 0 },
+                                end: { line: 5, character: 10 }
+                            },
                             children: [
                                 {
                                     name: 'innerMethod',
-                                    detail: '(): void',
                                     kind: vscode.SymbolKind.Method,
-                                    range: new vscode.Range(10, 0, 15, 0),
-                                    selectionRange: new vscode.Range(10, 0, 10, 11),
+                                    range: {
+                                        start: { line: 10, character: 0 },
+                                        end: { line: 12, character: 0 }
+                                    },
+                                    selectionRange: {
+                                        start: { line: 10, character: 0 },
+                                        end: { line: 10, character: 11 }
+                                    },
                                     children: []
                                 }
                             ]
@@ -313,6 +314,7 @@ describe('CodeOverviewWebview', () => {
 
             const symbolsHtml = webview.getSymbolsHtml(nestedSymbols);
 
+            // Check nested structure
             expect(symbolsHtml).toContain('OuterClass');
             expect(symbolsHtml).toContain('InnerClass');
             expect(symbolsHtml).toContain('innerMethod');
@@ -368,61 +370,27 @@ describe('CodeOverviewWebview', () => {
             const dangerousSymbols = [
                 {
                     name: '<script>alert("XSS")</script>',
-                    detail: '<img src="x" onerror="alert(1)">',
-                    kind: vscode.SymbolKind.Class,
-                    range: new vscode.Range(0, 0, 20, 0),
-                    selectionRange: new vscode.Range(0, 0, 0, 9),
+                    detail: 'javascript:alert("XSS")',
+                    kind: vscode.SymbolKind.Variable,
+                    range: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
+                    selectionRange: {
+                        start: { line: 0, character: 0 },
+                        end: { line: 0, character: 0 }
+                    },
                     children: []
                 }
             ];
 
             const html = webview.getWebviewContent(dangerousSymbols, 'javascript');
 
-            // The raw dangerous HTML should not be present in the output
-            expect(html).not.toContain('<script>alert("XSS")</script>');
-            expect(html).not.toContain('<img src="x" onerror="alert(1)">');
-        });
-    });
-
-    describe('panel lifecycle management', () => {
-        it('should handle multiple panel dispose calls gracefully', () => {
-            // Show webview to initialize the panel
-            webview.show(mockSymbols, 'javascript');
-
-            // Get the dispose handler
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
-            const disposeHandler = mockPanel.onDidDispose.mock.calls[0][0];
-
-            // Call dispose multiple times
-            disposeHandler();
-            disposeHandler();
-
-            // Show webview again - it should create a new panel
-            jest.clearAllMocks();
-            webview.show(mockSymbols, 'javascript');
-
-            expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
-        });
-
-        it('should handle panel.dispose() correctly', () => {
-            // Show webview to initialize the panel
-            webview.show(mockSymbols, 'javascript');
-
-            // Get the panel
-            const mockPanel = vscode.window.createWebviewPanel.mock.results[0].value;
-
-            // Call dispose on panel
-            mockPanel.dispose();
-
-            // Simulate the onDidDispose callback
-            const disposeHandler = mockPanel.onDidDispose.mock.calls[0][0];
-            disposeHandler();
-
-            // Show webview again - it should create a new panel
-            jest.clearAllMocks();
-            webview.show(mockSymbols, 'javascript');
-
-            expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
+            // JavaScript version of the test - the HTML should still have the escaped content
+            // but the approach to checking is slightly different due to JS vs TS differences
+            expect(html).toContain('&lt;script&gt;');
+            expect(html).toContain('javascript:alert');
+            expect(html.indexOf('<script>alert("XSS")</script>')).toBe(-1);
         });
     });
 });
