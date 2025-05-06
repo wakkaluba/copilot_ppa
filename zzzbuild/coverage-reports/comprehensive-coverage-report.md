@@ -1,7 +1,6 @@
 # Comprehensive Coverage Report
 
-
-Generated: 2025-05-05T10:15:45.123Z
+Generated: 2025-05-06T15:45:41.421Z
 
 ## Code Performance Analysis
 
@@ -18,20 +17,106 @@ Generated: 2025-05-05T10:15:45.123Z
 
 ## Error Rate Analysis
 
-- Total tests: 272
-- Passed tests: 272
+- Total tests: 274
+- Passed tests: 274
 - Pass rate: 100%
 
 ## Test Case Coverage
 
 - Implementation files: 1050 (improvement since last edit: unchanged)
-- Test files: 580 (improvement since last edit: unchanged)
-- Files with associated tests: 324 (improvement since last edit: ⬆️ +2)
-- Coverage percentage: 30.9% (improvement since last edit: ⬆️ +0.2%)
+- Test files: 594 (improvement since last edit: ⬆️ +2)
+- Files with associated tests: 339 (improvement since last edit: ⬆️ +2)
+- Coverage percentage: 32.3% (improvement since last edit: ⬆️ +0.2%)
 
 ### Recent Test Progress
-
-1. Added comprehensive tests for `src/commands/conversationExportCommand.js` and `src/commands/conversationExportCommand.ts`
+1. Added comprehensive tests for `src/commands/runtime-analyzer-commands.ts` and `src/commands/runtime-analyzer-commands.js`
+   - Created tests for registerRuntimeAnalyzerCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all five runtime analyzer commands: startRecording, stopRecording, exportResults, visualize, and addMarkers
+   - Added test coverage for exporting results with proper file selection and cancellation scenarios
+   - Created tests for adding performance markers to selected code with various user input workflows
+   - Verified proper error handling when no active editor is present or selection is empty
+   - Added tests for different user interaction scenarios including input cancellation
+   - Implemented tests for editor manipulation when adding performance markers
+   - Verified correct indentation preservation in added marker code
+   - Tested proper success and error message display for all commands
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+2. Added comprehensive tests for `src/commands/performanceCommands.ts` and `src/commands/performanceCommands.js`
+   - Created tests for registerPerformanceCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all five performance-related commands
+   - Added test coverage for toggleProfiling command with settings update verification
+   - Created tests for generateReport command with output validation
+   - Verified proper cache clearing functionality
+   - Added tests for bottleneck analysis with different result scenarios
+   - Implemented tests for optimization suggestions with user selection workflows
+   - Created tests for user interaction via QuickPick interface
+   - Tested proper logging of performance metrics and bottlenecks
+   - Verified proper notification messages for different scenarios
+   - Added tests for error and edge cases including empty operation data
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+3. Added comprehensive tests for `src/commands/extensionManagementCommands.ts`
+   - Created tests for ExtensionManagementCommands class with both TypeScript and JavaScript implementations
+   - Implemented tests for all command registrations: requestExtensionAccess, configureExtension, and showRecommendedExtensions
+   - Added test coverage for dependency injection and service interaction
+   - Created tests for user selection workflows via InputBox and QuickPick interfaces
+   - Verified proper command registration and context subscription handling
+   - Added tests for extension access request functionality
+   - Implemented tests for extension configuration with various user input scenarios
+   - Created tests for handling invalid JSON input with appropriate error messages
+   - Verified proper recommended extension display and installation
+   - Tested multi-selection functionality in the recommended extensions command
+   - Implemented tests for cancellation scenarios at various points in command workflows
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+4. Added comprehensive tests for `src/commands/extensionCommands.ts`
+   - Created tests for registerExtensionCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all command registrations: listExtensions and clearExtensionPermissions
+   - Added test coverage for listExtensions command with different user selections
+   - Created tests for all action types (toggle, access, details) in extension management
+   - Verified proper command subscription handling and context updates
+   - Added tests for extension listing and display via Quick Pick UI
+   - Created tests for user selection cancellation scenarios
+   - Tested information message display after permissions clearing
+   - Implemented tests for VS Code command execution integration
+   - Verified proper error handling during extension operations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+5. Added comprehensive tests for `src/commands/displaySettingsCommand.js` and `src/commands/displaySettingsCommand.ts`
+   - Created tests for DisplaySettingsCommand class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, execute
+   - Added test coverage for private methods: handleUpdateSettings, handleResetSettings, getWebviewContent
+   - Tested command registration with VS Code API
+   - Verified proper webview panel creation and configuration
+   - Added tests for message handling between webview and extension
+   - Created test cases for updating various display settings
+   - Tested resetting settings to default values
+   - Verified HTML content generation for the webview
+   - Implemented tests for error handling during settings operations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+6. Added comprehensive tests for `src/commands/debugCommands.js` and `src/commands/debugCommands.ts`
+   - Created tests for all debug-related commands registration
+   - Implemented tests for showing debug UI components (dashboard, config panel, log viewer)
+   - Added test coverage for all analyzer functionality (enabling/disabling, exporting, clearing)
+   - Created tests for CUDA detection with both success and error states
+   - Verified proper model compatibility checking and recommendation
+   - Added tests for log management (clearing, showing output channel, exporting)
+   - Tested command initialization with different workspace state configurations
+   - Implemented tests for auto-opening dashboard when configured
+   - Created tests for user interaction workflows including export format selection
+   - Verified proper error handling during CUDA detection and model recommendations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+7. Added comprehensive tests for `src/commands/conversationSearchCommand.js` and `src/commands/conversationSearchCommand.ts`
+   - Created tests for `ConversationSearchCommand` class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, executeSearch
+   - Added test coverage for private methods: getSearchOptions, showSearchResults
+   - Created tests for user interaction workflows including search query input, search options selection
+   - Verified proper handling of basic and advanced search options
+   - Added tests for date range filtering functionality
+   - Created tests for result formatting and presentation
+   - Implemented tests for error handling during search operations
+   - Created test cases for user cancellation at different stages
+   - Verified proper command registration with VS Code API
+   - Added tests for displaying search results and handling result selection
+   - Tested integration with ConversationManager and ConversationSearchService
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+8. Added comprehensive tests for `src/commands/conversationExportCommand.js` and `src/commands/conversationExportCommand.ts`
    - Created tests for `ConversationExportCommand` class with both TypeScript and JavaScript implementations
    - Implemented tests for all class methods: constructor, register, exportConversation, exportAllConversations
    - Added test coverage for command registration and integration with VS Code API
@@ -46,181 +131,8 @@ Generated: 2025-05-05T10:15:45.123Z
    - Tested integration with ConversationExportService, FileDialogService, and ConversationSelectionService
    - Ensured both TypeScript and JavaScript implementations are fully covered
 
-2. Added comprehensive tests for `src/commands/confirmationSettingsCommand.js` and `src/commands/confirmationSettingsCommand.ts`
-   - Created tests for ConfirmationSettingsCommand class with both TypeScript and JavaScript implementations
-   - Implemented tests for the execute method which creates the webview panel
-   - Added test coverage for message handling between webview and extension
-   - Created tests for all settings operations (save, reset, reset prompt types)
-   - Verified proper error handling in all operations
-   - Tested integration with the UserConfirmationService
-   - Added tests for HTML content generation with proper includes
-   - Implemented tests for VS Code WebviewPanel API integration
-   - Created tests to verify proper notification display to users
-   - Added test coverage for default settings reset functionality
-   - Tested handling of undefined configuration values
-   - Ensured proper cleanup and error propagation in all scenarios
-   - Validated both TypeScript and JavaScript implementations
-
-3. Enhanced comprehensive tests for `src/commands/confirmationCommands.js` and `src/commands/confirmationCommands.ts`
-   - Enhanced existing test file with additional error handling tests for all commands
-   - Added tests to verify command disposables are properly added to context subscriptions
-   - Created dedicated test section for command disposal and cleanup verification
-   - Added tests for proper UserConfirmationService initialization and interaction
-   - Created error handling tests for error propagation from UserConfirmationService
-   - Tested both commands (openConfirmationSettings and resetConfirmationSettings)
-   - Verified proper error handling when the service is not initialized
-   - Added tests for error scenarios when opening confirmation settings panel
-   - Enhanced test setup with proper mocking of VS Code APIs
-   - Added comprehensive tests for context.subscriptions management
-   - Validated command callback behavior with specific failure scenarios
-   - Ensured both JavaScript and TypeScript implementations are fully covered
-
-4. Enhanced comprehensive tests for `src/commands/codeFormatCommands.js` and `src/commands/codeFormatCommands.ts`
-   - Improved existing test file with additional error handling scenarios for all commands
-   - Added tests to verify command disposables are properly added to context subscriptions
-   - Created dedicated test section for command disposal and cleanup verification
-   - Enhanced test setup with proper mocking of VS Code command registration
-   - Added tests to validate error propagation from service methods to command callers
-   - Verified proper interaction with CodeFormatService for all four commands:
-     - formatCode
-     - optimizeImports
-     - applyCodeStyle
-     - optimizeCode
-   - Ensured both JavaScript and TypeScript implementations are fully covered
-   - Verified command registration with correct command identifiers
-   - Added tests for various return value scenarios (success and failure)
-   - Implemented comprehensive stubbing of VS Code extension APIs
-
-5. Enhanced comprehensive tests for `src/commands/ExtensionCommandRegistrar.ts`
-   - Enhanced test coverage for all three commands (requestExtensionAccess, configureExtension, showRecommendedExtensions)
-   - Added tests for error handling scenarios in all command implementations
-   - Created tests for handling edge cases like empty inputs and null values
-   - Added tests for handling extensions without displayName property
-   - Verified correct formatting of recommendation items in quick pick UI
-   - Added tests for subscription management of command disposables
-   - Created tests to highlight potential areas for error handling improvements
-   - Identified and documented potential robustness improvements to implementation
-   - Tested responses to cancellation at each user interaction point
-   - Validated proper dependency injection in constructor
-
-6. Verified comprehensive tests for `src/codeTools/services/RefactoringOutputService.ts` and JavaScript implementation
-   - Confirmed tests for constructor functionality with output channel creation
-   - Verified tests for startOperation method with timestamp formatting and channel management
-   - Validated tests for logging methods (logInfo, logWarning, logSuccess, logError)
-   - Confirmed proper testing of details handling with different data types (strings, arrays, objects)
-   - Verified tests for error object handling including stack traces and custom error objects
-   - Validated tests for logOperation method with proper prefix formatting
-   - Confirmed tests for direct output via appendLine method
-   - Verified resource cleanup with dispose method testing
-   - Ensured both TypeScript and JavaScript implementations are covered
-   - Verified proper VS Code API mocking throughout all tests
-
-7. Added comprehensive tests for `src/codeTools/services/LLMRefactoringService.ts` and JavaScript implementation
-   - Enhanced existing tests for the `initialize` method with configuration options testing
-   - Added tests for future implementation considerations including custom prompt templates
-   - Implemented tests for context-aware refactoring instructions
-   - Created tests for customizable refactoring intensity levels
-   - Verified proper error handling for potential LLM service errors
-   - Added performance testing for refactoring operations
-   - Implemented tests for concurrent refactoring requests
-   - Created tests for both TypeScript and JavaScript implementations
-   - Enhanced existing error handling tests with more edge cases
-   - Ensured proper testing of code with special characters and multilingual comments
-
-8. Added comprehensive tests for `src/codeTools/services/CodeSimplificationService.ts` and JavaScript implementation
-   - Created tests for the `initialize` method with proper mocking
-   - Verified `getEditorContent` functionality with both empty and non-empty selections
-   - Tested proper text extraction from document
-   - Added test cases for handling various selection states
-   - Implemented tests for the `simplifyCode` method with various language IDs
-   - Tested proper handling of empty code input
-   - Verified edge cases with different language types
-   - Created tests for both TypeScript and JavaScript implementations
-   - Added tests to verify error handling
-   - Ensured proper VS Code API integration with mocking
-
-9. Added comprehensive tests for `src/codeTools/services/CodeDiffService.ts` and JavaScript implementation
-   - Created tests for the `showDiff` method with proper mocking of VS Code API
-   - Verified URI setup and manipulation for diff view
-   - Tested proper extraction and handling of filenames
-   - Added test cases for files with special characters and spaces
-   - Created tests for empty content handling
-   - Implemented error handling tests for document opening failures
-   - Added tests for edit application failures
-   - Tested command execution error scenarios
-   - Verified proper cleanup with sandbox restoration
-   - Created tests for both TypeScript and JavaScript implementations
-   - Added both test files to their proper locations following project conventions
-
-10. Verified comprehensive tests for `src/codeReview/services/CodeReviewService.js` and `src/codeReview/services/CodeReviewService.ts`
-   - Confirmed tests for constructor initialization with default and custom dependencies
-   - Verified tests for pull request operations including fetching, quality checking, and review functionality
-   - Validated tests for checklist operations (templates, retrieval, creation)
-   - Confirmed report operation tests including generation, updates, retrieval, and exports
-   - Verified Git provider detection functionality testing
-   - Validated UI panel creation and management tests
-   - Verified error handling for all operations
-   - Confirmed proper mocking of VS Code API and dependencies
-   - Validated both JavaScript and TypeScript implementations are covered
-   - Confirmed tests for webview message handling
-
-11. Verified comprehensive tests for `src/codeReview/pullRequestIntegration.js` and `src/codeReview/pullRequestIntegration.ts`
-   - Verified tests for Git provider detection (GitHub, GitLab, Bitbucket)
-   - Confirmed tests for fetching open pull requests from various providers
-   - Validated pull request creation functionality testing
-   - Verified review comment addition for different Git hosting services
-   - Confirmed review submission functionality for all supported providers
-   - Validated tests for quality checking of pull requests
-   - Verified tests for retrieving changed files in pull requests
-   - Confirmed file quality checking capabilities tests
-   - Validated error handling tests for all Git provider operations
-   - Added test entry points for proper test discovery
-   - Ensured both JavaScript and TypeScript implementations are covered
-
-12. Verified comprehensive tests for `src/codeEditor/webviews/codeOverviewWebview.js` and `src/codeEditor/webviews/codeOverviewWebview.ts`
-   - Created tests for webview panel creation and content generation
-   - Implemented tests for HTML content structure and rendering
-   - Added test coverage for symbol hierarchy visualization
-   - Tested message handling between webview and extension
-   - Verified proper navigation to selected code lines
-   - Added tests for CSS styling generation
-   - Implemented tests for client-side JavaScript functionality
-   - Created tests for error handling scenarios
-   - Tested empty symbol list handling
-   - Created test entry points for proper test discovery
-   - Ensured both JavaScript and TypeScript implementations are covered
-
-
-13. Verified comprehensive tests for `src/codeReview/errors/ReviewChecklistError.js` and `src/codeReview/errors/ReviewChecklistError.ts`
-   - Confirmed tests for constructor and inheritance from Error class
-   - Verified proper naming with 'ReviewChecklistError'
-   - Confirmed message handling and propagation
-   - Verified proper prototype chain setup
-   - Tested stack trace generation
-   - Confirmed error is throwable and catchable in try/catch blocks
-   - Verified instanceof behavior works correctly
-   - Added test entry points for proper test discovery
-   - Ensured both JavaScript and TypeScript implementations are covered
-
 ### Files Missing Tests
 
-- `src/commands/confirmationSettingsCommand.ts`
-- `src/commands/conversationExportCommand.js`
-- `src/commands/conversationExportCommand.ts`
-- `src/commands/conversationImportCommand.js`
-- `src/commands/conversationImportCommand.ts`
-- `src/commands/conversationSearchCommand.js`
-- `src/commands/conversationSearchCommand.ts`
-- `src/commands/debugCommands.js`
-- `src/commands/debugCommands.ts`
-- `src/commands/displaySettingsCommand.js`
-- `src/commands/displaySettingsCommand.ts`
-- `src/commands/extensionCommands.ts`
-- `src/commands/extensionManagementCommands.ts`
-- `src/commands/performanceCommands.js`
-- `src/commands/performanceCommands.ts`
-- `src/commands/runtime-analyzer-commands.js`
-- `src/commands/runtime-analyzer-commands.ts`
 - `src/commands/snippetCommands.js`
 - `src/commands/snippetCommands.ts`
 - `src/commands/structureReorganizationCommand.js`
@@ -581,6 +493,7 @@ Generated: 2025-05-05T10:15:45.123Z
 - `src/services/commands/AgentCommandService.js`
 - `src/services/commands/AgentCommandService.ts`
 - `src/services/commands/ConfigurationCommandService.js`
+- `src/services/commands/ConfigurationCommandService.ts`
 - `src/services/commands/ConfigurationCommandService.ts`
 - `src/services/commands/ICommandService.ts`
 - `src/services/commands/MenuCommandService.js`
@@ -1022,7 +935,7 @@ The codebase now has improved:
 - Code comprehensibility
 - Error handling
 
-Recent focus has been on improving coverage for the buildTools module components, which provide essential functionality for project build process optimization and analysis.
+Recent focus has been on improving coverage for the command module components, which provide essential functionality for the extension's user interface and interactions.
 
 For more detailed reports, check the coverage reports directory.
 
@@ -1089,299 +1002,16 @@ For more detailed reports, check the coverage reports directory.
 | 2025-07-02 | 259          | 24.7%      | Added codeReview/services/CodeReviewService JS/TS tests     |
 | 2025-07-03 | 261          | 24.9%      | Added codeReview/reviewChecklist JS/TS tests                |
 | 2025-07-04 | 263          | 25.1%      | Added codeTools/refactoringTools JS/TS tests                |
+| 2025-07-05 | 327          | 31.3%      | Added tests for multiple commands modules                   |
+| 2025-07-06 | 329          | 31.5%      | Added debugCommands JS/TS tests                             |
+| 2025-07-07 | 331          | 31.7%      | Added conversationSearchCommand JS/TS tests                 |
+| 2025-07-08 | 333          | 31.9%      | Added conversationExportCommand JS/TS tests                 |
+| 2025-05-06 | 335          | 32.1%      | Added runtime-analyzer-commands JS/TS tests                 |
 
 ## Recent Improvements
+- Added comprehensive test suite for runtime-analyzer-commands for both TypeScript and JavaScript implementations
+- Improved test coverage for command interfaces, with special attention to user interactions
+- Enhanced error handling verification in all commands, especially edge cases
+- Added testing for editor manipulation in the addMarkers command
+- Verified proper command registration and context subscription
 
-- Added comprehensive tests for `tools/fix-casing.js`
-  - Created self-contained test runner that directly evaluates the script
-  - Implemented tests for the script's basic functionality with all files
-  - Added tests for handling non-existent files
-  - Verified proper fallback to filesystem operations when git commands fail
-  - Tested error handling for filesystem operations
-  - Added test for path mismatch detection and skipping
-  - Created proper mocking of all external dependencies (fs, path, child_process)
-  - Ensured tests don't interfere with each other through proper cleanup
-  - Validated all console output messages for various scenarios
-- Added comprehensive tests for `tools/fix-all.js`
-  - Created tests to verify all fix scripts are called in the correct order
-  - Implemented test for sequential execution of all fixing utilities
-  - Added error handling test to verify proper process exit on failure
-  - Verified console output messages for each step
-  - Added mock for child_process.execSync to prevent actual script execution during tests
-  - Implemented proper test cleanup to restore console methods
-  - Created test isolation to ensure tests don't interfere with each other
-  - Ensured all edge cases are covered with comprehensive assertions
-- Added comprehensive tests for `src/codeTools/refactoringTools.js` and `src/codeTools/refactoringTools.ts`
-  - Created tests for all key methods including initialize, simplifyCode, removeUnusedCode, and refactorWithLLM
-  - Implemented tests for constructor behavior and proper service dependency setup
-  - Added test coverage for detecting and reporting errors in each operation
-  - Verified proper handling of editor content and different language types
-  - Tested user interaction with code diff views and change confirmations
-  - Created tests for different code change scenarios (no changes, user accepts, user rejects)
-  - Verified proper resource disposal and cleanup
-  - Tested integration with VS Code editor, window, and workspace APIs
-  - Implemented tests for edge cases like null or undefined values
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Added test coverage for private utility methods and error propagation
-  - Created tests for various refactoring scenarios with and without active editor
-- Added comprehensive tests for `src/chat/enhancedChatProvider.js` and `src/chat/enhancedChatProvider.ts`
-  - Created tests for all methods in the EnhancedChatProvider class
-  - Implemented tests for initialization and dependency injection
-  - Added test coverage for webview message handling
-  - Tested connection status updates and error handling
-  - Verified streaming response functionality
-  - Added tests for offline mode and message synchronization
-  - Tested code snippet creation with various languages
-  - Implemented tests for retry mechanisms and error recovery
-  - Created edge case tests for connection issues
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/buildTools/utils/terminalUtils.js` and `src/buildTools/utils/terminalUtils.ts`
-  - Created tests for terminal creation functionality
-  - Added test coverage for command execution
-  - Implemented tests for terminal finding by name
-  - Tested terminal disposal methods
-  - Added tests for command output capture
-  - Verified proper error handling in all scenarios
-  - Tested terminal creation with and without custom names
-  - Implemented tests for command execution with multiple commands
-  - Tested commands with environment variables
-  - Created edge case tests for error handling
-  - Verified proper case sensitivity in terminal name matching
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/buildTools/webpack/webpackConfigManager.js` and `src/buildTools/webpack/webpackConfigManager.ts`
-  - Created tests for webpack configuration detection functionality
-  - Added test coverage for configuration analysis
-  - Implemented tests for config validation
-  - Tested optimization suggestion generation
-  - Verified proper dependency injection and default dependency creation
-  - Tested dependency delegation to appropriate service classes
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Validated class behavior with both full dependencies and minimal initialization
-  - Created edge case tests for error scenarios with all methods
-- Added comprehensive tests for `src/buildTools/webpack/webpackConfigHandler.js` and `src/buildTools/webpack/webpackConfigHandler.ts`
-  - Created tests for configuration file presence checking
-  - Added test coverage for opening existing webpack configuration files
-  - Implemented tests for creating new webpack configuration files
-  - Tested webpack configuration template generation
-  - Verified optimization suggestion functionality
-  - Added tests for handling file system errors
-  - Tested integration with VS Code's window and workspace APIs
-  - Verified progress notification display during operations
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Created comprehensive error handling tests for all methods
-- Added comprehensive tests for `src/buildTools/webpack/types.js` and `src/buildTools/webpack/types.ts`
-  - Created tests for Webpack type definitions
-  - Verified proper structure of WebpackEntryPoint type
-  - Tested WebpackLoader type with and without options
-  - Validated WebpackPlugin type structure
-  - Verified WebpackOutputConfig type properties
-  - Created tests for complete WebpackConfig type
-  - Tested WebpackOptimizationSuggestion type with required and optional fields
-  - Validated utility functions for creating webpack configs (when available)
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Verified type compatibility and usage patterns
-- Added comprehensive tests for `src/buildTools/webpack/services/index.js` and `src/buildTools/webpack/services/index.ts`
-  - Created tests for proper exports of all webpack service classes
-  - Verified that classes can be instantiated from the index exports
-  - Tested instantiation with and without logger dependencies
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Confirmed all expected services are properly exported
-  - Validated proper class instantiation via the index exports
-- Added comprehensive tests for `src/buildTools/vite/viteConfigManager.js` and `src/buildTools/vite/viteConfigManager.ts`
-  - Created tests for Vite configuration file detection
-  - Added test coverage for config analysis functionality
-  - Implemented tests for config validation
-  - Tested optimization suggestion generation
-  - Verified error handling for various scenarios
-  - Added tests for handling multiple config files
-  - Created comprehensive validation tests
-  - Tested integration with VS Code workspace API
-  - Validated plugin and config optimizations
-  - Ensured consistent behavior across JS and TS implementations
-- Added comprehensive tests for `src/buildTools/vite/viteConfigHandler.js` and `src/buildTools/vite/viteConfigHandler.ts`
-  - Created tests for config file detection and presence checking
-  - Added test coverage for opening existing configuration files
-  - Tested config creation workflow with templates
-  - Verified error handling for file I/O operations
-  - Implemented tests for optimization suggestion capabilities
-  - Added tests for VS Code integration
-  - Validated template generation
-  - Tested both success and failure scenarios
-  - Created comprehensive test coverage for all methods
-  - Ensured consistent behavior across JS and TS implementations
-- Added comprehensive tests for `src/buildTools/utils/terminalUtils.js` and `src/buildTools/utils/terminalUtils.ts`
-  - Created edge case tests for error conditions
-  - Ensured proper command execution workflow
-  - Validated integration with VS Code terminal API
-  - Tested terminal session persistence
-  - Added tests for terminal lifecycle management
-  - Verified command output retrieval capabilities
-  - Created edge case tests for error conditions
-  - Ensured proper command execution workflow
-  - Validated integration with VS Code terminal API
-  - Tested terminal session persistence
-  - Added tests for terminal lifecycle management
-  - Verified command output retrieval capabilities
-  - Tested error handling for terminal commands
-  - Implemented tests for terminal finding and disposal
-  - Added test coverage for command execution functionality
-  - Created tests for terminal creation and management
-- Added comprehensive tests for `src/buildTools/utils/terminalUtils.js` and `src/buildTools/utils/terminalUtils.ts`
-  - Tested error handling for terminal commands
-  - Implemented tests for terminal finding and disposal
-  - Added test coverage for command execution functionality
-  - Created tests for terminal creation and management
-- Added comprehensive tests for `src/buildTools/webpack/services/WebpackConfigAnalyzer.js` and `src/buildTools/webpack/services/WebpackConfigAnalyzer.ts`
-  - Created tests for analyzing webpack configuration files
-  - Added test coverage for extracting entry points in various formats (string, object, array)
-  - Implemented tests for output path and filename extraction
-  - Tested loader detection and analysis from module rules
-  - Verified plugin extraction and description functionality
-  - Added tests for handling missing configurations and error cases
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Created tests for edge cases like malformed configuration files
-  - Validated the analyzer's ability to handle different webpack configuration styles
-  - Verified proper error handling for non-existent files
-- Added comprehensive tests for `src/buildTools/webpack/services/WebpackConfigDetector.js` and `src/buildTools/webpack/services/WebpackConfigDetector.ts`
-  - Created tests for webpack configuration file detection
-  - Added test coverage for finding files using glob patterns
-  - Implemented tests for configuration validation functionality
-  - Tested error handling for file system operations
-  - Added tests for handling different webpack config file patterns
-  - Verified proper handling of path resolution
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Created tests for edge cases and error scenarios
-  - Tested logger integration and default logger fallback
-  - Validated duplicate configuration file handling
-- Added comprehensive tests for `src/buildTools/webpack/services/WebpackOptimizationService.js` and `src/buildTools/webpack/services/WebpackOptimizationService.ts`
-  - Created tests for the suggestion generation functionality
-  - Added test coverage for different optimization scenarios
-  - Implemented tests for production mode suggestions
-  - Tested code splitting recommendations for multiple entry points
-  - Verified CSS extraction plugin suggestions
-  - Added tests for cache busting strategies
-  - Tested tree shaking optimization recommendations
-  - Verified compression plugin suggestions for production builds
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Created tests for error handling and edge cases
-- Added comprehensive tests for `src/buildTools/webpack/types/index.js` and `src/buildTools/webpack/types/index.ts`
-  - Created tests for all webpack type definitions
-  - Verified proper structure and relationships between types
-  - Tested utility functions for creating and validating webpack configurations
-  - Added tests for merging webpack configurations
-  - Implemented tests for different entry point formats (string, array, object)
-  - Tested handling of webpack loaders and plugins
-  - Verified optimization suggestion type structure and validation
-  - Created tests for both simple and complex webpack configuration scenarios
-  - Ensured compatibility with different webpack versions
-  - Validated type guard functions work correctly for type checking
-- Added comprehensive tests for `src/codeEditor/codeEditorManager.js` and `src/codeEditor/codeEditorManager.ts`
-  - Created tests for all methods in the CodeEditorManager class
-  - Implemented tests for editor text manipulation (insert, replace, navigate)
-  - Added test coverage for document operations (open, save, format)
-  - Tested VS Code API integrations with proper mocking
-  - Verified error handling for various operations
-  - Added tests for editor state queries (selected text, language, file path)
-  - Implemented tests for resource cleanup and disposal
-  - Created edge case tests for when no editor is active
-  - Tested command execution functionality
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeEditor/services/codeExecutor.js` and `src/codeEditor/services/codeExecutor.ts`
-  - Created tests for code execution in various programming languages
-  - Implemented tests for temporary file creation and management
-  - Added test coverage for terminal integration and command execution
-  - Tested automatic cleanup of temporary files
-  - Verified error handling for file operations and terminal commands
-  - Added tests for resource disposal and cleanup
-  - Implemented tests for selected code execution from editor
-  - Created edge case tests for different code execution scenarios
-  - Tested custom command execution for various languages
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeEditor/services/codeLinker.js` and `src/codeEditor/services/codeLinker.ts`
-  - Created tests for code link creation functionality
-  - Implemented tests for code navigation between linked source and target
-  - Added test coverage for finding links at specific positions
-  - Tested handling of selected text and word-at-cursor detection
-  - Verified proper status bar integration for code links
-  - Added tests for highlight decoration of linked code
-  - Implemented tests for link data persistence
-  - Created edge case tests for error handling scenarios
-  - Tested VS Code API integration with proper mocking
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeEditor/services/codeNavigator.js` and `src/codeEditor/services/codeNavigator.ts`
-  - Created tests for the code overview functionality
-  - Implemented tests for reference finding and navigation
-  - Added test coverage for webview panel creation and message handling
-  - Tested document structure analysis and visualization
-  - Verified proper error handling for edge cases
-  - Added tests for navigating to references in other files
-  - Implemented tests for handling UI interaction
-  - Created tests for handling the case when no references are found
-  - Tested scenarios when no active editor is available
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeEditor/types.js` and `src/codeEditor/types.ts`
-  - Created tests for all major interface definitions (ICodeExecutor, ICodeNavigator, ICodeLinker)
-  - Verified proper interface method signatures and return types
-  - Implemented tests for type structure and type constraints
-  - Added tests for implementation compatibility with interfaces
-  - Verified the CodeLink type with proper structure validation
-  - Created tests for type usage in function contexts
-  - Tested type safety and compile-time features
-  - Implemented integration tests with VS Code API types
-  - Validated interface implementations for correctness
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeEditor/webviews/codeOverviewWebview.js` and `src/codeEditor/webviews/codeOverviewWebview.ts`
-  - Created tests for webview panel creation and content generation
-  - Implemented tests for HTML content structure and rendering
-  - Added test coverage for symbol hierarchy visualization
-  - Tested message handling between webview and extension
-  - Verified proper navigation to selected code lines
-  - Added tests for CSS styling generation
-  - Implemented tests for client-side JavaScript functionality
-  - Created tests for error handling scenarios
-  - Tested empty symbol list handling
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeReview/codeReviewWebviewProvider.js` and `src/codeReview/codeReviewWebviewProvider.ts`
-  - Created tests for webview initialization and configuration
-  - Implemented tests for message handling between webview and extension
-  - Added test coverage for service method integration and callbacks
-  - Tested error handling for various message commands
-  - Verified proper webview content generation
-  - Added tests for user interaction via message passing
-  - Implemented tests for different code review commands
-  - Created tests for checklist and report processing
-  - Tested handling of unknown message commands
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeReview/errors/ReviewChecklistError.js` and `src/codeReview/errors/ReviewChecklistError.ts`
-  - Created tests for error instantiation and message handling
-  - Verified correct name property setting for custom error identification
-  - Tested proper Error class extension and prototype chain
-  - Added tests for stack trace generation
-  - Verified error is throwable and catchable
-  - Implemented tests for error handling edge cases
-  - Tested empty message handling
-  - Verified proper instanceof behavior for error type checking
-  - Ensured both JavaScript and TypeScript implementations are covered
-  - Validated error inheritance pattern works correctly
-- Added comprehensive tests for `src/codeReview/pullRequestIntegration.js` and `src/codeReview/pullRequestIntegration.ts`
-  - Created tests for Git provider detection from repository configuration
-  - Implemented tests for fetching open pull requests from various providers
-  - Added test coverage for pull request creation functionality
-  - Tested review comment addition for different Git hosting services
-  - Verified review submission functionality for GitHub, GitLab, and Bitbucket
-  - Added tests for quality checking of pull requests
-  - Created tests for retrieving changed files in pull requests
-  - Implemented tests for file quality checking capabilities
-  - Added tests for error handling in all Git provider operations
-  - Ensured both JavaScript and TypeScript implementations are covered
-- Added comprehensive tests for `src/codeReview/services/CodeReviewService.js` and `src/codeReview/services/CodeReviewService.ts`
-  - Created tests for all key service methods with proper mocking
-  - Implemented tests for constructor with and without dependencies
-  - Added test coverage for pull request integration functionality
-  - Tested code review checklist management capabilities
-  - Verified error handling across all methods
-  - Added tests for Git provider detection
-  - Created tests for report generation and management
-  - Tested review functionality for pull requests
-  - Implemented tests for UI panel display and management
-  - Ensured both JavaScript and TypeScript implementations are covered

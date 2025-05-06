@@ -1,5 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+
+// Import Jest functions
+const { beforeEach, afterAll, jest } = require('@jest/globals');
+
 // Mock VS Code's Event and EventEmitter
 var MockEventEmitter = /** @class */ (function () {
     function MockEventEmitter() {

@@ -91,7 +91,7 @@ runTest(1, "Check that the script renames files with proper casing", () => {
     if (path.includes('fix-file-casing.js')) {
       return originalFsReadFileSync(path, encoding);
     }
-    return 'import Logger from "../utils/Logger";\nimport ConversationManager from "./ConversationManager";';
+    return 'import Logger from '../utils/logger';\nimport ConversationManager from "./conversationManager';';
   };
 
   // Mock fs.writeFileSync to do nothing
@@ -181,7 +181,7 @@ runTest(2, "Check handling of non-existent files", () => {
     if (path.includes('fix-file-casing.js')) {
       return originalFsReadFileSync(path, encoding);
     }
-    return 'import Logger from "../utils/Logger";\nimport ConversationManager from "./ConversationManager";';
+    return 'import Logger from '../utils/logger';\nimport ConversationManager from "./conversationManager';';
   };
 
   // Mock fs.writeFileSync to do nothing
@@ -253,7 +253,7 @@ runTest(3, "Check fallback to fs operations when git fails", () => {
     if (path.includes('fix-file-casing.js')) {
       return originalFsReadFileSync(path, encoding);
     }
-    return 'import Logger from "../utils/Logger";\nimport ConversationManager from "./ConversationManager";';
+    return 'import Logger from '../utils/logger';\nimport ConversationManager from "./conversationManager';';
   };
 
   // Mock fs.writeFileSync to do nothing
@@ -334,7 +334,7 @@ runTest(4, "Check handling of filesystem errors", () => {
     if (path.includes('fix-file-casing.js')) {
       return originalFsReadFileSync(path, encoding);
     }
-    return 'import Logger from "../utils/Logger";\nimport ConversationManager from "./ConversationManager";';
+    return 'import Logger from '../utils/logger';\nimport ConversationManager from "./conversationManager';';
   };
 
   // Mock fs.writeFileSync to throw error
@@ -482,7 +482,7 @@ runTest(6, "Check updating of imports in files", () => {
     if (path.includes('fix-file-casing.js')) {
       return originalFsReadFileSync(path, encoding);
     }
-    return 'import Logger from "../utils/Logger";\nimport ConversationManager from "./ConversationManager";';
+    return 'import Logger from '../utils/logger';\nimport ConversationManager from "./conversationManager';';
   };
 
   // Mock fs.writeFileSync to check content changes

@@ -1,4 +1,5 @@
 // filepath: d:\___coding\tools\copilot_ppa\src\commands\__tests__\displaySettingsCommand.test.ts
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { DisplaySettingsService } from '../../services/displaySettingsService';

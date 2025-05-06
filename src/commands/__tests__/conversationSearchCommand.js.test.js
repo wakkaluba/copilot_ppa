@@ -1,128 +1,79 @@
-// filepath: d:\___coding\tools\copilot_ppa\src\commands\__tests__\conversationSearchCommand.js.test.js
 const vscode = require('vscode');
-const sinon = require('sinon');
 const { ConversationSearchCommand } = require('../conversationSearchCommand');
 const { ConversationManager } = require('../../services/conversationManager');
 const { ConversationSearchService } = require('../../services/conversationSearchService');
 
-describe('Conversation Search Command', () => {
-    let sandbox;
+// Mock the VS Code APIs
+jest.mock('vscode', () => {
+    return {
+        commands: {
+            registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+            executeCommand: jest.fn()
+        },
+        window: {
+            showInputBox: jest.fn(),
+            showQuickPick: jest.fn(),
+            showInformationMessage: jest.fn(),
+            showErrorMessage: jest.fn()
+        },
+        ExtensionContext: jest.fn(),
+        Disposable: {
+            from: jest.fn()
+        },
+        EventEmitter: jest.fn().mockImplementation(() => ({
+            event: jest.fn(),
+            fire: jest.fn(),
+            dispose: jest.fn()
+        }))
+    };
+});
+
+// Mock the ConversationManager and ConversationSearchService
+jest.mock('../../services/conversationManager');
+jest.mock('../../services/conversationSearchService');
+
+describe('ConversationSearchCommand', () => {
+    let command;
     let mockContext;
     let mockConversationManager;
     let mockSearchService;
-    let mockWindow;
-    let mockCommands;
-    let searchCommand;
 
     beforeEach(() => {
-        sandbox = sinon.createSandbox();
+        // Reset all mocks
+        jest.clearAllMocks();
 
-        // Mock extension context
-        mockContext = {
-            subscriptions: [],
-            storageUri: { fsPath: '/mock/storage/path' },
-            globalStorageUri: { fsPath: '/mock/global/storage/path' }
-        };
+        // Mock context
+        mockContext = {};
 
-        // Mock conversation manager
+        // Setup mock for ConversationManager
         mockConversationManager = {
-            getConversationById: sandbox.stub().returns({
-                id: 'conv-123',
-                title: 'Test Conversation',
-                messages: [
-                    { role: 'user', content: 'Hello' },
-                    { role: 'assistant', content: 'Hi there' }
-                ],
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            }),
-            getAllConversations: sandbox.stub().returns([
-                {
-                    id: 'conv-123',
-                    title: 'Test Conversation',
-                    messages: [
-                        { role: 'user', content: 'Hello' },
-                        { role: 'assistant', content: 'Hi there' }
-                    ],
-                    createdAt: Date.now(),
-                    updatedAt: Date.now()
-                },
-                {
-                    id: 'conv-456',
-                    title: 'Another Conversation',
-                    messages: [
-                        { role: 'user', content: 'Testing' },
-                        { role: 'assistant', content: 'It works' }
-                    ],
-                    createdAt: Date.now() - 86400000, // One day ago
-                    updatedAt: Date.now() - 86400000
-                }
-            ])
+            getConversations: jest.fn().mockReturnValue([])
         };
+        ConversationManager.getInstance.mockReturnValue(mockConversationManager);
 
-        // Mock search service
+        // Setup mock for ConversationSearchService
         mockSearchService = {
-            search: sandbox.stub().resolves([
-                {
-                    conversation: {
-                        id: 'conv-123',
-                        title: 'Test Conversation',
-                        messages: [
-                            { role: 'user', content: 'Hello' },
-                            { role: 'assistant', content: 'Hi there' }
-                        ],
-                        createdAt: Date.now(),
-                        updatedAt: Date.now()
-                    },
-                    titleMatch: true,
-                    matches: [
-                        { messageIndex: 0, content: 'Hello' }
-                    ]
-                }
-            ])
+            search: jest.fn().mockResolvedValue([]),
+            getLastResults: jest.fn().mockReturnValue([])
         };
+        ConversationSearchService.getInstance.mockReturnValue(mockSearchService);
 
-        // Mock VS Code window API
-        mockWindow = {
-            showInputBox: sandbox.stub().resolves('search query'),
-            showQuickPick: sandbox.stub().resolves({ label: 'Basic Search' }),
-            showInformationMessage: sandbox.stub(),
-            showErrorMessage: sandbox.stub()
-        };
-
-        // Mock VS Code commands API
-        mockCommands = {
-            registerCommand: sandbox.stub().callsFake((_, callback) => {
-                return { dispose: sandbox.stub(), callback };
-            }),
-            executeCommand: sandbox.stub().resolves()
-        };
-
-        // Apply mocks
-        sandbox.stub(vscode.window, 'showInputBox').value(mockWindow.showInputBox);
-        sandbox.stub(vscode.window, 'showQuickPick').value(mockWindow.showQuickPick);
-        sandbox.stub(vscode.window, 'showInformationMessage').value(mockWindow.showInformationMessage);
-        sandbox.stub(vscode.window, 'showErrorMessage').value(mockWindow.showErrorMessage);
-        sandbox.stub(vscode.commands, 'registerCommand').value(mockCommands.registerCommand);
-        sandbox.stub(vscode.commands, 'executeCommand').value(mockCommands.executeCommand);
-
-        // Mock singleton instances
-        sandbox.stub(ConversationManager, 'getInstance').returns(mockConversationManager);
-        sandbox.stub(ConversationSearchService, 'getInstance').returns(mockSearchService);
-
-        // Create the command instance
-        searchCommand = new ConversationSearchCommand(mockContext);
+        // Create command instance
+        command = new ConversationSearchCommand(mockContext);
     });
 
-    afterEach(() => {
-        sandbox.restore();
+    describe('constructor', () => {
+        it('should initialize correctly with the conversation manager and search service', () => {
+            expect(ConversationManager.getInstance).toHaveBeenCalledWith(mockContext);
+            expect(ConversationSearchService.getInstance).toHaveBeenCalledWith(mockConversationManager);
+        });
     });
 
     describe('register', () => {
-        it('should register the search command with VS Code', () => {
-            const disposable = searchCommand.register();
+        it('should register the command with VS Code', () => {
+            const disposable = command.register();
 
-            expect(mockCommands.registerCommand).toHaveBeenCalledWith(
+            expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
                 'copilotPPA.searchConversations',
                 expect.any(Function)
             );
@@ -131,221 +82,309 @@ describe('Conversation Search Command', () => {
     });
 
     describe('executeSearch', () => {
-        it('should perform a basic search and open the selected conversation', async () => {
-            // Set up quickPick to return a selected result for the search results picker
-            const mockSelectedResult = {
-                result: {
-                    conversation: {
-                        id: 'conv-123',
-                        title: 'Test Conversation'
-                    }
-                }
-            };
+        it('should handle user cancellation at search query input', async () => {
+            // Mock user cancelling the input box
+            vscode.window.showInputBox.mockResolvedValueOnce(undefined);
 
-            // First call returns the search type, second call returns the selected result
-            mockWindow.showQuickPick.onFirstCall().resolves({ label: 'Basic Search' });
-            mockWindow.showQuickPick.onSecondCall().resolves(mockSelectedResult);
+            // Get access to private method
+            const executeSearch = command.executeSearch.bind(command);
+            await executeSearch();
 
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
-
-            // Execute the command
-            await commandCallback();
-
-            // Verify the input box was shown to get the search query
-            expect(mockWindow.showInputBox).toHaveBeenCalledWith({
+            expect(vscode.window.showInputBox).toHaveBeenCalledWith({
                 placeHolder: 'Search in conversations...',
                 prompt: 'Enter search term',
                 ignoreFocusOut: true
             });
+            expect(mockSearchService.search).not.toHaveBeenCalled();
+        });
 
-            // Verify options were presented
-            expect(mockWindow.showQuickPick).toHaveBeenCalledWith(
-                [
-                    { label: 'Basic Search', description: 'Search with default options' },
-                    { label: 'Advanced Search', description: 'Configure search options' }
-                ],
-                {
-                    placeHolder: 'Search options',
-                    ignoreFocusOut: true
-                }
-            );
+        it('should handle user cancellation at search options selection', async () => {
+            // Mock user entering a search query but cancelling options
+            vscode.window.showInputBox.mockResolvedValueOnce('test query');
+            vscode.window.showQuickPick.mockResolvedValueOnce(undefined);
 
-            // Verify search was performed
-            expect(mockSearchService.search).toHaveBeenCalledWith({
-                query: 'search query'
-            });
+            // Get access to private method
+            const executeSearch = command.executeSearch.bind(command);
+            await executeSearch();
 
-            // Verify search results were presented
-            expect(mockWindow.showQuickPick).toHaveBeenCalledTimes(2);
+            expect(vscode.window.showInputBox).toHaveBeenCalled();
+            expect(vscode.window.showQuickPick).toHaveBeenCalled();
+            expect(mockSearchService.search).not.toHaveBeenCalled();
+        });
 
-            // Verify the selected conversation was opened
-            expect(mockCommands.executeCommand).toHaveBeenCalledWith(
+        it('should display message when no results found', async () => {
+            // Mock successful search but with no results
+            vscode.window.showInputBox.mockResolvedValueOnce('test query');
+            vscode.window.showQuickPick.mockResolvedValueOnce({ label: 'Basic Search' });
+            mockSearchService.search.mockResolvedValueOnce([]);
+
+            // Get access to private method
+            const executeSearch = command.executeSearch.bind(command);
+            await executeSearch();
+
+            expect(vscode.window.showInputBox).toHaveBeenCalled();
+            expect(vscode.window.showQuickPick).toHaveBeenCalled();
+            expect(mockSearchService.search).toHaveBeenCalledWith({ query: 'test query' });
+            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('No matching conversations found.');
+        });
+
+        it('should handle error during search', async () => {
+            // Mock search throwing an error
+            vscode.window.showInputBox.mockResolvedValueOnce('test query');
+            vscode.window.showQuickPick.mockResolvedValueOnce({ label: 'Basic Search' });
+            const error = new Error('Search failed test error');
+            mockSearchService.search.mockRejectedValueOnce(error);
+
+            // Get access to private method
+            const executeSearch = command.executeSearch.bind(command);
+            await executeSearch();
+
+            expect(mockSearchService.search).toHaveBeenCalled();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('Search failed: Search failed test error');
+        });
+
+        it('should open selected conversation when user selects a result', async () => {
+            // Mock successful search with results
+            const mockConversation = { id: 'conv123', title: 'Test Conversation', messages: [] };
+            const mockResult = {
+                conversation: mockConversation,
+                matches: [{ messageIndex: 0, content: 'Hello', highlights: [] }],
+                titleMatch: true
+            };
+
+            vscode.window.showInputBox.mockResolvedValueOnce('test query');
+            vscode.window.showQuickPick
+                .mockResolvedValueOnce({ label: 'Basic Search' }) // First for search options
+                .mockResolvedValueOnce({ result: mockResult }); // Second for selecting result
+            mockSearchService.search.mockResolvedValueOnce([mockResult]);
+
+            // Get access to private method
+            const executeSearch = command.executeSearch.bind(command);
+            await executeSearch();
+
+            expect(mockSearchService.search).toHaveBeenCalled();
+            expect(vscode.window.showQuickPick).toHaveBeenCalledTimes(2);
+            expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
                 'copilotPPA.openConversation',
-                'conv-123'
+                'conv123'
             );
         });
+    });
 
-        it('should handle when user cancels search query input', async () => {
-            mockWindow.showInputBox.resolves(undefined);
+    describe('getSearchOptions', () => {
+        it('should return basic search options when Basic Search is selected', async () => {
+            // Mock user selecting Basic Search
+            vscode.window.showQuickPick.mockResolvedValueOnce({ label: 'Basic Search' });
 
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
 
-            // Execute the command
-            await commandCallback();
-
-            // Verify the input box was shown
-            expect(mockWindow.showInputBox).toHaveBeenCalled();
-
-            // Verify no further actions were taken
-            expect(mockWindow.showQuickPick).not.toHaveBeenCalled();
-            expect(mockSearchService.search).not.toHaveBeenCalled();
+            expect(result).toEqual({ query: 'test query' });
         });
 
-        it('should handle when user cancels search options', async () => {
-            mockWindow.showQuickPick.resolves(undefined);
+        it('should return undefined when user cancels search options selection', async () => {
+            // Mock user cancelling selection
+            vscode.window.showQuickPick.mockResolvedValueOnce(undefined);
 
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
 
-            // Execute the command
-            await commandCallback();
-
-            // Verify the quick pick was shown
-            expect(mockWindow.showQuickPick).toHaveBeenCalled();
-
-            // Verify no search was performed
-            expect(mockSearchService.search).not.toHaveBeenCalled();
+            expect(result).toBeUndefined();
         });
 
-        it('should handle advanced search options', async () => {
-            mockWindow.showQuickPick.resetBehavior();
+        it('should return undefined when user cancels advanced options selection', async () => {
+            // Mock user selecting Advanced Search but cancelling advanced options
+            vscode.window.showQuickPick
+                .mockResolvedValueOnce({ label: 'Advanced Search' })
+                .mockResolvedValueOnce(undefined);
 
-            // Mock the sequence of user inputs for advanced search
-            // First call returns the search type (Advanced)
-            mockWindow.showQuickPick.onFirstCall().resolves({ label: 'Advanced Search' });
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
 
-            // Second call returns the advanced options
-            mockWindow.showQuickPick.onSecondCall().resolves([
-                { label: 'Search in titles' },
-                { label: 'Case sensitive' },
-                { label: 'Only user messages' }
-            ]);
+            expect(result).toBeUndefined();
+        });
 
-            // Third call returns the selected search result
-            mockWindow.showQuickPick.onThirdCall().resolves({
-                result: {
-                    conversation: {
-                        id: 'conv-123',
-                        title: 'Test Conversation'
-                    }
-                }
-            });
+        it('should return correct advanced search options', async () => {
+            // Mock user selecting Advanced Search and picking options
+            vscode.window.showQuickPick
+                .mockResolvedValueOnce({ label: 'Advanced Search' })
+                .mockResolvedValueOnce([
+                    { label: 'Search in titles' },
+                    { label: 'Case sensitive' }
+                ]);
 
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
 
-            // Execute the command
-            await commandCallback();
-
-            // Verify advanced options were requested
-            expect(mockWindow.showQuickPick).toHaveBeenCalledWith(
-                [
-                    { label: 'Search in titles', picked: true },
-                    { label: 'Search in content', picked: true },
-                    { label: 'Case sensitive', picked: false },
-                    { label: 'Use regular expression', picked: false },
-                    { label: 'Only user messages', picked: false },
-                    { label: 'Only assistant messages', picked: false }
-                ],
-                {
-                    placeHolder: 'Select search options',
-                    canPickMany: true,
-                    ignoreFocusOut: true
-                }
-            );
-
-            // Verify search was performed with correct options
-            expect(mockSearchService.search).toHaveBeenCalledWith({
-                query: 'search query',
+            expect(result).toEqual({
+                query: 'test query',
                 searchInTitles: true,
                 searchInContent: false,
                 caseSensitive: true,
                 useRegex: false,
-                onlyUserMessages: true,
+                onlyUserMessages: false,
                 onlyAssistantMessages: false
             });
+        });
 
-            // Verify the selected conversation was opened
-            expect(mockCommands.executeCommand).toHaveBeenCalledWith(
-                'copilotPPA.openConversation',
-                'conv-123'
+        it('should handle date range options correctly', async () => {
+            // Mock date inputs
+            const fromDate = '2025-01-01';
+            const toDate = '2025-01-31';
+
+            // Mock user selecting Advanced Search with date limit and entering dates
+            vscode.window.showQuickPick
+                .mockResolvedValueOnce({ label: 'Advanced Search' })
+                .mockResolvedValueOnce([
+                    { label: 'Search in titles' },
+                    { label: 'Limit by date' }
+                ]);
+
+            vscode.window.showInputBox
+                .mockResolvedValueOnce(fromDate) // From date
+                .mockResolvedValueOnce(toDate);  // To date
+
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
+
+            // Calculate expected timestamps
+            const fromTimestamp = new Date(fromDate).getTime();
+            const toTimestamp = new Date(toDate).getTime() + 86400000; // Adding one day in milliseconds
+
+            expect(result).toEqual({
+                query: 'test query',
+                searchInTitles: true,
+                searchInContent: false,
+                caseSensitive: false,
+                useRegex: false,
+                onlyUserMessages: false,
+                onlyAssistantMessages: false,
+                dateFrom: fromTimestamp,
+                dateTo: toTimestamp
+            });
+        });
+
+        it('should handle invalid date inputs', async () => {
+            // Mock user selecting Advanced Search with date limit and entering invalid dates
+            vscode.window.showQuickPick
+                .mockResolvedValueOnce({ label: 'Advanced Search' })
+                .mockResolvedValueOnce([
+                    { label: 'Search in titles' },
+                    { label: 'Limit by date' }
+                ]);
+
+            vscode.window.showInputBox
+                .mockResolvedValueOnce('invalid-date') // Invalid from date
+                .mockResolvedValueOnce('invalid-date'); // Invalid to date
+
+            // Get access to private method
+            const getSearchOptions = command.getSearchOptions.bind(command);
+            const result = await getSearchOptions('test query');
+
+            // Should not include date properties
+            expect(result).toEqual({
+                query: 'test query',
+                searchInTitles: true,
+                searchInContent: false,
+                caseSensitive: false,
+                useRegex: false,
+                onlyUserMessages: false,
+                onlyAssistantMessages: false
+            });
+        });
+    });
+
+    describe('showSearchResults', () => {
+        it('should format and display search results correctly', async () => {
+            // Create mock search results
+            const now = Date.now();
+            const mockConversation1 = {
+                id: 'conv1',
+                title: 'Test Conversation 1',
+                messages: [{ role: 'user', content: 'Hello' }],
+                updatedAt: now
+            };
+
+            const mockConversation2 = {
+                id: 'conv2',
+                title: 'Test Conversation 2',
+                messages: [{ role: 'user', content: 'World' }, { role: 'assistant', content: 'Hello' }],
+                updatedAt: now - 1000000 // Older
+            };
+
+            const mockResults = [
+                {
+                    conversation: mockConversation1,
+                    titleMatch: true,
+                    matches: [{ messageIndex: 0, content: 'Hello' }]
+                },
+                {
+                    conversation: mockConversation2,
+                    titleMatch: false,
+                    matches: [{ messageIndex: 0, content: 'World' }, { messageIndex: 1, content: 'Hello' }]
+                }
+            ];
+
+            // Mock user selecting the first result
+            vscode.window.showQuickPick.mockResolvedValueOnce({
+                label: 'Test Conversation 1',
+                result: mockResults[0]
+            });
+
+            // Get access to private method
+            const showSearchResults = command.showSearchResults.bind(command);
+            const result = await showSearchResults(mockResults);
+
+            expect(vscode.window.showQuickPick).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        label: 'Test Conversation 1',
+                        description: 'Title match, 1 message match(es)',
+                        detail: expect.stringContaining('Last updated')
+                    }),
+                    expect.objectContaining({
+                        label: 'Test Conversation 2',
+                        description: '2 message match(es)',
+                        detail: expect.stringContaining('Last updated')
+                    })
+                ]),
+                expect.objectContaining({
+                    placeHolder: 'Select a conversation to open',
+                    matchOnDescription: true,
+                    matchOnDetail: true
+                })
             );
+
+            expect(result).toEqual(mockResults[0]);
         });
 
-        it('should handle no search results', async () => {
-            // Mock an empty search result
-            mockSearchService.search.resolves([]);
+        it('should return undefined when user cancels result selection', async () => {
+            // Create mock search results
+            const mockResults = [{
+                conversation: {
+                    id: 'conv1',
+                    title: 'Test Conversation',
+                    messages: [{ role: 'user', content: 'Hello' }],
+                    updatedAt: Date.now()
+                },
+                titleMatch: true,
+                matches: [{ messageIndex: 0, content: 'Hello' }]
+            }];
 
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
+            // Mock user cancelling selection
+            vscode.window.showQuickPick.mockResolvedValueOnce(undefined);
 
-            // Execute the command
-            await commandCallback();
+            // Get access to private method
+            const showSearchResults = command.showSearchResults.bind(command);
+            const result = await showSearchResults(mockResults);
 
-            // Verify search was performed
-            expect(mockSearchService.search).toHaveBeenCalled();
-
-            // Verify message was shown for no results
-            expect(mockWindow.showInformationMessage).toHaveBeenCalledWith('No matching conversations found.');
-
-            // Verify no results quickPick was shown
-            expect(mockWindow.showQuickPick).toHaveBeenCalledOnce(); // Only for search options
-        });
-
-        it('should handle search errors', async () => {
-            // Mock a search error
-            mockSearchService.search.rejects(new Error('Search failed'));
-
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
-
-            // Execute the command
-            await commandCallback();
-
-            // Verify search was attempted
-            expect(mockSearchService.search).toHaveBeenCalled();
-
-            // Verify error message was shown
-            expect(mockWindow.showErrorMessage).toHaveBeenCalledWith('Search failed: Search failed');
-        });
-
-        it('should handle user cancellation after viewing results', async () => {
-            // First call returns the search type
-            mockWindow.showQuickPick.onFirstCall().resolves({ label: 'Basic Search' });
-
-            // Second call simulates user cancelling after seeing results
-            mockWindow.showQuickPick.onSecondCall().resolves(undefined);
-
-            // Register and get the command callback
-            const disposable = searchCommand.register();
-            const commandCallback = mockCommands.registerCommand.args[0][1];
-
-            // Execute the command
-            await commandCallback();
-
-            // Verify search was performed
-            expect(mockSearchService.search).toHaveBeenCalled();
-
-            // Verify no conversation was opened
-            expect(mockCommands.executeCommand).not.toHaveBeenCalled();
+            expect(vscode.window.showQuickPick).toHaveBeenCalled();
+            expect(result).toBeUndefined();
         });
     });
 });

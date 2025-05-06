@@ -1,6 +1,6 @@
-// filepath: d:\___coding\tools\copilot_ppa\src\commands\__tests__\displaySettingsCommand.js.test.js
 const vscode = require('vscode');
 const sinon = require('sinon');
+const { afterEach, beforeEach, describe, expect, it } = require('@jest/globals');
 const { DisplaySettingsCommand } = require('../displaySettingsCommand');
 const { DisplaySettingsService } = require('../../services/displaySettingsService');
 const { WebviewPanelManager } = require('../../webview/webviewPanelManager');
