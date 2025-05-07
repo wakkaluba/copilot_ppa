@@ -798,3 +798,119 @@
   - Tested review functionality for pull requests
   - Implemented tests for UI panel display and management
   - Ensured both JavaScript and TypeScript implementations are covered
+3. Added comprehensive tests for `src/commands/runtime-analyzer-commands.ts` and `src/commands/runtime-analyzer-commands.js`
+   - Created tests for registerRuntimeAnalyzerCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all five runtime analyzer commands: startRecording, stopRecording, exportResults, visualize, and addMarkers
+   - Added test coverage for exporting results with proper file selection and cancellation scenarios
+   - Created tests for adding performance markers to selected code with various user input workflows
+   - Verified proper error handling when no active editor is present or selection is empty
+   - Added tests for different user interaction scenarios including input cancellation
+   - Implemented tests for editor manipulation when adding performance markers
+   - Verified correct indentation preservation in added marker code
+   - Tested proper success and error message display for all commands
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+4. Added comprehensive tests for `src/commands/performanceCommands.ts` and `src/commands/performanceCommands.js`
+   - Created tests for registerPerformanceCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all five performance-related commands
+   - Added test coverage for toggleProfiling command with settings update verification
+   - Created tests for generateReport command with output validation
+   - Verified proper cache clearing functionality
+   - Added tests for bottleneck analysis with different result scenarios
+   - Implemented tests for optimization suggestions with user selection workflows
+   - Created tests for user interaction via QuickPick interface
+   - Tested proper logging of performance metrics and bottlenecks
+   - Verified proper notification messages for different scenarios
+   - Added tests for error and edge cases including empty operation data
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+5. Added comprehensive tests for `src/commands/extensionManagementCommands.ts`
+   - Created tests for ExtensionManagementCommands class with both TypeScript and JavaScript implementations
+   - Implemented tests for all command registrations: requestExtensionAccess, configureExtension, and showRecommendedExtensions
+   - Added test coverage for dependency injection and service interaction
+   - Created tests for user selection workflows via InputBox and QuickPick interfaces
+   - Verified proper command registration and context subscription handling
+   - Added tests for extension access request functionality
+   - Implemented tests for extension configuration with various user input scenarios
+   - Created tests for handling invalid JSON input with appropriate error messages
+   - Verified proper recommended extension display and installation
+   - Tested multi-selection functionality in the recommended extensions command
+   - Implemented tests for cancellation scenarios at various points in command workflows
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+6. Added comprehensive tests for `src/commands/extensionCommands.ts`
+   - Created tests for registerExtensionCommands function with both TypeScript and JavaScript implementations
+   - Implemented tests for all command registrations: listExtensions and clearExtensionPermissions
+   - Added test coverage for listExtensions command with different user selections
+   - Created tests for all action types (toggle, access, details) in extension management
+   - Verified proper command subscription handling and context updates
+   - Added tests for extension listing and display via Quick Pick UI
+   - Created tests for user selection cancellation scenarios
+   - Tested information message display after permissions clearing
+   - Implemented tests for VS Code command execution integration
+   - Verified proper error handling during extension operations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+7. Added comprehensive tests for `src/commands/displaySettingsCommand.js` and `src/commands/displaySettingsCommand.ts`
+   - Created tests for DisplaySettingsCommand class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, execute
+   - Added test coverage for private methods: handleUpdateSettings, handleResetSettings, getWebviewContent
+   - Tested command registration with VS Code API
+   - Verified proper webview panel creation and configuration
+   - Added tests for message handling between webview and extension
+   - Created test cases for updating various display settings
+   - Tested resetting settings to default values
+   - Verified HTML content generation for the webview
+   - Implemented tests for error handling during settings operations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+8. Added comprehensive tests for `src/commands/debugCommands.js` and `src/commands/debugCommands.ts`
+   - Created tests for all debug-related commands registration
+   - Implemented tests for showing debug UI components (dashboard, config panel, log viewer)
+   - Added test coverage for all analyzer functionality (enabling/disabling, exporting, clearing)
+   - Created tests for CUDA detection with both success and error states
+   - Verified proper model compatibility checking and recommendation
+   - Added tests for log management (clearing, showing output channel, exporting)
+   - Tested command initialization with different workspace state configurations
+   - Implemented tests for auto-opening dashboard when configured
+   - Created tests for user interaction workflows including export format selection
+   - Verified proper error handling during CUDA detection and model recommendations
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+9. Added comprehensive tests for `src/commands/conversationSearchCommand.js` and `src/commands/conversationSearchCommand.ts`
+   - Created tests for `ConversationSearchCommand` class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, executeSearch
+   - Added test coverage for private methods: getSearchOptions, showSearchResults
+   - Created tests for user interaction workflows including search query input, search options selection
+   - Verified proper handling of basic and advanced search options
+   - Added tests for date range filtering functionality
+   - Created tests for result formatting and presentation
+   - Implemented tests for error handling during search operations
+   - Created test cases for user cancellation at different stages
+   - Verified proper command registration with VS Code API
+   - Added tests for displaying search results and handling result selection
+   - Tested integration with ConversationManager and ConversationSearchService
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+10. Added comprehensive tests for `src/commands/conversationExportCommand.js` and `src/commands/conversationExportCommand.ts`
+   - Created tests for `ConversationExportCommand` class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, exportConversation, exportAllConversations
+   - Added test coverage for command registration and integration with VS Code API
+   - Created tests for conversation selection with and without provided conversation ID
+   - Verified proper file dialog interactions for export destinations
+   - Added tests for successful export operations with notifications
+   - Implemented tests for error handling in all export operations
+   - Created test cases for cancellation at various points in the workflow
+   - Verified proper dependency injection in constructor
+   - Added tests for command callback execution with different parameters
+   - Verified correct command disposable handling
+   - Tested integration with ConversationExportService, FileDialogService, and ConversationSelectionService
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+11. Added comprehensive tests for `src/commands/structureReorganizationCommand.js` and `src/commands/structureReorganizationCommand.ts`
+   - Created tests for StructureReorganizationCommand class with both TypeScript and JavaScript implementations
+   - Implemented tests for all class methods: constructor, register, and executeCommand
+   - Added test coverage for the command registration with VS Code API
+   - Created tests for analyzing code structure and generating reorganization proposals
+   - Implemented tests for displaying proposals using VS Code's diff view
+   - Added tests for user interaction workflows, including confirmation and cancellation scenarios
+   - Created tests for error handling in various situations
+   - Verified proper usage of the StructureReorganizer service
+   - Tested the behavior of the text document content provider
+   - Implemented tests for correct resource disposal
+   - Verified proper initialization and error messages
+   - Ensured both TypeScript and JavaScript implementations are fully covered
+- `src/contextMenu.js` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.js`
+- `src/contextMenu.ts` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.ts`
