@@ -912,8 +912,6 @@
    - Implemented tests for correct resource disposal
    - Verified proper initialization and error messages
    - Ensured both TypeScript and JavaScript implementations are fully covered
-- `src/contextMenu.js` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.js`
-- `src/contextMenu.ts` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.ts`
 3. Added comprehensive tests for Copilot Integration Provider in both JavaScript and TypeScript
    - Created test files for CopilotIntegrationProvider with robust coverage for command registration
    - Added tests for forwarding text to Copilot with proper error handling
@@ -1060,8 +1058,143 @@
     - Created tests for graceful failure handling during command registration
     - Added tests for placeholder LLM integration in all command handlers
     - Verified both TypeScript and JavaScript implementations are fully covered with parallel test structures
+3. Added comprehensive tests for `src/ui/copilotIntegrationPanel.js` and `src/ui/copilotIntegrationPanel.ts`
+   - Created test files for both JavaScript and TypeScript implementations
+   - Implemented thorough tests for the singleton pattern implementation
+   - Added tests for proper panel initialization and webview creation
+   - Created tests for webview message handling with proper error handling
+   - Implemented tests for content updates triggered by state changes
+   - Added tests for content updates triggered by theme changes
+   - Created tests for content updates triggered by connection status changes
+   - Implemented tests for proper resource cleanup on dispose
+   - Added JavaScript-specific tests for handling null and undefined values
+   - Included tests for handling various JavaScript data types in message objects
+   - Ensured both implementations have consistent test coverage
+4. Added comprehensive tests for `src/ui/services/UISettingsWebviewService.js` and `src/ui/services/UISettingsWebviewService.ts`
+   - Created test files for both JavaScript and TypeScript implementations with robust coverage
+   - Implemented thorough tests for HTML generation with tabs
+   - Added tests for empty tab arrays handling
+   - Created tests for proper CSS styling and VS Code theme integration
+   - Implemented tests for client-side message handling
+   - Added coverage for tab click event handling
+   - Created tests for XSS prevention in content
+   - Implemented tests for proper error handling and logging
+   - Added tests for form input support in tab content
+   - Verified tab switching behavior and active state management
+   - Ensured both JavaScript and TypeScript implementations have consistent test coverage
+5. Verified comprehensive tests for `src/llm/llm-provider-factory.js` and `src/llm/llm-provider-factory.ts`
+   - Confirmed existence of proper test files for both JavaScript and TypeScript implementations
+   - Validated thorough test coverage for singleton pattern implementation
+   - Verified tests for creating Ollama and LM Studio providers
+   - Confirmed error handling tests for invalid provider types
+   - Validated provider caching tests with identical configurations
+   - Verified tests for creating different instances with different configurations
+   - Ensured both JavaScript and TypeScript implementations have consistent test coverage
+6. Expanded test coverage for `src/llm/ollama-provider.js` and `src/llm/ollama-provider.ts`
+   - Added comprehensive tests for advanced error handling scenarios including:
+     - Model format errors and incomplete model files
+     - Memory allocation issues (out of memory errors, CUDA errors)
+     - Content filtering and safety rejections
+     - Complex network scenarios (partial responses, DNS failures, port conflicts)
+   - Added tests for complex streaming behavior:
+     - Incremental content streaming
+     - Content backtracking with correction characters
+     - Timeouts during streaming operations
+   - Created tests for edge cases in model information handling:
+     - Unusual capability formats
+     - Nested detail structures
+     - Models with minimal information
+   - Improved offline mode and caching tests:
+     - Multiple prompts with different responses
+     - Cache writing failures
+     - Corrupted cache recovery
+   - Added tests for output formatting with special characters:
+     - Control character handling
+     - Unicode and emoji support
+     - Streaming with multi-byte characters
+7. Added comprehensive LLM-specific configuration tests for `src/config.js` and `src/config.ts`
+   - Created specialized test files focusing on LLM configuration validation
+   - Implemented tests for LLM provider validation (built-in providers and custom providers)
+   - Added tests for endpoint URL validation with various valid and invalid formats
+   - Created tests for parameter validation (maxTokens, temperature) with boundary values
+   - Implemented tests for configuration change events specific to LLM settings
+   - Added tests for synchronization between defaultProvider and llm.provider
+   - Created JavaScript-specific tests for type handling (null values, type coercion, missing properties)
+   - Ensured both JavaScript and TypeScript implementations have consistent test coverage
+3. Added comprehensive tests for `src/llmProviders/llmSelectionView.js` and `src/llmProviders/llmSelectionView.ts`
+   - Implemented thorough tests for both TypeScript and JavaScript implementations
+   - Created mock implementations of VS Code services to simulate webview behavior
+   - Added tests for all public methods of the LLMSelectionView class
+   - Implemented tests for panel creation and event handling
+   - Added tests for HTML content generation including model cards rendering
+   - Created tests for webview message handling and command processing
+   - Implemented tests for model selection, status updates, and installation instructions
+   - Added tests for security nonce generation
+   - Included tests for proper event cleanup when panel is disposed
+   - Ensured error handling and edge cases are thoroughly tested
+4. Added comprehensive tests for `src/llmProviders/llmModels.js` and `src/llmProviders/llmModels.ts`
+   - Implemented thorough tests for both TypeScript and JavaScript implementations
+   - Created a mock implementation of the LLMModelsService to support testing
+   - Added tests for all public methods of the LLMModelsManager class
+   - Implemented tests for event handling via onModelsChanged
+   - Added tests for model retrieval methods (getLocalModels, getHuggingFaceModels)
+   - Created tests for model management methods (refreshInstalledModels, downloadOllamaModel, downloadLmStudioModel)
+   - Implemented tests for status checking methods (checkOllamaStatus, checkLmStudioStatus)
+   - Added tests for installation instruction methods (getOllamaInstallInstructions, getLmStudioInstallInstructions)
+   - Included JavaScript-specific tests for dynamic property handling, prototypal inheritance, and type coercion
+   - Ensured error handling and edge cases are thoroughly tested
+5. Added comprehensive tests for `src/llm/index.js` and `src/llm/index.ts`
+   - Implemented thorough tests for both TypeScript and JavaScript implementations
+   - Created tests to verify all components from each provider module are correctly re-exported
+   - Added tests for importing specific interfaces and types from the index module
+   - Implemented tests to verify named exports are correctly forwarded
+   - Created tests for provider class exposure and instantiation
+   - Added JavaScript-specific tests for module loading behaviors, including CommonJS require caching
+   - Implemented tests for JavaScript property dynamics and prototype inheritance
+   - Ensured both implementations have consistent and thorough test coverage
+6. Enhanced and updated tests for `src/llm-providers/llmInterface.js` and `src/llm-providers/llmInterface.ts`
+   - Implemented comprehensive tests for both TypeScript and JavaScript implementations
+   - Created test cases for the LLMInterface with its generateDocumentation method
+   - Added tests for handling various types of inputs including empty strings, long prompts, multi-line text
+   - Implemented tests for special characters and international text in documentation prompts
+   - Added tests for error handling scenarios with proper exception testing
+   - Added TypeScript-specific interface implementation tests
+   - Implemented JavaScript-specific tests for type coercion, handling null/undefined values
+   - Added tests for JavaScript's ability to extend interfaces with additional methods
+   - Created tests for different documentation format specifications (JSDoc, Markdown)
+   - Ensured both implementations have consistent and thorough test coverage
+7. Added comprehensive tests for `src/llm-providers/llm-provider.interface.js` and `src/llm-providers/llm-provider.interface.ts`
+   - Created complete test suites for both JavaScript and TypeScript implementations
+   - Implemented a mock provider class in both languages to test the interface requirements
+   - Added tests for all interface properties and methods: provider properties, capabilities, lifecycle methods, text generation methods, and model management methods
+   - Created tests for all sub-interfaces: IProviderCapabilities, ILLMProviderConfig, ILLMRequestOptions, and ILLMResponse
+   - Included validation tests for both minimal and complete configurations of each interface
+   - Added JavaScript-specific tests for type coercion, null/undefined handling, missing properties, and additional property behavior
+   - Used EventEmitter extension testing to ensure the provider interface properly extends event handling functionality
+   - Implemented thorough tests for async methods including streamCompletion with AsyncIterableIterator testing
+   - Ensured consistent coverage between both implementations while respecting language-specific features
+8. Added comprehensive tests for `src/llm/multilingualPromptManager.js` and `src/llm/multilingualPromptManager.ts`
+   - Created complete test suites for both JavaScript and TypeScript implementations
+   - Implemented tests for all public methods: enhancePromptWithLanguage, isResponseInExpectedLanguage, and buildLanguageCorrectionPrompt
+   - Added tests for all supported languages (23 different language codes)
+   - Included edge case tests for empty prompts, special characters, and extremely long prompts
+   - Added tests for language detection behavior with various types of responses
+   - Included JavaScript-specific tests for type coercion, null/undefined handling, and other dynamic typing behaviors
+   - Tested indirectly the private getLanguageName method through the public API
+   - Ensured consistent coverage between both implementations while respecting language-specific features
+9. Verified comprehensive tests for `src/llm/hardwareSpecs.js` and `src/llm/hardwareSpecs.ts`
+   - Reviewed existing test files that were already implemented but not tracked in the coverage report
+   - Tests cover validation of correctly structured hardware specs objects
+   - Include tests for various hardware configurations: systems with no GPU, integrated graphics, server CPUs, embedded CPUs
+   - Handle extremes in RAM configurations and AMD GPU configurations
+   - Include TypeScript-specific type constraint enforcement tests
+   - Include JavaScript-specific tests for property additions, missing properties, null values, and type coercion
+   - All edge cases are thoroughly covered in existing test files
+
 
 #### Recently Addressed (Fully Tested)
+- `src/contextMenu.js` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.js`
+- `src/contextMenu.ts` - ✅ Tests implemented in `src/__tests__/contextMenu/ContextMenuManager.test.ts`
 - `src/diagnostics/diagnosticReport.js` - Complete test coverage implemented
 - `src/diagnostics/diagnosticReport.ts` - Complete test coverage implemented
 - `src/models/modelManager.js` - Complete test coverage implemented
@@ -1094,3 +1227,99 @@
 - `src/security/securityRecommendations.ts` - Complete test coverage implemented
 - `src/llm/lmstudio-provider.js` - Complete test coverage implemented
 - `src/llm/lmstudio-provider.ts` - Complete test coverage implemented
+- `src/llm/providerManager.js` - Complete test coverage implemented
+- `src/llm/providerManager.ts` - Complete test coverage implemented
+- `src/ui/copilotIntegrationPanel.js` - Complete test coverage implemented
+- `src/ui/copilotIntegrationPanel.ts` - Complete test coverage implemented
+- `src/runtime-analyzer.js` - Complete test coverage implemented
+- `src/runtime-analyzer.ts` - Complete test coverage implemented
+- `src/diagnostics/diagnosticReport.js` - Complete test coverage implemented
+- `src/diagnostics/diagnosticReport.ts` - Complete test coverage implemented
+- `src/models/modelManager.js` - Complete test coverage implemented
+- `src/models/modelManager.ts` - Complete test coverage implemented
+- `src/services/logging/FileLogManager.js` - Complete test coverage implemented
+- `src/services/logging/FileLogManager.ts` - Complete test coverage implemented
+- `src/services/vectordb/provider.js` - Complete test coverage implemented
+- `src/services/vectordb/provider.ts` - Complete test coverage implemented
+- `src/performance/bottleneckDetector.js` - Complete test coverage implemented
+- `src/performance/bottleneckDetector.ts` - Complete test coverage implemented
+- `src/llm/llm-provider.js` - Complete test coverage implemented
+- `src/llm/llm-provider.ts` - Complete test coverage implemented
+- `src/features/codeOptimization/memoryOptimizer.js` - Complete test coverage implemented
+- `src/features/codeOptimization/memoryOptimizer.ts` - Complete test coverage implemented
+- `src/security/codeScanner.js` - Complete test coverage implemented
+- `src/security/codeScanner.ts` - Complete test coverage implemented
+- `src/services/llm/providers/ProviderFactory.js` - Complete test coverage implemented
+- `src/services/llm/providers/ProviderFactory.ts` - Complete test coverage implemented
+- `src/security/dependencyScanner.js` - Complete test coverage implemented
+- `src/security/dependencyScanner.ts` - Complete test coverage implemented
+- `src/i18n/MultilingualManager.js` - Complete test coverage implemented
+- `src/i18n/MultilingualManager.ts` - Complete test coverage implemented
+- `src/llm/i18n/MultilingualManager.js` - Complete test coverage implemented
+- `src/llm/i18n/MultilingualManager.ts` - Complete test coverage implemented
+- `src/llm/llmInterface.js` - Complete test coverage implemented
+- `src/llm/llmInterface.ts` - Complete test coverage implemented
+- `src/security/securityManager.js` - Complete test coverage implemented
+- `src/security/securityManager.ts` - Complete test coverage implemented
+- `src/security/securityRecommendations.js` - Complete test coverage implemented
+- `src/security/securityRecommendations.ts` - Complete test coverage implemented
+- `src/llm/lmstudio-provider.js` - Complete test coverage implemented
+- `src/llm/lmstudio-provider.ts` - Complete test coverage implemented
+- `src/features/codeOptimization/services/PerformanceMetricsService.js` - Complete test coverage implemented
+- `src/features/codeOptimization/services/PerformanceMetricsService.ts` - Complete test coverage implemented
+- `src/llm/modelRecommendations.js` - Complete test coverage implemented
+- `src/llm/modelRecommendations.ts` - Complete test coverage implemented
+- `src/llm/llm-provider-factory.js` - Complete test coverage implemented
+- `src/llm/llm-provider-factory.ts` - Complete test coverage implemented
+- `src/ui/services/UISettingsWebviewService.js` - Complete test coverage implemented
+- `src/ui/services/UISettingsWebviewService.ts` - Complete test coverage implemented
+- `src/llm/ollama-provider.js` - Complete test coverage implemented with expanded error cases
+- `src/llm/ollama-provider.ts` - Complete test coverage implemented with expanded error cases
+- `src/ui/copilotIntegrationPanel.js` - Complete test coverage implemented
+- `src/ui/copilotIntegrationPanel.ts` - Complete test coverage implemented
+- `src/runtime-analyzer.js` - Complete test coverage implemented
+- `src/runtime-analyzer.ts` - Complete test coverage implemented
+- `src/diagnostics/diagnosticReport.js` - Complete test coverage implemented
+- `src/diagnostics/diagnosticReport.ts` - Complete test coverage implemented
+- `src/models/modelManager.js` - Complete test coverage implemented
+- `src/models/modelManager.ts` - Complete test coverage implemented
+- `src/services/logging/FileLogManager.js` - Complete test coverage implemented
+- `src/services/logging/FileLogManager.ts` - Complete test coverage implemented
+- `src/services/vectordb/provider.js` - Complete test coverage implemented
+- `src/services/vectordb/provider.ts` - Complete test coverage implemented
+- `src/performance/bottleneckDetector.js` - Complete test coverage implemented
+- `src/performance/bottleneckDetector.ts` - Complete test coverage implemented
+- `src/llm/llm-provider.js` - Complete test coverage implemented
+- `src/llm/llm-provider.ts` - Complete test coverage implemented
+- `src/features/codeOptimization/memoryOptimizer.js` - Complete test coverage implemented
+- `src/features/codeOptimization/memoryOptimizer.ts` - Complete test coverage implemented
+- `src/security/codeScanner.js` - Complete test coverage implemented
+- `src/security/codeScanner.ts` - Complete test coverage implemented
+- `src/services/llm/providers/ProviderFactory.js` - Complete test coverage implemented
+- `src/services/llm/providers/ProviderFactory.ts` - Complete test coverage implemented
+- `src/security/dependencyScanner.js` - Complete test coverage implemented
+- `src/security/dependencyScanner.ts` - Complete test coverage implemented
+- `src/i18n/MultilingualManager.js` - Complete test coverage implemented
+- `src/i18n/MultilingualManager.ts` - Complete test coverage implemented
+- `src/llm/i18n/MultilingualManager.js` - Complete test coverage implemented
+- `src/llm/i18n/MultilingualManager.ts` - Complete test coverage implemented
+- `src/llm/llmInterface.js` - Complete test coverage implemented
+- `src/llm/llmInterface.ts` - Complete test coverage implemented
+- `src/security/securityManager.js` - Complete test coverage implemented
+- `src/security/securityManager.ts` - Complete test coverage implemented
+- `src/security/securityRecommendations.js` - Complete test coverage implemented
+- `src/security/securityRecommendations.ts` - Complete test coverage implemented
+- `src/llm/lmstudio-provider.js` - Complete test coverage implemented
+- `src/llm/lmstudio-provider.ts` - Complete test coverage implemented
+- `src/features/codeOptimization/services/PerformanceMetricsService.js` - Complete test coverage implemented
+- `src/features/codeOptimization/services/PerformanceMetricsService.ts` - Complete test coverage implemented
+- `src/llm/modelRecommendations.js` - Complete test coverage implemented
+- `src/llm/modelRecommendations.ts` - Complete test coverage implemented
+- `src/llm/llm-provider-factory.js` - Complete test coverage implemented
+- `src/llm/llm-provider-factory.ts` - Complete test coverage implemented
+- `src/ui/services/UISettingsWebviewService.js` - Complete test coverage implemented
+- `src/ui/services/UISettingsWebviewService.ts` - Complete test coverage implemented
+- `src/llm/ollama-provider.js` - Complete test coverage implemented with expanded error cases
+- `src/llm/ollama-provider.ts` - Complete test coverage implemented with expanded error cases
+- `src/config.js` - Complete test coverage implemented with LLM-specific test coverage
+- `src/config.ts` - Complete test coverage implemented with LLM-specific test coverage

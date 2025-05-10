@@ -604,4 +604,410 @@ describe('OllamaProvider (JavaScript)', () => {
             }
         });
     });
+
+    describe('Advanced Error Handling', () => {
+        describe('API rate limiting', () => {
+            it('should handle 429 Too Many Requests errors during model fetch', async () => {
+                const rateLimitError = new Error('Too Many Requests');
+                rateLimitError.name = 'Error';
+                rateLimitError.response = { status: 429, data: { message: 'Rate limit exceeded' } };
+
+                axiosInstance.get.rejects(rateLimitError);
+
+                const models = await ollamaProvider.getAvailableModels();
+
+                expect(models).to.deep.equal([]);
+                expect(axiosInstance.get.calledOnceWith('/api/tags')).to.be.true;
+            });
+
+            it('should handle 429 Too Many Requests errors during model info fetch', async () => {
+                const rateLimitError = new Error('Too Many Requests');
+                rateLimitError.name = 'Error';
+                rateLimitError.response = { status: 429, data: { message: 'Rate limit exceeded' } };
+
+                axiosInstance.post.rejects(rateLimitError);
+
+                const modelInfo = await ollamaProvider.getModelInfo('test-model');
+
+                expect(modelInfo).to.deep.equal({
+                    id: 'unknown',
+                    name: 'Unknown Model',
+                    provider: 'unknown'
+                });
+            });
+
+            it('should handle 429 Too Many Requests errors during text generation', async () => {
+                const rateLimitError = new Error('Too Many Requests');
+                rateLimitError.name = 'Error';
+                rateLimitError.response = { status: 429, data: { message: 'Rate limit exceeded' } };
+
+                axiosInstance.post.rejects(rateLimitError);
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Rate limit exceeded');
+            });
+        });
+
+        describe('Authentication errors', () => {
+            it('should handle 401 Unauthorized errors', async () => {
+                const authError = new Error('Unauthorized');
+                authError.name = 'Error';
+                authError.response = { status: 401, data: { message: 'Authentication required' } };
+
+                axiosInstance.get.rejects(authError);
+
+                const result = await ollamaProvider.isAvailable();
+
+                expect(result).to.be.false;
+                expect(ollamaProvider.status.error).to.include('Authentication required');
+            });
+
+            it('should handle 403 Forbidden errors', async () => {
+                const forbiddenError = new Error('Forbidden');
+                forbiddenError.name = 'Error';
+                forbiddenError.response = { status: 403, data: { message: 'Access denied' } };
+
+                axiosInstance.post.rejects(forbiddenError);
+
+                const result = await ollamaProvider.generateChatCompletion('test-model', [{ role: 'user', content: 'Hello' }]);
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Access denied');
+            });
+        });
+
+        describe('Timeout errors', () => {
+            it('should handle timeout during API connection', async () => {
+                const timeoutError = new Error('Timeout');
+                timeoutError.name = 'Error';
+                timeoutError.message = 'timeout of 30000ms exceeded';
+                timeoutError.code = 'ECONNABORTED';
+
+                axiosInstance.get.rejects(timeoutError);
+
+                const result = await ollamaProvider.isAvailable();
+
+                expect(result).to.be.false;
+                expect(ollamaProvider.status.error).to.include('timeout');
+            });
+
+            it('should handle timeout during generation request', async () => {
+                const timeoutError = new Error('Timeout');
+                timeoutError.name = 'Error';
+                timeoutError.message = 'timeout of 30000ms exceeded';
+                timeoutError.code = 'ECONNABORTED';
+
+                axiosInstance.post.rejects(timeoutError);
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('timeout');
+            });
+
+            it('should handle timeout during streaming', async () => {
+                const timeoutError = new Error('Timeout');
+                timeoutError.name = 'Error';
+                timeoutError.message = 'timeout of 30000ms exceeded';
+                timeoutError.code = 'ECONNABORTED';
+
+                axiosInstance.post.rejects(timeoutError);
+
+                const callback = sinon.spy();
+                const handleErrorSpy = sinon.spy(ollamaProvider, 'handleError');
+
+                await ollamaProvider.streamCompletion('test-model', 'Test prompt', undefined, {}, callback);
+
+                expect(handleErrorSpy.calledOnce).to.be.true;
+                expect(handleErrorSpy.firstCall.args[0].message).to.include('timeout');
+                expect(callback.called).to.be.false;
+            });
+        });
+
+        describe('Network errors', () => {
+            it('should handle ECONNREFUSED errors', async () => {
+                const connectionError = new Error('Connection refused');
+                connectionError.name = 'Error';
+                connectionError.code = 'ECONNREFUSED';
+
+                axiosInstance.get.rejects(connectionError);
+
+                const result = await ollamaProvider.isAvailable();
+
+                expect(result).to.be.false;
+                expect(ollamaProvider.status.error).to.include('Connection refused');
+            });
+
+            it('should handle ENOTFOUND errors', async () => {
+                const notFoundError = new Error('Host not found');
+                notFoundError.name = 'Error';
+                notFoundError.code = 'ENOTFOUND';
+
+                axiosInstance.get.rejects(notFoundError);
+
+                const result = await ollamaProvider.isAvailable();
+
+                expect(result).to.be.false;
+                expect(ollamaProvider.status.error).to.include('Host not found');
+            });
+
+            it('should handle ECONNRESET errors', async () => {
+                const resetError = new Error('Connection reset');
+                resetError.name = 'Error';
+                resetError.code = 'ECONNRESET';
+
+                axiosInstance.post.rejects(resetError);
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Connection reset');
+            });
+        });
+
+        describe('Malformed response handling', () => {
+            it('should handle malformed response in getAvailableModels', async () => {
+                // Missing models array
+                axiosInstance.get.resolves({ data: { incorrect: 'structure' } });
+
+                const models = await ollamaProvider.getAvailableModels();
+
+                expect(models).to.deep.equal([]);
+            });
+
+            it('should handle empty response in getAvailableModels', async () => {
+                axiosInstance.get.resolves({ data: null });
+
+                const models = await ollamaProvider.getAvailableModels();
+
+                expect(models).to.deep.equal([]);
+            });
+
+            it('should handle malformed response in generateCompletion', async () => {
+                // Missing response field
+                axiosInstance.post.resolves({ data: { incorrect: 'structure' } });
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('content');
+                expect(result.content).to.equal('');
+                expect(result.usage).to.deep.equal({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
+            });
+
+            it('should handle malformed response in generateChatCompletion', async () => {
+                // Missing message content field
+                axiosInstance.post.resolves({ data: { message: { incorrect: 'structure' } } });
+
+                const result = await ollamaProvider.generateChatCompletion('test-model', [{ role: 'user', content: 'Hello' }]);
+
+                expect(result).to.have.property('content');
+                expect(result.content).to.equal('');
+            });
+        });
+
+        describe('Server errors', () => {
+            it('should handle 500 Internal Server Error', async () => {
+                const serverError = new Error('Internal Server Error');
+                serverError.name = 'Error';
+                serverError.response = { status: 500, data: { message: 'Server error' } };
+
+                axiosInstance.post.rejects(serverError);
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Server error');
+            });
+
+            it('should handle 503 Service Unavailable', async () => {
+                const unavailableError = new Error('Service Unavailable');
+                unavailableError.name = 'Error';
+                unavailableError.response = { status: 503, data: { message: 'Service is currently unavailable' } };
+
+                axiosInstance.post.rejects(unavailableError);
+
+                const result = await ollamaProvider.generateChatCompletion('test-model', [{ role: 'user', content: 'Hello' }]);
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Service is currently unavailable');
+            });
+        });
+
+        describe('Invalid model errors', () => {
+            it('should handle model not found errors', async () => {
+                const modelError = new Error('Model not found');
+                modelError.name = 'Error';
+                modelError.response = { status: 404, data: { message: 'Model "nonexistent-model" not found' } };
+
+                axiosInstance.post.rejects(modelError);
+
+                const result = await ollamaProvider.generateCompletion('nonexistent-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Model "nonexistent-model" not found');
+            });
+
+            it('should handle model loading errors', async () => {
+                const loadingError = new Error('Model loading error');
+                loadingError.name = 'Error';
+                loadingError.response = { status: 500, data: { message: 'Failed to load model' } };
+
+                axiosInstance.post.rejects(loadingError);
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('Failed to load model');
+            });
+        });
+
+        describe('handleError method', () => {
+            it('should properly format different types of network errors', async () => {
+                const testErrors = [
+                    {
+                        error: { code: 'ECONNRESET', message: 'Connection reset' },
+                        expectedContent: 'Connection reset'
+                    },
+                    {
+                        error: { code: 'ENOTFOUND', message: 'getaddrinfo ENOTFOUND ollama.local' },
+                        expectedContent: 'getaddrinfo ENOTFOUND ollama.local'
+                    },
+                    {
+                        error: { response: { status: 429, data: { message: 'Rate limit exceeded' } } },
+                        expectedContent: 'Rate limit exceeded'
+                    },
+                    {
+                        error: { response: { status: 500, statusText: 'Internal Server Error', data: {} } },
+                        expectedContent: 'Internal Server Error'
+                    },
+                    {
+                        error: { message: 'Generic error message' },
+                        expectedContent: 'Generic error message'
+                    }
+                ];
+
+                for (const testCase of testErrors) {
+                    const result = ollamaProvider.handleError(testCase.error, 'TEST_ERROR_CODE');
+                    expect(result).to.have.property('error', true);
+                    expect(result.content).to.include(testCase.expectedContent);
+                }
+            });
+
+            it('should return default fallback response for unhandled errors', async () => {
+                // Simulate handleError being called with undefined
+                const result = ollamaProvider.handleError(undefined, 'UNKNOWN_ERROR');
+
+                expect(result).to.have.property('error', true);
+                expect(result.content).to.include('An error occurred');
+            });
+        });
+
+        describe('Empty or incomplete responses', () => {
+            it('should handle empty response objects', async () => {
+                axiosInstance.post.resolves({ data: {} });
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('content');
+                expect(result.content).to.equal('');
+            });
+
+            it('should handle null response data', async () => {
+                axiosInstance.post.resolves({ data: null });
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('content');
+                expect(result.content).to.equal('');
+            });
+
+            it('should handle undefined response data', async () => {
+                axiosInstance.post.resolves({});
+
+                const result = await ollamaProvider.generateCompletion('test-model', 'Test prompt');
+
+                expect(result).to.have.property('content');
+                expect(result.content).to.equal('');
+            });
+        });
+
+        describe('Stream interruptions', () => {
+            it('should handle premature stream end', async () => {
+                // Create a stream that ends without sending done: true
+                const mockStream = {
+                    [Symbol.asyncIterator]: async function* () {
+                        yield Buffer.from(JSON.stringify({ response: 'Part 1', done: false }));
+                        // Stream ends without final chunk
+                    }
+                };
+
+                axiosInstance.post.resolves({ data: mockStream });
+
+                const callback = sinon.spy();
+
+                await ollamaProvider.streamCompletion('test-model', 'Test prompt', undefined, {}, callback);
+
+                expect(callback.calledOnce).to.be.true;
+                expect(callback.firstCall.args[0]).to.deep.equal({ content: 'Part 1', isComplete: false });
+            });
+
+            it('should handle stream with invalid JSON', async () => {
+                const mockStream = {
+                    [Symbol.asyncIterator]: async function* () {
+                        yield Buffer.from('Not JSON data');
+                        yield Buffer.from(JSON.stringify({ response: 'Valid part', done: false }));
+                    }
+                };
+
+                axiosInstance.post.resolves({ data: mockStream });
+
+                const callback = sinon.spy();
+
+                try {
+                    await ollamaProvider.streamCompletion('test-model', 'Test prompt', undefined, {}, callback);
+                    expect.fail('Should have thrown an error');
+                } catch (error) {
+                    expect(error).to.be.instanceOf(SyntaxError);
+                    expect(callback.called).to.be.false;
+                }
+            });
+
+            it('should handle missing content in stream chunks', async () => {
+                const mockStream = {
+                    [Symbol.asyncIterator]: async function* () {
+                        yield Buffer.from(JSON.stringify({ other_field: 'value', done: false }));
+                        yield Buffer.from(JSON.stringify({ response: 'Valid part', done: true }));
+                    }
+                };
+
+                axiosInstance.post.resolves({ data: mockStream });
+
+                const callback = sinon.spy();
+
+                await ollamaProvider.streamCompletion('test-model', 'Test prompt', undefined, {}, callback);
+
+                expect(callback.calledTwice).to.be.true;
+                expect(callback.firstCall.args[0].content).to.equal('');
+                expect(callback.secondCall.args[0].content).to.equal('Valid part');
+            });
+        });
+
+        describe('Broken status update handling', () => {
+            it('should handle errors in updateStatus method', async () => {
+                // Create a spy that can track if updateStatus was called
+                const updateStatusSpy = sinon.spy(ollamaProvider, 'updateStatus');
+
+                // Cause updateStatus to throw
+                sinon.stub(ollamaProvider, 'emit').throws(new Error('Event emission error'));
+
+                // This should not throw despite the event emission error
+                const available = await ollamaProvider.isAvailable();
+
+                expect(available).to.be.false;
+                expect(updateStatusSpy.called).to.be.true;
+            });
+        });
+    });
 });

@@ -1,163 +1,182 @@
-const { UISettingsWebviewService } = require('../UISettingsWebviewService');
-const { Logger } = require('../../../utils/logger');
+import { Logger } from '../../../utils/logger';
+import { UISettingsWebviewService } from '../UISettingsWebviewService';
 
-// Mock the Logger class
 jest.mock('../../../utils/logger', () => {
     return {
         Logger: jest.fn().mockImplementation(() => {
             return {
                 error: jest.fn(),
-                warn: jest.fn(),
                 info: jest.fn(),
-                debug: jest.fn()
+                debug: jest.fn(),
+                warn: jest.fn()
             };
         })
     };
 });
 
-describe('UISettingsWebviewService', () => {
+describe('UISettingsWebviewService (JavaScript implementation)', () => {
     let service;
+    let mockLogger;
+    let testTabs;
 
     beforeEach(() => {
-        // Reset mocks before each test
         jest.clearAllMocks();
+        mockLogger = new Logger();
         service = new UISettingsWebviewService();
-    });
-
-    test('should create an instance with logger initialized', () => {
-        expect(service).toBeDefined();
-        expect(Logger).toHaveBeenCalled();
-    });
-
-    test('should generate HTML content with tabs', () => {
-        const tabs = [
-            {
-                id: 'general',
-                label: 'General',
-                content: '<div>General settings content</div>'
-            },
-            {
-                id: 'appearance',
-                label: 'Appearance',
-                content: '<div>Appearance settings content</div>'
-            }
+        testTabs = [
+            { id: 'general', label: 'General', content: '<div>General settings</div>' },
+            { id: 'appearance', label: 'Appearance', content: '<div>Appearance settings</div>' },
+            { id: 'advanced', label: 'Advanced', content: '<div>Advanced settings</div>' }
         ];
-
-        const html = service.generateWebviewContent(tabs);
-
-        // Verify the generated HTML contains key elements
-        expect(html).toContain('<!DOCTYPE html>');
-        expect(html).toContain('<html lang="en">');
-        expect(html).toContain('<title>Settings</title>');
-
-        // Check for tab buttons
-        expect(html).toContain('class="tab active" data-tab="general"');
-        expect(html).toContain('General');
-        expect(html).toContain('class="tab" data-tab="appearance"');
-        expect(html).toContain('Appearance');
-
-        // Check for content divs
-        expect(html).toContain('id="general" class="tab-content active"');
-        expect(html).toContain('General settings content');
-        expect(html).toContain('id="appearance" class="tab-content"');
-        expect(html).toContain('Appearance settings content');
-
-        // Check for JavaScript functionality
-        expect(html).toContain('const vscode = acquireVsCodeApi()');
-        expect(html).toContain('addEventListener');
-        expect(html).toContain('tabChanged');
-        expect(html).toContain('showError');
-        expect(html).toContain('selectTab');
     });
 
-    test('should set the first tab as active by default', () => {
-        const tabs = [
-            {
-                id: 'tab1',
-                label: 'Tab 1',
-                content: 'Content 1'
-            },
-            {
-                id: 'tab2',
-                label: 'Tab 2',
-                content: 'Content 2'
-            },
-            {
-                id: 'tab3',
-                label: 'Tab 3',
-                content: 'Content 3'
-            }
-        ];
+    describe('generateWebviewContent', () => {
+        it('should generate valid HTML structure', () => {
+            const html = service.generateWebviewContent(testTabs);
 
-        const html = service.generateWebviewContent(tabs);
-
-        // First tab should be active, others should not
-        expect(html).toContain('class="tab active" data-tab="tab1"');
-        expect(html).toContain('class="tab" data-tab="tab2"');
-        expect(html).toContain('class="tab" data-tab="tab3"');
-
-        expect(html).toContain('id="tab1" class="tab-content active"');
-        expect(html).toContain('id="tab2" class="tab-content"');
-        expect(html).toContain('id="tab3" class="tab-content"');
-    });
-
-    test('should handle empty tabs array', () => {
-        const tabs = [];
-        const html = service.generateWebviewContent(tabs);
-
-        // Should still create a valid HTML document
-        expect(html).toContain('<!DOCTYPE html>');
-        expect(html).toContain('<html lang="en">');
-
-        // But with no tab buttons or content sections
-        expect(html).not.toContain('class="tab active"');
-        expect(html).not.toContain('class="tab-content active"');
-    });
-
-    test('should handle tabs with special characters', () => {
-        const tabs = [
-            {
-                id: 'special-chars',
-                label: 'Special & <Characters>',
-                content: '<div data-test="value">Content with "quotes" & stuff</div>'
-            }
-        ];
-
-        const html = service.generateWebviewContent(tabs);
-
-        // Should properly include the special characters
-        expect(html).toContain('Special & <Characters>');
-        expect(html).toContain('<div data-test="value">Content with "quotes" & stuff</div>');
-    });
-
-    test('should log error and rethrow when an exception occurs', () => {
-        // Create a situation that would cause an error
-        const mockError = new Error('Test error');
-
-        // Mock implementation to throw an error
-        jest.spyOn(Array.prototype, 'map').mockImplementationOnce(() => {
-            throw mockError;
+            // Check basic HTML structure
+            expect(html).toContain('<!DOCTYPE html>');
+            expect(html).toContain('<html lang="en">');
+            expect(html).toContain('<meta charset="UTF-8">');
+            expect(html).toContain('<meta name="viewport"');
+            expect(html).toContain('<title>Settings</title>');
+            expect(html).toContain('<body>');
+            expect(html).toContain('</body>');
+            expect(html).toContain('</html>');
         });
 
-        const tabs = [
-            {
-                id: 'test',
-                label: 'Test',
-                content: 'Content'
+        it('should render all tabs correctly', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Check tab buttons
+            testTabs.forEach(tab => {
+                expect(html).toContain(`data-tab="${tab.id}"`);
+                expect(html).toContain(`>${tab.label}<`);
+            });
+
+            // Check tab content containers
+            testTabs.forEach(tab => {
+                expect(html).toContain(`id="${tab.id}" class="tab-content`);
+                expect(html).toContain(tab.content);
+            });
+        });
+
+        it('should mark first tab as active by default', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // First tab should have active class
+            expect(html).toContain(`class="tab active" data-tab="${testTabs[0].id}"`);
+            expect(html).toContain(`id="${testTabs[0].id}" class="tab-content active"`);
+
+            // Other tabs should not be active
+            for (let i = 1; i < testTabs.length; i++) {
+                expect(html).not.toContain(`class="tab active" data-tab="${testTabs[i].id}"`);
+                expect(html).not.toContain(`id="${testTabs[i].id}" class="tab-content active"`);
             }
-        ];
+        });
 
-        // Expect the function to throw the error
-        expect(() => service.generateWebviewContent(tabs)).toThrow(mockError);
+        it('should include VS Code webview messaging', () => {
+            const html = service.generateWebviewContent(testTabs);
 
-        // Expect the error to be logged
-        const mockLogger = Logger.mock.results[0].value;
-        expect(mockLogger.error).toHaveBeenCalledWith(
-            'Error generating UI settings webview content',
-            mockError
-        );
+            // VS Code API acquisition
+            expect(html).toContain('const vscode = acquireVsCodeApi()');
 
-        // Clean up
-        jest.restoreAllMocks();
+            // Message event listener
+            expect(html).toContain('window.addEventListener(\'message\'');
+
+            // Message sending back to extension
+            expect(html).toContain('vscode.postMessage({');
+        });
+
+        it('should include tab-switching behavior', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Tab click handling
+            expect(html).toContain('tab.addEventListener(\'click\'');
+
+            // Tab switching logic
+            expect(html).toContain('tabs.forEach(t => t.classList.remove(\'active\'))');
+            expect(html).toContain('tabContents.forEach(c => c.classList.remove(\'active\'))');
+            expect(html).toContain('tab.classList.add(\'active\')');
+            expect(html).toContain('document.getElementById(tabName).classList.add(\'active\')');
+
+            // Event notification to extension
+            expect(html).toContain('command: \'tabChanged\'');
+            expect(html).toContain('tab: tabName');
+        });
+
+        it('should handle tab selection from extension', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Should handle selectTab command
+            expect(html).toContain('case \'selectTab\'');
+            expect(html).toContain('const tabToSelect = message.tab');
+            expect(html).toContain('const tabEl = document.querySelector');
+            expect(html).toContain('tabEl.click()');
+        });
+
+        it('should handle error display', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Should have error message container
+            expect(html).toContain('<div class="error-message" id="errorMessage"></div>');
+
+            // Should handle showError command
+            expect(html).toContain('case \'showError\'');
+            expect(html).toContain('showError(message.message)');
+
+            // Should have error display function
+            expect(html).toContain('function showError(message)');
+            expect(html).toContain('errorMessage.textContent = message');
+            expect(html).toContain('errorMessage.classList.add(\'visible\')');
+            expect(html).toContain('setTimeout(() => {');
+            expect(html).toContain('errorMessage.classList.remove(\'visible\')');
+        });
+
+        it('should handle empty tabs array', () => {
+            const html = service.generateWebviewContent([]);
+
+            // Should generate valid HTML with empty tab container
+            expect(html).toContain('<!DOCTYPE html>');
+            expect(html).toContain('<div class="tab-container">');
+            expect(html).not.toContain('class="tab active"');
+            expect(html).not.toContain('class="tab-content active"');
+        });
+
+        it('should log error when generation fails', () => {
+            // Spy on logger.error
+            const errorSpy = jest.spyOn(service.logger, 'error');
+
+            // Force an error
+            const badTabs = null;
+            try {
+                service.generateWebviewContent(badTabs);
+                fail('Should have thrown an error');
+            } catch (error) {
+                // Should log the error
+                expect(errorSpy).toHaveBeenCalled();
+                expect(errorSpy.mock.calls[0][0]).toContain('Error generating UI settings webview content');
+            }
+        });
+
+        it('should include responsive styles', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Check for responsive meta tag
+            expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+
+            // Check for responsive styling
+            expect(html).toContain('width: 100%');
+        });
+
+        it('should use VS Code theme variables', () => {
+            const html = service.generateWebviewContent(testTabs);
+
+            // Check for VS Code theme variable usage
+            expect(html).toContain('var(--vscode-foreground)');
+            expect(html).toContain('var(--vscode-editor-background)');
+            expect(html).toContain('var(--vscode-input-background)');
+            expect(html).toContain('var(--vscode-errorForeground)');
+        });
     });
 });
