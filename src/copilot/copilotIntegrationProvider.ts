@@ -1,127 +1,142 @@
 import * as vscode from 'vscode';
-import { CopilotIntegrationService, CopilotApiRequest, CopilotApiResponse } from './copilotIntegrationService';
-import { MultilingualPromptManager } from '../llm/multilingualPromptManager';
 
 /**
- * Provider for Copilot integration functionality
+ * Represents the result of a Copilot completion.
  */
-export class CopilotIntegrationProvider implements vscode.Disposable {
-    private readonly disposables: vscode.Disposable[] = [];
-    private readonly copilotService: CopilotIntegrationService;
-    private readonly promptManager: MultilingualPromptManager;
+export interface CopilotCompletionResult {
+    text: string;
+    model?: string;
+    tokens?: number;
+}
+
+/**
+ * Provider for integrating with GitHub Copilot.
+ */
+export class CopilotIntegrationProvider {
+    private extensionContext: vscode.ExtensionContext;
 
     /**
-     * Creates a new instance of the CopilotIntegrationProvider
-     * @param context The extension context
+     * Creates a new instance of the CopilotIntegrationProvider.
+     *
+     * @param context The VS Code extension context
      */
-    constructor(
-        private readonly context: vscode.ExtensionContext
-    ) {
-        this.copilotService = new CopilotIntegrationService(context);
-        this.promptManager = new MultilingualPromptManager();
-        
-        this.registerCommands();
+    constructor(context: vscode.ExtensionContext) {
+        this.extensionContext = context;
     }
 
     /**
-     * Registers commands for Copilot integration
+     * Gets a completion from Copilot.
+     *
+     * @param code The code to get a completion for
+     * @param prompt The prompt to use
+     * @returns A promise that resolves to the completion result
      */
-    private registerCommands(): void {
-        // Register commands for Copilot integration
-        this.disposables.push(
-            vscode.commands.registerCommand('copilot-ppa.forwardToCopilot', async (text: string) => {
-                await this.forwardToCopilot(text);
-            }),
-            
-            vscode.commands.registerCommand('copilot-ppa.sendToCopilotChat', async (text: string) => {
-                await this.sendToCopilotChat(text);
-            }),
-            
-            vscode.commands.registerCommand('copilot-ppa.getCompletionFromCopilot', async (prompt: string) => {
-                return await this.getCompletionFromCopilot(prompt);
-            })
-        );
-    }
-
-    /**
-     * Forwards text to Copilot for processing
-     * @param text The text to forward to Copilot
-     */
-    public async forwardToCopilot(text: string): Promise<CopilotApiResponse | null> {
+    public async getCompletion(code: string, prompt: string): Promise<CopilotCompletionResult> {
         try {
-            // Enhance the prompt with language directives if needed
-            const enhancedPrompt = this.promptManager.enhancePromptWithLanguage(text);
-            
-            const request: CopilotApiRequest = {
-                prompt: enhancedPrompt,
-                options: {
-                    temperature: 0.7,
-                    maxTokens: 800
-                }
+            // Get the Copilot extension
+            const copilotExtension = vscode.extensions.getExtension('GitHub.copilot');
+
+            if (!copilotExtension) {
+                throw new Error('GitHub Copilot extension not found');
+            }
+
+            // If the extension is not active, activate it
+            if (!copilotExtension.isActive) {
+                await copilotExtension.activate();
+            }
+
+            // Get the Copilot API
+            const copilotApi = copilotExtension.exports;
+
+            if (!copilotApi) {
+                throw new Error('GitHub Copilot API not available');
+            }
+
+            // Check if the getCompletionStream method is available
+            if (!copilotApi.getCompletionStream) {
+                // Try using an alternative API if the direct method isn't available
+                return this.fallbackCompletion(code, prompt);
+            }
+
+            // Get the completion from Copilot
+            const response = await copilotApi.getCompletionStream({
+                prompt: `${prompt}\n\n${code}`,
+                temperature: 0.7,
+                maxTokens: 1000
+            });
+
+            // Process the response
+            let result = '';
+            for await (const chunk of response) {
+                result += chunk.text;
+            }
+
+            return {
+                text: result,
+                model: response.model || 'Unknown',
+                tokens: response.tokens || 0
             };
-            
-            return await this.copilotService.sendPrompt(request);
         } catch (error) {
-            vscode.window.showErrorMessage(`Error forwarding to Copilot: ${error}`);
-            return null;
+            console.error('Error getting completion from Copilot:', error);
+            return this.fallbackCompletion(code, prompt);
         }
     }
 
     /**
-     * Sends text to the Copilot chat interface
-     * @param text The text to send to Copilot chat
+     * Fallback method for getting a completion when the direct API is not available.
+     *
+     * @param code The code to get a completion for
+     * @param prompt The prompt to use
+     * @returns A promise that resolves to the completion result
      */
-    public async sendToCopilotChat(text: string): Promise<void> {
+    private async fallbackCompletion(code: string, prompt: string): Promise<CopilotCompletionResult> {
         try {
-            // Enhance the prompt with language directives if needed
-            const enhancedPrompt = this.promptManager.enhancePromptWithLanguage(text);
-            
-            await this.copilotService.sendToCopilotChat(enhancedPrompt);
-            vscode.window.showInformationMessage('Message sent to Copilot Chat');
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error sending to Copilot Chat: ${error}`);
-        }
-    }
+            // For now, provide a basic fallback mechanism
+            // This could be improved to use the VS Code inline suggestions or other methods
 
-    /**
-     * Gets a completion from Copilot for the given prompt
-     * @param prompt The prompt to send to Copilot
-     */
-    public async getCompletionFromCopilot(prompt: string): Promise<string | null> {
-        try {
-            // Enhance the prompt with language directives if needed
-            const enhancedPrompt = this.promptManager.enhancePromptWithLanguage(prompt);
-            
-            const request: CopilotApiRequest = {
-                prompt: enhancedPrompt,
-                options: {
-                    temperature: 0.2, // Lower temperature for more deterministic completions
-                    maxTokens: 500
-                }
+            // Create a temporary document with the prompt and code
+            const document = await vscode.workspace.openTextDocument({
+                content: `${prompt}\n\n${code}\n\n`,
+                language: 'markdown'
+            });
+
+            // Show the document
+            const editor = await vscode.window.showTextDocument(document);
+
+            // Position the cursor at the end
+            const position = new vscode.Position(document.lineCount, 0);
+            editor.selection = new vscode.Selection(position, position);
+
+            // Trigger Copilot inline suggestions
+            await vscode.commands.executeCommand('editor.action.inlineSuggest.trigger');
+
+            // Wait for a moment to allow the suggestion to appear
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Accept the suggestion
+            await vscode.commands.executeCommand('editor.action.inlineSuggest.accept');
+
+            // Get the updated text
+            const updatedText = document.getText();
+            const responseText = updatedText.substring(updatedText.indexOf(code) + code.length).trim();
+
+            // Close the document without saving
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor', {
+                skipSave: true
+            });
+
+            return {
+                text: responseText || 'No completion available',
+                model: 'Unknown (Fallback)',
+                tokens: 0
             };
-            
-            const response = await this.copilotService.sendPrompt(request);
-            return response?.completion || null;
         } catch (error) {
-            vscode.window.showErrorMessage(`Error getting completion from Copilot: ${error}`);
-            return null;
-        }
-    }
-
-    /**
-     * Registers a callback for Copilot chat responses
-     * @param callback The callback function to call when a response is received
-     */
-    public registerChatResponseCallback(callback: (response: string) => void): vscode.Disposable {
-        return this.copilotService.registerChatResponseCallback(callback);
-    }
-
-    /**
-     * Disposes of resources
-     */
-    public dispose(): void {
-        for (const disposable of this.disposables) {
-            disposable.dispose();
+            console.error('Error in fallback completion:', error);
+            return {
+                text: 'Error getting completion from Copilot. Please try again later.',
+                model: 'Error',
+                tokens: 0
+            };
         }
     }
 }

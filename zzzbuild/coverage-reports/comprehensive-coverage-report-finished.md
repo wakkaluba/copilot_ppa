@@ -1323,3 +1323,21 @@
 - `src/llm/ollama-provider.ts` - Complete test coverage implemented with expanded error cases
 - `src/config.js` - Complete test coverage implemented with LLM-specific test coverage
 - `src/config.ts` - Complete test coverage implemented with LLM-specific test coverage
+- `src/llmProviders/llmSelectionView.js` - Complete test coverage implemented
+- `src/llmProviders/llmSelectionView.ts` - Complete test coverage implemented
+- `src/llmProviders/llmModels.js` - Complete test coverage implemented
+- `src/llmProviders/llmModels.ts` - Complete test coverage implemented
+- `src/llm/index.js` - Complete test coverage implemented
+- `src/llm/index.ts` - Complete test coverage implemented
+- `src/llm-providers/llmInterface.js` - Complete test coverage implemented
+- `src/llm-providers/llmInterface.ts` - Complete test coverage implemented
+- `src/llm-providers/llm-provider.interface.js` - Complete test coverage implemented
+- `src/llm-providers/llm-provider.interface.ts` - Complete test coverage implemented
+- `src/llm/multilingualPromptManager.js` - Complete test coverage implemented
+- `src/llm/multilingualPromptManager.ts` - Complete test coverage implemented
+- `src/llm/hardwareSpecs.js` - Complete test coverage verified in existing test files
+- `src/llm/hardwareSpecs.ts` - Complete test coverage verified in existing test files
+- `src/copilot/copilotChatIntegration.js` - Complete test coverage implemented with expanded tests
+- `src/copilot/copilotChatIntegration.ts` - Complete test coverage implemented with expanded tests
+- `src/llm/providerManager.js` - Complete test coverage implemented
+- `src/llm/providerManager.ts` - Complete test coverage implemented

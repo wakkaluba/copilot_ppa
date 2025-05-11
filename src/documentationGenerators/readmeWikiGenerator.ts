@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 import { LLMInterface } from '../llm/llmInterface';
+import { ContributingService } from './services/ContributingService';
+import { DocumentationDiffService } from './services/DocumentationDiffService';
 import { ProjectInfoService } from './services/ProjectInfoService';
 import { ReadmeService } from './services/ReadmeService';
-import { ContributingService } from './services/ContributingService';
 import { WikiService } from './services/WikiService';
-import { DocumentationDiffService } from './services/DocumentationDiffService';
 
 /**
  * Types of documentation that can be generated
@@ -57,25 +55,25 @@ export class ReadmeWikiGenerator {
     private registerCommands(): void {
         // Command to generate README
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.readme', 
+            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.readme',
                 async () => await this.generateReadme())
         );
 
         // Command to generate CONTRIBUTING guide
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.contributing', 
+            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.contributing',
                 async () => await this.generateContributing())
         );
 
         // Command to generate Wiki page
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.wiki', 
+            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.wiki',
                 async () => await this.generateWikiPage())
         );
 
         // Command to generate multiple documentation files
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.projectDocs', 
+            vscode.commands.registerCommand('localLLMAgent.generateDocumentation.projectDocs',
                 async () => await this.generateProjectDocumentation())
         );
     }
@@ -96,18 +94,33 @@ export class ReadmeWikiGenerator {
 
     /**
      * Generate a Wiki page file
+     * @param pageName Optional custom name for the wiki page
      */
-    public async generateWikiPage(): Promise<void> {
-        await this.wikiSvc.generatePage();
+    public async generateWikiPage(pageName?: string): Promise<void> {
+        await this.wikiSvc.generatePage(pageName);
     }
 
     /**
      * Generate multiple documentation files for the project
+     * @param type Optional type of documentation to generate
      */
-    public async generateProjectDocumentation(): Promise<void> {
-        await this.wikiSvc.generateAll();
+    public async generateProjectDocumentation(type?: DocumentationType): Promise<void> {
+        if (type === DocumentationType.README) {
+            await this.generateReadme();
+        } else if (type === DocumentationType.CONTRIBUTING) {
+            await this.generateContributing();
+        } else if (type === DocumentationType.WIKI_HOME ||
+                  type === DocumentationType.WIKI_GETTING_STARTED ||
+                  type === DocumentationType.WIKI_API ||
+                  type === DocumentationType.WIKI_EXAMPLES ||
+                  type === DocumentationType.WIKI_FAQ ||
+                  type === DocumentationType.WIKI_TROUBLESHOOTING) {
+            await this.wikiSvc.generatePage(type);
+        } else {
+            await this.wikiSvc.generateAll();
+        }
     }
 }
 
 // Import for os module to handle temporary files
-import * as os from 'os';
+

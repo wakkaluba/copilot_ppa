@@ -143,12 +143,13 @@ var ReadmeWikiGenerator = /** @class */ (function () {
     };
     /**
      * Generate a Wiki page file
+     * @param {string} [pageName] Optional custom name for the wiki page
      */
-    ReadmeWikiGenerator.prototype.generateWikiPage = function () {
+    ReadmeWikiGenerator.prototype.generateWikiPage = function (pageName) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.wikiSvc.generatePage()];
+                    case 0: return [4 /*yield*/, this.wikiSvc.generatePage(pageName)];
                     case 1:
                         _a.sent();
                         return [2 /*return*/];
@@ -158,15 +159,44 @@ var ReadmeWikiGenerator = /** @class */ (function () {
     };
     /**
      * Generate multiple documentation files for the project
+     * @param {DocumentationType} [type] Optional type of documentation to generate
      */
-    ReadmeWikiGenerator.prototype.generateProjectDocumentation = function () {
+    ReadmeWikiGenerator.prototype.generateProjectDocumentation = function (type) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.wikiSvc.generateAll()];
+                    case 0:
+                        if (!(type === DocumentationType.README)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.generateReadme()];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/];
+                        return [3 /*break*/, 10];
+                    case 2:
+                        if (!(type === DocumentationType.CONTRIBUTING)) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.generateContributing()];
+                    case 3:
+                        _a.sent();
+                        return [3 /*break*/, 10];
+                    case 4:
+                        if (!((type === DocumentationType.WIKI_HOME ||
+                            type === DocumentationType.WIKI_GETTING_STARTED ||
+                            type === DocumentationType.WIKI_API ||
+                            type === DocumentationType.WIKI_EXAMPLES ||
+                            type === DocumentationType.WIKI_FAQ ||
+                            type === DocumentationType.WIKI_TROUBLESHOOTING))) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.wikiSvc.generatePage(type)];
+                    case 5:
+                        _a.sent();
+                        return [3 /*break*/, 10];
+                    case 6: return [4 /*yield*/, this.wikiSvc.generateAll()];
+                    case 7:
+                        _a.sent();
+                        _a.label = 8;
+                    case 8:
+                        _a.label = 9;
+                    case 9:
+                        _a.label = 10;
+                    case 10: return [2 /*return*/];
                 }
             });
         });

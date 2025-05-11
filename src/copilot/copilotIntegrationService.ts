@@ -1,159 +1,142 @@
 import * as vscode from 'vscode';
+import { CopilotIntegrationProvider } from './copilotIntegrationProvider';
 
 /**
- * Interface for communication with Copilot API
- */
-export interface CopilotApiRequest {
-    prompt: string;
-    context?: string;
-    options?: CopilotRequestOptions;
-}
-
-/**
- * Options for Copilot API requests
- */
-export interface CopilotRequestOptions {
-    temperature?: number;
-    maxTokens?: number;
-    stopSequences?: string[];
-    model?: string;
-}
-
-/**
- * Response from Copilot API
- */
-export interface CopilotApiResponse {
-    completion: string;
-    logprobs?: number[];
-    model?: string;
-    finishReason?: string;
-}
-
-/**
- * Service for integrating with GitHub Copilot
+ * Service responsible for integrating with GitHub Copilot.
  */
 export class CopilotIntegrationService {
-    private readonly extensionContext: vscode.ExtensionContext;
-    private copilotExtension?: vscode.Extension<any>;
-    private isInitialized: boolean = false;
+    private provider: CopilotIntegrationProvider;
+    private extensionContext: vscode.ExtensionContext;
+    private isAvailable: boolean = false;
 
     /**
-     * Creates a new instance of the CopilotIntegrationService
-     * @param context The extension context
+     * Creates a new instance of the CopilotIntegrationService.
+     *
+     * @param context The VS Code extension context
+     * @param provider The Copilot integration provider
      */
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext, provider: CopilotIntegrationProvider) {
         this.extensionContext = context;
-        this.initialize();
+        this.provider = provider;
+        this.checkCopilotAvailability();
     }
 
     /**
-     * Initializes the service and connects to the Copilot extension
+     * Checks if GitHub Copilot is available.
+     *
+     * @returns A promise that resolves to true if Copilot is available, false otherwise
      */
-    private async initialize(): Promise<void> {
+    public async checkCopilotAvailability(): Promise<boolean> {
         try {
-            // Find the GitHub Copilot extension
-            this.copilotExtension = vscode.extensions.getExtension('GitHub.copilot');
-            
-            if (!this.copilotExtension) {
-                vscode.window.showWarningMessage('GitHub Copilot extension is not installed or not enabled.');
-                return;
-            }
+            // Try to get the Copilot extension
+            const copilotExtension = vscode.extensions.getExtension('GitHub.copilot');
 
-            // Ensure the extension is activated
-            if (!this.copilotExtension.isActive) {
-                await this.copilotExtension.activate();
-            }
-
-            this.isInitialized = true;
-            vscode.window.showInformationMessage('Successfully connected to GitHub Copilot.');
-        } catch (error) {
-            console.error('Failed to initialize Copilot integration:', error);
-            vscode.window.showErrorMessage(`Failed to initialize Copilot integration: ${error}`);
-        }
-    }
-
-    /**
-     * Checks if the Copilot integration is available
-     */
-    public isAvailable(): boolean {
-        return this.isInitialized && !!this.copilotExtension?.isActive;
-    }
-
-    /**
-     * Sends a prompt to Copilot and returns the response
-     * @param request The request to send to Copilot
-     */
-    public async sendPrompt(request: CopilotApiRequest): Promise<CopilotApiResponse | null> {
-        if (!this.isAvailable()) {
-            await this.initialize();
-            if (!this.isAvailable()) {
-                throw new Error('GitHub Copilot is not available');
-            }
-        }
-
-        try {
-            // Access the Copilot API - Note that this is conceptual as the actual API may differ
-            const copilotApi = this.copilotExtension?.exports;
-            
-            // This is a placeholder for the actual API call
-            // The actual implementation will depend on the Copilot extension's public API
-            const response = await copilotApi.provideSuggestion({
-                prompt: request.prompt,
-                context: request.context || '',
-                options: {
-                    temperature: request.options?.temperature || 0.7,
-                    maxTokens: request.options?.maxTokens || 800,
-                    stopSequences: request.options?.stopSequences || [],
-                    model: request.options?.model || 'default'
+            if (copilotExtension) {
+                // If the extension is not active, activate it
+                if (!copilotExtension.isActive) {
+                    await copilotExtension.activate();
                 }
-            });
 
-            return {
-                completion: response.suggestion || '',
-                model: response.model,
-                finishReason: response.finishReason
-            };
+                // Set availability to true
+                this.isAvailable = true;
+                return true;
+            }
+
+            this.isAvailable = false;
+            return false;
         } catch (error) {
-            console.error('Error sending prompt to Copilot:', error);
-            throw new Error(`Failed to get response from Copilot: ${error}`);
+            console.error('Error checking Copilot availability:', error);
+            this.isAvailable = false;
+            return false;
         }
     }
 
     /**
-     * Forwards a chat message to the Copilot chat interface
-     * @param message The message to send
+     * Gets whether Copilot is available.
+     *
+     * @returns True if Copilot is available, false otherwise
      */
-    public async sendToCopilotChat(message: string): Promise<void> {
-        if (!this.isAvailable()) {
-            throw new Error('GitHub Copilot is not available');
+    public isCopilotAvailable(): boolean {
+        return this.isAvailable;
+    }
+
+    /**
+     * Gets a completion from Copilot.
+     *
+     * @param code The code to get a completion for
+     * @param prompt The prompt to use
+     * @returns A promise that resolves to the completion
+     */
+    public async getCompletion(code: string, prompt: string): Promise<any> {
+        if (!this.isAvailable) {
+            throw new Error('Copilot is not available');
         }
 
-        try {
-            // This is conceptual - the actual API call will depend on Copilot's public API
-            await vscode.commands.executeCommand('github.copilot.chat.sendToCopilotChat', message);
+        return this.provider.getCompletion(code, prompt);
+    }
+
+    /**
+     * Processes selected code in the active editor with Copilot.
+     *
+     * @param editor The active text editor
+     * @returns A promise that resolves when the code has been processed
+     */
+    public async processSelectedCode(editor: vscode.TextEditor): Promise<void> {
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor');
             return;
-        } catch (error) {
-            console.error('Error sending message to Copilot Chat:', error);
-            throw new Error(`Failed to send message to Copilot Chat: ${error}`);
         }
-    }
 
-    /**
-     * Registers a callback for Copilot chat responses
-     * @param callback The callback function to call when a response is received
-     */
-    public registerChatResponseCallback(callback: (response: string) => void): vscode.Disposable {
-        // This is conceptual - the actual event subscription will depend on Copilot's public API
-        const disposable = vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('github.copilot.chat.lastResponse')) {
-                const response = vscode.workspace.getConfiguration('github.copilot.chat').get('lastResponse');
-                if (response) {
-                    callback(response as string);
-                }
-            }
+        const selection = editor.selection;
+        const document = editor.document;
+
+        // Get the selected text or the current line if nothing is selected
+        let code = '';
+        if (selection.isEmpty) {
+            const line = document.lineAt(selection.active.line);
+            code = line.text;
+        } else {
+            code = document.getText(selection);
+        }
+
+        if (!code.trim()) {
+            vscode.window.showErrorMessage('No code selected');
+            return;
+        }
+
+        // Show the input box for the prompt
+        const prompt = await vscode.window.showInputBox({
+            prompt: 'Enter a prompt for Copilot',
+            placeHolder: 'e.g., Explain this code, Optimize this code',
+            value: 'Explain this code in detail:'
         });
 
-        this.extensionContext.subscriptions.push(disposable);
-        return disposable;
+        if (!prompt) {
+            return; // User cancelled
+        }
+
+        try {
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Processing code with Copilot',
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0 });
+
+                const result = await this.getCompletion(code, prompt);
+
+                progress.report({ increment: 100 });
+
+                // Show the result in a new editor
+                const document = await vscode.workspace.openTextDocument({
+                    content: result.text,
+                    language: 'markdown'
+                });
+
+                await vscode.window.showTextDocument(document);
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error processing code: ${error.message}`);
+        }
     }
 }
