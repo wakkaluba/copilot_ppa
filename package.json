@@ -157,7 +157,8 @@
     "prepare": "husky install",
     "build:watch": "npm run watch",
     "dev": "npm run build:watch",
-    "clean": "rimraf out"
+    "clean": "rimraf out",
+    "create-test-folders": "node zzzscripts/create-test-folders.js"
   },
   "devDependencies": {
     "@gitbeaker/node": "^35.8.1",

@@ -308,3 +308,8 @@
 - ✅ Add unit tests for src/commands/conversationImportCommand.js and src/commands/conversationImportCommand.ts (100%)
 - ✅ Add unit tests for src/commands/conversationManagementCommand.js and src/commands/conversationManagementCommand.ts (100%)
 - ✅ Add unit tests for src/commands/displaySettingsCommand.js and src/commands/displaySettingsCommand.ts (100%)
+
+## Testing Infrastructure
+- 🔄 Create and run script to generate empty test folders for files missing tests (20%)
+  - Script located at `zzzscripts/create-test-folders.js`
+  - Run with `npm run create-test-folders`

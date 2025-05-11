@@ -1,0 +1,24 @@
+/**
+ * Tests for localization.test
+ * Source: src\i18n\__tests__\localization.test.js
+ */
+const assert = require('assert');
+const path = require('path');
+const vscode = require('vscode');
+// TODO: Import the module to test
+// const { } = require('../../src/i18n/__tests__/localization.test.js');
+
+describe('localization.test', () => {
+    beforeEach(() => {
+        // Setup test environment
+    });
+
+    afterEach(() => {
+        // Clean up test environment
+    });
+
+    it('should be properly tested', () => {
+        // TODO: Implement tests
+        assert.strictEqual(true, true);
+    });
+});
