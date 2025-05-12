@@ -135,7 +135,8 @@ export class ComplexityAnalysisCommand {
                 vscode.window.showInformationMessage(`Complexity analysis completed for ${results.length} files.`);
             } catch (error) {
                 console.error('Error analyzing workspace:', error);
-                vscode.window.showErrorMessage(`Error analyzing workspace: ${error.message}`);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                vscode.window.showErrorMessage(`Error analyzing workspace: ${errorMessage}`);
             }
         });
     }
@@ -157,14 +158,21 @@ export class ComplexityAnalysisCommand {
         } else {
             // No decorations, analyze and show
             const filePath = editor.document.uri.fsPath;
-            const result = await this.complexityAnalyzer.analyzeFile(filePath);
 
-            if (result) {
-                this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);
-                vscode.window.showInformationMessage('Complexity visualization enabled.');
-            } else {
-                vscode.window.showInformationMessage('File type not supported for complexity analysis.');
-            }
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Analyzing code complexity...',
+                cancellable: false
+            }, async () => {
+                const result = await this.complexityAnalyzer.analyzeFile(filePath);
+
+                if (result) {
+                    this.decorationDisposables = this.complexityAnalyzer.visualizeComplexity(editor, result);
+                    vscode.window.showInformationMessage('Complexity visualization enabled.');
+                } else {
+                    vscode.window.showInformationMessage('File type not supported for complexity analysis.');
+                }
+            });
         }
     }
 
