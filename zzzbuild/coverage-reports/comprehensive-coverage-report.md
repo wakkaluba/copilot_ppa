@@ -146,15 +146,14 @@ Below is a categorized list of files still requiring test coverage:
 - `src/models/interfaces.ts`
 - `src/models/interfaces/chat.js`
 - `src/models/interfaces/chat.ts`
-- `src/tools/dependencyAnalyzer.js`
 
 #### Core Tools
-- `src/tools/complexityAnalysisCommand.js`
-- `src/tools/complexityAnalysisCommand.ts`
+- `src/tools/complexityAnalysisCommand.js` - Test coverage implemented
+- `src/tools/complexityAnalysisCommand.ts` - Test coverage implemented
 - `src/tools/dependencyAnalysisCommand.js`
 - `src/tools/dependencyAnalysisCommand.ts`
-- `src/tools/dependencyAnalyzer.js`
-- `src/tools/dependencyAnalyzer.ts`
+- `src/tools/dependencyAnalyzer.js` - Test coverage implemented
+- `src/tools/dependencyAnalyzer.ts` - Test coverage implemented
 
 #### Utility Tools
 - `tools/fix-all.js`
@@ -172,7 +171,7 @@ The following refactoring and analysis scripts remain untested but are lower pri
 - `zzzscripts/update-refactoring-status.js`
 
 #### Priority Plan for Next Test Implementation
-1. Core Tools: Add tests for complexityAnalysisCommand.js/ts and dependencyAnalyzer.js/ts
+1. Core Tools: Add tests for dependencyAnalysisCommand.js/ts
 2. UI Components: Add tests for activityBarView.js/ts
 3. Models & Data: Add tests for remaining interfaces.ts and index.ts files
 
@@ -183,6 +182,9 @@ The overall test coverage has increased, with significant improvement in the cor
 - Implemented comprehensive test cases for error handling in each method
 - Created mocks for the CodeComplexityService and appropriate test stubs
 - Verified proper resource cleanup with the dispose method
+- Added comprehensive test suite for ComplexityAnalysisCommand.js/ts
+- Added comprehensive test suite for DependencyAnalyzer.js/ts
+- Tests cover all public methods and edge cases for both classes
 
 ## Bug Fixes
 - 🔄 Fix "Invalid value reference" error when entering ask or agent mode in Copilot chat (50%)

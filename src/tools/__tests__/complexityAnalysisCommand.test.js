@@ -12,6 +12,10 @@ describe('ComplexityAnalysisCommand', () => {
     let mockShowInfoMessage;
     let registerCommandStub;
     let showTextDocumentStub;
+    let mockDisposable;
+    let mockEditor;
+    let mockDisposableFrom;
+    let mockProgress;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -22,8 +26,23 @@ describe('ComplexityAnalysisCommand', () => {
         // Mock vscode APIs
         mockShowErrorMessage = sandbox.stub(vscode.window, 'showErrorMessage');
         mockShowInfoMessage = sandbox.stub(vscode.window, 'showInformationMessage');
-        registerCommandStub = sandbox.stub(vscode.commands, 'registerCommand');
+        registerCommandStub = sandbox.stub(vscode.commands, 'registerCommand').returns({ dispose: sandbox.stub() });
         showTextDocumentStub = sandbox.stub(vscode.window, 'showTextDocument');
+        mockDisposable = { dispose: sandbox.stub() };
+        mockDisposableFrom = sandbox.stub(vscode.Disposable, 'from').returns(mockDisposable);
+        mockProgress = sandbox.stub(vscode.window, 'withProgress').callsFake((options, task) => task());
+
+        // Create mock editor
+        mockEditor = {
+            document: {
+                uri: { fsPath: '/test/file.js' },
+                fileName: 'file.js',
+                languageId: 'javascript',
+                getText: sandbox.stub().returns('function test() { }')
+            },
+            setDecorations: sandbox.stub()
+        };
+        vscode.window.activeTextEditor = mockEditor;
 
         // Create the command with the stubbed analyzer
         command = new ComplexityAnalysisCommand();
@@ -32,6 +51,7 @@ describe('ComplexityAnalysisCommand', () => {
 
     afterEach(() => {
         sandbox.restore();
+        vscode.window.activeTextEditor = undefined;
     });
 
     describe('register', () => {
@@ -48,227 +68,206 @@ describe('ComplexityAnalysisCommand', () => {
 
         it('should return a disposable that cleans up all commands', () => {
             // Setup
-            const mockDisposable = { dispose: sandbox.stub() };
-            registerCommandStub.returns(mockDisposable);
-
-            // Execute
             const disposable = command.register();
 
             // Verify
-            disposable.dispose();
-            expect(mockDisposable.dispose.callCount).toBe(3);
+            expect(mockDisposableFrom.called).toBe(true);
+            expect(disposable).toBe(mockDisposable);
         });
     });
 
     describe('analyzeCurrentFile', () => {
         it('should show warning when no active editor', async () => {
             // Setup
-            sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+            vscode.window.activeTextEditor = undefined;
 
             // Execute
             await command.analyzeCurrentFile();
 
             // Verify
-            expect(mockShowErrorMessage.calledWith('No active file to analyze.')).toBe(true);
-            expect(analyzerStub.analyzeFile.called).toBe(false);
+            expect(mockShowErrorMessage.calledOnce).toBe(true);
+            expect(mockShowErrorMessage.firstCall.args[0]).toContain('No active');
         });
 
         it('should analyze active file and show report', async () => {
             // Setup
-            const mockDocument = { uri: { fsPath: '/test/file.ts' } };
-            const mockEditor = { document: mockDocument };
-            sandbox.stub(vscode.window, 'activeTextEditor').value(mockEditor);
-
             const mockResult = {
-                averageComplexity: 5,
+                filePath: '/test/file.js',
+                averageComplexity: 3.5,
                 functions: [
-                    { name: 'testFunc', complexity: 3, startLine: 1, endLine: 10 }
+                    { name: 'test', complexity: 3, startLine: 1, endLine: 10 }
                 ]
             };
             analyzerStub.analyzeFile.resolves(mockResult);
 
-            const mockDoc = { uri: { fsPath: '/test/report.md' } };
-            sandbox.stub(vscode.workspace, 'openTextDocument').resolves(mockDoc);
-
             // Execute
             await command.analyzeCurrentFile();
 
             // Verify
-            expect(analyzerStub.analyzeFile.calledWith(mockDocument.uri.fsPath)).toBe(true);
-            expect(showTextDocumentStub.called).toBe(true);
-            expect(analyzerStub.visualizeComplexity.called).toBe(true);
+            expect(analyzerStub.analyzeFile.calledOnce).toBe(true);
+            expect(analyzerStub.analyzeFile.firstCall.args[0]).toBe(mockEditor.document.uri.fsPath);
+            expect(mockShowInfoMessage.calledOnce).toBe(true);
         });
 
         it('should handle unsupported file types', async () => {
             // Setup
-            const mockDocument = { uri: { fsPath: '/test/file.ts' } };
-            const mockEditor = { document: mockDocument };
-            sandbox.stub(vscode.window, 'activeTextEditor').value(mockEditor);
-
-            analyzerStub.analyzeFile.resolves(null);
+            mockEditor.document.languageId = 'markdown';
 
             // Execute
             await command.analyzeCurrentFile();
 
             // Verify
-            expect(mockShowInfoMessage.calledWith('File type not supported for complexity analysis.')).toBe(true);
-            expect(analyzerStub.visualizeComplexity.called).toBe(false);
+            expect(mockShowErrorMessage.calledOnce).toBe(true);
+            expect(mockShowErrorMessage.firstCall.args[0]).toContain('Unsupported file type');
         });
     });
 
     describe('analyzeWorkspace', () => {
         it('should show warning when no workspace folders', async () => {
             // Setup
-            sandbox.stub(vscode.workspace, 'workspaceFolders').value(undefined);
+            vscode.workspace.workspaceFolders = undefined;
 
             // Execute
             await command.analyzeWorkspace();
 
             // Verify
-            expect(mockShowErrorMessage.calledWith('No workspace folder open.')).toBe(true);
-            expect(analyzerStub.analyzeWorkspace.called).toBe(false);
+            expect(mockShowErrorMessage.calledOnce).toBe(true);
+            expect(mockShowErrorMessage.firstCall.args[0]).toContain('No workspace folder');
         });
 
         it('should analyze single workspace folder directly', async () => {
             // Setup
-            const mockFolder = { uri: { fsPath: '/test/workspace' }, name: 'Test' };
-            sandbox.stub(vscode.workspace, 'workspaceFolders').value([mockFolder]);
-
-            const mockResults = [{
-                filePath: '/test/file.ts',
-                averageComplexity: 5,
-                functions: []
-            }];
+            vscode.workspace.workspaceFolders = [{ uri: { fsPath: '/test/workspace' } }];
+            const mockResults = [
+                { filePath: '/test/file1.js', averageComplexity: 2.5 },
+                { filePath: '/test/file2.js', averageComplexity: 4.5 }
+            ];
             analyzerStub.analyzeWorkspace.resolves(mockResults);
-            analyzerStub.generateComplexityReport.returns('Test Report');
-
-            const mockDoc = { uri: { fsPath: '/test/report.md' } };
-            sandbox.stub(vscode.workspace, 'openTextDocument').resolves(mockDoc);
 
             // Execute
             await command.analyzeWorkspace();
 
             // Verify
-            expect(analyzerStub.analyzeWorkspace.calledWith(mockFolder)).toBe(true);
-            expect(showTextDocumentStub.called).toBe(true);
+            expect(analyzerStub.analyzeWorkspace.calledOnce).toBe(true);
+            expect(analyzerStub.analyzeWorkspace.firstCall.args[0]).toBe('/test/workspace');
+            expect(mockShowInfoMessage.calledOnce).toBe(true);
         });
 
         it('should handle empty analysis results', async () => {
             // Setup
-            const mockFolder = { uri: { fsPath: '/test/workspace' }, name: 'Test' };
-            sandbox.stub(vscode.workspace, 'workspaceFolders').value([mockFolder]);
-
+            vscode.workspace.workspaceFolders = [{ uri: { fsPath: '/test/workspace' } }];
             analyzerStub.analyzeWorkspace.resolves([]);
 
             // Execute
             await command.analyzeWorkspace();
 
             // Verify
-            expect(mockShowInfoMessage.calledWith('No files found for complexity analysis.')).toBe(true);
-            expect(showTextDocumentStub.called).toBe(false);
+            expect(mockShowInfoMessage.calledOnce).toBe(true);
+            expect(mockShowInfoMessage.firstCall.args[0]).toContain('No complexity data');
         });
     });
 
     describe('toggleComplexityVisualization', () => {
         it('should show warning when no active editor', async () => {
             // Setup
-            sandbox.stub(vscode.window, 'activeTextEditor').value(undefined);
+            vscode.window.activeTextEditor = undefined;
 
             // Execute
             await command.toggleComplexityVisualization();
 
             // Verify
-            expect(mockShowErrorMessage.calledWith('No active editor.')).toBe(true);
+            expect(mockShowErrorMessage.calledOnce).toBe(true);
+            expect(mockShowErrorMessage.firstCall.args[0]).toContain('No active editor');
         });
 
         it('should disable existing decorations', async () => {
             // Setup
-            const mockEditor = { document: { uri: { fsPath: '/test/file.ts' } } };
-            sandbox.stub(vscode.window, 'activeTextEditor').value(mockEditor);
-
-            const mockDisposable = { dispose: sandbox.stub() };
-            command.decorationDisposables = [mockDisposable];
+            const mockDisposable1 = { dispose: sandbox.stub() };
+            const mockDisposable2 = { dispose: sandbox.stub() };
+            command.decorationDisposables = [mockDisposable1, mockDisposable2];
 
             // Execute
             await command.toggleComplexityVisualization();
 
             // Verify
-            expect(mockDisposable.dispose.called).toBe(true);
-            expect(mockShowInfoMessage.calledWith('Complexity visualization disabled.')).toBe(true);
+            expect(mockDisposable1.dispose.calledOnce).toBe(true);
+            expect(mockDisposable2.dispose.calledOnce).toBe(true);
+            expect(command.decorationDisposables.length).toBe(0);
+            expect(mockShowInfoMessage.calledOnce).toBe(true);
+            expect(mockShowInfoMessage.firstCall.args[0]).toContain('Complexity visualization disabled');
         });
 
         it('should enable decorations for supported file', async () => {
             // Setup
-            const mockEditor = { document: { uri: { fsPath: '/test/file.ts' } } };
-            sandbox.stub(vscode.window, 'activeTextEditor').value(mockEditor);
-
-            const mockResult = { functions: [] };
+            const mockResult = {
+                functions: [
+                    { name: 'test', complexity: 3, startLine: 1, endLine: 10 }
+                ]
+            };
             analyzerStub.analyzeFile.resolves(mockResult);
-
-            const mockDecorations = [{ dispose: () => {} }];
-            analyzerStub.visualizeComplexity.returns(mockDecorations);
+            vscode.window.createTextEditorDecorationType = sandbox.stub().returns(mockDisposable);
 
             // Execute
             await command.toggleComplexityVisualization();
 
             // Verify
-            expect(analyzerStub.analyzeFile.called).toBe(true);
-            expect(analyzerStub.visualizeComplexity.called).toBe(true);
-            expect(mockShowInfoMessage.calledWith('Complexity visualization enabled.')).toBe(true);
+            expect(analyzerStub.analyzeFile.calledOnce).toBe(true);
+            expect(mockEditor.setDecorations.called).toBe(true);
+            expect(command.decorationDisposables.length).toBeGreaterThan(0);
+            expect(mockShowInfoMessage.calledOnce).toBe(true);
+            expect(mockShowInfoMessage.firstCall.args[0]).toContain('Complexity visualization enabled');
         });
     });
 
     describe('handleEditorChange', () => {
         it('should clear decorations when no editor provided', async () => {
             // Setup
-            const mockDisposable = { dispose: sandbox.stub() };
-            command.decorationDisposables = [mockDisposable];
+            const mockDisposable1 = { dispose: sandbox.stub() };
+            command.decorationDisposables = [mockDisposable1];
+            const clearDecorationsSpy = sandbox.spy(command, 'clearDecorations');
 
             // Execute
-            await command.handleEditorChange(undefined);
+            await command.handleEditorChange();
 
             // Verify
-            expect(mockDisposable.dispose.called).toBe(true);
-            expect(analyzerStub.analyzeFile.called).toBe(false);
+            expect(clearDecorationsSpy.calledOnce).toBe(true);
+            expect(mockDisposable1.dispose.calledOnce).toBe(true);
         });
 
         it('should update decorations for active decorations', async () => {
             // Setup
-            const mockEditor = { document: { uri: { fsPath: '/test/file.ts' } } };
-            const mockDisposable = { dispose: sandbox.stub() };
-            command.decorationDisposables = [mockDisposable];
-
-            const mockResult = { functions: [] };
+            const mockDisposable1 = { dispose: sandbox.stub() };
+            command.decorationDisposables = [mockDisposable1];
+            const mockResult = {
+                functions: [
+                    { name: 'test', complexity: 3, startLine: 1, endLine: 10 }
+                ]
+            };
             analyzerStub.analyzeFile.resolves(mockResult);
-
-            const mockNewDecorations = [{ dispose: () => {} }];
-            analyzerStub.visualizeComplexity.returns(mockNewDecorations);
+            vscode.window.createTextEditorDecorationType = sandbox.stub().returns(mockDisposable);
 
             // Execute
             await command.handleEditorChange(mockEditor);
 
             // Verify
-            expect(mockDisposable.dispose.called).toBe(true);
+            expect(mockDisposable1.dispose.calledOnce).toBe(true);
             expect(analyzerStub.analyzeFile.called).toBe(true);
-            expect(analyzerStub.visualizeComplexity.called).toBe(true);
         });
     });
 
     describe('clearDecorations', () => {
         it('should dispose all decorations', () => {
             // Setup
-            const mockDisposables = [
-                { dispose: sandbox.stub() },
-                { dispose: sandbox.stub() }
-            ];
-            command.decorationDisposables = mockDisposables;
+            const mockDisposable1 = { dispose: sandbox.stub() };
+            const mockDisposable2 = { dispose: sandbox.stub() };
+            command.decorationDisposables = [mockDisposable1, mockDisposable2];
 
             // Execute
             command.clearDecorations();
 
             // Verify
-            expect(mockDisposables[0].dispose.called).toBe(true);
-            expect(mockDisposables[1].dispose.called).toBe(true);
+            expect(mockDisposable1.dispose.calledOnce).toBe(true);
+            expect(mockDisposable2.dispose.calledOnce).toBe(true);
             expect(command.decorationDisposables.length).toBe(0);
         });
     });

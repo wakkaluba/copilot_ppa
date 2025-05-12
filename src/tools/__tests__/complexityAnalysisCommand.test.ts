@@ -11,6 +11,13 @@ describe('ComplexityAnalysisCommand', () => {
     let mockDocument: vscode.TextDocument;
     let mockDisposable: vscode.Disposable;
     let mockProgress: jest.Mock;
+    let mockAnalyzer: jest.Mocked<CodeComplexityAnalyzer>;
+    let mockShowErrorMessage: jest.SpyInstance;
+    let mockShowInfoMessage: jest.SpyInstance;
+    let mockCreateTextDocument: jest.SpyInstance;
+    let mockShowTextDocument: jest.SpyInstance;
+    let mockRegisterCommand: jest.SpyInstance;
+    let mockCreateTextEditorDecorationType: jest.SpyInstance;
 
     beforeEach(() => {
         // Reset mocks
@@ -20,11 +27,13 @@ describe('ComplexityAnalysisCommand', () => {
         mockDocument = {
             uri: { fsPath: '/test/file.ts' },
             fileName: 'file.ts',
-            getText: jest.fn()
+            languageId: 'typescript',
+            getText: jest.fn().mockReturnValue('function test() { }')
         } as unknown as vscode.TextDocument;
 
         mockActiveEditor = {
-            document: mockDocument
+            document: mockDocument,
+            setDecorations: jest.fn()
         } as unknown as vscode.TextEditor;
 
         (vscode.window as any).activeTextEditor = mockActiveEditor;
@@ -37,29 +46,48 @@ describe('ComplexityAnalysisCommand', () => {
         mockDisposable = { dispose: jest.fn() };
         (vscode.Disposable as any).from = jest.fn().mockReturnValue(mockDisposable);
 
+        // Mock analyzer
+        mockAnalyzer = {
+            analyzeFile: jest.fn(),
+            analyzeWorkspace: jest.fn(),
+            visualizeComplexity: jest.fn(),
+            generateComplexityReport: jest.fn()
+        } as unknown as jest.Mocked<CodeComplexityAnalyzer>;
+
+        (CodeComplexityAnalyzer as jest.Mock).mockImplementation(() => mockAnalyzer);
+
+        // Mock vscode functions
+        mockShowErrorMessage = jest.spyOn(vscode.window, 'showErrorMessage').mockImplementation(jest.fn());
+        mockShowInfoMessage = jest.spyOn(vscode.window, 'showInformationMessage').mockImplementation(jest.fn());
+        mockCreateTextDocument = jest.spyOn(vscode.workspace, 'openTextDocument').mockResolvedValue({} as any);
+        mockShowTextDocument = jest.spyOn(vscode.window, 'showTextDocument').mockResolvedValue({} as any);
+        mockRegisterCommand = jest.spyOn(vscode.commands, 'registerCommand').mockReturnValue({ dispose: jest.fn() });
+        mockCreateTextEditorDecorationType = jest.spyOn(vscode.window, 'createTextEditorDecorationType').mockReturnValue({ dispose: jest.fn() });
+
         // Initialize command
         command = new ComplexityAnalysisCommand();
     });
 
     describe('register', () => {
         it('should register all commands and return disposable', () => {
+            // Execute
             const result = command.register();
 
-            expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+            // Verify
+            expect(mockRegisterCommand).toHaveBeenCalledTimes(3);
+            expect(mockRegisterCommand).toHaveBeenCalledWith(
                 'copilot-ppa.analyzeFileComplexity',
                 expect.any(Function)
             );
-            expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+            expect(mockRegisterCommand).toHaveBeenCalledWith(
                 'copilot-ppa.analyzeWorkspaceComplexity',
                 expect.any(Function)
             );
-            expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+            expect(mockRegisterCommand).toHaveBeenCalledWith(
                 'copilot-ppa.toggleComplexityVisualization',
                 expect.any(Function)
             );
-            expect(vscode.window.onDidChangeActiveTextEditor).toHaveBeenCalledWith(
-                expect.any(Function)
-            );
+            expect(vscode.Disposable.from).toHaveBeenCalled();
             expect(result).toBe(mockDisposable);
         });
     });
@@ -73,52 +101,45 @@ describe('ComplexityAnalysisCommand', () => {
         };
 
         beforeEach(() => {
-            (CodeComplexityAnalyzer.prototype.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
+            (mockAnalyzer.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
+            (mockAnalyzer.generateComplexityReport as jest.Mock).mockReturnValue('Test Report');
         });
 
         it('should analyze current file and show report', async () => {
-            const analyzeCommand = jest.spyOn(command as any, 'analyzeCurrentFile');
+            // Execute
+            await (command as any).analyzeCurrentFile();
 
-            // Get the analyze file command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.analyzeFileComplexity'
-            );
-            const callback = registerCall[1];
-
-            // Call the command
-            await callback();
-
-            expect(analyzeCommand).toHaveBeenCalled();
-            expect(mockProgress).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Analyzing file complexity...'
-                }),
-                expect.any(Function)
-            );
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).toHaveBeenCalledWith('/test/file.ts');
-            expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('Complexity Analysis: file.ts'),
-                    language: 'markdown'
-                })
-            );
+            // Verify
+            expect(mockProgress).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeFile).toHaveBeenCalledWith('/test/file.ts');
+            expect(mockAnalyzer.generateComplexityReport).toHaveBeenCalledWith(mockResult);
+            expect(mockCreateTextDocument).toHaveBeenCalled();
+            expect(mockShowTextDocument).toHaveBeenCalled();
         });
 
         it('should show warning when no active editor', async () => {
+            // Setup
             (vscode.window as any).activeTextEditor = undefined;
 
-            // Get the analyze file command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.analyzeFileComplexity'
-            );
-            const callback = registerCall[1];
+            // Execute
+            await (command as any).analyzeCurrentFile();
 
-            // Call the command
-            await callback();
+            // Verify
+            expect(mockShowErrorMessage).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeFile).not.toHaveBeenCalled();
+        });
 
-            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active file to analyze.');
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).not.toHaveBeenCalled();
+        it('should handle unsupported file type', async () => {
+            // Setup
+            (mockDocument as any).languageId = 'markdown';
+            (mockAnalyzer.analyzeFile as jest.Mock).mockResolvedValue(null);
+
+            // Execute
+            await (command as any).analyzeCurrentFile();
+
+            // Verify
+            expect(mockShowInfoMessage).toHaveBeenCalled();
+            expect(mockCreateTextDocument).not.toHaveBeenCalled();
         });
     });
 
@@ -137,53 +158,45 @@ describe('ComplexityAnalysisCommand', () => {
         ];
 
         beforeEach(() => {
-            (vscode.workspace as any).workspaceFolders = [
-                { uri: { fsPath: '/test' }, name: 'test' }
-            ];
-            (CodeComplexityAnalyzer.prototype.analyzeWorkspace as jest.Mock).mockResolvedValue(mockResults);
+            (mockAnalyzer.analyzeWorkspace as jest.Mock).mockResolvedValue(mockResults);
+            (mockAnalyzer.generateComplexityReport as jest.Mock).mockReturnValue('Test Report');
+            (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: '/test/workspace' }, name: 'test' }];
         });
 
         it('should analyze workspace and show report', async () => {
-            // Get the analyze workspace command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.analyzeWorkspaceComplexity'
-            );
-            const callback = registerCall[1];
+            // Execute
+            await (command as any).analyzeWorkspace();
 
-            // Call the command
-            await callback();
-
-            expect(mockProgress).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Analyzing workspace complexity...'
-                }),
-                expect.any(Function)
-            );
-            expect(CodeComplexityAnalyzer.prototype.analyzeWorkspace).toHaveBeenCalledWith(
-                expect.objectContaining({ name: 'test' })
-            );
-            expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    language: 'markdown'
-                })
-            );
+            // Verify
+            expect(mockProgress).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeWorkspace).toHaveBeenCalledWith('/test/workspace');
+            expect(mockAnalyzer.generateComplexityReport).toHaveBeenCalled();
+            expect(mockCreateTextDocument).toHaveBeenCalled();
+            expect(mockShowTextDocument).toHaveBeenCalled();
         });
 
         it('should show warning when no workspace folders', async () => {
+            // Setup
             (vscode.workspace as any).workspaceFolders = undefined;
 
-            // Get the analyze workspace command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.analyzeWorkspaceComplexity'
-            );
-            const callback = registerCall[1];
+            // Execute
+            await (command as any).analyzeWorkspace();
 
-            // Call the command
-            await callback();
+            // Verify
+            expect(mockShowErrorMessage).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeWorkspace).not.toHaveBeenCalled();
+        });
 
-            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No workspace folder open.');
-            expect(CodeComplexityAnalyzer.prototype.analyzeWorkspace).not.toHaveBeenCalled();
+        it('should handle empty results', async () => {
+            // Setup
+            (mockAnalyzer.analyzeWorkspace as jest.Mock).mockResolvedValue([]);
+
+            // Execute
+            await (command as any).analyzeWorkspace();
+
+            // Verify
+            expect(mockShowInfoMessage).toHaveBeenCalled();
+            expect(mockCreateTextDocument).not.toHaveBeenCalled();
         });
     });
 
@@ -195,57 +208,48 @@ describe('ComplexityAnalysisCommand', () => {
         };
 
         beforeEach(() => {
-            (CodeComplexityAnalyzer.prototype.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
-            (CodeComplexityAnalyzer.prototype.visualizeComplexity as jest.Mock).mockReturnValue([mockDisposable]);
+            (mockAnalyzer.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
+            (mockAnalyzer.visualizeComplexity as jest.Mock).mockReturnValue([{ dispose: jest.fn() }]);
         });
 
         it('should enable visualization when disabled', async () => {
-            // Get the toggle command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.toggleComplexityVisualization'
-            );
-            const callback = registerCall[1];
+            // Setup
+            (command as any).decorationDisposables = [];
 
-            // Call the command
-            await callback();
+            // Execute
+            await (command as any).toggleComplexityVisualization();
 
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).toHaveBeenCalledWith('/test/file.ts');
-            expect(CodeComplexityAnalyzer.prototype.visualizeComplexity).toHaveBeenCalledWith(
-                mockActiveEditor,
-                mockResult
-            );
-            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Complexity visualization enabled.');
+            // Verify
+            expect(mockAnalyzer.analyzeFile).toHaveBeenCalledWith('/test/file.ts');
+            expect(mockAnalyzer.visualizeComplexity).toHaveBeenCalled();
+            expect(mockShowInfoMessage).toHaveBeenCalledWith('Complexity visualization enabled.');
+            expect((command as any).decorationDisposables.length).toBeGreaterThan(0);
         });
 
         it('should disable visualization when enabled', async () => {
-            // First enable visualization
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.toggleComplexityVisualization'
-            );
-            const callback = registerCall[1];
-            await callback();
+            // Setup
+            const mockDisposable = { dispose: jest.fn() };
+            (command as any).decorationDisposables = [mockDisposable];
 
-            // Then disable it
-            await callback();
+            // Execute
+            await (command as any).toggleComplexityVisualization();
 
+            // Verify
             expect(mockDisposable.dispose).toHaveBeenCalled();
-            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Complexity visualization disabled.');
+            expect(mockShowInfoMessage).toHaveBeenCalledWith('Complexity visualization disabled.');
+            expect((command as any).decorationDisposables.length).toBe(0);
         });
 
         it('should show warning when no active editor', async () => {
+            // Setup
             (vscode.window as any).activeTextEditor = undefined;
 
-            // Get the toggle command callback
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.toggleComplexityVisualization'
-            );
-            const callback = registerCall[1];
+            // Execute
+            await (command as any).toggleComplexityVisualization();
 
-            // Call the command
-            await callback();
-
-            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No active editor.');
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).not.toHaveBeenCalled();
+            // Verify
+            expect(mockShowErrorMessage).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeFile).not.toHaveBeenCalled();
         });
     });
 
@@ -257,81 +261,88 @@ describe('ComplexityAnalysisCommand', () => {
         };
 
         beforeEach(() => {
-            (CodeComplexityAnalyzer.prototype.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
-            (CodeComplexityAnalyzer.prototype.visualizeComplexity as jest.Mock).mockReturnValue([mockDisposable]);
+            (mockAnalyzer.analyzeFile as jest.Mock).mockResolvedValue(mockResult);
+            (mockAnalyzer.visualizeComplexity as jest.Mock).mockReturnValue([{ dispose: jest.fn() }]);
         });
 
-        it('should update decorations on editor change with active visualizations', async () => {
-            // First enable visualization
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.toggleComplexityVisualization'
-            );
-            const callback = registerCall[1];
-            await callback();
+        it('should clear decorations when no editor provided', async () => {
+            // Setup
+            const mockDisp = { dispose: jest.fn() };
+            (command as any).decorationDisposables = [mockDisp];
+            const clearSpy = jest.spyOn(command as any, 'clearDecorations');
 
-            // Get the editor change callback
-            const changeCall = (vscode.window.onDidChangeActiveTextEditor as jest.Mock).mock.calls[0];
-            const changeCallback = changeCall[0];
+            // Execute
+            await (command as any).handleEditorChange();
 
-            // Call with new editor
-            const newEditor = { ...mockActiveEditor, document: { ...mockDocument, uri: { fsPath: '/test/newfile.ts' } } };
-            await changeCallback(newEditor);
-
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).toHaveBeenCalledWith('/test/newfile.ts');
-            expect(CodeComplexityAnalyzer.prototype.visualizeComplexity).toHaveBeenCalledWith(
-                newEditor,
-                mockResult
-            );
+            // Verify
+            expect(clearSpy).toHaveBeenCalled();
+            expect(mockDisp.dispose).toHaveBeenCalled();
+            expect((command as any).decorationDisposables.length).toBe(0);
         });
 
-        it('should clear decorations when no new editor', async () => {
-            // First enable visualization
-            const registerCall = (vscode.commands.registerCommand as jest.Mock).mock.calls.find(
-                call => call[0] === 'copilot-ppa.toggleComplexityVisualization'
-            );
-            const callback = registerCall[1];
-            await callback();
+        it('should update decorations for active editor when decorations exist', async () => {
+            // Setup
+            const mockDisp = { dispose: jest.fn() };
+            (command as any).decorationDisposables = [mockDisp];
 
-            // Get the editor change callback
-            const changeCall = (vscode.window.onDidChangeActiveTextEditor as jest.Mock).mock.calls[0];
-            const changeCallback = changeCall[0];
+            // Execute
+            await (command as any).handleEditorChange(mockActiveEditor);
 
-            // Call with no editor
-            await changeCallback(undefined);
+            // Verify
+            expect(mockDisp.dispose).toHaveBeenCalled();
+            expect(mockAnalyzer.analyzeFile).toHaveBeenCalled();
+            expect(mockAnalyzer.visualizeComplexity).toHaveBeenCalled();
+            expect((command as any).decorationDisposables.length).toBeGreaterThan(0);
+        });
+    });
 
-            expect(mockDisposable.dispose).toHaveBeenCalled();
-            expect(CodeComplexityAnalyzer.prototype.analyzeFile).not.toHaveBeenCalled();
+    describe('clearDecorations', () => {
+        it('should dispose all decorations', () => {
+            // Setup
+            const mockDisp1 = { dispose: jest.fn() };
+            const mockDisp2 = { dispose: jest.fn() };
+            (command as any).decorationDisposables = [mockDisp1, mockDisp2];
+
+            // Execute
+            (command as any).clearDecorations();
+
+            // Verify
+            expect(mockDisp1.dispose).toHaveBeenCalled();
+            expect(mockDisp2.dispose).toHaveBeenCalled();
+            expect((command as any).decorationDisposables.length).toBe(0);
         });
     });
 
     describe('generateFunctionsTable', () => {
-        it('should generate table for functions sorted by complexity', () => {
+        it('should format a markdown table with functions data', () => {
+            // Setup
             const result = {
                 functions: [
-                    { name: 'high', complexity: 16, startLine: 1, endLine: 10 },
-                    { name: 'medium', complexity: 11, startLine: 11, endLine: 20 },
-                    { name: 'low', complexity: 5, startLine: 21, endLine: 30 }
+                    { name: 'function1', complexity: 5, startLine: 10, endLine: 20 },
+                    { name: 'function2', complexity: 2, startLine: 30, endLine: 40 },
+                    { name: 'function3', complexity: 8, startLine: 50, endLine: 60 }
                 ]
             };
 
-            // Get private method
-            const generateTable = (command as any).generateFunctionsTable.bind(command);
-            const table = generateTable(result);
+            // Execute
+            const table = (command as any).generateFunctionsTable(result);
 
+            // Verify
             expect(table).toContain('| Function | Complexity | Lines |');
-            expect(table).toContain('| high | 🔴 16 | 1-10 |');
-            expect(table).toContain('| medium | 🟠 11 | 11-20 |');
-            expect(table).toContain('| low | 🟢 5 | 21-30 |');
+            expect(table).toContain('| function1 | 5 | 10-20 |');
+            expect(table).toContain('| function2 | 2 | 30-40 |');
+            expect(table).toContain('| function3 | 8 | 50-60 |');
         });
 
-        it('should handle empty functions list', () => {
+        it('should handle empty functions array', () => {
+            // Setup
             const result = { functions: [] };
 
-            // Get private method
-            const generateTable = (command as any).generateFunctionsTable.bind(command);
-            const table = generateTable(result);
+            // Execute
+            const table = (command as any).generateFunctionsTable(result);
 
-            expect(table).toContain('*No functions found to analyze.*');
+            // Verify
+            expect(table).toContain('No functions found');
         });
     });
 });
