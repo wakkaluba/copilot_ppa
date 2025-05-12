@@ -189,6 +189,58 @@ var CopilotIntegrationService = /** @class */ (function () {
         this.extensionContext.subscriptions.push(disposable);
         return disposable;
     };
+    /**
+     * Starts a chat session with Copilot in the specified mode
+     * @param mode The mode to start the chat in ('ask' or 'agent')
+     */
+    CopilotIntegrationService.prototype.startChat = function (mode) {
+        return __awaiter(this, void 0, void 0, function () {
+            var error_4;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        // Validate mode is supported
+                        if (!['ask', 'agent'].includes(mode)) {
+                            throw new Error("Unsupported chat mode: ".concat(mode));
+                        }
+                        // Ensure required references exist before accessing them
+                        if (!this.chatService || !this.workspaceState) {
+                            return [2 /*return*/, this.initialize().then(function () { return __awaiter(_this, void 0, void 0, function () {
+                                    var context, chatParams;
+                                    return __generator(this, function (_a) {
+                                        context = this.workspaceState === null || this.workspaceState === void 0 ? void 0 : this.workspaceState.getContext();
+                                        chatParams = {
+                                            mode: mode,
+                                            workspaceId: (context === null || context === void 0 ? void 0 : context.workspaceId) || null,
+                                            activeFile: this.workspaceState === null || this.workspaceState === void 0 ? void 0 : this.workspaceState.getActiveFile()
+                                        };
+                                        return [2 /*return*/, this.chatService.createChat(chatParams)];
+                                    });
+                                }); });
+                        }
+                        // Safe access to workspace context
+                        context = this.workspaceState.getContext();
+                        // Create chat params with fallbacks to prevent invalid references
+                        chatParams = {
+                            mode: mode,
+                            workspaceId: context.workspaceId || null,
+                            activeFile: this.workspaceState.getActiveFile() || null
+                        };
+                        return [4 /*yield*/, this.chatService.createChat(chatParams)];
+                    case 1:
+                        return [2 /*return*/, _a.sent()];
+                    case 2:
+                        error_4 = _a.sent();
+                        console.error('Error starting chat:', error_4);
+                        vscode.window.showErrorMessage("Failed to start ".concat(mode, " chat: ").concat(error_4.message));
+                        throw error_4;
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
     return CopilotIntegrationService;
 }());
 exports.CopilotIntegrationService = CopilotIntegrationService;
+//# sourceMappingURL=copilotIntegrationService.js.map
