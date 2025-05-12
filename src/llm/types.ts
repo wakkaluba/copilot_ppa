@@ -247,3 +247,10 @@ export interface SystemInfo {
         vram: number;    // in MB
     };
 }
+
+export interface ILogger {
+    debug(message: string, ...args: any[]): void;
+    info(message: string, ...args: any[]): void;
+    warn(message: string, ...args: any[]): void;
+    error(message: string | Error, ...args: any[]): void;
+}
