@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as vscode from 'vscode';
 import { mockWebviewView } from '../../../__mocks__/mockWebview';
 import { ActivityBarView } from '../activityBarView';
@@ -83,6 +84,28 @@ describe('ActivityBarView', () => {
 
             expect(mockView.webview.postMessage).toHaveBeenCalledWith({ type: 'update' });
         });
+
+        it('should handle message errors gracefully', async () => {
+            const mockView = mockWebviewView();
+            // Mock console.error to spy on it
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            await activityBarView.initialize();
+
+            const providerArg = mockRegisterProvider.mock.calls[0][1];
+            await providerArg.resolveWebviewView(mockView);
+
+            // Get message handler and simulate a message that will throw
+            const messageHandler = mockView.webview.onDidReceiveMessage.mock.calls[0][0];
+            mockView.webview.postMessage.mockRejectedValue(new Error('Test error'));
+
+            await messageHandler({ type: 'refresh' });
+
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Error handling message:', expect.any(Error));
+
+            // Clean up
+            consoleErrorSpy.mockRestore();
+        });
     });
 
     describe('dispose', () => {
@@ -93,11 +116,13 @@ describe('ActivityBarView', () => {
 
             await activityBarView.initialize();
 
-            const providerArg = mockRegisterProvider.mock.calls[0][1];
-            await providerArg.resolveWebviewView(mockView);
+            // Track this disposable directly
+            activityBarView['_disposables'].push(mockDisposable);
 
+            // Dispose of the view
             activityBarView.dispose();
 
+            // Now verify the disposal
             expect(mockDisposable.dispose).toHaveBeenCalled();
         });
     });

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 
 // Import Jest functions
-const { beforeEach, afterAll } = require('@jest/globals');
+const { beforeEach } = require('@jest/globals');
 
 // Mock VS Code's Event and EventEmitter
 var MockEventEmitter = /** @class */ (function () {
@@ -168,7 +168,7 @@ jest.mock('vscode', function () { return ({
     }
 }); }, { virtual: true });
 // Reset all mocks before each test
-beforeEach(function () {
+beforeEach(() => {
     jest.clearAllMocks();
 });
 // Set global testing timeouts

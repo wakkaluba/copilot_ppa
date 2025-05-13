@@ -150,8 +150,8 @@ Below is a categorized list of files still requiring test coverage:
 #### Core Tools
 - `src/tools/complexityAnalysisCommand.js` - Test coverage implemented
 - `src/tools/complexityAnalysisCommand.ts` - Test coverage implemented
-- `src/tools/dependencyAnalysisCommand.js`
-- `src/tools/dependencyAnalysisCommand.ts`
+- `src/tools/dependencyAnalysisCommand.js` - Test coverage implemented
+- `src/tools/dependencyAnalysisCommand.ts` - Test coverage implemented
 - `src/tools/dependencyAnalyzer.js` - Test coverage implemented
 - `src/tools/dependencyAnalyzer.ts` - Test coverage implemented
 
@@ -171,7 +171,7 @@ The following refactoring and analysis scripts remain untested but are lower pri
 - `zzzscripts/update-refactoring-status.js`
 
 #### Priority Plan for Next Test Implementation
-1. Core Tools: Add tests for dependencyAnalysisCommand.js/ts
+1. Core Tools: Add tests for dependencyAnalysisCommand.ts (JavaScript tests now implemented)
 2. UI Components: Add tests for activityBarView.js/ts
 3. Models & Data: Add tests for remaining interfaces.ts and index.ts files
 
