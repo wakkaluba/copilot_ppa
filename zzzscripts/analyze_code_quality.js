@@ -1,6 +1,6 @@
 /**
  * Code Quality Analyzer for VSCode Local LLM Agent
- * 
+ *
  * This script performs comprehensive code quality analysis:
  * - Cyclomatic complexity
  * - Maintainability index
@@ -55,11 +55,12 @@ function getTypeScriptFiles() {
         return fileCache.get(cacheKey);
     }
 
-    const files = glob.sync('**/*.{ts,tsx}', {
+    const files = glob.sync('**/*.ts', {
         ignore: config.ignorePatterns,
         cwd: config.src,
         absolute: true
     });
+
     fileCache.set(cacheKey, files);
     return files;
 }
@@ -69,7 +70,7 @@ function getTypeScriptFiles() {
  */
 async function analyzeComplexity() {
     console.log('📊 Analyzing code complexity...');
-    
+
     const results = {
         averageComplexity: 0,
         complexFunctions: [],
@@ -102,12 +103,12 @@ async function analyzeComplexity() {
                 }
 
                 fileCount++;
-                
+
                 // Process function complexity
                 report.functions.forEach(func => {
                     totalComplexity += func.complexity.cyclomatic;
                     totalCognitiveComplexity += func.complexity.cognitive || 0;
-                    
+
                     if (func.complexity.cyclomatic > config.thresholds.complexity) {
                         results.complexFunctions.push({
                             file,
@@ -126,10 +127,10 @@ async function analyzeComplexity() {
                         });
                     }
                 });
-                
+
                 // Process maintainability
                 totalMaintainability += report.maintainability;
-                
+
                 if (report.maintainability < config.thresholds.maintainability) {
                     results.poorMaintainability.push({
                         file,
@@ -140,13 +141,13 @@ async function analyzeComplexity() {
                 console.warn(`Failed to analyze complexity for ${file}: ${error.message}`);
             }
         }
-        
+
         if (fileCount > 0) {
             results.averageComplexity = totalComplexity / fileCount;
             results.averageMaintainability = totalMaintainability / fileCount;
             results.cognitiveComplexity.average = totalCognitiveComplexity / fileCount;
         }
-        
+
         return results;
     } catch (error) {
         console.error('Failed to analyze code complexity:', error.message);
@@ -173,7 +174,7 @@ function readFileContent(filePath) {
  */
 async function detectDuplication() {
     console.log('🔍 Detecting code duplication...');
-    
+
     const duplicationData = {
         percentage: 0,
         duplicates: [],
@@ -183,16 +184,16 @@ async function detectDuplication() {
     try {
         const outputFile = path.join(config.reporting.outputDir, 'duplication-report.json');
         execSync(`jscpd ${config.src} --output ${config.reporting.outputDir} --reporters json --threshold ${config.thresholds.duplication}`);
-        
+
         if (fs.existsSync(outputFile)) {
             const report = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
             duplicationData.percentage = report.statistics.total.percentage;
-            
+
             // Process duplicates with additional context
             report.duplicates.forEach(dupe => {
                 const sourceContext = extractContext(dupe.source.path, dupe.source.start, dupe.source.end);
                 const targetContext = extractContext(dupe.target.path, dupe.target.start, dupe.target.end);
-                
+
                 duplicationData.duplicates.push({
                     sourceFile: dupe.source.path,
                     targetFile: dupe.target.path,
@@ -202,11 +203,11 @@ async function detectDuplication() {
                     fragment: dupe.fragment
                 });
             });
-            
+
             // Identify duplication hotspots
             identifyHotspots(duplicationData);
         }
-        
+
         return duplicationData;
     } catch (error) {
         console.error('Failed to detect code duplication:', error.message);
@@ -223,7 +224,7 @@ function extractContext(filePath, start, end, contextLines = 2) {
         const lines = content.split('\n');
         const contextStart = Math.max(0, start - contextLines);
         const contextEnd = Math.min(lines.length, end + contextLines);
-        
+
         return {
             before: lines.slice(contextStart, start).join('\n'),
             duplicate: lines.slice(start, end).join('\n'),
@@ -239,25 +240,25 @@ function extractContext(filePath, start, end, contextLines = 2) {
  */
 function identifyHotspots(data) {
     const fileFrequency = new Map();
-    
+
     data.duplicates.forEach(dupe => {
         fileFrequency.set(dupe.sourceFile, (fileFrequency.get(dupe.sourceFile) || 0) + 1);
         fileFrequency.set(dupe.targetFile, (fileFrequency.get(dupe.targetFile) || 0) + 1);
     });
-    
+
     // Files with the most duplications
     const hotspots = Array.from(fileFrequency.entries())
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([file, count]) => ({ file, duplicateCount: count }));
-    
+
     data.hotspots = hotspots;
 }
 
 // Analyze comments to code ratio
 function analyzeCommentsRatio() {
   console.log('📝 Analyzing comments to code ratio...');
-  
+
   const results = {
     totalLines: 0,
     codeLines: 0,
@@ -265,14 +266,14 @@ function analyzeCommentsRatio() {
     ratio: 0,
     fileResults: []
   };
-  
+
   const files = getTypeScriptFiles();
-  
+
   files.forEach(file => {
     try {
       const content = fs.readFileSync(file, 'utf8');
       const lines = content.split('\n');
-      
+
       let fileStats = {
         file: file,
         totalLines: lines.length,
@@ -280,12 +281,12 @@ function analyzeCommentsRatio() {
         commentLines: 0,
         ratio: 0
       };
-      
+
       let inBlockComment = false;
-      
+
       lines.forEach(line => {
         const trimmedLine = line.trim();
-        
+
         if (inBlockComment) {
           fileStats.commentLines++;
           if (trimmedLine.includes('*/')) {
@@ -302,51 +303,51 @@ function analyzeCommentsRatio() {
           fileStats.codeLines++;
         }
       });
-      
+
       fileStats.ratio = fileStats.codeLines / (fileStats.commentLines || 1);
-      
+
       results.totalLines += fileStats.totalLines;
       results.codeLines += fileStats.codeLines;
       results.commentLines += fileStats.commentLines;
-      
+
       results.fileResults.push(fileStats);
     } catch (error) {
       console.warn(`Failed to analyze comments for ${file}: ${error.message}`);
     }
   });
-  
+
   results.ratio = results.codeLines / (results.commentLines || 1);
-  
+
   return results;
 }
 
 // Analyze dependencies
 function analyzeDependencies() {
   console.log('🔗 Analyzing dependencies...');
-  
+
   try {
     const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-    
+
     // Check for outdated dependencies
     const outdatedOutput = execSync('npm outdated --json', { encoding: 'utf8' });
     let outdatedDeps = {};
-    
+
     try {
       outdatedDeps = JSON.parse(outdatedOutput);
     } catch (e) {
       // If no outdated dependencies, output may not be valid JSON
       outdatedDeps = {};
     }
-    
+
     const dependencies = {
-      total: Object.keys(packageJson.dependencies || {}).length + 
+      total: Object.keys(packageJson.dependencies || {}).length +
              Object.keys(packageJson.devDependencies || {}).length,
       direct: Object.keys(packageJson.dependencies || {}).length,
       dev: Object.keys(packageJson.devDependencies || {}).length,
       outdated: Object.keys(outdatedDeps).length,
       outdatedList: outdatedDeps
     };
-    
+
     return dependencies;
   } catch (error) {
     console.error('Failed to analyze dependencies:', error.message);
@@ -375,46 +376,46 @@ function estimateTechnicalDebt(complexity, duplication, commentsRatio, dependenc
       priority: 'low'
     }
   };
-  
+
   // Calculate debt from complexity
   if (complexity.averageComplexity > config.thresholds.complexity) {
-    debtScore.categories.complexity = 
-      (complexity.averageComplexity - config.thresholds.complexity) / 
+    debtScore.categories.complexity =
+      (complexity.averageComplexity - config.thresholds.complexity) /
       config.thresholds.complexity * 100;
   }
   debtScore.categories.complexity += complexity.complexFunctions.length * 5;
-  
+
   // Calculate debt from duplication
   if (duplication.percentage > config.thresholds.duplication) {
-    debtScore.categories.duplication = 
-      (duplication.percentage - config.thresholds.duplication) / 
+    debtScore.categories.duplication =
+      (duplication.percentage - config.thresholds.duplication) /
       config.thresholds.duplication * 100;
   }
-  
+
   // Calculate debt from documentation
   if (commentsRatio.ratio > config.thresholds.codeToCommentRatio) {
-    debtScore.categories.documentation = 
-      (commentsRatio.ratio - config.thresholds.codeToCommentRatio) / 
+    debtScore.categories.documentation =
+      (commentsRatio.ratio - config.thresholds.codeToCommentRatio) /
       config.thresholds.codeToCommentRatio * 100;
   }
-  
+
   // Calculate debt from dependencies
-  debtScore.categories.dependencies = 
+  debtScore.categories.dependencies =
     (dependencies.outdated / (dependencies.total || 1)) * 100;
-  
+
   // Calculate overall score (weighted average)
-  debtScore.overall = 
+  debtScore.overall =
     (debtScore.categories.complexity * 0.4) +
     (debtScore.categories.duplication * 0.3) +
     (debtScore.categories.documentation * 0.2) +
     (debtScore.categories.dependencies * 0.1);
-  
+
   // Estimate hours to fix
-  debtScore.estimate.hoursToFix = 
+  debtScore.estimate.hoursToFix =
     (complexity.complexFunctions.length * 2) +
     (duplication.duplicates.length * 1.5) +
     (dependencies.outdated * 1);
-  
+
   // Determine priority
   if (debtScore.overall > 60) {
     debtScore.estimate.priority = 'high';
@@ -423,7 +424,7 @@ function estimateTechnicalDebt(complexity, duplication, commentsRatio, dependenc
   } else {
     debtScore.estimate.priority = 'low';
   }
-  
+
   return debtScore;
 }
 
@@ -458,7 +459,7 @@ function generateHtmlReport(results) {
   <body>
     <h1>Code Quality Report</h1>
     <p>Generated on ${new Date().toLocaleString()}</p>
-    
+
     <div class="card">
       <h2>Technical Debt Overview</h2>
       <div class="metric">
@@ -467,7 +468,7 @@ function generateHtmlReport(results) {
         </div>
         <div class="metric-label">Overall Technical Debt Score</div>
       </div>
-      
+
       <h3>Estimated Remediation</h3>
       <div class="metric">
         <div class="metric-value">
@@ -475,14 +476,14 @@ function generateHtmlReport(results) {
         </div>
         <div class="metric-label">Hours to Fix</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value ${results.technicalDebt.estimate.priority === 'low' ? 'good' : results.technicalDebt.estimate.priority === 'medium' ? 'warning' : 'danger'}">
           ${results.technicalDebt.estimate.priority.toUpperCase()}
         </div>
         <div class="metric-label">Priority</div>
       </div>
-      
+
       <h3>Debt Breakdown</h3>
       <table>
         <tr>
@@ -507,7 +508,7 @@ function generateHtmlReport(results) {
         </tr>
       </table>
     </div>
-    
+
     <div class="card">
       <h2>Code Complexity</h2>
       <div class="metric">
@@ -516,14 +517,14 @@ function generateHtmlReport(results) {
         </div>
         <div class="metric-label">Average Cyclomatic Complexity</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value ${results.complexity.averageMaintainability > config.thresholds.maintainability * 1.1 ? 'good' : results.complexity.averageMaintainability > config.thresholds.maintainability ? 'warning' : 'danger'}">
           ${results.complexity.averageMaintainability.toFixed(1)}
         </div>
         <div class="metric-label">Average Maintainability Index</div>
       </div>
-      
+
       <h3>Complex Functions (${results.complexity.complexFunctions.length})</h3>
       ${results.complexity.complexFunctions.length > 0 ? `
       <table>
@@ -544,7 +545,7 @@ function generateHtmlReport(results) {
       </table>
       ` : '<p>No overly complex functions found.</p>'}
     </div>
-    
+
     <div class="card">
       <h2>Code Duplication</h2>
       <div class="metric">
@@ -553,11 +554,11 @@ function generateHtmlReport(results) {
         </div>
         <div class="metric-label">Duplication Percentage</div>
       </div>
-      
+
       <div class="progress-bar">
         <div class="progress" style="width: ${Math.min(results.duplication.percentage, 100)}%"></div>
       </div>
-      
+
       <h3>Top Duplicates (${results.duplication.duplicates.length})</h3>
       ${results.duplication.duplicates.length > 0 ? `
       <table>
@@ -576,7 +577,7 @@ function generateHtmlReport(results) {
       </table>
       ` : '<p>No duplicate code found.</p>'}
     </div>
-    
+
     <div class="card">
       <h2>Code to Comments Ratio</h2>
       <div class="metric">
@@ -585,43 +586,43 @@ function generateHtmlReport(results) {
         </div>
         <div class="metric-label">Code to Comments Ratio</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value">${results.commentsRatio.codeLines}</div>
         <div class="metric-label">Lines of Code</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value">${results.commentsRatio.commentLines}</div>
         <div class="metric-label">Lines of Comments</div>
       </div>
     </div>
-    
+
     <div class="card">
       <h2>Dependencies</h2>
       <div class="metric">
         <div class="metric-value">${results.dependencies.total}</div>
         <div class="metric-label">Total Dependencies</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value ${results.dependencies.outdated === 0 ? 'good' : results.dependencies.outdated < 5 ? 'warning' : 'danger'}">
           ${results.dependencies.outdated}
         </div>
         <div class="metric-label">Outdated Dependencies</div>
       </div>
-      
+
       <h3>Direct vs Dev Dependencies</h3>
       <div class="metric">
         <div class="metric-value">${results.dependencies.direct}</div>
         <div class="metric-label">Direct Dependencies</div>
       </div>
-      
+
       <div class="metric">
         <div class="metric-value">${results.dependencies.dev}</div>
         <div class="metric-label">Dev Dependencies</div>
       </div>
-      
+
       ${Object.keys(results.dependencies.outdatedList).length > 0 ? `
       <h3>Outdated Packages</h3>
       <table>
@@ -640,35 +641,35 @@ function generateHtmlReport(results) {
       </table>
       ` : ''}
     </div>
-    
+
     <div class="footer">
       <p>Generated by Code Quality Analyzer</p>
     </div>
   </body>
   </html>
   `;
-  
+
   return htmlTemplate;
 }
 
 // Run the analysis
 function runAnalysis() {
   console.log('🔍 Starting code quality analysis...');
-  
+
   ensureDirectoryExists(config.reporting.outputDir);
-  
+
   const complexity = analyzeComplexity();
   const duplication = detectDuplication();
   const commentsRatio = analyzeCommentsRatio();
   const dependencies = analyzeDependencies();
-  
+
   const technicalDebt = estimateTechnicalDebt(
-    complexity, 
-    duplication, 
-    commentsRatio, 
+    complexity,
+    duplication,
+    commentsRatio,
     dependencies
   );
-  
+
   const results = {
     complexity,
     duplication,
@@ -677,20 +678,20 @@ function runAnalysis() {
     technicalDebt,
     timestamp: new Date().toISOString()
   };
-  
+
   // Save JSON report
   fs.writeFileSync(
     path.join(config.reporting.outputDir, config.reporting.summaryFile),
     JSON.stringify(results, null, 2)
   );
-  
+
   // Generate and save HTML report
   const htmlReport = generateHtmlReport(results);
   fs.writeFileSync(
     path.join(config.reporting.outputDir, config.reporting.detailedReport),
     htmlReport
   );
-  
+
   // Print summary
   console.log('\n📊 Code Quality Summary:');
   console.log('=======================');
@@ -701,24 +702,24 @@ function runAnalysis() {
   console.log(`Technical Debt Score: ${results.technicalDebt.overall.toFixed(2)}`);
   console.log(`Estimated Hours to Fix: ${results.technicalDebt.estimate.hoursToFix.toFixed(0)}`);
   console.log(`Priority: ${results.technicalDebt.estimate.priority.toUpperCase()}`);
-  
+
   console.log(`\n✅ Analysis complete! Detailed reports saved to ${config.reporting.outputDir}/`);
 }
 
 // Main analysis runner
 async function runAnalysis() {
     console.log('🔍 Starting code quality analysis...');
-    
+
     ensureDirectoryExists(config.reporting.outputDir);
-    
+
     const [complexity, duplication] = await Promise.all([
         analyzeComplexity(),
         detectDuplication()
     ]);
-    
+
     const commentsRatio = analyzeCommentsRatio();
     const dependencies = analyzeDependencies();
-    
+
     const results = {
         complexity,
         duplication,
@@ -727,13 +728,28 @@ async function runAnalysis() {
         technicalDebt: estimateTechnicalDebt(complexity, duplication, commentsRatio, dependencies),
         timestamp: new Date().toISOString()
     };
-    
+
     // Generate reports
     generateReports(results);
-    
+
     // Print summary
     printSummary(results);
 }
 
 // Start analysis
 runAnalysis().catch(console.error);
+
+// Export functions for testing
+module.exports = {
+    getTypeScriptFiles,
+    analyzeComplexity,
+    detectDuplication,
+    analyzeCommentsRatio,
+    analyzeDependencies,
+    estimateTechnicalDebt,
+    generateHtmlReport,
+    runAnalysis,
+    config,
+    fileCache,
+    analysisCache
+};

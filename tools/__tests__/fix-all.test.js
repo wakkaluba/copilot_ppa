@@ -1,6 +1,6 @@
-// filepath: d:\\___coding\\tools\\copilot_ppa\\tools\\__tests__\\fix-all.test.js
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 // Mock child_process.execSync
 jest.mock('child_process', () => ({
@@ -8,30 +8,41 @@ jest.mock('child_process', () => ({
 }));
 
 describe('fix-all script', () => {
-  // Save original console methods and mock them
+  // Store original methods before mocking
   const originalConsoleLog = console.log;
   const originalConsoleError = console.error;
+  const originalProcessExit = process.exit;
+  const originalPathResolve = path.resolve;
+  const originalRequire = jest.requireActual('../fix-all');
 
-  beforeAll(() => {
+  beforeEach(() => {
     // Mock console methods
     console.log = jest.fn();
     console.error = jest.fn();
+
+    // Mock process.exit
+    process.exit = jest.fn();
+
+    // Reset all mocks before each test
+    jest.clearAllMocks();
+
+    // Reset execSync behavior for each test
+    execSync.mockReset();
   });
 
   afterAll(() => {
-    // Restore original console methods
+    // Restore original methods after all tests
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
-  });
-
-  afterEach(() => {
-    // Clear all mocks after each test
-    jest.clearAllMocks();
+    process.exit = originalProcessExit;
+    path.resolve = originalPathResolve;
   });
 
   test('should run all fix scripts in the correct order', () => {
     // Execute the script
-    require('../fix-all');
+    jest.isolateModules(() => {
+      require('../fix-all');
+    });
 
     // Verify console.log was called with the correct messages
     expect(console.log).toHaveBeenCalledWith('Starting comprehensive fix script...');
@@ -54,26 +65,96 @@ describe('fix-all script', () => {
     expect(execSync).toHaveBeenCalledTimes(5);
   });
 
-  test('should handle errors and exit the process', () => {
-    // Mock process.exit
-    const originalProcessExit = process.exit;
-    process.exit = jest.fn();
-
-    // Setup execSync to throw an error
+  test('should handle errors in the first script and exit the process', () => {
+    // Setup execSync to throw an error on the first call
     execSync.mockImplementationOnce(() => {
-      throw new Error('Mocked error');
+      throw new Error('Error in fix-casing script');
     });
 
     // Execute the script
-    require('../fix-all');
+    jest.isolateModules(() => {
+      require('../fix-all');
+    });
 
     // Verify console.error was called with the error message
-    expect(console.error).toHaveBeenCalledWith('Fix process failed: Mocked error');
+    expect(console.error).toHaveBeenCalledWith('Fix process failed: Error in fix-casing script');
 
     // Verify process.exit was called with code 1
     expect(process.exit).toHaveBeenCalledWith(1);
 
-    // Restore original process.exit
-    process.exit = originalProcessExit;
+    // Verify execSync was called only once before failing
+    expect(execSync).toHaveBeenCalledTimes(1);
+  });
+
+  test('should handle errors in a middle script and exit the process', () => {
+    // Setup execSync to throw an error on the third call
+    execSync.mockImplementationOnce(() => {/* fix-casing success */});
+    execSync.mockImplementationOnce(() => {/* fix-imports success */});
+    execSync.mockImplementationOnce(() => {
+      throw new Error('Error in fix-timestamp-errors script');
+    });
+
+    // Execute the script
+    jest.isolateModules(() => {
+      require('../fix-all');
+    });
+
+    // Verify console.error was called with the error message
+    expect(console.error).toHaveBeenCalledWith('Fix process failed: Error in fix-timestamp-errors script');
+
+    // Verify process.exit was called with code 1
+    expect(process.exit).toHaveBeenCalledWith(1);
+
+    // Verify execSync was called 3 times before failing
+    expect(execSync).toHaveBeenCalledTimes(3);
+  });
+
+  test('should handle errors in the last script and exit the process', () => {
+    // Setup execSync to throw an error on the last call
+    execSync.mockImplementationOnce(() => {/* fix-casing success */});
+    execSync.mockImplementationOnce(() => {/* fix-imports success */});
+    execSync.mockImplementationOnce(() => {/* fix-timestamp-errors success */});
+    execSync.mockImplementationOnce(() => {/* fix-uri-errors success */});
+    execSync.mockImplementationOnce(() => {
+      throw new Error('Error in fix-type-errors script');
+    });
+
+    // Execute the script
+    jest.isolateModules(() => {
+      require('../fix-all');
+    });
+
+    // Verify console.error was called with the error message
+    expect(console.error).toHaveBeenCalledWith('Fix process failed: Error in fix-type-errors script');
+
+    // Verify process.exit was called with code 1
+    expect(process.exit).toHaveBeenCalledWith(1);
+
+    // Verify execSync was called 5 times before failing
+    expect(execSync).toHaveBeenCalledTimes(5);
+  });
+
+  test('should handle error details in the error object', () => {
+    // Setup execSync to throw an error with stderr details
+    const errorWithDetails = new Error('Command failed');
+    errorWithDetails.stderr = 'Detailed error information from script execution';
+
+    execSync.mockImplementationOnce(() => {
+      throw errorWithDetails;
+    });
+
+    // Execute the script
+    jest.isolateModules(() => {
+      require('../fix-all');
+    });
+
+    // Verify console.error was called with the error message
+    expect(console.error).toHaveBeenCalledWith('Fix process failed: Command failed');
+
+    // Verify execSync was called only once before failing
+    expect(execSync).toHaveBeenCalledTimes(1);
+
+    // Verify process.exit was called with code 1
+    expect(process.exit).toHaveBeenCalledWith(1);
   });
 });

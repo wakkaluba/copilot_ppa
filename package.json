@@ -13,6 +13,27 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts,tsx --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "jest --coverage",
+    "test:watch": "jest --watch",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "check-types": "tsc --noEmit",
+    "validate": "npm run lint && npm run check-types && npm run test",
+    "analyze": "node tools/analyze-code-structure.js",
+    "fix-all": "node tools/fix-all.js",
+    "prepare": "husky install",
+    "build:watch": "npm run watch",
+    "dev": "npm run build:watch",
+    "clean": "rimraf out",
+    "create-test-folders": "node zzzscripts/create-test-folders.js"
+  },
   "contributes": {
     "commands": [
       {
@@ -139,27 +160,6 @@
       ]
     }
   },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts,tsx --max-warnings 0",
-    "lint:fix": "eslint src --ext ts,tsx --fix",
-    "test": "node ./out/test/runTest.js",
-    "test:unit": "jest --coverage",
-    "test:watch": "jest --watch",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "check-types": "tsc --noEmit",
-    "validate": "npm run lint && npm run check-types && npm run test",
-    "analyze": "node tools/analyze-code-structure.js",
-    "fix-all": "node tools/fix-all.js",
-    "prepare": "husky install",
-    "build:watch": "npm run watch",
-    "dev": "npm run build:watch",
-    "clean": "rimraf out",
-    "create-test-folders": "node zzzscripts/create-test-folders.js"
-  },
   "devDependencies": {
     "@gitbeaker/node": "^35.8.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
@@ -188,7 +188,7 @@
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^27.6.0",
-    "glob": "^10.3.10",
+    "glob": "^10.4.5",
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
