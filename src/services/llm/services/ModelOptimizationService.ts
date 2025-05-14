@@ -1,8 +1,8 @@
-import { injectable, inject } from 'inversify';
-import { ILogger } from '../../../utils/logger';
-import { ModelMetricsService } from './ModelMetricsService';
 import { EventEmitter } from 'events';
-import { OptimizationRequest, OptimizationResult, ModelEvents } from '../types';
+import { inject, injectable } from 'inversify';
+import { ILogger } from '../../../utils/logger';
+import { ModelEvents, OptimizationRequest, OptimizationResult } from '../types';
+import { ModelMetricsService } from './ModelMetricsService';
 
 @injectable()
 export class ModelOptimizationService extends EventEmitter {
