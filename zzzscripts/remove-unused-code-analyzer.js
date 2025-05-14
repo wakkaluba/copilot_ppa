@@ -177,3 +177,10 @@ function main() {
 
 // Run the script
 main();
+
+module.exports = {
+  backupFiles,
+  removeFiles,
+  updateOrphanedCodeReport,
+  main
+};

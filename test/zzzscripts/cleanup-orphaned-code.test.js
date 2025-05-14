@@ -4,6 +4,14 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Import the functions we need to test
+const {
+    parseOrphanedReport,
+    backupFile,
+    processOrphanedFiles,
+    main
+} = require('../../zzzscripts/cleanup-orphaned-code');
+
 describe('cleanup-orphaned-code.js', () => {
     let sandbox;
 

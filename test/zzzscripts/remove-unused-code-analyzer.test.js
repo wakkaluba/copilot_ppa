@@ -3,6 +3,14 @@ const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
 
+// Import the functions we need to test
+const {
+    backupFiles,
+    removeFiles,
+    updateOrphanedCodeReport,
+    main
+} = require('../../zzzscripts/remove-unused-code-analyzer');
+
 describe('remove-unused-code-analyzer.js', () => {
     let sandbox;
 

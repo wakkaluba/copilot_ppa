@@ -606,3 +606,19 @@ function main() {
 
 // Run the script
 main();
+
+module.exports = {
+  runTestsWithCoverage,
+  analyzeTestCases,
+  findTestFiles,
+  findImplementationFiles,
+  mapImplementationToTests,
+  analyzeCodePerformance,
+  findJsAndTsFiles,
+  analyzeFileComplexity,
+  analyzeCodeComprehensibility,
+  analyzeErrorRate,
+  updateTodoFile,
+  generateCoverageReport,
+  main
+};

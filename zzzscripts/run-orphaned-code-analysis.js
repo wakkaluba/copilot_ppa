@@ -89,3 +89,7 @@ console.log('Next steps:');
 console.log('1. Review the analysis output for orphaned code');
 console.log('2. Update orphaned-code-report.md with any new findings');
 console.log('3. Create tickets or tasks for cleaning up identified orphaned code');
+
+module.exports = {
+  // For testability, export main and any helper functions you want to test
+};

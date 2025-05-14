@@ -3,6 +3,13 @@ const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
 
+// Import the functions we need to test
+const {
+    analyzeCodebase,
+    generateStatusMarkdown,
+    updateRefactoringStatus
+} = require('../../zzzscripts/update-refactoring-status');
+
 describe('update-refactoring-status.js', () => {
     let sandbox;
 

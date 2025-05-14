@@ -4,6 +4,15 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Import the functions we need to test
+const {
+    findCodeFiles,
+    isFileReferenced,
+    analyzeFileContent,
+    generateReport,
+    main
+} = require('../../zzzscripts/identify-unused-code');
+
 describe('identify-unused-code.js', () => {
     let sandbox;
 

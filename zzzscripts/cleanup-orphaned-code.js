@@ -145,3 +145,10 @@ function main() {
 }
 
 main();
+
+module.exports = {
+  parseOrphanedReport,
+  backupFile,
+  processOrphanedFiles,
+  main
+};

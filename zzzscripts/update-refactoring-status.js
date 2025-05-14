@@ -22,11 +22,11 @@ const currentDate = new Date().toLocaleDateString('en-US', {
  */
 function analyzeCodebase() {
   console.log('Analyzing codebase for refactoring progress...');
-  
+
   // This is a placeholder for actual code analysis
   // In a real implementation, this would scan the codebase
   // and determine refactoring progress based on markers, git history, etc.
-  
+
   return {
     overallProgress: 25,
     filesProcessed: 15,
@@ -54,25 +54,25 @@ function analyzeCodebase() {
  */
 function generateStatusMarkdown(stats) {
   let markdown = '# Refactoring Status\n\n';
-  
+
   markdown += '## Current Status\n';
   markdown += `- **Overall Progress**: ${stats.overallProgress}%\n`;
   markdown += `- **Files Processed**: ${stats.filesProcessed}/${stats.totalFiles}\n`;
   markdown += `- **Last Updated**: ${currentDate}\n\n`;
-  
+
   markdown += '## Components Status\n\n';
   markdown += '| Component | Progress | Priority | Notes |\n';
   markdown += '|-----------|----------|----------|-------|\n';
-  
+
   stats.components.forEach(component => {
     markdown += `| ${component.name} | ${component.progress}% | ${component.priority} | ${component.notes} |\n`;
   });
-  
+
   markdown += '\n## Next Steps\n';
   stats.nextSteps.forEach((step, index) => {
     markdown += `${index + 1}. ${step}\n`;
   });
-  
+
   return markdown;
 }
 
@@ -83,9 +83,9 @@ function updateRefactoringStatus() {
   try {
     const stats = analyzeCodebase();
     const statusMarkdown = generateStatusMarkdown(stats);
-    
+
     fs.writeFileSync(REFACTORING_STATUS_PATH, statusMarkdown);
-    
+
     console.log('Refactoring status updated successfully!');
   } catch (error) {
     console.error('Error updating refactoring status:', error);
@@ -94,3 +94,9 @@ function updateRefactoringStatus() {
 
 // Execute the update
 updateRefactoringStatus();
+
+module.exports = {
+  analyzeCodebase,
+  generateStatusMarkdown,
+  updateRefactoringStatus
+};

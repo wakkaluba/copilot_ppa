@@ -28,6 +28,15 @@ describe('improve-code-coverage.js', () => {
         sandbox.restore();
     });
 
+    // Import the functions we need to test
+    const {
+        runTestsWithCoverage,
+        analyzeTestCases,
+        analyzeCodePerformance,
+        analyzeCodeComprehensibility,
+        main
+    } = require('../../zzzscripts/improve-code-coverage');
+
     describe('runTestsWithCoverage()', () => {
         it('should execute tests with coverage enabled', () => {
             execSync.returns(JSON.stringify({

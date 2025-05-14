@@ -210,3 +210,11 @@ function main() {
 
 // Run the script
 main();
+
+module.exports = {
+  backupFiles,
+  compareFiles,
+  removeDuplicateFile,
+  updateOrphanedCodeReport,
+  main
+};

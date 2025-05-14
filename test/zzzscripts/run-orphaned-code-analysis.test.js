@@ -3,6 +3,15 @@ const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
 
+// Import the functions we need to test
+const {
+    findOrphanedFiles,
+    analyzeCodeUsage,
+    validateOrphans,
+    generateOrphanReport,
+    analyzeDependencyChain
+} = require('../../zzzscripts/run-orphaned-code-analysis');
+
 describe('run-orphaned-code-analysis.js', () => {
     let sandbox;
 
