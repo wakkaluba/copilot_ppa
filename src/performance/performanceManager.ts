@@ -25,6 +25,7 @@ export class PerformanceManager implements vscode.Disposable {
     private readonly eventEmitter: EventEmitter;
     private readonly logger: Logger;
     private analysisCache: Map<string, PerformanceAnalysisResult> = new Map();
+    private disposed = false;
 
     private constructor(extensionContext: vscode.ExtensionContext, analyzerService?: PerformanceAnalyzerService) {
         this.eventEmitter = new EventEmitter();
@@ -86,7 +87,7 @@ export class PerformanceManager implements vscode.Disposable {
             if (normalizedResult) {
                 this.statusService.updateStatusBar(normalizedResult);
                 this.diagnosticsService.updateDiagnostics(document, normalizedResult);
-                this.bottleneckDetector.analyzeOperation(operationId);
+                this.bottleneckDetector.analyzeOperation(operationId, { result: normalizedResult });
                 this.eventEmitter.emit('fileAnalysisComplete', normalizedResult);
                 await this.updateFileMetrics(document.uri, normalizedResult);
                 this.analysisCache.set(fileKey, normalizedResult);
@@ -210,6 +211,8 @@ export class PerformanceManager implements vscode.Disposable {
     }
 
     public dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
         this.statusService.dispose();
         this.diagnosticsService.dispose();
         this.fileMonitorService.dispose();

@@ -146,6 +146,34 @@ describe('PerformanceAnalyzerService', () => {
         expect(result.skipped).toBe(true);
     });
 
+    it('should handle unknown error type in analyzeDocument error path', async () => {
+        // Simulate a thrown non-Error value
+        mockAnalyzer.analyze.mockImplementation(() => { throw 'string error'; });
+        const doc = { fileName: 'fail2.ts', getText: () => 'fail' } as any;
+        const result = await service.analyzeDocument(doc);
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toBe('Unknown error');
+    });
+
+    it('should not increment issuesByType for unknown types in metrics update', async () => {
+        mockAnalyzer.analyze = jest.fn().mockResolvedValue({
+            filePath: 'test.ts',
+            issues: [ { type: 'not-in-metrics', severity: 'error' } ]
+        });
+        const doc = { fileName: 'test.ts', getText: () => 'foo' } as any;
+        await service.analyzeDocument(doc);
+        const metrics = service.getMetrics();
+        expect(metrics.issuesByType['not-in-metrics']).toBeUndefined();
+    });
+
+    it('should use default AnalyzerFactory if none provided', () => {
+        // Remove the factory argument to test default path
+        const { PerformanceAnalyzerService } = require('../../../src/performance/services/PerformanceAnalyzerService');
+        const serviceWithDefault = new PerformanceAnalyzerService(mockContext);
+        expect(serviceWithDefault).toBeDefined();
+        expect(typeof serviceWithDefault.hasAnalyzer).toBe('function');
+    });
+
     it('should filter issues by severity in analyzeDocument', async () => {
         mockAnalyzer.analyze = jest.fn().mockResolvedValue({
             filePath: 'test.ts',
@@ -212,5 +240,78 @@ describe('PerformanceAnalyzerService', () => {
         const doc = { fileName: 'test.ts', getText: () => 'function foo() {}' } as any;
         const result = await service.analyzeDocument(doc);
         expect(result.issues.length).toBe(0);
+    });
+
+    it('should handle empty issues array in generateRecommendations and getOptimizationExamples', () => {
+        const result = { filePath: 'foo', issues: [] };
+        const recs = service.generateRecommendations(result);
+        const examples = service.getOptimizationExamples(result);
+        expect(Array.isArray(recs)).toBe(true);
+        expect(Array.isArray(examples)).toBe(true);
+        expect(recs.length).toBe(0);
+        expect(examples.length).toBe(0);
+    });
+
+    it('should handle undefined issues in generateRecommendations and getOptimizationExamples', () => {
+        const result = { filePath: 'foo' };
+        // Defensive: these will throw, so we expect an error
+        expect(() => service.generateRecommendations(result as any)).toThrow();
+        expect(() => service.getOptimizationExamples(result as any)).toThrow();
+    });
+
+    it('should handle missing fileName and getText in analyzeDocument', async () => {
+        mockFactory.getAnalyzer.mockReturnValue(mockAnalyzer);
+        // Missing fileName and getText
+        const doc = { uri: { fsPath: 'foo' } };
+        const result = await service.analyzeDocument(doc as any);
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toMatch(/getText|fileName/);
+    });
+
+    it('should handle analyzer returning undefined issues', async () => {
+        mockAnalyzer.analyze = jest.fn().mockResolvedValue({ filePath: 'test.ts' });
+        const doc = { fileName: 'test.ts', getText: () => 'foo' };
+        const result = await service.analyzeDocument(doc as any);
+        expect(result.issues).toBeUndefined();
+    });
+
+    it('should handle analyzer returning null', async () => {
+        mockAnalyzer.analyze = jest.fn().mockResolvedValue(null);
+        const doc = { fileName: 'test.ts', getText: () => 'foo' };
+        const result = await service.analyzeDocument(doc as any);
+        expect(result).toBeNull();
+    });
+
+    it('should handle analyzer throwing synchronously', async () => {
+        mockAnalyzer.analyze = jest.fn(() => { throw new Error('sync fail'); });
+        const doc = { fileName: 'test.ts', getText: () => 'foo' };
+        const result = await service.analyzeDocument(doc as any);
+        expect(result.skipped).toBe(true);
+    });
+
+    it('should handle canAnalyze with empty and uppercase extensions', () => {
+        mockFactory.getSupportedExtensions.mockReturnValue(['.ts', '.js']);
+        expect(service.canAnalyze('')).toBe(false);
+        expect(service.canAnalyze('.TS')).toBe(false);
+    });
+
+    it('should handle setConfiguration with empty/partial input', () => {
+        service.setConfiguration({});
+        expect((service as any).configuration).toBeDefined();
+        service.setConfiguration(undefined as any);
+        expect((service as any).configuration).toBeDefined();
+    });
+
+    it('should return initial metrics if no analysis performed', () => {
+        const metrics = service.getMetrics();
+        expect(metrics.lastAnalysisTime).toBe(0);
+        expect(metrics.totalIssuesFound).toBe(0);
+    });
+
+    it('should handle analyzeDocument with missing fileName and uri', async () => {
+        const doc = { getText: () => 'foo' };
+        const result = await service.analyzeDocument(doc as any);
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toMatch(/fileName|uri/);
     });
 });

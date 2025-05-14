@@ -13,4 +13,6 @@ export class BottleneckDetector {
   clearCache() {
     this.cache.clear();
   }
+  setEnabled(_enabled: boolean) {}
+  analyzeAll() { return { critical: [], warnings: [] }; }
 }

@@ -36,6 +36,16 @@ export class PerformanceAnalyzerService {
     }
 
     public async analyzeDocument(document: vscode.TextDocument): Promise<PerformanceAnalysisResult> {
+        // Defensive: check for fileName and getText
+        if (!document || (typeof document.getText !== 'function') || (!document.fileName && !(document as any).uri)) {
+            return {
+                filePath: document?.fileName ?? (document as any)?.uri?.toString?.() ?? '',
+                issues: [],
+                skipped: true,
+                skipReason: 'Missing fileName or getText on document'
+            };
+        }
+
         // Use uri.toString() as cache key if available, else fallback to fileName
         const fileKey = (document as any).uri?.toString?.() ?? document.fileName;
         if (this.analysisCache.has(fileKey)) {
@@ -71,6 +81,14 @@ export class PerformanceAnalyzerService {
             // analyzer.analyze expects (fileContent, filePath)
             const fileContent = document.getText();
             const result = await Promise.resolve(analyzer.analyze(fileContent, document.fileName));
+            if (result == null) {
+                return {
+                    filePath: document.fileName,
+                    issues: [],
+                    skipped: true,
+                    skipReason: 'Analyzer returned null or undefined'
+                };
+            }
             // Ensure 'skipped' is always boolean
             if (typeof result.skipped === 'undefined') {
                 result.skipped = false;
