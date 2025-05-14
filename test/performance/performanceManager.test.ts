@@ -442,3 +442,20 @@ describe('PerformanceManager coverage edge cases', () => {
         expect(result.skipped).toBe(true);
     });
 });
+
+describe('PerformanceManager instantiation and core service exposure', () => {
+    it('should instantiate and expose core services', () => {
+        // @ts-ignore
+        const manager = PerformanceManager.getInstance({});
+        expect(manager.getProfiler()).toBeDefined();
+        expect(manager.getBottleneckDetector()).toBeDefined();
+        expect(manager.getCachingService()).toBeDefined();
+        expect(manager.getAsyncOptimizer()).toBeDefined();
+    });
+
+    it('should dispose without error', () => {
+        // @ts-ignore
+        const manager = PerformanceManager.getInstance({});
+        expect(() => manager.dispose()).not.toThrow();
+    });
+});

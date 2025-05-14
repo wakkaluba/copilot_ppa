@@ -118,3 +118,26 @@ export interface LLMProvider extends EventEmitter {
         callback?: (event: LLMStreamEvent) => void
     ): Promise<void>;
 }
+
+export enum ModelEvents {
+    OptimizationStarted = 'optimizationStarted',
+    OptimizationCompleted = 'optimizationCompleted',
+}
+
+export interface OptimizationRequest {
+    resourceAllocation: ResourceAllocation;
+    hyperparameters?: Record<string, any>;
+}
+
+export interface OptimizationResult {
+    modelId: string;
+    success: boolean;
+    details: string;
+    metrics: any;
+}
+
+export interface ResourceAllocation {
+    cpu: number;
+    memory: number;
+    gpu?: number;
+}

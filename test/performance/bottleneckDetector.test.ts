@@ -21,4 +21,9 @@ describe('BottleneckDetector', () => {
     const result = detector.analyzeOperation('op2', { stats: {}, issues: 2, metrics: {} });
     expect(result).toBeDefined();
   });
+
+  it('should support setEnabled and analyzeAll', () => {
+    expect(() => detector.setEnabled(true)).not.toThrow();
+    expect(detector.analyzeAll()).toEqual({ critical: [], warnings: [] });
+  });
 });

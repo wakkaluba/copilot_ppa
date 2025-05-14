@@ -67,6 +67,7 @@ export class PerformanceManager implements vscode.Disposable {
             this.eventEmitter.emit('servicesInitialized');
         } catch (error) {
             this.logger.error('Failed to initialize performance services:', error);
+            vscode.window.showErrorMessage('Failed to initialize performance services');
             throw error;
         }
     }
@@ -85,18 +86,27 @@ export class PerformanceManager implements vscode.Disposable {
                 skipped: !!result.skipped
             };
             if (normalizedResult) {
-                this.statusService.updateStatusBar(normalizedResult);
-                this.diagnosticsService.updateDiagnostics(document, normalizedResult);
-                this.bottleneckDetector.analyzeOperation(operationId, { result: normalizedResult });
-                this.eventEmitter.emit('fileAnalysisComplete', normalizedResult);
-                await this.updateFileMetrics(document.uri, normalizedResult);
-                this.analysisCache.set(fileKey, normalizedResult);
+                try {
+                    this.statusService.updateStatusBar(normalizedResult);
+                    this.diagnosticsService.updateDiagnostics(document, normalizedResult);
+                    this.bottleneckDetector.analyzeOperation(operationId, { result: normalizedResult });
+                    this.eventEmitter.emit('fileAnalysisComplete', normalizedResult);
+                    await this.updateFileMetrics(document.uri, normalizedResult);
+                    this.analysisCache.set(fileKey, normalizedResult);
+                } catch (error) {
+                    this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+                    const message = error instanceof Error ? error.message : 'Unknown error';
+                    vscode.window.showErrorMessage(`File analysis failed: ${message}`);
+                    this.eventEmitter.emit('fileAnalysisComplete', { filePath: '', issues: [], skipped: true });
+                    return { filePath: '', issues: [], skipped: true };
+                }
             }
             return normalizedResult;
         } catch (error) {
             this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`File analysis failed: ${message}`);
+            this.eventEmitter.emit('fileAnalysisComplete', { filePath: '', issues: [], skipped: true });
             return { filePath: '', issues: [], skipped: true };
         } finally {
             this.profiler.endOperation(operationId);
@@ -179,6 +189,7 @@ export class PerformanceManager implements vscode.Disposable {
             this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: result.metrics });
         } catch (error) {
             this.logger.error(`Failed to update metrics for ${uri.fsPath}:`, error);
+            this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: undefined, error });
         }
     }
 
