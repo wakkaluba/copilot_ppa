@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { getVectorDatabaseManager } from '../services/vectordb/manager';
 import { getCodeSearchService } from '../services/vectordb/codeSearch';
+import { getVectorDatabaseManager } from '../services/vectordb/manager';
 
 export class VectorDatabasePanel {
     public static readonly viewType = 'copilotPPA.vectorDatabasePanel';
@@ -29,7 +29,7 @@ export class VectorDatabasePanel {
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         this._panel = panel;
-        
+
         // Set the webview's initial html content
         this._update();
 
@@ -53,7 +53,7 @@ export class VectorDatabasePanel {
             async message => {
                 const manager = getVectorDatabaseManager();
                 const searchService = getCodeSearchService();
-                
+
                 switch (message.command) {
                     case 'getProviders':
                         this._panel.webview.postMessage({
@@ -66,7 +66,7 @@ export class VectorDatabasePanel {
                             isEnabled: manager.isVectorDatabaseEnabled()
                         });
                         return;
-                        
+
                     case 'setEnabled':
                         manager.setEnabled(message.enabled);
                         this._panel.webview.postMessage({
@@ -74,7 +74,7 @@ export class VectorDatabasePanel {
                             isEnabled: manager.isVectorDatabaseEnabled()
                         });
                         return;
-                        
+
                     case 'setActiveProvider':
                         try {
                             const success = await manager.setActiveProvider(message.provider);
@@ -88,10 +88,10 @@ export class VectorDatabasePanel {
                                 vscode.window.showErrorMessage(`Failed to set ${message.provider} as active provider`);
                             }
                         } catch (error) {
-                            vscode.window.showErrorMessage(`Error: ${error.message}`);
+                            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
                         }
                         return;
-                        
+
                     case 'searchCode':
                         try {
                             const results = await searchService.semanticSearch(message.query, message.limit);
@@ -100,10 +100,10 @@ export class VectorDatabasePanel {
                                 results
                             });
                         } catch (error) {
-                            vscode.window.showErrorMessage(`Search failed: ${error.message}`);
+                            vscode.window.showErrorMessage(`Search failed: ${error instanceof Error ? error.message : String(error)}`);
                         }
                         return;
-                        
+
                     case 'indexWorkspace':
                         try {
                             const count = await searchService.indexWorkspace(
@@ -116,17 +116,17 @@ export class VectorDatabasePanel {
                                 count
                             });
                         } catch (error) {
-                            vscode.window.showErrorMessage(`Indexing failed: ${error.message}`);
+                            vscode.window.showErrorMessage(`Indexing failed: ${error instanceof Error ? error.message : String(error)}`);
                         }
                         return;
-                        
+
                     case 'openFile':
                         try {
                             const uri = vscode.Uri.parse(message.fileUri);
                             const document = await vscode.workspace.openTextDocument(uri);
                             await vscode.window.showTextDocument(document);
                         } catch (error) {
-                            vscode.window.showErrorMessage(`Failed to open file: ${error.message}`);
+                            vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : String(error)}`);
                         }
                         return;
                 }
@@ -296,7 +296,7 @@ export class VectorDatabasePanel {
             <div class="container">
                 <div class="settings">
                     <h2>Vector Database Settings</h2>
-                    
+
                     <div class="toggle-container">
                         <label class="toggle-switch">
                             <input type="checkbox" id="enabledToggle">
@@ -304,7 +304,7 @@ export class VectorDatabasePanel {
                         </label>
                         <span id="statusText">Vector Database: Disabled</span>
                     </div>
-                    
+
                     <div id="providerSettings" class="hidden">
                         <div class="form-group">
                             <label for="providerSelect">Select Provider:</label>
@@ -314,7 +314,7 @@ export class VectorDatabasePanel {
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="functionalitySection" class="hidden">
                     <div class="search-section">
                         <h2>Semantic Code Search</h2>
@@ -328,7 +328,7 @@ export class VectorDatabasePanel {
                         </div>
                         <button id="searchButton">Search</button>
                     </div>
-                    
+
                     <div class="index-section">
                         <h2>Index Workspace</h2>
                         <div class="form-group">
@@ -342,7 +342,7 @@ export class VectorDatabasePanel {
                         <button id="indexButton">Index Workspace</button>
                     </div>
                 </div>
-                
+
                 <div class="results-section">
                     <h2>Search Results</h2>
                     <div id="resultsContainer">
@@ -355,7 +355,7 @@ export class VectorDatabasePanel {
             <script>
                 (function() {
                     const vscode = acquireVsCodeApi();
-                    
+
                     // DOM elements
                     const enabledToggle = document.getElementById('enabledToggle');
                     const statusText = document.getElementById('statusText');
@@ -370,24 +370,24 @@ export class VectorDatabasePanel {
                     const indexButton = document.getElementById('indexButton');
                     const resultsContainer = document.getElementById('resultsContainer');
                     const emptyResults = document.getElementById('emptyResults');
-                    
+
                     // State
                     let isEnabled = false;
                     let activeProvider = null;
                     let providers = [];
-                    
+
                     // Initialize
                     function initialize() {
                         // Get provider information
                         vscode.postMessage({ command: 'getProviders' });
-                        
+
                         // Attach event listeners
                         enabledToggle.addEventListener('change', onToggleChanged);
                         providerSelect.addEventListener('change', onProviderChanged);
                         searchButton.addEventListener('click', onSearch);
                         indexButton.addEventListener('click', onIndexWorkspace);
                     }
-                    
+
                     // Handle toggle change
                     function onToggleChanged() {
                         isEnabled = enabledToggle.checked;
@@ -395,10 +395,10 @@ export class VectorDatabasePanel {
                             command: 'setEnabled',
                             enabled: isEnabled
                         });
-                        
+
                         updateUI();
                     }
-                    
+
                     // Handle provider change
                     function onProviderChanged() {
                         const selectedProvider = providerSelect.value;
@@ -409,12 +409,12 @@ export class VectorDatabasePanel {
                             });
                         }
                     }
-                    
+
                     // Handle search button click
                     function onSearch() {
                         const query = searchQuery.value.trim();
                         const limit = parseInt(resultLimit.value, 10) || 5;
-                        
+
                         if (!query) {
                             vscode.postMessage({
                                 type: 'error',
@@ -422,47 +422,47 @@ export class VectorDatabasePanel {
                             });
                             return;
                         }
-                        
+
                         vscode.postMessage({
                             command: 'searchCode',
                             query,
                             limit
                         });
-                        
+
                         // Clear previous results
                         while (resultsContainer.firstChild) {
                             resultsContainer.removeChild(resultsContainer.firstChild);
                         }
-                        
+
                         // Show loading indicator
                         const loadingEl = document.createElement('div');
                         loadingEl.textContent = 'Searching...';
                         loadingEl.id = 'loadingIndicator';
                         resultsContainer.appendChild(loadingEl);
-                        
+
                         emptyResults.classList.add('hidden');
                     }
-                    
+
                     // Handle index workspace button click
                     function onIndexWorkspace() {
                         const includePatternValue = includePattern.value.trim();
                         const excludePatternValue = excludePattern.value.trim();
-                        
+
                         vscode.postMessage({
                             command: 'indexWorkspace',
                             includePattern: includePatternValue,
                             excludePattern: excludePatternValue
                         });
-                        
+
                         // Disable button while indexing
                         indexButton.disabled = true;
                         indexButton.textContent = 'Indexing...';
                     }
-                    
+
                     // Update UI based on current state
                     function updateUI() {
                         statusText.textContent = 'Vector Database: ' + (isEnabled ? 'Enabled' : 'Disabled');
-                        
+
                         if (isEnabled) {
                             providerSettings.classList.remove('hidden');
                             functionalitySection.classList.remove('hidden');
@@ -471,25 +471,25 @@ export class VectorDatabasePanel {
                             functionalitySection.classList.add('hidden');
                         }
                     }
-                    
+
                     // Populate provider dropdown
                     function populateProviders() {
                         providerSelect.innerHTML = '';
-                        
+
                         providers.forEach(provider => {
                             const option = document.createElement('option');
                             option.value = provider.name;
                             option.textContent = provider.name;
                             option.disabled = !provider.isAvailable;
-                            
+
                             if (provider.name === activeProvider) {
                                 option.selected = true;
                             }
-                            
+
                             providerSelect.appendChild(option);
                         });
                     }
-                    
+
                     // Display search results
                     function displayResults(results) {
                         // Remove loading indicator
@@ -497,29 +497,29 @@ export class VectorDatabasePanel {
                         if (loadingIndicator) {
                             loadingIndicator.remove();
                         }
-                        
+
                         // Clear previous results
                         while (resultsContainer.firstChild) {
                             resultsContainer.removeChild(resultsContainer.firstChild);
                         }
-                        
+
                         if (results.length === 0) {
                             emptyResults.classList.remove('hidden');
                             emptyResults.textContent = 'No results found for your query.';
                             resultsContainer.appendChild(emptyResults);
                             return;
                         }
-                        
+
                         emptyResults.classList.add('hidden');
-                        
+
                         // Add results
                         results.forEach(result => {
                             const resultItem = document.createElement('div');
                             resultItem.className = 'result-item';
-                            
+
                             const resultHeader = document.createElement('div');
                             resultHeader.className = 'result-header';
-                            
+
                             const resultPath = document.createElement('div');
                             resultPath.className = 'result-path';
                             resultPath.textContent = result.document.metadata.path || 'Unknown path';
@@ -529,68 +529,68 @@ export class VectorDatabasePanel {
                                     fileUri: result.document.id
                                 });
                             });
-                            
+
                             const resultScore = document.createElement('div');
                             resultScore.className = 'result-score';
                             resultScore.textContent = 'Score: ' + result.score.toFixed(2);
-                            
+
                             resultHeader.appendChild(resultPath);
                             resultHeader.appendChild(resultScore);
-                            
+
                             const resultContent = document.createElement('pre');
                             resultContent.className = 'result-content';
-                            
+
                             // Limit content length to avoid huge blocks
                             let content = result.document.content;
                             if (content.length > 1000) {
                                 content = content.substring(0, 1000) + '...';
                             }
-                            
+
                             resultContent.textContent = content;
-                            
+
                             resultItem.appendChild(resultHeader);
                             resultItem.appendChild(resultContent);
-                            
+
                             resultsContainer.appendChild(resultItem);
                         });
                     }
-                    
+
                     // Handle messages from extension
                     window.addEventListener('message', event => {
                         const message = event.data;
-                        
+
                         switch (message.command) {
                             case 'providersLoaded':
                                 providers = message.providers;
                                 activeProvider = message.activeProvider;
                                 isEnabled = message.isEnabled;
-                                
+
                                 enabledToggle.checked = isEnabled;
                                 populateProviders();
                                 updateUI();
                                 break;
-                                
+
                             case 'statusChanged':
                                 isEnabled = message.isEnabled;
                                 updateUI();
                                 break;
-                                
+
                             case 'providerChanged':
                                 activeProvider = message.activeProvider;
                                 populateProviders();
                                 break;
-                                
+
                             case 'searchResults':
                                 displayResults(message.results);
                                 break;
-                                
+
                             case 'indexingComplete':
                                 indexButton.disabled = false;
                                 indexButton.textContent = 'Index Workspace';
                                 break;
                         }
                     });
-                    
+
                     // Initialize on load
                     initialize();
                 })();

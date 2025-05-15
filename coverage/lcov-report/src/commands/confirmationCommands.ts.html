@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -96,69 +96,69 @@
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
-<span class="cstat-no" title="statement not covered" >import { UserConfirmationService } from '../services/UserConfirmationService';</span>
-<span class="cstat-no" title="statement not covered" >import { ConfirmationSettingsPanel } from '../webviews/ConfirmationSettingsPanel';</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
+import { UserConfirmationService } from '../services/UserConfirmationService';
+import { ConfirmationSettingsPanel } from '../webviews/ConfirmationSettingsPanel';
 &nbsp;
 /**
  * Register commands related to user confirmations and settings
  */
-<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >r</span>egisterConfirmationCommands(</span>context: vscode.ExtensionContext): void {
+export function registerConfirmationCommands(context: vscode.ExtensionContext): void {
     // Initialize the confirmation service
-<span class="cstat-no" title="statement not covered" >    UserConfirmationService.initialize(context);</span>
+    UserConfirmationService.initialize(context);
 &nbsp;
     // Register command to open confirmation settings panel
-<span class="cstat-no" title="statement not covered" >    context.subscriptions.push(</span>
-        vscode.commands.registerCommand('copilot-ppa.openConfirmationSettings', <span class="fstat-no" title="function not covered" >() =</span>&gt; {
-<span class="cstat-no" title="statement not covered" >            ConfirmationSettingsPanel.createOrShow(context.extensionUri);</span>
+    context.subscriptions.push(
+        vscode.commands.registerCommand('copilot-ppa.openConfirmationSettings', () =&gt; {
+            ConfirmationSettingsPanel.createOrShow(context.extensionUri);
         })
     );
 &nbsp;
     // Register command to reset all confirmation preferences
-<span class="cstat-no" title="statement not covered" >    context.subscriptions.push(</span>
-        vscode.commands.registerCommand('copilot-ppa.resetConfirmationSettings', <span class="fstat-no" title="function not covered" >async </span>() =&gt; {
-            const confirmationService = <span class="cstat-no" title="statement not covered" >UserConfirmationService.getInstance();</span>
+    context.subscriptions.push(
+        vscode.commands.registerCommand('copilot-ppa.resetConfirmationSettings', async () =&gt; {
+            const confirmationService = UserConfirmationService.getInstance();
 &nbsp;
             // Reset all confirmation types
-<span class="cstat-no" title="statement not covered" >            await confirmationService.enableConfirmation('file');</span>
-<span class="cstat-no" title="statement not covered" >            await confirmationService.enableConfirmation('workspace');</span>
-<span class="cstat-no" title="statement not covered" >            await confirmationService.enableConfirmation('process');</span>
-<span class="cstat-no" title="statement not covered" >            await confirmationService.enableConfirmation('other');</span>
+            await confirmationService.enableConfirmation('file');
+            await confirmationService.enableConfirmation('workspace');
+            await confirmationService.enableConfirmation('process');
+            await confirmationService.enableConfirmation('other');
 &nbsp;
-<span class="cstat-no" title="statement not covered" >            vscode.window.showInformationMessage('All confirmation settings have been reset');</span>
+            vscode.window.showInformationMessage('All confirmation settings have been reset');
         })
     );
 }
@@ -169,7 +169,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

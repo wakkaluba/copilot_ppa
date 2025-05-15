@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -91,60 +91,60 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class L</span>LMStatusBar {
+export class LLMStatusBar {
     private statusBarItem: vscode.StatusBarItem;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    constructor() {</span>
-<span class="cstat-no" title="statement not covered" >        this.statusBarItem = vscode.window.createStatusBarItem(</span>
+    constructor() {
+        this.statusBarItem = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Right,
             100
         );
-<span class="cstat-no" title="statement not covered" >        this.statusBarItem.show();</span>
+        this.statusBarItem.show();
     }
 &nbsp;
-    public <span class="fstat-no" title="function not covered" >updateStatus(</span>connected: boolean, modelName?: string): void {
-<span class="cstat-no" title="statement not covered" >        if (connected) {</span>
-<span class="cstat-no" title="statement not covered" >            this.statusBarItem.text = `$(check) LLM: ${modelName || 'Connected'}`;</span>
-<span class="cstat-no" title="statement not covered" >            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.successBackground');</span>
+    public updateStatus(connected: boolean, modelName?: string): void {
+        if (connected) {
+            this.statusBarItem.text = `$(check) LLM: ${modelName || 'Connected'}`;
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.successBackground');
         } else {
-<span class="cstat-no" title="statement not covered" >            this.statusBarItem.text = '$(error) LLM: Disconnected';</span>
-<span class="cstat-no" title="statement not covered" >            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');</span>
+            this.statusBarItem.text = '$(error) LLM: Disconnected';
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
         }
-<span class="cstat-no" title="statement not covered" >        this.statusBarItem.tooltip = `LLM Connection Status${modelName ? ': ' + modelName : ''}`;</span>
+        this.statusBarItem.tooltip = `LLM Connection Status${modelName ? ': ' + modelName : ''}`;
     }
 &nbsp;
-    public <span class="fstat-no" title="function not covered" >dispose(</span>): void {
-<span class="cstat-no" title="statement not covered" >        this.statusBarItem.dispose();</span>
+    public dispose(): void {
+        this.statusBarItem.dispose();
     }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -154,7 +154,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

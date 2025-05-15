@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">13.63% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/66</span>
+                <span class='fraction'>9/66</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>2/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">13.63% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/66</span>
+                <span class='fraction'>9/66</span>
             </div>
         
             
@@ -258,9 +258,9 @@
 <a name='L193'></a><a href='#L193'>193</a>
 <a name='L194'></a><a href='#L194'>194</a>
 <a name='L195'></a><a href='#L195'>195</a>
-<a name='L196'></a><a href='#L196'>196</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L196'></a><a href='#L196'>196</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -274,12 +274,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">27x</span>
+<span class="cline-any cline-yes">27x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">27x</span>
+<span class="cline-any cline-yes">27x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -287,7 +287,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">27x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -453,9 +453,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
-<span class="cstat-no" title="statement not covered" >import * as fs from 'fs';</span>
-<span class="cstat-no" title="statement not covered" >import * as path from 'path';</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 &nbsp;
 /**
  * Supported languages in the application
@@ -469,20 +469,20 @@ export type SupportedLanguage =
 /**
  * Service for handling localization and language-related functions
  */
-<span class="cstat-no" title="statement not covered" >export class L</span>ocalizationService {
-    private readonly <span class="cstat-no" title="statement not covered" >strings: Map&lt;string, Record&lt;string, string&gt;&gt; = new Map();</span>
-    private <span class="cstat-no" title="statement not covered" >language: SupportedLanguage = 'en';</span>
+export class LocalizationService {
+    private readonly strings: Map&lt;string, Record&lt;string, string&gt;&gt; = new Map();
+    private language: SupportedLanguage = 'en';
     
-<span class="fstat-no" title="function not covered" >    constructor(private readonly <span class="cstat-no" title="statement not covered" >c</span>ontext: vscode.ExtensionContext)</span> {
-<span class="cstat-no" title="statement not covered" >        this.loadLanguage();</span>
+    constructor(private readonly context: vscode.ExtensionContext) {
+        this.loadLanguage();
     }
     
     /**
      * Loads the current language settings and string resources
      */
-    private <span class="fstat-no" title="function not covered" >loadLanguage(</span>): void {
+    private loadLanguage(): void {
         // Get language from VS Code or fall back to English
-        let vsCodeLang = <span class="cstat-no" title="statement not covered" >vscode.env.language;</span>
+        let vsCodeLang = vscode.env.language;
 <span class="cstat-no" title="statement not covered" >        this.language = this.normalizeLanguage(vsCodeLang);</span>
         
         // Load strings from locale files
@@ -655,7 +655,7 @@ export type SupportedLanguage =
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

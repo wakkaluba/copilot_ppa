@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -120,7 +120,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -134,18 +134,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -164,7 +162,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
@@ -172,11 +172,11 @@
 /**
  * Service to simplify code by applying best practices and removing unnecessary complexity
  */
-<span class="cstat-no" title="statement not covered" >export class C</span>odeSimplificationService {
+export class CodeSimplificationService {
     /**
      * Initialize the service
      */
-    public <span class="fstat-no" title="function not covered" >async </span>initialize(): Promise&lt;void&gt; {
+    public async initialize(): Promise&lt;void&gt; {
         // Initialization logic here
     }
 &nbsp;
@@ -185,17 +185,17 @@
      * @param editor Active text editor
      * @returns Object containing text and selection
      */
-    public <span class="fstat-no" title="function not covered" >async </span>getEditorContent(editor: vscode.TextEditor): Promise&lt;{ text: string; selection: vscode.Selection }&gt; {
-        const selection = <span class="cstat-no" title="statement not covered" >editor.selection;</span>
-        let text = <span class="cstat-no" title="statement not covered" >'';</span>
+    public async getEditorContent(editor: vscode.TextEditor): Promise&lt;{ text: string; selection: vscode.Selection }&gt; {
+        const selection = editor.selection;
+        let text = '';
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (selection.isEmpty) {</span>
-<span class="cstat-no" title="statement not covered" >            text = editor.document.getText();</span>
+        if (selection.isEmpty) {
+            text = editor.document.getText();
         } else {
-<span class="cstat-no" title="statement not covered" >            text = editor.document.getText(selection);</span>
+            text = editor.document.getText(selection);
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        return { text, selection };</span>
+        return { text, selection };
     }
 &nbsp;
     /**
@@ -204,7 +204,7 @@
      * @param languageId Language identifier
      * @returns Simplified code
      */
-    public <span class="fstat-no" title="function not covered" >async </span>simplifyCode(text: string, languageId: string): Promise&lt;string&gt; {
+    public async simplifyCode(text: string, languageId: string): Promise&lt;string&gt; {
         // This would typically contain logic to analyze and simplify the code
         // Different language-specific strategies could be applied based on languageId
         
@@ -216,7 +216,7 @@
         // - Simplify nested structures
         // - Apply language-specific best practices
         
-<span class="cstat-no" title="statement not covered" >        return text;</span>
+        return text;
     }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -226,7 +226,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

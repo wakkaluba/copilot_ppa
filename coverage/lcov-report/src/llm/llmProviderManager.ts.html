@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">11.11% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/63</span>
+                <span class='fraction'>7/63</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">7.14% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>1/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">11.11% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/63</span>
+                <span class='fraction'>7/63</span>
             </div>
         
             
@@ -255,24 +255,24 @@
 <a name='L190'></a><a href='#L190'>190</a>
 <a name='L191'></a><a href='#L191'>191</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -445,24 +445,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
 import { LLMProvider, LLMRequestOptions, LLMResponse } from './llm-provider';
-<span class="cstat-no" title="statement not covered" >import { ConnectionState, ConnectionStatusService } from '../status/connectionStatusService';</span>
+import { ConnectionState, ConnectionStatusService } from '../status/connectionStatusService';
 import { SupportedLanguage } from '../i18n';
-<span class="cstat-no" title="statement not covered" >import { MultilingualManager } from './i18n/MultilingualManager';</span>
+import { MultilingualManager } from './i18n/MultilingualManager';
 &nbsp;
 export interface LLMProviderWithCache extends LLMProvider {
     setOfflineMode?(enabled: boolean): void;
     cacheResponse?(prompt: string, response: LLMResponse): Promise&lt;void&gt;;
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class L</span>LMProviderManager implements vscode.Disposable {
-    private <span class="cstat-no" title="statement not covered" >_providers = new Map&lt;string, LLMProviderWithCache&gt;();</span>
-    private <span class="cstat-no" title="statement not covered" >_activeProvider: LLMProviderWithCache | null = null;</span>
+export class LLMProviderManager implements vscode.Disposable {
+    private _providers = new Map&lt;string, LLMProviderWithCache&gt;();
+    private _activeProvider: LLMProviderWithCache | null = null;
     private connectionStatusService: ConnectionStatusService;
     private multilingualManager: MultilingualManager;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    constructor(c</span>onnectionStatusService: ConnectionStatusService) {
-<span class="cstat-no" title="statement not covered" >        this.connectionStatusService = connectionStatusService;</span>
-<span class="cstat-no" title="statement not covered" >        this.multilingualManager = new MultilingualManager();</span>
+    constructor(connectionStatusService: ConnectionStatusService) {
+        this.connectionStatusService = connectionStatusService;
+        this.multilingualManager = new MultilingualManager();
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    registerProvider(</span>id: string, provider: LLMProviderWithCache): void {
@@ -640,7 +640,7 @@ export interface LLMProviderWithCache extends LLMProvider {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

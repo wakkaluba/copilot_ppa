@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">14.6% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/89</span>
+                <span class='fraction'>13/89</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">2% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/50</span>
+                <span class='fraction'>1/50</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">8.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>1/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">14.77% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/88</span>
+                <span class='fraction'>13/88</span>
             </div>
         
             
@@ -327,7 +327,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -436,35 +436,35 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -473,7 +473,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -584,7 +584,7 @@ import { ConversationMemoryService } from "./ConversationMemoryService";
 /**
  * Service for analyzing conversation context
  */
-<span class="cstat-no" title="statement not covered" >export class C</span>ontextAnalysisService {
+export class ContextAnalysisService {
     /**
      * Analyze a message for context and preferences
      * @param message Message content to analyze
@@ -688,40 +688,40 @@ import { ConversationMemoryService } from "./ConversationMemoryService";
      * @param memoryService Conversation memory service
      * @returns Formatted context string
      */
-    public <span class="fstat-no" title="function not covered" >buildContextString(</span>
+    public buildContextString(
         userPrefs: UserPreferencesService,
         filePrefs: FilePreferencesService,
         memoryService: ConversationMemoryService
     ): string {
-        const contextParts: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+        const contextParts: string[] = [];
         
         // Add language preference
-        const preferredLanguage = <span class="cstat-no" title="statement not covered" >userPrefs.getPreference&lt;string&gt;('preferredLanguage');</span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredLanguage) {</span>
+        const preferredLanguage = userPrefs.getPreference&lt;string&gt;('preferredLanguage');
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredLanguage) {
 <span class="cstat-no" title="statement not covered" >            contextParts.push(`Preferred Language: ${preferredLanguage.charAt(0).toUpperCase() + preferredLanguage.slice(1)}`);</span>
         }
         
         // Add framework preference
-        const preferredFramework = <span class="cstat-no" title="statement not covered" >userPrefs.getPreference&lt;string&gt;('preferredFramework');</span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredFramework) {</span>
+        const preferredFramework = userPrefs.getPreference&lt;string&gt;('preferredFramework');
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredFramework) {
 <span class="cstat-no" title="statement not covered" >            contextParts.push(`Framework: ${preferredFramework.charAt(0).toUpperCase() + preferredFramework.slice(1)}`);</span>
         }
         
         // Add code style preferences
-        const useTabs = <span class="cstat-no" title="statement not covered" >userPrefs.getPreference&lt;boolean&gt;('useTabs');</span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (useTabs !== undefined) {</span>
+        const useTabs = userPrefs.getPreference&lt;boolean&gt;('useTabs');
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (useTabs !== undefined) {
 <span class="cstat-no" title="statement not covered" >            contextParts.push(`Indentation: ${useTabs ? 'tabs' : 'spaces'}`);</span>
         }
         
         // Add file type preferences
-        const preferredExtensions = <span class="cstat-no" title="statement not covered" >filePrefs.getMostFrequentExtensions(3);</span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredExtensions.length &gt; 0) {</span>
+        const preferredExtensions = filePrefs.getMostFrequentExtensions(3);
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (preferredExtensions.length &gt; 0) {
 <span class="cstat-no" title="statement not covered" >            contextParts.push(`Common file types: ${preferredExtensions.join(', ')}`);</span>
         }
 &nbsp;
         // Add directory preferences that tests are expecting
-        const recentDirs = <span class="cstat-no" title="statement not covered" >filePrefs.getRecentDirectories(3); </span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (recentDirs.length &gt; 0) {</span>
+        const recentDirs = filePrefs.getRecentDirectories(3); 
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (recentDirs.length &gt; 0) {
             const dirNames = <span class="cstat-no" title="statement not covered" >recentDirs.map(<span class="fstat-no" title="function not covered" >dir </span>=&gt; {</span>
                 const parts = <span class="cstat-no" title="statement not covered" >dir.split(/[\/\\]/);</span>
 <span class="cstat-no" title="statement not covered" >                return parts[parts.length - 1]; </span>// Just the last part of the path
@@ -730,7 +730,7 @@ import { ConversationMemoryService } from "./ConversationMemoryService";
         }
         
         // Return the formatted context
-<span class="cstat-no" title="statement not covered" >        return contextParts.length &gt; 0 ? contextParts.join('\n') : '';</span>
+        return contextParts.length &gt; 0 ? <span class="branch-0 cbranch-no" title="branch not covered" >contextParts.join('\n') </span>: '';
     }
 &nbsp;
     /**
@@ -841,7 +841,7 @@ import { ConversationMemoryService } from "./ConversationMemoryService";
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

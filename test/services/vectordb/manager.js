@@ -6,7 +6,7 @@ const assert = require('assert');
 const path = require('path');
 const vscode = require('vscode');
 // TODO: Import the module to test
-// const { } = require('../../src/services/vectordb/manager.js');
+const { } = require('../../src/services/vectordb/manager');
 
 describe('manager', () => {
     beforeEach(() => {

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.22% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/88</span>
+                <span class='fraction'>9/88</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">24.24% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/33</span>
+                <span class='fraction'>8/33</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">8.33% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/84</span>
+                <span class='fraction'>7/84</span>
             </div>
         
             
@@ -253,12 +253,12 @@
 <a name='L188'></a><a href='#L188'>188</a>
 <a name='L189'></a><a href='#L189'>189</a>
 <a name='L190'></a><a href='#L190'>190</a>
-<a name='L191'></a><a href='#L191'>191</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L191'></a><a href='#L191'>191</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -274,7 +274,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -443,12 +443,12 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { inject, injectable } from 'inversify';</span>
-<span class="cstat-no" title="statement not covered" >import { EventEmitter } from 'events';</span>
-<span class="cstat-no" title="statement not covered" >import * as vscode from 'vscode';</span>
-<span class="cstat-no" title="statement not covered" >import { ILogger } from '../../common/logging';</span>
-<span class="cstat-no" title="statement not covered" >import { ModelResourceMonitorV2 } from './ModelResourceMonitorV2';</span>
-<span class="cstat-no" title="statement not covered" >import { ModelMetricsManager } from './ModelMetricsManager';</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { inject, injectable } from 'inversify';
+import { EventEmitter } from 'events';
+import * as vscode from 'vscode';
+import { ILogger } from '../../common/logging';
+import { ModelResourceMonitorV2 } from './ModelResourceMonitorV2';
+import { ModelMetricsManager } from './ModelMetricsManager';
 &nbsp;
 interface PerformanceMetrics {
     timestamp: number;
@@ -464,15 +464,15 @@ interface PerformanceMetrics {
 }
 &nbsp;
 @injectable()
-export <span class="cstat-no" title="statement not covered" >class <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >ModelPerformanceAnalyzer </span>extends EventEmitter {</span></span>
+export class ModelPerformanceAnalyzer extends EventEmitter {
     private readonly <span class="cstat-no" title="statement not covered" >metricsHistory = new Map&lt;string, PerformanceMetrics[]&gt;();</span>
     private readonly <span class="cstat-no" title="statement not covered" >analysisIntervals = new Map&lt;string, NodeJS.Timer&gt;();</span>
     private readonly outputChannel: vscode.OutputChannel;
 &nbsp;
 <span class="fstat-no" title="function not covered" >    constructor(</span>
-        @inject(ILogger) private readonly <span class="cstat-no" title="statement not covered" >logger: I</span>Logger,
-        @inject(ModelResourceMonitorV2) private readonly <span class="cstat-no" title="statement not covered" >resourceMonitor: M</span>odelResourceMonitorV2,
-        @inject(ModelMetricsManager) private readonly <span class="cstat-no" title="statement not covered" >metricsManager: M</span>odelMetricsManager
+        @inject(ILogger) private readonly <span class="cstat-no" title="statement not covered" >logger: <span class="branch-1 cbranch-no" title="branch not covered" >I</span>Logger<span class="branch-0 cbranch-no" title="branch not covered" >,</span></span>
+        @inject(ModelResourceMonitorV2) private readonly <span class="cstat-no" title="statement not covered" >resourceMonitor: M</span>odelResourceMonitorV2<span class="branch-1 cbranch-no" title="branch not covered" >,</span>
+        @inject(ModelMetricsManager) private readonly <span class="cstat-no" title="statement not covered" >metricsManager: M</span>odelMetricsManager<span class="branch-1 cbranch-no" title="branch not covered" ></span>
     ) {
 <span class="cstat-no" title="statement not covered" >        super();</span>
 <span class="cstat-no" title="statement not covered" >        this.outputChannel = vscode.window.createOutputChannel('Model Performance Analyzer');</span>
@@ -640,7 +640,7 @@ export <span class="cstat-no" title="statement not covered" >class <span class="
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VectorDatabaseManager } from '../../../../src/services/vectordb/manager';
+import { SearchOptions, VectorDatabaseOptions, VectorDocument } from '../../../../src/services/vectordb/models';
 import { VectorDatabaseProvider } from '../../../../src/services/vectordb/provider';
-import { VectorDocument, SearchResult, VectorDatabaseOptions, SearchOptions } from '../../../../src/services/vectordb/models';
 
 jest.mock('vscode');
 

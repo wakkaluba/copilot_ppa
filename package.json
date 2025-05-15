@@ -204,7 +204,7 @@
     "sinon": "^17.0.1",
     "sinon-chai": "^4.0.0",
     "ts-jest": "^29.3.2",
-    "typescript": "^5.3.3",
+    "typescript": "^5.8.3",
     "uuid": "^9.0.1"
   },
   "lint-staged": {

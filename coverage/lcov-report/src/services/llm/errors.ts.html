@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">43.75% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>7/16</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>1/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">46.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>7/15</span>
             </div>
         
             
@@ -89,54 +89,54 @@
 <a name='L24'></a><a href='#L24'>24</a>
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
-<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >export class L</span>LMConnectionError extends Error {
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export class LLMConnectionError extends Error {
 <span class="fstat-no" title="function not covered" >    constructor(public readonly <span class="cstat-no" title="statement not covered" >c</span>ode: string,</span> message: string) {
 <span class="cstat-no" title="statement not covered" >        super(message);</span>
 <span class="cstat-no" title="statement not covered" >        this.name = 'LLMConnectionError';</span>
     }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class C</span>onfigurationError extends Error {
+export class ConfigurationError extends Error {
 <span class="fstat-no" title="function not covered" >    constructor(m</span>essage: string, public readonly <span class="cstat-no" title="statement not covered" >providerId: string,</span> public readonly <span class="cstat-no" title="statement not covered" >setting: string)</span> {
 <span class="cstat-no" title="statement not covered" >        super(message);</span>
 <span class="cstat-no" title="statement not covered" >        this.name = 'ConfigurationError';</span>
     }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class P</span>roviderError extends Error {
-<span class="fstat-no" title="function not covered" >    constructor(m</span>essage: string, public readonly <span class="cstat-no" title="statement not covered" >providerId: string)</span> {
-<span class="cstat-no" title="statement not covered" >        super(message);</span>
-<span class="cstat-no" title="statement not covered" >        this.name = 'ProviderError';</span>
+export class ProviderError extends Error {
+    constructor(message: string, public readonly providerId: string) {
+        super(message);
+        this.name = 'ProviderError';
     }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class M</span>odelNotFoundError extends Error {
+export class ModelNotFoundError extends Error {
 <span class="fstat-no" title="function not covered" >    constructor(m</span>odelId: string) {
 <span class="cstat-no" title="statement not covered" >        super(`Model ${modelId} not found`);</span>
 <span class="cstat-no" title="statement not covered" >        this.name = 'ModelNotFoundError';</span>
@@ -148,7 +148,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-30T19:08:02.440Z
+                at 2025-05-15T19:55:19.240Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
