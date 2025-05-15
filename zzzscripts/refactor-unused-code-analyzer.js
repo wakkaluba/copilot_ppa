@@ -135,3 +135,10 @@ async function main() {
 }
 
 main();
+
+module.exports = {
+  backupFile,
+  checkReferences,
+  analyzeImports,
+  main
+};

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import * as vscode from 'vscode';
 import { VectorDatabaseManager } from '../../../../src/services/vectordb/manager';
 import { SearchOptions, VectorDatabaseOptions, VectorDocument } from '../../../../src/services/vectordb/models';
@@ -247,4 +248,14 @@ describe('VectorDatabaseManager', () => {
             expect(manager.getActiveProvider()).toBeNull();
         });
     });
+=======
+// Test scaffold for src/services/vectordb/manager.ts
+import { Manager } from '../../../../src/services/vectordb/manager';
+
+describe('VectorDB Manager', () => {
+  it('should instantiate without error', () => {
+    expect(() => new Manager()).not.toThrow();
+  });
+  // TODO: Add integration tests for different vector database providers
+>>>>>>> cef1c76635fc36a1404b37471794ec45f6e9c2e4
 });

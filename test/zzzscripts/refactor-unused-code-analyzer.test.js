@@ -3,6 +3,14 @@ const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
 
+// Import the functions we need to test
+const {
+    backupFile,
+    checkReferences,
+    analyzeImports,
+    main
+} = require('../../zzzscripts/refactor-unused-code-analyzer');
+
 describe('refactor-unused-code-analyzer.js', () => {
     let sandbox;
 
@@ -163,4 +171,8 @@ describe('refactor-unused-code-analyzer.js', () => {
             expect(validation.impacts).to.have.lengthOf.above(0);
         });
     });
+
+    // Provide stubs/mocks for unavailable types or modules if needed
+
+    // All test cases should now directly test the exported functions
 });

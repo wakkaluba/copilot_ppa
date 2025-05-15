@@ -3,6 +3,15 @@ const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
 
+// Import the functions we need to test
+const {
+    backupFiles,
+    compareFiles,
+    removeDuplicateFile,
+    updateOrphanedCodeReport,
+    main
+} = require('../../zzzscripts/remove-duplicate-casing-fixer');
+
 describe('remove-duplicate-casing-fixer.js', () => {
     let sandbox;
 

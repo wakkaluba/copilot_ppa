@@ -1,21 +1,16 @@
 import { EventEmitter } from 'events';
 import * as vscode from 'vscode';
-import { LoggerImpl } from '../utils/logger';
 import { AsyncOptimizer } from './asyncOptimizer';
 import { BottleneckDetector } from './bottleneckDetector';
 import { CachingService } from './cachingService';
 import { PerformanceProfiler } from './performanceProfiler';
 import { PerformanceAnalyzerService } from './services/PerformanceAnalyzerService';
-import { PerformanceConfigService } from './services/PerformanceConfigService';
-import { PerformanceDiagnosticsService } from './services/PerformanceDiagnosticsService';
-import { PerformanceFileMonitorService } from './services/PerformanceFileMonitorService';
-import { PerformanceStatusService } from './services/PerformanceStatusService';
-import { PerformanceAnalysisResult, WorkspacePerformanceResult } from './types';
+import { PerformanceConfigService } from './services/performanceConfigService';
+import { PerformanceDiagnosticsService } from './services/performanceDiagnosticsService';
+import { PerformanceFileMonitorService } from './services/performanceFileMonitorService';
+import { PerformanceStatusService } from './services/performanceStatusService';
+import { Logger } from './utils/logger';
 
-/**
- * Central manager for all performance-related functionality in the extension.
- * Coordinates analysis, profiling, monitoring and reporting of performance metrics.
- */
 export class PerformanceManager implements vscode.Disposable {
     private static instance: PerformanceManager;
     private readonly analyzerService: PerformanceAnalyzerService;
@@ -28,12 +23,14 @@ export class PerformanceManager implements vscode.Disposable {
     private readonly cachingService: CachingService;
     private readonly asyncOptimizer: AsyncOptimizer;
     private readonly eventEmitter: EventEmitter;
-    private readonly logger: LoggerImpl;
+    private readonly logger: Logger;
+    private analysisCache: Map<string, PerformanceAnalysisResult> = new Map();
+    private disposed = false;
 
-    private constructor(extensionContext: vscode.ExtensionContext) {
+    private constructor(extensionContext: vscode.ExtensionContext, analyzerService?: PerformanceAnalyzerService) {
         this.eventEmitter = new EventEmitter();
         this.configService = new PerformanceConfigService();
-        this.analyzerService = new PerformanceAnalyzerService(this.configService);
+        this.analyzerService = analyzerService ?? new PerformanceAnalyzerService(extensionContext);
         this.statusService = new PerformanceStatusService();
         this.diagnosticsService = new PerformanceDiagnosticsService();
         this.fileMonitorService = new PerformanceFileMonitorService();
@@ -41,8 +38,7 @@ export class PerformanceManager implements vscode.Disposable {
         this.bottleneckDetector = BottleneckDetector.getInstance();
         this.cachingService = CachingService.getInstance();
         this.asyncOptimizer = AsyncOptimizer.getInstance();
-        this.logger = new LoggerImpl();
-
+        this.logger = Logger.getInstance();
         this.setupEventListeners();
         this.initializeServices().catch(error => {
             this.logger.error('Failed to initialize performance services:', error);
@@ -50,12 +46,12 @@ export class PerformanceManager implements vscode.Disposable {
         });
     }
 
-    public static getInstance(context?: vscode.ExtensionContext): PerformanceManager {
+    public static getInstance(context?: vscode.ExtensionContext, analyzerService?: PerformanceAnalyzerService): PerformanceManager {
         if (!PerformanceManager.instance) {
             if (!context) {
                 throw new Error('Context required for PerformanceManager initialization');
             }
-            PerformanceManager.instance = new PerformanceManager(context);
+            PerformanceManager.instance = new PerformanceManager(context, analyzerService);
         }
         return PerformanceManager.instance;
     }
@@ -65,89 +61,58 @@ export class PerformanceManager implements vscode.Disposable {
             await this.configService.initialize();
             this.profiler.setEnabled(this.configService.isProfilingEnabled());
             this.bottleneckDetector.setEnabled(this.configService.isBottleneckDetectionEnabled());
-
             const cachingOptions = this.configService.getCachingOptions();
             this.cachingService.setMaxCacheSize(cachingOptions.maxSize);
-
             this.asyncOptimizer.setConfig(this.configService.getAsyncOptions());
-
             this.eventEmitter.emit('servicesInitialized');
         } catch (error) {
             this.logger.error('Failed to initialize performance services:', error);
+            vscode.window.showErrorMessage('Failed to initialize performance services');
             throw error;
         }
     }
 
-    /**
-     * Analyzes the performance of the entire workspace.
-     * This includes analyzing all relevant files and collecting workspace-wide metrics.
-     */
-    public async analyzeWorkspace(): Promise<WorkspacePerformanceResult> {
-        if (!vscode.workspace.workspaceFolders) {
-            throw new Error('No workspace folders found');
+    public async analyzeFile(document: vscode.TextDocument): Promise<PerformanceAnalysisResult> {
+        const fileKey = document.uri.toString();
+        if (this.analysisCache.has(fileKey)) {
+            return this.analysisCache.get(fileKey)!;
         }
-
-        const operationId = 'workspace-analysis';
-        this.profiler.startOperation(operationId);
-
-        try {
-            return await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Analyzing workspace performance",
-                cancellable: true
-            }, async (progress, token) => {
-                const files = await this.fileMonitorService.findAnalyzableFiles();
-                const result = await this.analyzerService.analyzeWorkspace(files, progress, token);
-
-                if (token.isCancellationRequested) {
-                    throw new Error('Analysis cancelled by user');
-                }
-
-                this.eventEmitter.emit('workspaceAnalysisComplete', result);
-                await this.updateWorkspaceMetrics(result);
-                return result;
-            });
-        } catch (error) {
-            this.logger.error('Workspace analysis failed:', error);
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Workspace analysis failed: ${message}`);
-            throw error;
-        } finally {
-            this.profiler.endOperation(operationId);
-        }
-    }
-
-    /**
-     * Analyzes a specific file for performance issues.
-     * @param document The document to analyze
-     */
-    public async analyzeFile(document: vscode.TextDocument): Promise<PerformanceAnalysisResult | null> {
         const operationId = `file-analysis-${document.uri.fsPath}`;
         this.profiler.startOperation(operationId);
-
         try {
-            const result = await this.analyzerService.analyzeFile(document);
-            if (result) {
-                this.statusService.updateStatusBar(result);
-                this.diagnosticsService.updateDiagnostics(document, result);
-                this.bottleneckDetector.analyzeOperation(operationId);
-                this.eventEmitter.emit('fileAnalysisComplete', result);
-                await this.updateFileMetrics(document.uri, result);
+            let result = await this.analyzerService.analyzeDocument(document);
+            const normalizedResult: PerformanceAnalysisResult = {
+                ...result,
+                skipped: !!result.skipped
+            };
+            if (normalizedResult) {
+                try {
+                    this.statusService.updateStatusBar(normalizedResult);
+                    this.diagnosticsService.updateDiagnostics(document, normalizedResult);
+                    this.bottleneckDetector.analyzeOperation(operationId, { result: normalizedResult });
+                    this.eventEmitter.emit('fileAnalysisComplete', normalizedResult);
+                    await this.updateFileMetrics(document.uri, normalizedResult);
+                    this.analysisCache.set(fileKey, normalizedResult);
+                } catch (error) {
+                    this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
+                    const message = error instanceof Error ? error.message : 'Unknown error';
+                    vscode.window.showErrorMessage(`File analysis failed: ${message}`);
+                    this.eventEmitter.emit('fileAnalysisComplete', { filePath: '', issues: [], skipped: true });
+                    return { filePath: '', issues: [], skipped: true };
+                }
             }
-            return result;
+            return normalizedResult;
         } catch (error) {
             this.logger.error(`File analysis failed for ${document.uri.fsPath}:`, error);
             const message = error instanceof Error ? error.message : 'Unknown error';
             vscode.window.showErrorMessage(`File analysis failed: ${message}`);
-            return null;
+            this.eventEmitter.emit('fileAnalysisComplete', { filePath: '', issues: [], skipped: true });
+            return { filePath: '', issues: [], skipped: true };
         } finally {
             this.profiler.endOperation(operationId);
         }
     }
 
-    /**
-     * Analyzes the currently active file in the editor.
-     */
     public async analyzeCurrentFile(): Promise<PerformanceAnalysisResult | null> {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -156,22 +121,17 @@ export class PerformanceManager implements vscode.Disposable {
         return this.analyzeFile(editor.document);
     }
 
-    /**
-     * Generates a performance report with current metrics and bottleneck analysis.
-     */
     public generatePerformanceReport(): void {
         const operationStats = this.profiler.getStats('all');
         const bottleneckAnalysis = this.bottleneckDetector.analyzeAll();
         const cacheStats = this.cachingService.getCacheStats();
         const asyncStats = this.asyncOptimizer.getStats();
-
         this.logger.info('Performance Report:');
         this.logger.info(`Operations analyzed: ${operationStats?.length || 0}`);
         this.logger.info(`Critical bottlenecks detected: ${bottleneckAnalysis.critical.length}`);
         this.logger.info(`Performance warnings detected: ${bottleneckAnalysis.warnings.length}`);
         this.logger.info(`Cache hits: ${cacheStats.hits}, misses: ${cacheStats.misses}, evictions: ${cacheStats.evictions}`);
         this.logger.info(`Async operations optimized: ${asyncStats.optimizedCount}`);
-
         this.eventEmitter.emit('performanceReport', {
             operationStats,
             bottleneckAnalysis,
@@ -184,7 +144,6 @@ export class PerformanceManager implements vscode.Disposable {
         this.fileMonitorService.onDocumentSaved((document: vscode.TextDocument) =>
             this.handleDocumentChange(document)
         );
-
         this.fileMonitorService.onActiveEditorChanged((editor?: vscode.TextEditor) => {
             if (editor) {
                 this.analyzeFile(editor.document).catch(error => {
@@ -192,7 +151,6 @@ export class PerformanceManager implements vscode.Disposable {
                 });
             }
         });
-
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('copilot-ppa.performance')) {
                 this.initializeServices().catch(error => {
@@ -213,35 +171,6 @@ export class PerformanceManager implements vscode.Disposable {
         });
     }
 
-    private async updateWorkspaceMetrics(result: WorkspacePerformanceResult): Promise<void> {
-        try {
-            const operationId = 'workspace-analysis';
-            const stats = this.profiler.getStats(operationId);
-            if (stats) {
-                stats.metadata = {
-                    filesAnalyzed: result.summary.filesAnalyzed,
-                    totalIssues: result.summary.totalIssues,
-                    criticalIssues: result.summary.criticalIssues,
-                    highIssues: result.summary.highIssues
-                };
-            }
-
-            // Update bottleneck tracking
-            for (const fileResult of result.fileResults) {
-                const fileStats = this.profiler.getStats(`file-analysis-${fileResult.filePath}`);
-                this.bottleneckDetector.analyzeOperation(`file-${fileResult.filePath}`, {
-                    stats: fileStats,
-                    issues: fileResult.issues.length,
-                    metrics: fileResult.metrics
-                });
-            }
-
-            this.eventEmitter.emit('workspaceMetricsUpdated', result.summary);
-        } catch (error) {
-            this.logger.error('Failed to update workspace metrics:', error);
-        }
-    }
-
     private async updateFileMetrics(uri: vscode.Uri, result: PerformanceAnalysisResult): Promise<void> {
         try {
             const operationId = `file-analysis-${uri.fsPath}`;
@@ -252,18 +181,20 @@ export class PerformanceManager implements vscode.Disposable {
                     ...result.metrics
                 };
             }
-
-            // Update bottleneck tracking
             this.bottleneckDetector.analyzeOperation(`file-${uri.fsPath}`, {
                 stats: this.profiler.getStats(operationId),
                 issues: result.issues.length,
                 metrics: result.metrics
             });
-
             this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: result.metrics });
         } catch (error) {
             this.logger.error(`Failed to update metrics for ${uri.fsPath}:`, error);
+            this.eventEmitter.emit('fileMetricsUpdated', { uri, metrics: undefined, error });
         }
+    }
+
+    public clearCaches(): void {
+        this.analysisCache.clear();
     }
 
     public getProfiler(): PerformanceProfiler {
@@ -291,6 +222,8 @@ export class PerformanceManager implements vscode.Disposable {
     }
 
     public dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
         this.statusService.dispose();
         this.diagnosticsService.dispose();
         this.fileMonitorService.dispose();
@@ -299,3 +232,5 @@ export class PerformanceManager implements vscode.Disposable {
         this.eventEmitter.removeAllListeners();
     }
 }
+
+type PerformanceAnalysisResult = { filePath: string; issues: any[]; skipped: boolean; metrics?: Record<string, number> };

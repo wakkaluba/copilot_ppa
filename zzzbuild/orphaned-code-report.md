@@ -1,0 +1,148 @@
+# Orphaned Code and Files Report
+
+This document lists potentially orphaned code and files in the codebase, along with analysis and recommendations.
+
+## Orphaned Files
+
+- nyc.config.js
+- jest.setup.js
+- jest.reviewChecklist.config.js
+- jest.config.js
+- jest.codeReview.config.js
+- tools\run-codereview-tests.js
+- tools\normal.ts
+- tools\fix-uri-errors.js
+- tools\fix-type-errors.js
+- tools\fix-timestamp-errors.js
+- tools\fix-test-errors.js
+- tools\fix-imports.js
+- tools\fix-file-casing.js
+- tools\fix-casing.js
+- tools\fix-all.js
+- tools\__tests__\fix-uri-errors-tester.js
+- tools\__tests__\fix-type-errors-tester.js
+- tools\__tests__\fix-timestamp-errors-tester.js
+- tools\__tests__\fix-imports-tester.js
+- tools\__tests__\fix-file-casing-tester.js
+- tools\__tests__\fix-casing.test.js
+- tools\__tests__\fix-casing-tester.js
+- tools\__tests__\fix-casing-runner.js
+- tools\__tests__\fix-all.test.js
+- tools\test\runCodeReviewTests.js
+- tests\vscode-mock.ts
+- tests\types.d.ts
+- tests\testHelpers.ts
+- tests\testHelpers.js
+- tests\setupTestsExtended.ts
+- tests\setupTestsExtended.js
+- tests\setupTests.ts
+- tests\setupTests.js
+- tests\setup.ts
+- tests\setup.js
+- tests\run-test.js
+- tests\run-all-tests.js
+- tests\__testUtils__\mocks.ts
+- tests\__testUtils__\mocks.js
+- tests\__testUtils__\MockLLMProvider.ts
+- tests\__testUtils__\MockLLMProvider.js
+- tests\__testUtils__\MockConnectionStatusService.ts
+- tests\__testUtils__\MockConnectionStatusService.js
+- tests\__mocks__\LLMProvider.ts
+- tests\__mocks__\ExtensionContext.ts
+- tests\__mocks__\ConversationManager.ts
+- tests\__mocks__\ContextManager.ts
+- tests\unit\workspace.test.ts
+- tests\unit\workspace.test.js
+- tests\unit\workspace-manager.ts
+- tests\unit\utils.test.ts
+- tests\unit\utils.test.js
+- tests\unit\ui.test.ts
+- tests\unit\ui.test.js
+- tests\unit\TrustManager.test.ts
+- tests\unit\TrustManager.test.js
+- tests\unit\sample.test.ts
+- tests\unit\sample.test.js
+- tests\unit\logger.test.ts
+- tests\unit\llmProviders.test.ts
+- tests\unit\llmProviders.test.js
+- tests\unit\llmProviderManager.test.ts
+- tests\unit\llmProviderManager.test.js
+- tests\unit\llmProvider.test.ts
+- tests\unit\llmProvider.test.js
+- tests\unit\extension.test.ts
+- tests\unit\extension.test.js
+- tests\unit\eventEmitter.test.ts
+- tests\unit\diagnostics.test.ts
+- tests\unit\diagnostics.test.js
+- tests\unit\commands.test.ts
+- tests\unit\commands.test.js
+- tests\unit\commandParser.test.ts
+- tests\unit\commandParser.test.js
+- tests\unit\codeQualityService.test.ts
+- tests\unit\codeQualityService.test.js
+- tests\unit\codeExampleSearch.test.ts
+- tests\unit\codeExampleSearch.test.js
+- tests\unit\codeExamples.test.ts
+- tests\unit\codeExamples.test.js
+- tests\unit\workspace\WorkspaceStateService.test.ts
+- tests\unit\workspace\setup.ts
+- tests\unit\workspace\jest.config.js
+- tests\unit\utils\logger.test.ts
+- tests\unit\utils\logger.test.js
+- tests\unit\utils\advancedLogger.test.ts
+- tests\unit\utils\advancedLogger.test.js
+- tests\unit\terminal\types.test.ts
+- tests\unit\terminal\terminalManager.test.ts
+- tests\unit\services\TestGeneratorService.test.ts
+- tests\unit\services\staticAnalysis.test.ts
+- tests\unit\services\staticAnalysis.test.js
+- tests\unit\services\notificationService.test.ts
+- tests\unit\services\notificationService.test.js
+- tests\unit\services\ExtensionAccessService.test.ts
+- tests\unit\services\displaySettingsService.test.ts
+- tests\unit\services\displaySettingsService.test.js
+- tests\unit\services\coreAgent.test.ts
+- tests\unit\services\coreAgent.test.js
+- tests\unit\services\ConversationInsightService.test.ts
+- tests\unit\services\commandParser.test.ts
+- tests\unit\services\commandParser.test.js
+- tests\unit\services\codeAnalysis.test.ts
+- tests\unit\services\codeAnalysis.test.js
+- tests\unit\services\AgentResponseEnhancer.test.ts
+- tests\unit\services\vectordb\manager.test.ts
+- tests\unit\services\vectordb\manager.test.js
+- tests\unit\services\ui\themeManager.test.ts
+- tests\unit\services\ui\themeManager.test.js
+- tests\unit\services\testRunner\testRunnerService.test.ts
+- tests\unit\services\testRunner\staticAnalysisService.test.ts
+- tests\unit\services\testRunner\staticAnalysisService.test.js
+- tests\unit\services\staticAnalysis\StaticAnalysisServiceImpl.test.ts
+- tests\unit\services\llm\llmServices.test.ts
+- tests\unit\services\llm\llmServices.test.js
+- tests\unit\services\llm\providers\ProviderFactory.test.ts
+- tests\unit\services\llm\providers\ProviderFactory.test.js
+- tests\unit\services\conversation\UserPreferences.test.ts
+- tests\unit\services\conversation\UserPreferences.test.js
+- tests\unit\services\conversation\FilePreferences.test.ts
+- tests\unit\services\conversation\ConversationMemory.test.ts
+- tests\unit\services\conversation\ConversationMemory.test.js
+- tests\unit\services\conversation\ConversationHistory.test.ts
+- tests\unit\services\conversation\ContextManager.test.ts
+- tests\unit\services\conversation\ContextManager.test.js
+- tests\unit\services\codeQuality\SecurityAnalyzer.test.ts
+- tests\unit\services\codeQuality\complexityAnalyzer.test.ts (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\codeQualityService.test.ts (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\codeOptimizer.test.ts (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\codeOptimizer.test.js (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\codeAnalysisService.test.ts (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\bestPracticesService.test.ts
+- tests\unit\services\codeQuality\bestPracticesChecker.test.ts (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\bestPracticesChecker.test.js (fully covered, no remaining complexity issues)
+- tests\unit\services\codeQuality\BestPracticesAnalyzer.test.ts
+- tests\unit\security\dependencyScanner.test.ts
+
+**Complexity Analysis Update:**
+- All previously identified files with complexity issues have been refactored or covered with comprehensive tests.
+- No files currently exceed complexity thresholds.
+- Complexity metrics are now within acceptable limits for all modules.
+

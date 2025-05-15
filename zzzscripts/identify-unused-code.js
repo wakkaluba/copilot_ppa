@@ -167,3 +167,11 @@ function main() {
 }
 
 main();
+
+module.exports = {
+  findCodeFiles,
+  isFileReferenced,
+  analyzeFileContent,
+  generateReport,
+  main
+};

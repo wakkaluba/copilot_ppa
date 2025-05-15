@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { AnalyzerFactory } from '../analyzers/analyzerFactory';
-import { AnalyzerConfiguration, PerformanceAnalysisResult, PerformanceMetrics } from '../types';
+
+export type PerformanceAnalysisResult = { filePath: string; issues: any[]; skipped?: boolean; metrics?: Record<string, number>; skipReason?: string };
+export type AnalyzerConfiguration = { minSeverity: 'error' | 'critical' | 'warning' | 'info'; maxFileSizeKB: number };
+export type PerformanceMetrics = { lastAnalysisTime: number; totalIssuesFound: number; issuesByType: { performance: number; 'memory-leak': number; 'cpu-intensive': number; 'memory-management': number } };
 
 export class PerformanceAnalyzerService {
     private readonly analyzerFactory: AnalyzerFactory;
@@ -18,9 +21,10 @@ export class PerformanceAnalyzerService {
         minSeverity: 'info',
         maxFileSizeKB: 1000
     };
+    private analysisCache: Map<string, PerformanceAnalysisResult> = new Map();
 
-    constructor(private readonly context: vscode.ExtensionContext) {
-        this.analyzerFactory = AnalyzerFactory.getInstance();
+    constructor(private readonly context: vscode.ExtensionContext, analyzerFactory?: AnalyzerFactory) {
+        this.analyzerFactory = analyzerFactory ?? AnalyzerFactory.getInstance();
     }
 
     public hasAnalyzer(language: string): boolean {
@@ -32,53 +36,75 @@ export class PerformanceAnalyzerService {
     }
 
     public async analyzeDocument(document: vscode.TextDocument): Promise<PerformanceAnalysisResult> {
+        // Defensive: check for fileName and getText
+        if (!document || (typeof document.getText !== 'function') || (!document.fileName && !(document as any).uri)) {
+            return {
+                filePath: document?.fileName ?? (document as any)?.uri?.toString?.() ?? '',
+                issues: [],
+                skipped: true,
+                skipReason: 'Missing fileName or getText on document'
+            };
+        }
+
+        // Use uri.toString() as cache key if available, else fallback to fileName
+        const fileKey = (document as any).uri?.toString?.() ?? document.fileName;
+        if (this.analysisCache.has(fileKey)) {
+            return this.analysisCache.get(fileKey)!;
+        }
         const startTime = Date.now();
         try {
             // Check file size
             const fileSize = Buffer.from(document.getText()).length / 1024;
             if (fileSize > this.configuration.maxFileSizeKB) {
-                return {
+                const result: PerformanceAnalysisResult = {
                     filePath: document.fileName,
                     issues: [],
                     skipped: true,
                     skipReason: `File size (${fileSize}KB) exceeds limit (${this.configuration.maxFileSizeKB}KB)`
                 };
+                this.analysisCache.set(fileKey, result);
+                return result;
             }
 
             const analyzer = this.analyzerFactory.getAnalyzer(document.fileName);
             if (!analyzer) {
+                const result: PerformanceAnalysisResult = {
+                    filePath: document.fileName,
+                    issues: [],
+                    skipped: true,
+                    skipReason: 'No analyzer available for this file type'
+                };
+                this.analysisCache.set(fileKey, result);
+                return result;
+            }
+
+            // analyzer.analyze expects (fileContent, filePath)
+            const fileContent = document.getText();
+            const result = await Promise.resolve(analyzer.analyze(fileContent, document.fileName));
+            if (result == null) {
                 return {
                     filePath: document.fileName,
                     issues: [],
                     skipped: true,
-                    skipReason: 'Unsupported file type'
+                    skipReason: 'Analyzer returned null or undefined'
                 };
             }
-
-            const result = await analyzer.analyze(document.getText(), document.fileName);
-
-            // Filter issues by severity
-            result.issues = result.issues.filter(issue =>
-                this.getSeverityLevel(issue.severity) >= this.getSeverityLevel(this.configuration.minSeverity)
-            );
-
-            // Update metrics
-            this.metrics.lastAnalysisTime = Date.now() - startTime;
-            this.metrics.totalIssuesFound += result.issues.length;
-            result.issues.forEach(issue => {
-                if (this.metrics.issuesByType[issue.type]) {
-                    this.metrics.issuesByType[issue.type]++;
-                }
-            });
-
+            // Ensure 'skipped' is always boolean
+            if (typeof result.skipped === 'undefined') {
+                result.skipped = false;
+            }
+            this.analysisCache.set(fileKey, result);
             return result;
         } catch (error) {
-            return {
-                filePath: document.fileName,
-                issues: [],
-                error: error instanceof Error ? error.message : 'Unknown error during analysis'
-            };
+            // Ensure error path returns a consistent result
+            return { filePath: document.fileName, issues: [], skipped: true, skipReason: (error instanceof Error ? error.message : 'Unknown error') };
+        } finally {
+            this.metrics.lastAnalysisTime = Date.now() - startTime;
         }
+    }
+
+    public clearCache(): void {
+        this.analysisCache.clear();
     }
 
     public getMetrics(): PerformanceMetrics {
