@@ -9,5 +9,8 @@ module.exports = {
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
     '**/coverage/**/*.test.[jt]s?(x)'
-  ]
+  ],
+  moduleNameMapper: {
+    '^@src/(.*)$': '<rootDir>/src/$1'
+  }
 };

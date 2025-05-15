@@ -25,3 +25,10 @@ export class ModelNotFoundError extends Error {
         this.name = 'ModelNotFoundError';
     }
 }
+
+export class ModelValidationError extends Error {
+    constructor(public readonly field: string, message: string) {
+        super(message);
+        this.name = 'ModelValidationError';
+    }
+}

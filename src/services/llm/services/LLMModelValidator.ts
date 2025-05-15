@@ -1,11 +1,10 @@
+import { ModelValidationError } from '../errors';
 import {
-    ModelInfo,
-    ModelValidationError,
-    ModelRequirements,
-    ModelValidationResult,
-    ModelCompatibilityResult,
     HardwareRequirements,
-    ModelCapabilities
+    ModelCompatibilityResult,
+    ModelInfo,
+    ModelRequirements,
+    ModelValidationResult
 } from '../types';
 
 /**
@@ -38,8 +37,8 @@ export class LLMModelValidator {
         // Check hardware requirements
         if (requirements.hardware) {
             const hardwareIssues = this.validateHardwareRequirements(
-                model.hardwareRequirements,
-                requirements.hardware
+                requirements.hardware,
+                model.hardwareRequirements
             );
             result.errors.push(...hardwareIssues.errors);
             result.warnings.push(...hardwareIssues.warnings);
@@ -48,8 +47,8 @@ export class LLMModelValidator {
         // Check capabilities
         if (requirements.capabilities) {
             const missingCapabilities = this.validateCapabilities(
-                model.capabilities,
-                requirements.capabilities
+                requirements.capabilities,
+                model.capabilities
             );
             if (missingCapabilities.length > 0) {
                 result.errors.push(
@@ -144,8 +143,8 @@ export class LLMModelValidator {
      * Validate hardware requirements
      */
     private validateHardwareRequirements(
-        actual?: HardwareRequirements,
-        required: HardwareRequirements
+        required: HardwareRequirements,
+        actual?: HardwareRequirements
     ): { errors: ModelValidationError[]; warnings: string[] } {
         const result = { errors: [] as ModelValidationError[], warnings: [] as string[] };
 
@@ -188,8 +187,8 @@ export class LLMModelValidator {
      * Validate model capabilities
      */
     private validateCapabilities(
-        actual: string[],
-        required: string[]
+        required: string[],
+        actual: string[]
     ): string[] {
         const missingCapabilities = required.filter(
             cap => !actual.includes(cap)
@@ -249,7 +248,10 @@ export class LLMModelValidator {
     /**
      * Check version compatibility
      */
-    private checkVersion(actual?: string, required: string): boolean {
+    private checkVersion(
+        required: string,
+        actual?: string
+    ): boolean {
         if (!actual) {return false;}
 
         const [actualMajor, actualMinor = 0] = actual.split('.').map(Number);
@@ -289,14 +291,14 @@ export class LLMModelValidator {
 
         // Check memory requirements
         const minMemory = Math.max(hwA.minMemoryGB || 0, hwB.minMemoryGB || 0);
-        const maxMemory = Math.min(hwA.maxMemoryGB || Infinity, hwB.maxMemoryGB || Infinity);
+        const maxMemory = Math.min(hwA.minMemoryGB || Infinity, hwB.minMemoryGB || Infinity);
         if (minMemory > maxMemory) {
             result.conflicts.push(`Incompatible memory requirements: ${minMemory}GB > ${maxMemory}GB`);
         }
 
         // Check CPU requirements
         const minCPU = Math.max(hwA.minCPUCores || 0, hwB.minCPUCores || 0);
-        const maxCPU = Math.min(hwA.maxCPUCores || Infinity, hwB.maxCPUCores || Infinity);
+        const maxCPU = Math.min(hwA.minCPUCores || Infinity, hwB.minCPUCores || Infinity);
         if (minCPU > maxCPU) {
             result.conflicts.push(`Incompatible CPU requirements: ${minCPU} > ${maxCPU} cores`);
         }

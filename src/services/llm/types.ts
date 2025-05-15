@@ -118,3 +118,40 @@ export interface LLMProvider extends EventEmitter {
         callback?: (event: LLMStreamEvent) => void
     ): Promise<void>;
 }
+
+export interface ModelInfo {
+    version: string;
+    provider: string;
+    hardwareRequirements?: HardwareRequirements;
+    capabilities: string[];
+    supportedFormats: string[];
+    parameters: Record<string, any>;
+}
+
+export interface ModelRequirements {
+    minVersion?: string;
+    hardware?: HardwareRequirements;
+    capabilities?: string[];
+    formats?: string[];
+    parameters?: Record<string, any>;
+}
+
+export interface ModelValidationResult {
+    isValid: boolean;
+    errors: any[];
+    warnings: string[];
+}
+
+export interface ModelCompatibilityResult {
+    isCompatible: boolean;
+    errors: any[];
+    warnings: string[];
+}
+
+export interface HardwareRequirements {
+    minMemoryGB?: number;
+    minCPUCores?: number;
+    gpuRequired?: boolean;
+}
+
+export type ModelCapabilities = string[];
