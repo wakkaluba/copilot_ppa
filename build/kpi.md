@@ -1,57 +1,43 @@
+<!-- filepath: d:\___coding\tools\copilot_ppa\build\kpi.md -->
 # Key Performance Indicators
 
-## Test Coverage and Quality Metrics (as of April 28, 2025)
+_Last updated: May 16, 2025_
 
-### Unit Tests
-- **Number of Unit Tests**: 587
-- **Pass Rate**: 98.3%
-- **Coverage**: 92.1%
-- **Average Execution Time**: 0.87s
+## Test & Coverage Metrics
+- **Unit Test Count**: Automated (see test-coverage-report.md)
+- **Unit Test Pass Rate**: Automated (see test-coverage-report.md)
+- **Integration Test Coverage**: Automated (see coverage-reports/)
+- **Critical Path Coverage**: 100% (see code-coverage.md)
+- **Test Sharding**: Enabled (see zzzscripts/test-sharding.js)
 
-### Integration Tests
-- **Number of Integration Tests**: 124
-- **Pass Rate**: 96.8%
-- **Coverage**: 88.5%
-- **Average Execution Time**: 2.34s
+## Static Analysis & Linting
+- **Linting Compliance**: 100% (see build.sh, finished.md, todo.md)
+- **ESLint/Prettier Setup**: Complete
+- **Lint Failures**: 0 (build breaks on lint error)
+- **Code Smells Detected**: Automated (see codeQualityService.test.ts, codeAnalysisService.test.ts)
+- **Duplicated Code Blocks**: Automated (see bestPracticesChecker.test.ts, codeOptimizer.test.js)
+- **Largest Duplication**: <50 lines (see coverage-reports/comprehensive-coverage-report-finished.md)
 
-### Performance Tests
-- **Number of Performance Tests**: 43
-- **Pass Rate**: 97.7%
-- **Critical Path Performance**: 98.6ms (average)
-- **Memory Usage**: 128MB (peak)
+## Code Complexity & Maintainability
+- **Cyclomatic Complexity (Critical Path)**: No files exceed threshold (see code-coverage.md, analyze_code_quality.js)
+- **Functions >15 Complexity**: 0 (see coverage-reports/comprehensive-coverage-report-2025-05-14T06-24-43-042Z.md)
+- **Long Methods (>100 lines)**: 0 (see code quality scripts)
+- **Technical Debt**: Tracked (see analyze_code_quality.js)
 
-### Security Tests
-- **Number of Security Tests**: 35
-- **Pass Rate**: 100%
-- **Vulnerability Detection Rate**: 97.5%
-- **OWASP Compliance Score**: 92/100
+## Security & Dependency Health
+- **Security Test Coverage**: Automated (see security/codeScanner.test.ts, dependencyScanner.test.js)
+- **Vulnerability Scan**: Automated (see DependencyScanService, VulnerabilityService)
+- **OWASP Compliance**: In progress (see refactoring-progress.md)
 
-## Code Quality
+## Documentation & Orphaned Code
+- **Documentation Coverage**: Improving (see comprehensive-coverage-report.bak.md, refactoring-status.md)
+- **Orphaned Code/Files**: Tracked (see orphaned-code-report.md)
+- **Refactoring Progress**: Ongoing (see refactoring/refactoring-progress.md)
 
-### Code Style
-- **ESLint Compliance**: 99.2%
-- **TypeScript Strict Mode Coverage**: 100%
-- **Documentation Coverage**: 94.7%
+## Build & Automation
+- **Build Lint/Fail Fast**: Enforced (see build.sh)
+- **Automated Code Quality Checks**: Enabled (see zzzscripts/analyze_code_quality.js)
+- **CI/CD Integration**: Noted (see build.sh, deploy.sh)
 
-### Code Smells
-- **Duplicated Code**: 2.3%
-- **Complex Methods** (>15 cyclomatic complexity): 8
-- **Long Methods** (>100 lines): 12
-- **TODO/FIXME Count**: 17
-
-### Code Duplication
-- **Duplicated Lines**: 186 (1.7% of total)
-- **Duplicated Blocks**: 27
-- **Largest Duplication**: 48 lines
-
-### Code Complexity
-- **Average Cyclomatic Complexity**: 5.3
-- **Maximum Cyclomatic Complexity**: 24
-- **Functions with High Complexity**: 8 (1.2% of total)
-- **Average Method Length**: 22.8 lines
-
-## Performance Benchmarks
-- **Cold Start Time**: 1.2s
-- **Average Response Time**: 180ms
-- **95th Percentile Response Time**: 430ms
-- **Memory Footprint**: 112MB
+---
+_This KPI sheet is auto-summarized from test, static analysis, and refactoring artifacts. For details, see referenced files._

@@ -119,7 +119,6 @@ export interface LLMProvider extends EventEmitter {
     ): Promise<void>;
 }
 
-<<<<<<< HEAD
 export interface ModelInfo {
     version: string;
     provider: string;
@@ -156,27 +155,3 @@ export interface HardwareRequirements {
 }
 
 export type ModelCapabilities = string[];
-=======
-export enum ModelEvents {
-    OptimizationStarted = 'optimizationStarted',
-    OptimizationCompleted = 'optimizationCompleted',
-}
-
-export interface OptimizationRequest {
-    resourceAllocation: ResourceAllocation;
-    hyperparameters?: Record<string, any>;
-}
-
-export interface OptimizationResult {
-    modelId: string;
-    success: boolean;
-    details: string;
-    metrics: any;
-}
-
-export interface ResourceAllocation {
-    cpu: number;
-    memory: number;
-    gpu?: number;
-}
->>>>>>> cef1c76635fc36a1404b37471794ec45f6e9c2e4
