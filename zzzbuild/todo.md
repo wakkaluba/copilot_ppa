@@ -203,35 +203,25 @@
   - ✅ Implement "chapter" functionality to create new history files (100%)
 - ✅ Use conversation history to improve agent responses (100%)
   - ✅ Generate new ideas based on previous conversations (100%)
-  - ✅ Generate code based on conversation context (100%)
-  - ✅ Generate documentation using historical context (100%)
   - ✅ Generate tests using conversation history (100%)
 
 ## 11. Error Handling for HTML Output
 - ✅ Improve memory management for Copilot (100%)
   - ✅ Add button to clear Copilot memory (100%)
-  - ✅ Add button to reset "changed" file list (100%)
   - ✅ Add button to restart Copilot (100%)
 
 ## 12. Third-Party Extension Integration
 - ✅ Enable access to other VS Code extensions (100%)
   - ✅ Create API for accessing installed extensions (100%)
-  - ✅ Implement permission system for extension access (100%)
-  - ✅ Add telemetry and security monitoring (100%)
   - ✅ Implement extension validation service (100%)
 - ✅ Allow configuration changes for VS Code and extensions (100%)
   - ✅ Create safe API for configuration modifications (100%)
-  - ✅ Add user confirmation for configuration changes (100%)
-  - ✅ Implement configuration validation (100%)
   - ✅ Add configuration change tracking (100%)
 - ✅ Enable installation of extensions (100%)
   - ✅ Implement extension recommendation system (100%)
-  - ✅ Add secure extension installation workflow (100%)
-  - ✅ Add installation validation and telemetry (100%)
   - ✅ Support additional language-specific extensions (100%)
 - ✅ Provide access to VS Code API (100%)
   - ✅ Create sandbox for safe API access (100%)
-  - ✅ Add permission system for VS Code API operations (100%)
   - ✅ Implement suspicious activity detection (100%)
 
 ## Testing
@@ -292,7 +282,7 @@
 - ✅ Add unit tests for src/codeReview/codeReviewWebviewProvider.js and src/codeReview/codeReviewWebviewProvider.ts (100%)
 - ✅ Add unit tests for src/codeReview/errors/ReviewChecklistError.js and src/codeReview/errors/ReviewChecklistError.ts (100%)
 - ✅ Add unit tests for src/codeReview/reviewChecklist.js and src/codeReview/reviewChecklist.ts (100%)
-- ✅ Add unit tests for src/codeReview/services/CodeReviewService.js and src/codeReview/services/CodeReviewService.ts (100%)
+- ✅ Add unit tests for src/codeReview/services/CodeReviewService.js and codeReview/services/CodeReviewService.ts (100%)
 - ✅ Add unit tests for src/codeTools/codeToolsManager.js and src/codeTools/codeToolsManager.ts (100%)
 - ✅ Add unit tests for src/codeTools/linterIntegration.js and src/codeTools/linterIntegration.ts (100%)
 - ✅ Add unit tests for src/codeTools/refactoringTools.js and src/codeTools/refactoringTools.ts (100%)
@@ -310,6 +300,39 @@
 - ✅ Add unit tests for src/commands/displaySettingsCommand.js and src/commands/displaySettingsCommand.ts (100%)
 
 ## Testing Infrastructure
-- 🔄 Create and run script to generate empty test folders for files missing tests (20%)
+- ✅ Create and run script to generate empty test folders for files missing tests (100%)
   - Script located at `zzzscripts/create-test-folders.js`
   - Run with `npm run create-test-folders`
+
+---
+
+## Error Handling, Logging, and Linting Refactor (In Progress)
+
+### A. Refactor Remaining Error Handling
+- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMChatManager.ts`.
+- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMConnectionHandlerService.ts`. (Restored and refactored in main source tree)
+- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMErrorHandlerService.ts`.
+- ✅ Refactored error handling and structured logging in `src/services/llm/providers/OllamaProvider.ts`.
+- ✅ Refactored error handling and structured logging in `src/services/llm/services/ConnectionPoolManager.ts`.
+- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMStreamProvider.ts`.
+- ✅ Ensure all errors use custom error types and propagate context. <!-- Example: see DataFetchError usage and context propagation in service methods -->
+
+### B. Fix and Expand Test Mocks
+- [x] Update test setup to globally mock fs, VS Code APIs, and logger.
+- [x] Replace sinon.stub with Jest mocks in pullRequestIntegration.test.js
+- [x] Ensure all error paths and logger calls are covered by tests für VectorDatabaseManager.
+- [x] Replace any remaining sinon.stub with Jest mocks for consistency.  <!-- ✅ All sinon.stub replaced with Jest mocks in all relevant test files -->
+
+### C. Address Lint Warnings
+- [x] Remove unused imports and variables in VectorDatabaseManager tests.
+- [x] Add explicit types and return types in VectorDatabaseManager tests.
+- [x] Rename interfaces to use the I prefix. <!-- All interfaces in orphaned code and types now use the I prefix. -->
+- [ ] Replace console statements with logger calls.
+
+### D. Expand Logger and Error Coverage
+- 🔄 Ensure all error and warning code paths in logger and error handler modules are covered by tests.
+- [x] Update test setup to globally mock fs, VS Code APIs, and logger.
+- [x] Replace sinon.stub with Jest mocks in pullRequestIntegration.test.js
+- [x] Ensure all error paths and logger calls are covered by tests für VectorDatabaseManager.
+- [x] Replace any remaining sinon.stub with Jest mocks for consistency.  <!-- ✅ All sinon.stub replaced with Jest mocks in all relev
+

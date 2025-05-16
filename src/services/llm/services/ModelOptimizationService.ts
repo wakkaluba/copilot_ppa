@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { inject, injectable } from 'inversify';
 import { ILogger } from '../../../utils/logger';
+import { LLMResourceError } from '../errors';
 import { ModelEvents, OptimizationRequest, OptimizationResult } from '../types';
 import { ModelMetricsService } from './ModelMetricsService';
 
@@ -16,16 +17,18 @@ export class ModelOptimizationService extends EventEmitter {
         super();
     }
 
-    public async optimizeModel(modelId: string, request: OptimizationRequest): Promise<OptimizationResult> {
+    public async optimizeModel(modelId: string, request: any): Promise<any> {
         if (this.activeOptimizations.has(modelId)) {
-            throw new Error(`Optimization already in progress for model ${modelId}`);
+            this.logger.error('Optimization already in progress', { modelId });
+            throw new LLMResourceError(modelId, `Optimization already in progress for model ${modelId}`);
         }
         try {
             this.activeOptimizations.add(modelId);
-            this.emit(ModelEvents.OptimizationStarted, { modelId, request });
+            this.emit('OptimizationStarted', { modelId, request });
             const metrics = await this.metricsService.getMetrics(modelId);
             if (!metrics) {
-                throw new Error(`No metrics available for model ${modelId}`);
+                this.logger.error('No metrics available for model', { modelId });
+                throw new LLMResourceError(modelId, `No metrics available for model ${modelId}`);
             }
             const result = await this.runOptimization(modelId, request, metrics);
             const history = this.optimizationHistory.get(modelId) || [];

@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
@@ -7,8 +6,10 @@ const path = require('path');
 const {
     analyzeCodebase,
     generateStatusMarkdown,
-    updateRefactoringStatus
-} = require('../../zzzscripts/update-refactoring-status');
+    updateRefactoringStatus,
+    validateRefactoringChanges
+} = require('../../src/zzzscripts/update-refactoring-status');
+const { expect } = require('chai');
 
 describe('update-refactoring-status.js', () => {
     let sandbox;

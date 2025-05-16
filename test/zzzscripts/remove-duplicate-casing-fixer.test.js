@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
@@ -9,8 +8,10 @@ const {
     compareFiles,
     removeDuplicateFile,
     updateOrphanedCodeReport,
-    main
-} = require('../../zzzscripts/remove-duplicate-casing-fixer');
+    main,
+    validateCasingChanges
+} = require('../../src/zzzscripts/remove-duplicate-casing-fixer');
+const { expect } = require('chai');
 
 describe('remove-duplicate-casing-fixer.js', () => {
     let sandbox;

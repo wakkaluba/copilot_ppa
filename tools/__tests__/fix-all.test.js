@@ -1,5 +1,5 @@
 // Jest test scaffold for tools/fix-all.js
-const runFixAll = require('../../zzzbuild/backups/orphaned-code/tools/fix-all');
+const runFixAll = require('../fix-all');
 const child_process = require('child_process');
 
 describe('fix-all utility', () => {

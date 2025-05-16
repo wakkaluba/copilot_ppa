@@ -1,4 +1,3 @@
-const { expect } = require('chai');
 const sinon = require('sinon');
 const fs = require('fs');
 const path = require('path');
@@ -8,8 +7,10 @@ const {
     backupFile,
     checkReferences,
     analyzeImports,
-    main
-} = require('../../zzzscripts/refactor-unused-code-analyzer');
+    main,
+    validateRefactoring
+} = require('../../src/zzzscripts/refactor-unused-code-analyzer');
+const { expect } = require('chai');
 
 describe('refactor-unused-code-analyzer.js', () => {
     let sandbox;

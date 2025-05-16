@@ -1,4 +1,5 @@
-import { RollupOptions } from 'rollup';
+import { RollupOptions as RollupOptionsType } from 'rollup';
+export type { OptimizationSuggestion as ConfigOptimization, ValidationError, ValidationResult, ValidationWarning } from '../types';
 
 export interface RollupInput {
     name: string;
@@ -23,13 +24,7 @@ export interface RollupConfigAnalysis {
     plugins: RollupPlugin[];
     external: string[];
     content: string;
-    optimizationSuggestions: RollupOptimization[];
-}
-
-export interface RollupOptimization {
-    title: string;
-    description: string;
-    code: string;
+    optimizationSuggestions: any[]; // Adjusted to remove RollupOptimization
 }
 
 /**
@@ -68,7 +63,7 @@ export interface IRollupOptimizationService {
         inputs: RollupInput[],
         outputFormats: string[],
         pluginNames: string[]
-    ): RollupOptimization[];
+    ): any[]; // Adjusted to remove RollupOptimization
 }
 
 /**
@@ -80,13 +75,13 @@ export interface IRollupConfigValidationService {
      * @throws {ConfigValidationError} If validation fails
      */
     validateConfig(analysis: RollupConfigAnalysis): void;
-    
+
     /**
      * Validates a workspace path
      * @throws {ConfigValidationError} If the path is invalid
      */
     validateWorkspacePath(workspacePath: string): void;
-    
+
     /**
      * Validates a config file path
      * @throws {ConfigValidationError} If the path is invalid
@@ -98,18 +93,18 @@ export interface IRollupConfigValidationService {
      * @param configPath Path to check
      */
     validateFileExists(configPath: string): Promise<boolean>;
-    
+
     /**
      * Validates if a config file is syntactically correct
      * @param configPath Path to the rollup config file
      */
     validateSyntax(configPath: string): Promise<boolean>;
-    
+
     /**
      * Performs a deep validation of rollup configuration
      * @param config Rollup configuration object
      */
-    validateConfig(config: RollupOptions): Promise<ValidationResult>;
+    validateConfig(config: RollupOptions): Promise<void>;
 }
 
 /**
@@ -135,31 +130,31 @@ export interface IRollupConfigManager {
      * @throws {ConfigValidationError} If the config path is invalid
      * @throws {Error} If optimization generation fails
      */
-    generateOptimizations(configPath: string): Promise<RollupOptimization[]>;
+    generateOptimizations(configPath: string): Promise<any[]>; // Adjusted to remove RollupOptimization
 
     /**
      * Validates a rollup configuration file
      * @param configPath Path to the rollup config file
      */
     validateConfig(configPath: string): Promise<boolean>;
-    
+
     /**
      * Detects rollup configuration files in a directory
      * @param directory Directory to search in
      */
     detectConfigs(directory: string): Promise<string[]>;
-    
+
     /**
      * Loads a rollup configuration
      * @param configPath Path to the rollup config file
      */
     loadConfig(configPath: string): Promise<RollupOptions>;
-    
+
     /**
      * Generates optimization suggestions for a rollup config
      * @param configPath Path to the rollup config file
      */
-    generateOptimizations(configPath: string): Promise<ConfigOptimization[]>;
+    generateOptimizations(configPath: string): Promise<any[]>; // Adjusted to remove RollupOptimization
 }
 
 /**
@@ -170,12 +165,12 @@ export interface IRollupConfigUIService {
      * Opens a rollup configuration file in the editor
      */
     openConfig(): Promise<void>;
-    
+
     /**
      * Creates a new rollup configuration file
      */
     createNewConfig(): Promise<void>;
-    
+
     /**
      * Suggests optimizations for a rollup config
      * @param configPath Path to the rollup config file
@@ -183,27 +178,10 @@ export interface IRollupConfigUIService {
     suggestOptimizations(configPath: string): Promise<void>;
 }
 
-export interface ValidationResult {
-    isValid: boolean;
-    errors: ValidationError[];
-    warnings: ValidationWarning[];
-}
-
-export interface ValidationError {
-    message: string;
-    location?: string;
-    code: string;
-}
-
-export interface ValidationWarning {
-    message: string;
-    location?: string;
-    code: string;
-}
-
-export interface ConfigOptimization {
-    title: string;
-    description: string;
-    code: string;
-    priority: 'high' | 'medium' | 'low';
+// Fallback RollupOptions type if 'rollup' is not installed
+export interface RollupOptions {
+  input?: string | string[];
+  output?: any;
+  plugins?: any[];
+  [key: string]: any;
 }

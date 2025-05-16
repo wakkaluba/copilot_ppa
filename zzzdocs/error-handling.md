@@ -86,9 +86,9 @@ class CustomProvider extends BaseLLMProvider {
         );
 
         // Update provider status
-        this.updateStatus({ 
+        this.updateStatus({
             error: providerError.message,
-            isAvailable: false 
+            isAvailable: false
         });
 
         // Log error details
@@ -161,7 +161,7 @@ async function withRetry<T>(
     options: RetryOptions
 ): Promise<T> {
     let lastError: Error | undefined;
-    
+
     for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
         try {
             return await operation();
@@ -173,7 +173,7 @@ async function withRetry<T>(
             await delay(options.getDelay(attempt));
         }
     }
-    
+
     throw lastError;
 }
 ```
@@ -228,27 +228,53 @@ class LLMProvider {
 
 ### 1. Structured Logging
 ```typescript
-interface ErrorLog {
-    timestamp: string;
-    level: 'ERROR' | 'WARN' | 'INFO';
-    code: string;
-    message: string;
-    component: string;
-    details?: Record<string, unknown>;
-    stack?: string;
+// LogLevel enum for consistent log levels
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+  CRITICAL = 4
 }
 
+// LogEntry interface for structured log records
+export interface LogEntry {
+  timestamp: Date;
+  level: LogLevel;
+  code?: string;
+  message: string;
+  component: string;
+  details?: Record<string, unknown>;
+  stack?: string;
+}
+
+// Logger interface for extensible logging
+export interface Logger {
+  log(entry: LogEntry): void;
+  error(message: string, details?: unknown, code?: string): void;
+  warn(message: string, details?: unknown, code?: string): void;
+  info(message: string, details?: unknown, code?: string): void;
+  debug(message: string, details?: unknown, code?: string): void;
+}
+```
+
+Example implementation:
+
+```typescript
 function logError(error: Error, context?: Record<string, unknown>): void {
-    const errorLog: ErrorLog = {
-        timestamp: new Date().toISOString(),
-        level: 'ERROR',
-        code: getErrorCode(error),
-        message: error.message,
-        component: getComponent(),
-        details: context,
-        stack: error.stack
-    };
-    console.error(JSON.stringify(errorLog));
+  const entry: LogEntry = {
+    timestamp: new Date(),
+    level: LogLevel.ERROR,
+    code: getErrorCode(error),
+    message: error.message,
+    component: getComponent(),
+    details: context,
+    stack: error.stack
+  };
+  // Use your logger implementation here
+  logger.log(entry);
+  // Optionally, also output to console
+  console.error(JSON.stringify(entry));
 }
 ```
 

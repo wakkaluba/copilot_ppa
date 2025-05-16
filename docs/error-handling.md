@@ -86,9 +86,9 @@ class CustomProvider extends BaseLLMProvider {
         );
 
         // Update provider status
-        this.updateStatus({ 
+        this.updateStatus({
             error: providerError.message,
-            isAvailable: false 
+            isAvailable: false
         });
 
         // Log error details
@@ -161,7 +161,7 @@ async function withRetry<T>(
     options: RetryOptions
 ): Promise<T> {
     let lastError: Error | undefined;
-    
+
     for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
         try {
             return await operation();
@@ -173,7 +173,7 @@ async function withRetry<T>(
             await delay(options.getDelay(attempt));
         }
     }
-    
+
     throw lastError;
 }
 ```
@@ -236,21 +236,44 @@ interface ErrorLog {
     component: string;
     details?: Record<string, unknown>;
     stack?: string;
+    userId?: string; // Optional: user/session identifier
+    requestId?: string; // Optional: trace request across services
+    environment?: string; // e.g., 'production', 'development'
+    tags?: string[]; // Optional: for categorization
 }
 
-function logError(error: Error, context?: Record<string, unknown>): void {
-    const errorLog: ErrorLog = {
-        timestamp: new Date().toISOString(),
-        level: 'ERROR',
-        code: getErrorCode(error),
-        message: error.message,
-        component: getComponent(),
-        details: context,
-        stack: error.stack
-    };
-    console.error(JSON.stringify(errorLog));
+function logError(
+  error: Error,
+  context?: Record<string, unknown>,
+  options?: {
+    userId?: string;
+    requestId?: string;
+    environment?: string;
+    tags?: string[];
+  }
+): void {
+  const errorLog: ErrorLog = {
+    timestamp: new Date().toISOString(),
+    level: 'ERROR',
+    code: getErrorCode(error),
+    message: error.message,
+    component: getComponent(),
+    details: context,
+    stack: error.stack,
+    userId: options?.userId,
+    requestId: options?.requestId,
+    environment: options?.environment,
+    tags: options?.tags
+  };
+  console.error(JSON.stringify(errorLog));
 }
 ```
+
+- **Best Practices:**
+  - Always include `requestId` for distributed tracing if available.
+  - Use `tags` for filtering/searching logs (e.g., `['auth', 'db']`).
+  - Set `environment` to distinguish between production, staging, etc.
+  - Attach `userId` or session info for user-related errors (respect privacy).
 
 ### 2. Telemetry
 ```typescript

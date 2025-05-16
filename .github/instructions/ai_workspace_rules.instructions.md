@@ -35,6 +35,40 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - Use blank lines to separate logical sections of code
 - Use parentheses to clarify operator precedence, even when not strictly needed
 
+## Status Indicators
+- ✅ Completed
+- 🔄 In Progress
+- ⏳ Pending
+- 🚫 Skipped
+- ❌ Rejected
+- ⚠️ Warning
+- ❗ Important
+
+## special folders
+### zzzbuild/
+- Build scripts and automation
+- build artifacts-
+- "meta" files: important for building the project or environemnt but not necessarily direct part of the build environment.
+
+### zzzdocs/
+ - Project documentation and related files
+
+### zzzrefactoring/
+- Refactoring scripts and automation
+- Refactoring artifacts
+- Documentation and lists for documenting the status and progress of refactoring efforts.
+
+### zzzscripts/
+- Utility scripts and tools for development and automation
+- Scripts for code generation, scaffolding, and project setup
+- Helper scripts for testing and validation
+- Scripts for managing dependencies and package versions
+- Scripts for continuous integration and deployment
+- Scripts for code analysis and quality assurance
+- Scripts for code formatting and linting
+- Scripts for performance testing and profiling
+- Scripts for security testing and vulnerability scanning
+
 ## Documentation
 
 - Include JSDoc/similar comments for public APIs, functions, and classes
@@ -156,3 +190,35 @@ This document outlines coding standards, domain knowledge, and preferences that 
 
 - Do not hardcode user-facing strings; use localization utilities if available
 - Support multiple languages if the project requires it
+
+## Best Practices
+
+1. **Error Classification**
+   - Use specific error types
+   - Include error codes
+   - Provide detailed messages
+   - Preserve error context
+
+2. **Recovery Strategies**
+   - Implement automatic retries
+   - Use circuit breakers
+   - Provide fallback options
+   - Handle offline scenarios
+
+3. **Error Propagation**
+   - Maintain error chains
+   - Add context at each level
+   - Use consistent error formats
+   - Document error contracts
+
+4. **Monitoring and Alerts**
+   - Log all errors
+   - Track error metrics
+   - Set up alerts
+   - Monitor error trends
+
+5. **User Experience**
+   - Show meaningful messages
+   - Provide recovery options
+   - Maintain system stability
+   - Keep users informed
