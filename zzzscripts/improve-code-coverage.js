@@ -172,6 +172,14 @@ function mapImplementationToTests(implementationFiles, testFiles) {
 function analyzeCodePerformance() {
   logger.log('Analyzing code performance...');
 
+  // Auto-fix lint issues before analysis
+  try {
+    execSync('npm run lint:fix', { stdio: 'inherit' });
+    logger.info('Auto-fixed lint issues.');
+  } catch (e) {
+    logger.warn('Lint:fix failed, continuing to analysis.');
+  }
+
   try {
     // First check if ESLint config exists
     const eslintConfigPath = path.join(rootDir, '.eslintrc.js');

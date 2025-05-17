@@ -74,6 +74,14 @@ function runTests() {
     }
 
     logger.log('🔍 Running linter...');
+    // Run lint:fix before lint
+    try {
+      execSync('npm run lint:fix', { stdio: 'inherit' });
+      logger.info('Auto-fixed lint issues.');
+    } catch (e) {
+      logger.warn('Lint:fix failed, continuing to lint check.');
+    }
+
     try {
       const lintOutput = execSync('npm run lint', { encoding: 'utf8' });
       logger.log(lintOutput);

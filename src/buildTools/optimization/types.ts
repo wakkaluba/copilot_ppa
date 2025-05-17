@@ -1,9 +1,9 @@
-export interface BuildScriptInfo {
+export interface IBuildScriptInfo {
   name: string;
   command: string;
 }
 
-export interface BuildScriptOptimization {
+export interface IBuildScriptOptimization {
   title: string;
   description: string;
   benefit: string;
@@ -13,8 +13,8 @@ export interface BuildScriptOptimization {
   requiredPackages?: string[];
 }
 
-export interface OptimizationContext {
-  scriptInfo: BuildScriptInfo;
+export interface IOptimizationContext {
+  scriptInfo: IBuildScriptInfo;
   packageJson: any;
   analysis: {
     hasTypeScript: boolean;

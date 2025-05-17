@@ -88,7 +88,7 @@ logger.log('\nAnalysis complete!');
 logger.log(`Full results saved to ${logFile}`);
 logger.log('Next steps:');
 logger.log('1. Review the analysis output for orphaned code');
-logger.log('2. Update orphaned-code-report.md with any new findings');
+logger.log('2. Update orphaned-code-report.md with new findings');
 logger.log('3. Create tickets or tasks for cleaning up identified orphaned code');
 
 module.exports = {

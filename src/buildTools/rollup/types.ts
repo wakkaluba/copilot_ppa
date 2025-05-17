@@ -1,32 +1,31 @@
-import { RollupOptions as RollupOptionsType } from 'rollup';
 export type {
-  OptimizationSuggestion as ConfigOptimization,
-  ValidationError,
-  ValidationResult,
-  ValidationWarning,
+    IOptimizationSuggestion as ConfigOptimization,
+    IValidationError,
+    IValidationResult,
+    IValidationWarning
 } from '../types';
 
-export interface RollupInput {
+export interface IRollupInput {
   name: string;
   path: string;
 }
 
-export interface RollupOutput {
+export interface IRollupOutput {
   format: string;
   file: string;
   name?: string;
   sourcemap?: boolean;
 }
 
-export interface RollupPlugin {
+export interface IRollupPlugin {
   name: string;
   description: string;
 }
 
-export interface RollupConfigAnalysis {
-  input: RollupInput[];
-  output: RollupOutput[];
-  plugins: RollupPlugin[];
+export interface IRollupConfigAnalysis {
+  input: IRollupInput[];
+  output: IRollupOutput[];
+  plugins: IRollupPlugin[];
   external: string[];
   content: string;
   optimizationSuggestions: any[]; // Adjusted to remove RollupOptimization
@@ -53,7 +52,7 @@ export interface IRollupConfigAnalyzer {
    * @throws {ConfigValidationError} If the config is invalid
    * @throws {Error} If analysis fails
    */
-  analyze(configPath: string): Promise<RollupConfigAnalysis>;
+  analyze(configPath: string): Promise<IRollupConfigAnalysis>;
 }
 
 /**
@@ -65,7 +64,7 @@ export interface IRollupOptimizationService {
    */
   generateOptimizations(
     content: string,
-    inputs: RollupInput[],
+    inputs: IRollupInput[],
     outputFormats: string[],
     pluginNames: string[],
   ): any[]; // Adjusted to remove RollupOptimization
@@ -79,7 +78,7 @@ export interface IRollupConfigValidationService {
    * Validates the configuration analysis results
    * @throws {ConfigValidationError} If validation fails
    */
-  validateConfig(analysis: RollupConfigAnalysis): void;
+  validateConfig(analysis: IRollupConfigAnalysis): void;
 
   /**
    * Validates a workspace path
@@ -128,7 +127,7 @@ export interface IRollupConfigManager {
    * @throws {ConfigValidationError} If the configuration is invalid
    * @throws {Error} If analysis fails
    */
-  analyzeConfig(configPath: string): Promise<RollupConfigAnalysis>;
+  analyzeConfig(configPath: string): Promise<IRollupConfigAnalysis>;
 
   /**
    * Generates optimization suggestions for a Rollup configuration

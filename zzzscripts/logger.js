@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Simple logger for scripts
 module.exports = {
   info: (...args) => console.log('[INFO]', ...args),

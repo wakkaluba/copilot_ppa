@@ -131,7 +131,7 @@ async function main() {
   logger.log('Based on the analysis, you may need to:');
   logger.log('1. Update references to UnusedCodeAnalyzer in dependent files');
   logger.log('2. Consider consolidating functionality if needed');
-  logger.log('3. Create backups before removing any code');
+  logger.log('3. Create backups before removing unused code');
   logger.log('4. Remove unused files after dependencies are resolved');
 }
 

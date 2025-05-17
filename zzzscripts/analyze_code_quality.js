@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Code Quality Analyzer for VSCode Local LLM Agent
  *
@@ -67,7 +68,9 @@ function getTypeScriptFiles() {
 }
 
 /**
- * Analyze code complexity with memory-efficient streaming
+ * Analyzes code complexity, maintainability, and cognitive complexity for TypeScript files.
+ * Uses caching for performance and processes each file individually.
+ * @returns {Promise<Object>} An object containing average complexity, maintainability, and lists of complex/poor maintainability functions.
  */
 async function analyzeComplexity() {
     logger.log('📊 Analyzing code complexity...');
@@ -171,7 +174,8 @@ function readFileContent(filePath) {
 }
 
 /**
- * Detect code duplication with optimized analysis
+ * Detects code duplication using jscpd and identifies duplication hotspots.
+ * @returns {Promise<Object>} An object with duplication percentage, duplicate fragments, and hotspots.
  */
 async function detectDuplication() {
     logger.log('🔍 Detecting code duplication...');
@@ -256,7 +260,10 @@ function identifyHotspots(data) {
     data.hotspots = hotspots;
 }
 
-// Analyze comments to code ratio
+/**
+ * Analyzes the ratio of comments to code lines in TypeScript files.
+ * @returns {Object} An object with total lines, code lines, comment lines, ratio, and per-file results.
+ */
 function analyzeCommentsRatio() {
   logger.log('📝 Analyzing comments to code ratio...');
 
@@ -322,7 +329,10 @@ function analyzeCommentsRatio() {
   return results;
 }
 
-// Analyze dependencies
+/**
+ * Analyzes project dependencies and checks for outdated packages.
+ * @returns {Object} An object with dependency counts and outdated dependency details.
+ */
 function analyzeDependencies() {
   logger.log('🔗 Analyzing dependencies...');
 
@@ -362,7 +372,14 @@ function analyzeDependencies() {
   }
 }
 
-// Estimate technical debt
+/**
+ * Estimates technical debt based on complexity, duplication, documentation, and dependencies.
+ * @param {Object} complexity - Complexity analysis results.
+ * @param {Object} duplication - Duplication analysis results.
+ * @param {Object} commentsRatio - Comments ratio analysis results.
+ * @param {Object} dependencies - Dependency analysis results.
+ * @returns {Object} An object with debt scores and estimated hours to fix.
+ */
 function estimateTechnicalDebt(complexity, duplication, commentsRatio, dependencies) {
   const debtScore = {
     overall: 0,

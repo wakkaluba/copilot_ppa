@@ -44,6 +44,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - ⚠️ Warning
 - ❗ Important
 - 🧹 Maintenance
+- 🧪 Testing
 
 ## special folders
 ### zzzbuild/

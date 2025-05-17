@@ -4,6 +4,8 @@
 echo "Starting refactoring process..."
 
 # Check for code style issues
+echo "Checking code style (auto-fix)..."
+npm run lint:fix
 echo "Checking code style..."
 npm run lint
 

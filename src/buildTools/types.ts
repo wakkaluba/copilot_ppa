@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 
 /**
  * Supported build tool types
@@ -12,15 +11,15 @@ export enum BuildToolType {
 /**
  * Base interface for any build configuration analysis
  */
-export interface BuildConfigAnalysis {
+export interface IBuildConfigAnalysis {
   configPath: string;
-  optimizationSuggestions: OptimizationSuggestion[];
+  optimizationSuggestions: IOptimizationSuggestion[];
 }
 
 /**
  * Optimization suggestion for build config
  */
-export interface OptimizationSuggestion {
+export interface IOptimizationSuggestion {
   title: string;
   description: string;
   code: string;
@@ -35,7 +34,7 @@ export interface OptimizationSuggestion {
 /**
  * Interface for build script optimization
  */
-export interface BuildScriptOptimization {
+export interface IBuildScriptOptimization {
   title: string;
   description: string;
   benefit: string;
@@ -46,20 +45,20 @@ export interface BuildScriptOptimization {
 /**
  * Interface for bundle analysis results
  */
-export interface BundleAnalysisResult {
+export interface IBundleAnalysisResult {
   totalSize: number;
   jsSize: number;
   cssSize: number;
   imageSize: number;
   otherSize: number;
-  files: BundleFile[];
-  recommendations: BundleRecommendation[];
+  files: IBundleFile[];
+  recommendations: IBundleRecommendation[];
 }
 
 /**
  * Interface for individual file in a bundle analysis
  */
-export interface BundleFile {
+export interface IBundleFile {
   path: string;
   size: number;
   type: 'js' | 'css' | 'image' | 'other';
@@ -68,7 +67,7 @@ export interface BundleFile {
 /**
  * Interface for bundle optimization recommendation
  */
-export interface BundleRecommendation {
+export interface IBundleRecommendation {
   title: string;
   description: string;
   potentialSavings?: number;
@@ -77,26 +76,26 @@ export interface BundleRecommendation {
 /**
  * Interface to be implemented by all build tool config managers
  */
-export interface BuildToolConfigManager {
+export interface IBuildToolConfigManager {
   detectConfigs(workspacePath: string): Promise<string[]>;
-  analyzeConfig(configPath: string): Promise<BuildConfigAnalysis>;
-  generateOptimizations(configPath: string): Promise<OptimizationSuggestion[]>;
-  validateConfig?(configPath: string): Promise<ValidationResult>;
+  analyzeConfig(configPath: string): Promise<IBuildConfigAnalysis>;
+  generateOptimizations(configPath: string): Promise<IOptimizationSuggestion[]>;
+  validateConfig?(configPath: string): Promise<IValidationResult>;
 }
 
 /**
  * Interface for configuration validation results
  */
-export interface ValidationResult {
+export interface IValidationResult {
   isValid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
+  errors: IValidationError[];
+  warnings: IValidationWarning[];
 }
 
 /**
  * Interface for validation errors
  */
-export interface ValidationError {
+export interface IValidationError {
   message: string;
   line?: number;
   column?: number;
@@ -106,7 +105,7 @@ export interface ValidationError {
 /**
  * Interface for validation warnings
  */
-export interface ValidationWarning {
+export interface IValidationWarning {
   message: string;
   line?: number;
   column?: number;

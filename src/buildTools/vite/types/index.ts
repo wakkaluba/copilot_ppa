@@ -1,7 +1,7 @@
 /**
  * Represents a build configuration in a Vite configuration
  */
-export interface ViteBuildConfig {
+export interface IViteBuildConfig {
   /** The output directory path */
   outDir?: string;
   /** The target environment */
@@ -23,7 +23,7 @@ export interface ViteBuildConfig {
 /**
  * Represents a plugin in a Vite configuration
  */
-export interface VitePlugin {
+export interface IVitePlugin {
   /** The name of the plugin */
   name: string;
   /** A description of what the plugin does */
@@ -35,7 +35,7 @@ export interface VitePlugin {
 /**
  * Represents optimization options in a Vite configuration
  */
-export interface ViteOptimizationOptions {
+export interface IViteOptimizationOptions {
   /** Whether to enable dependency pre-bundling */
   deps?: {
     entries?: string[];
@@ -54,7 +54,7 @@ export interface ViteOptimizationOptions {
 /**
  * Represents an optimization suggestion for a Vite configuration
  */
-export interface ViteOptimization {
+export interface IViteOptimization {
   /** The title of the optimization */
   title: string;
   /** A description of what the optimization does and why it's beneficial */
@@ -66,13 +66,13 @@ export interface ViteOptimization {
 /**
  * Represents the complete analysis of a Vite configuration file
  */
-export interface ViteConfigAnalysis {
+export interface IViteConfigAnalysis {
   /** The build configuration */
-  build: ViteBuildConfig;
+  build: IViteBuildConfig;
   /** The plugins being used */
-  plugins: VitePlugin[];
+  plugins: IVitePlugin[];
   /** Optimization options */
-  optimizationOptions: ViteOptimizationOptions;
+  optimizationOptions: IViteOptimizationOptions;
   /** The raw content of the config file */
   content: string;
   /** Generated optimization suggestions */
@@ -82,9 +82,9 @@ export interface ViteConfigAnalysis {
 /**
  * Interface for the Vite configuration manager
  */
-export interface IViteConfigManager {
+export interface IIViteConfigManager {
   detectConfigs(workspacePath: string): Promise<string[]>;
-  analyzeConfig(configPath: string): Promise<ViteConfigAnalysis>;
+  analyzeConfig(configPath: string): Promise<IViteConfigAnalysis>;
   validateConfig(configPath: string): Promise<boolean>;
   generateOptimizations(configPath: string): Promise<string[]>;
   detectFramework(configPath: string): Promise<string | null>;

@@ -8,7 +8,7 @@ export enum LogLevel {
   None = 6,
 }
 
-export interface ILogger {
+export interface Logger {
   trace(message: string): void;
   debug(message: string): void;
   info(message: string): void;
@@ -17,12 +17,12 @@ export interface ILogger {
   critical(message: string, error?: Error): void;
 }
 
-export interface IDisposable {
+export interface Disposable {
   dispose(): void;
 }
 
-export interface IExtensionContext {
-  subscriptions: IDisposable[];
+export interface ExtensionContext {
+  subscriptions: Disposable[];
   extensionPath: string;
   storagePath?: string;
   globalStoragePath: string;

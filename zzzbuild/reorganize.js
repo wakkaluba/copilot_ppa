@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Reorganization script for Copilot PPA project
 const fs = require('fs');
 const path = require('path');
@@ -20,15 +21,15 @@ Object.keys(newStructure).forEach(dir => {
   const dirPath = path.join(__dirname, dir);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
-    console.log(`Created directory: ${dir}`);
+    // logger.log(`Created directory: ${dir}`);
   }
 });
 
 // Log the plan for moving files
-console.log('Reorganization plan:');
-console.log('--------------------');
+// logger.log('Reorganization plan:');
+// logger.log('--------------------');
 Object.entries(newStructure).forEach(([dir, description]) => {
-  console.log(`${dir}: ${description}`);
+  // logger.log(`${dir}: ${description}`);
 });
 
 console.log('\nProposed moves:');
@@ -52,30 +53,30 @@ if (process.argv.includes('--execute')) {
     // Move docs
     if (fs.existsSync(path.join(__dirname, 'zzzdocs'))) {
       execSync('xcopy /E /I /Y .\\zzzdocs\\* .\\docs\\', { stdio: 'inherit' });
-      console.log('Moved documentation files from zzzdocs to docs');
+      // logger.log('Moved documentation files from zzzdocs to docs');
     }
 
     // Move scripts
     if (fs.existsSync(path.join(__dirname, 'zzzscripts'))) {
       execSync('xcopy /E /I /Y .\\zzzscripts\\* .\\scripts\\', { stdio: 'inherit' });
-      console.log('Moved script files from zzzscripts to scripts');
+      // logger.log('Moved script files from zzzscripts to scripts');
     }
 
     // Move refactoring
     if (fs.existsSync(path.join(__dirname, 'zzzrefactoring'))) {
       execSync('xcopy /E /I /Y .\\zzzrefactoring\\* .\\refactoring\\', { stdio: 'inherit' });
-      console.log('Moved refactoring files from zzzrefactoring to refactoring');
+      // logger.log('Moved refactoring files from zzzrefactoring to refactoring');
     }
 
     // Move build
     if (fs.existsSync(path.join(__dirname, 'zzzbuild'))) {
       execSync('xcopy /E /I /Y .\\zzzbuild\\* .\\build\\', { stdio: 'inherit' });
-      console.log('Moved build files from zzzbuild to build');
+      // logger.log('Moved build files from zzzbuild to build');
     }
 
     // Note: We're not deleting the original directories yet to ensure data safety
     console.log('\nReorganization completed. Please verify the new structure before deleting the original zzz* directories.');
   } catch (error) {
-    console.error('Error during reorganization:', error);
+    // logger.error('Error during reorganization:', error);
   }
 }

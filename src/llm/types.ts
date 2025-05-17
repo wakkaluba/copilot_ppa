@@ -1,17 +1,17 @@
 // Basic LLM types for the VS Code extension
 
-export interface ILLMRequest {
+export interface LLMRequest {
   id: string;
   prompt: string;
   model: string;
-  options?: ILLMRequestOptions;
+  options?: LLMRequestOptions;
   priority: LLMRequestPriority;
   timestamp: number;
   status: LLMRequestStatus;
   error?: LLMRequestError;
 }
 
-export interface ILLMRequestOptions {
+export interface LLMRequestOptions {
   temperature?: number;
   maxTokens?: number;
   topK?: number;
@@ -42,7 +42,7 @@ export interface LLMRequestError {
   details?: unknown;
 }
 
-export interface ILLMResponse {
+export interface LLMResponse {
   id: string;
   requestId: string;
   content: string;
@@ -76,12 +76,12 @@ export interface TokenUsage {
 
 export interface LLMRequestEvent {
   type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
-  request: ILLMRequest;
+  request: LLMRequest;
   timestamp: number;
   details?: unknown;
 }
 
-export interface ILLMStreamEvent {
+export interface LLMStreamEvent {
   content: string;
   done: boolean;
   error?: LLMResponseError;
@@ -90,7 +90,7 @@ export interface ILLMStreamEvent {
 }
 
 // Add ILLMMessage interface to match the one in services/llm/types.ts
-export interface ILLMMessage {
+export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
@@ -133,7 +133,7 @@ export enum ModelEvents {
 export interface LLMSessionConfig {
   model: string;
   provider: string;
-  parameters: ILLMRequestOptions;
+  parameters: LLMRequestOptions;
   contextSize: number;
   historySize: number;
   systemPrompt?: string;
@@ -158,7 +158,7 @@ export interface SessionStats {
 }
 
 // Provider capability types
-export interface IProviderCapabilities {
+export interface ProviderCapabilities {
   maxContextLength: number;
   supportsChatCompletion: boolean;
   supportsStreaming: boolean;
@@ -175,11 +175,11 @@ export interface IProviderCapabilities {
 export interface LLMProvider {
   id: string; // Added id property to match what LLMProviderManager expects
   getName(): string;
-  getCapabilities(): IProviderCapabilities;
+  getCapabilities(): ProviderCapabilities;
   isAvailable(): Promise<boolean>;
   getStatus(): 'active' | 'inactive' | 'error';
-  completePrompt(request: ILLMRequest): Promise<ILLMResponse>;
-  streamPrompt?(request: ILLMRequest): AsyncIterable<ILLMResponse>;
+  completePrompt(request: LLMRequest): Promise<LLMResponse>;
+  streamPrompt?(request: LLMRequest): AsyncIterable<LLMResponse>;
   cancelRequest(requestId: string): Promise<boolean>;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -187,32 +187,32 @@ export interface LLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: ILLMRequestOptions,
-  ): Promise<ILLMResponse>;
+    options?: LLMRequestOptions,
+  ): Promise<LLMResponse>;
   streamCompletion(
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: ILLMRequestOptions,
-    callback?: (event: ILLMStreamEvent) => void,
+    options?: LLMRequestOptions,
+    callback?: (event: LLMStreamEvent) => void,
   ): Promise<void>;
 
   // Add missing methods that the LLMProviderManager expects
   generateChatCompletion(
     model: string,
-    messages: ILLMMessage[],
-    options?: ILLMRequestOptions,
-  ): Promise<ILLMResponse>;
+    messages: LLMMessage[],
+    options?: LLMRequestOptions,
+  ): Promise<LLMResponse>;
   streamChatCompletion(
     model: string,
-    messages: ILLMMessage[],
-    options?: ILLMRequestOptions,
-    callback?: (event: ILLMStreamEvent) => void,
+    messages: LLMMessage[],
+    options?: LLMRequestOptions,
+    callback?: (event: LLMStreamEvent) => void,
   ): Promise<void>;
 
   setOfflineMode(enabled: boolean): void;
-  cacheResponse?(prompt: string, response: ILLMResponse): Promise<void>;
-  useCachedResponse?(prompt: string): Promise<ILLMResponse | null>;
+  cacheResponse?(prompt: string, response: LLMResponse): Promise<void>;
+  useCachedResponse?(prompt: string): Promise<LLMResponse | null>;
   isConnected(): boolean;
 }
 
@@ -228,7 +228,7 @@ export interface LLMPromptOptions {
   };
 }
 
-export interface ILLMModelInfo {
+export interface LLMModelInfo {
   id: string;
   name: string;
   provider: string;
@@ -268,7 +268,7 @@ export interface SystemInfo {
   };
 }
 
-export interface ILogger {
+export interface Logger {
   debug(message: string, ...args: any[]): void;
   info(message: string, ...args: any[]): void;
   warn(message: string, ...args: any[]): void;

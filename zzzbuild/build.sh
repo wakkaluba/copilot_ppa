@@ -53,6 +53,8 @@ log "yellow" "Installing dependencies..."
 npm install
 
 # Run linter
+log "yellow" "Running linter (auto-fix)..."
+npm run lint:fix
 log "yellow" "Running linter..."
 if ! npm run lint; then
     log "red" "Linting failed. Please fix the issues and try again."
@@ -77,16 +79,16 @@ npx vsce package
 if [ $? -eq 0 ]; then
     # Find the generated VSIX file
     VSIX_FILE=$(find . -maxdepth 1 -name "*.vsix" | sort -V | tail -n 1)
-    
+
     if [ -n "$VSIX_FILE" ]; then
         log "green" "✅ Build successful! VSIX package created: $VSIX_FILE"
-        
+
         # Move VSIX to artifacts directory
         ARTIFACTS_DIR="$PROJECT_DIR/zzzbuild/artifacts"
         mkdir -p "$ARTIFACTS_DIR"
         cp "$VSIX_FILE" "$ARTIFACTS_DIR/"
         log "green" "VSIX package copied to: $ARTIFACTS_DIR/$(basename "$VSIX_FILE")"
-        
+
         # Installation instructions
         echo ""
         log "yellow" "To install the extension locally, run:"
