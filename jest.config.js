@@ -7,7 +7,10 @@ module.exports = {
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
-    '**/coverage/**/*.test.[jt]s?(x)'
+    '**/coverage/**/*.test.[jt]s?(x)',
+    '**/test/**/*.[jt]s?(x)',
+    '**/tests/**/*.[jt]s?(x)',
+    '**/zzzscripts/**/*.test.[jt]s?(x)'
   ],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1'

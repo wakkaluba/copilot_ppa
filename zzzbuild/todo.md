@@ -16,10 +16,10 @@
 - [x] Add/expand tests for CodeQualityService and its exports (test/services/codeQuality/index.js)
 - [x] Run the test suite to verify coverage improvements
 - [x] Scaffold and expand tests for `src/copilot/copilotIntegrationProvider.ts` and `src/copilot/copilotIntegrationService.ts`
-- [ ] Implement detailed test logic and assertions for Copilot integration provider/service
-- [ ] Ensure all test files are auto-discovered (update `jest.config.js` if needed)
-- [ ] Add/verify `npm run test:watch` for local development
-- [ ] Add script to run only changed/affected tests
+- [x] Implement detailed test logic and assertions for Copilot integration provider/service
+- [x] Ensure all test files are auto-discovered (update `jest.config.js` if needed)
+- [x] Add/verify `npm run test:watch` for local development
+- [x] Add script to run only changed/affected tests
 - [ ] Restore integration and E2E test execution (currently 0/0 passing)
 - [ ] Add missing test cases for edge/error scenarios
 - [ ] Migrate tests to use React Testing Library or similar for better maintainability

@@ -43,6 +43,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - ❌ Rejected
 - ⚠️ Warning
 - ❗ Important
+- 🧹 Maintenance
 
 ## special folders
 ### zzzbuild/
