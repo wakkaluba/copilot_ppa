@@ -8,182 +8,182 @@ import * as vscode from 'vscode';
  * Interface for a performance issue found in code
  */
 export interface PerformanceIssue {
-    title: string;
-    description: string;
-    severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
-    line: number;
-    column?: number;
-    code: string | null;
-    solution: string;
-    solutionCode?: string;
-    type: 'performance' | 'memory-leak' | 'cpu-intensive' | 'memory-management';
+  title: string;
+  description: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  line: number;
+  column?: number;
+  code: string | null;
+  solution: string;
+  solutionCode?: string;
+  type: 'performance' | 'memory-leak' | 'cpu-intensive' | 'memory-management';
 }
 
 /**
  * Common metrics tracked across all languages
  */
 export interface BaseMetrics {
-    linesOfCode: number;
-    commentRatio?: number;
-    nestingDepth?: number;
-    averageMethodLength?: number;
+  linesOfCode: number;
+  commentRatio?: number;
+  nestingDepth?: number;
+  averageMethodLength?: number;
 }
 
 /**
  * JavaScript/TypeScript specific metrics
  */
 export interface JavaScriptMetrics extends BaseMetrics {
-    asyncFunctionCount?: number;
-    promiseUsageCount?: number;
-    domOperationsCount?: number;
-    eventListenerCount?: number;
-    loopCount?: number;
-    recursiveCallCount?: number;
+  asyncFunctionCount?: number;
+  promiseUsageCount?: number;
+  domOperationsCount?: number;
+  eventListenerCount?: number;
+  loopCount?: number;
+  recursiveCallCount?: number;
 }
 
 /**
  * Java specific metrics
  */
 export interface JavaMetrics extends BaseMetrics {
-    classCount?: number;
-    methodCount?: number;
-    importCount?: number;
-    streamApiUsage?: number;
-    finalFieldCount?: number;
-    genericTypeCount?: number;
-    parallelStreamCount?: number;
-    stringBuilderUsage?: number;
-    synchronizedBlockCount?: number;
-    concurrentUtilsCount?: number;
+  classCount?: number;
+  methodCount?: number;
+  importCount?: number;
+  streamApiUsage?: number;
+  finalFieldCount?: number;
+  genericTypeCount?: number;
+  parallelStreamCount?: number;
+  stringBuilderUsage?: number;
+  synchronizedBlockCount?: number;
+  concurrentUtilsCount?: number;
 }
 
 /**
  * C# specific metrics
  */
 export interface CSharpMetrics extends BaseMetrics {
-    classCount?: number;
-    methodCount?: number;
-    usingCount?: number;
-    linqOperationsCount?: number;
-    stringBuilderUsage?: number;
-    lockStatementCount?: number;
-    disposableUsageCount?: number;
+  classCount?: number;
+  methodCount?: number;
+  usingCount?: number;
+  linqOperationsCount?: number;
+  stringBuilderUsage?: number;
+  lockStatementCount?: number;
+  disposableUsageCount?: number;
 }
 
 /**
  * Interface for the result of a performance analysis
  */
 export interface PerformanceAnalysisResult {
-    filePath: string;
-    fileSize?: number;
-    issues: PerformanceIssue[];
-    metrics?: Record<string, number>;
-    skipped?: boolean;
-    skipReason?: string;
-    error?: string;
+  filePath: string;
+  fileSize?: number;
+  issues: PerformanceIssue[];
+  metrics?: Record<string, number>;
+  skipped?: boolean;
+  skipReason?: string;
+  error?: string;
 }
 
 /**
  * Interface for the result of a workspace-wide performance analysis
  */
 export interface WorkspacePerformanceResult {
-    fileResults: PerformanceAnalysisResult[];
-    summary: {
-        filesAnalyzed: number;
-        totalIssues: number;
-        criticalIssues: number;
-        highIssues: number;
-        mediumIssues: number;
-        lowIssues: number;
-    };
+  fileResults: PerformanceAnalysisResult[];
+  summary: {
+    filesAnalyzed: number;
+    totalIssues: number;
+    criticalIssues: number;
+    highIssues: number;
+    mediumIssues: number;
+    lowIssues: number;
+  };
 }
 
 /**
  * Interface defining performance thresholds for different metrics
  */
 export interface PerformanceThresholds {
-    cyclomaticComplexity: [number, number];  // [warning, critical]
-    nestedBlockDepth: [number, number];
-    functionLength: [number, number];
-    parameterCount: [number, number];
-    maintainabilityIndex: [number, number];  // Higher is better
-    commentRatio: [number, number];          // Higher is better
+  cyclomaticComplexity: [number, number]; // [warning, critical]
+  nestedBlockDepth: [number, number];
+  functionLength: [number, number];
+  parameterCount: [number, number];
+  maintainabilityIndex: [number, number]; // Higher is better
+  commentRatio: [number, number]; // Higher is better
 }
 
 /**
  * Configuration options for performance analysis
  */
 export interface PerformanceAnalyzerConfig {
-    thresholds: PerformanceThresholds;
-    excludePatterns: string[];
-    maxFileSize: number;  // in bytes
-    analyzeOnSave: boolean;
-    showInlineMarkers: boolean;
+  thresholds: PerformanceThresholds;
+  excludePatterns: string[];
+  maxFileSize: number; // in bytes
+  analyzeOnSave: boolean;
+  showInlineMarkers: boolean;
 }
 
 /**
  * Definition of a language analyzer
  */
 export interface LanguageAnalyzer {
-    /**
-     * Analyze code for performance issues
-     * @param fileContent The content of the file to analyze
-     * @param filePath The path to the file being analyzed
-     * @returns Analysis results
-     */
-    analyze(fileContent: string, filePath: string): PerformanceAnalysisResult;
+  /**
+   * Analyze code for performance issues
+   * @param fileContent The content of the file to analyze
+   * @param filePath The path to the file being analyzed
+   * @returns Analysis results
+   */
+  analyze(fileContent: string, filePath: string): PerformanceAnalysisResult;
 }
 
 export interface CodeMetrics {
-    cyclomaticComplexity: number;
-    linesOfCode: number;
-    commentRatio: number;
-    functionCount: number;
-    maintainabilityIndex: number;
-    functionLength: number;
-    nestedBlockDepth: number;
-    parameterCount: number;
+  cyclomaticComplexity: number;
+  linesOfCode: number;
+  commentRatio: number;
+  functionCount: number;
+  maintainabilityIndex: number;
+  functionLength: number;
+  nestedBlockDepth: number;
+  parameterCount: number;
 }
 
 export interface LanguageMetricThresholds {
-    cyclomaticComplexity: [number, number];  // [warning, error]
-    nestedBlockDepth: [number, number];
-    functionLength: [number, number];
-    parameterCount: [number, number];
-    maintainabilityIndex: [number, number];
-    commentRatio: [number, number];
+  cyclomaticComplexity: [number, number]; // [warning, error]
+  nestedBlockDepth: [number, number];
+  functionLength: [number, number];
+  parameterCount: [number, number];
+  maintainabilityIndex: [number, number];
+  commentRatio: [number, number];
 }
 
 export interface AnalyzerOptions {
-    maxFileSize: number;
-    excludePatterns: string[];
-    includeTests: boolean;
-    thresholds: LanguageMetricThresholds;
+  maxFileSize: number;
+  excludePatterns: string[];
+  includeTests: boolean;
+  thresholds: LanguageMetricThresholds;
 }
 
 export interface FileAnalysisContext {
-    content: string;
-    uri: vscode.Uri;
-    languageId: string;
-    version: number;
+  content: string;
+  uri: vscode.Uri;
+  languageId: string;
+  version: number;
 }
 
 export interface PerformanceMetrics {
-    lastAnalysisTime: number;
-    totalIssuesFound: number;
-    issuesByType: {
-        performance: number;
-        'memory-leak': number;
-        'cpu-intensive': number;
-        'memory-management': number;
-    };
+  lastAnalysisTime: number;
+  totalIssuesFound: number;
+  issuesByType: {
+    performance: number;
+    'memory-leak': number;
+    'cpu-intensive': number;
+    'memory-management': number;
+  };
 }
 
 export interface AnalyzerConfiguration {
-    minSeverity: 'error' | 'critical' | 'warning' | 'info';
-    maxFileSizeKB: number;
+  minSeverity: 'error' | 'critical' | 'warning' | 'info';
+  maxFileSizeKB: number;
 }
 
 export interface TypeScriptPatternAnalyzer {
-    analyzeTypeScriptPatterns(fileContent: string, lines: string[]): PerformanceIssue[];
+  analyzeTypeScriptPatterns(fileContent: string, lines: string[]): PerformanceIssue[];
 }

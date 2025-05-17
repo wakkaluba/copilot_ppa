@@ -32,7 +32,7 @@ export class LLMStreamProvider extends EventEmitter {
    */
   public async streamMessage(
     payload: any, // TODO: Replace 'any' with LLMMessagePayload
-    config?: Partial<any> // TODO: Replace 'any' with LLMSessionConfig
+    config?: Partial<any>, // TODO: Replace 'any' with LLMSessionConfig
   ): Promise<void> {
     // Implementation placeholder
     throw new Error('Not implemented');

@@ -1,8 +1,8 @@
 # 🧹 Automated & Expanded Cleanup/Refactoring Task List
 
 ## 1. Linting & Code Quality
-- [ ] Integrate Husky pre-commit hook for `npm run lint` and `npm run format`
-- [ ] Add CI job to block merges on lint/test failures
+- [x] Integrate Husky pre-commit hook for `npm run lint` and `npm run format`
+- [x] Add CI job to block merges on lint/test failures
 - [ ] Run `npm run lint:fix` to auto-fix issues
 - [ ] Review and refactor code flagged by linter for maintainability
 - [ ] Enforce consistent coding standards (e.g., Airbnb, Google) using ESLint/TSLint

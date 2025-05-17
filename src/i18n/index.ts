@@ -13,10 +13,10 @@ let localizationService: LocalizationService | null = null;
  * @returns The localization service instance
  */
 export function initializeLocalization(context: vscode.ExtensionContext): LocalizationService {
-    if (!localizationService) {
-        localizationService = new LocalizationService(context);
-    }
-    return localizationService;
+  if (!localizationService) {
+    localizationService = new LocalizationService(context);
+  }
+  return localizationService;
 }
 
 /**
@@ -26,30 +26,53 @@ export function initializeLocalization(context: vscode.ExtensionContext): Locali
  * @param params Optional parameters to format the string
  * @returns The localized string
  */
-export function localize(key: string, defaultValue: string, params?: Record<string, string>): string {
-    if (!localizationService) {
-        return defaultValue;
-    }
-    return localizationService.getString(key, defaultValue, params);
+export function localize(
+  key: string,
+  defaultValue: string,
+  params?: Record<string, string>,
+): string {
+  if (!localizationService) {
+    return defaultValue;
+  }
+  return localizationService.getString(key, defaultValue, params);
 }
 
 /**
  * Supported languages in the application
  */
-export type SupportedLanguage = 
-    | 'en' | 'es' | 'de' | 'fr' | 'it' | 'pt' | 'ja' 
-    | 'ko' | 'zh' | 'ru' | 'ar' | 'tr' | 'pl' | 'nl'
-    | 'sv' | 'no' | 'fi' | 'da' | 'cs' | 'uk' | 'hu'
-    | 'th' | 'el';
+export type SupportedLanguage =
+  | 'en'
+  | 'es'
+  | 'de'
+  | 'fr'
+  | 'it'
+  | 'pt'
+  | 'ja'
+  | 'ko'
+  | 'zh'
+  | 'ru'
+  | 'ar'
+  | 'tr'
+  | 'pl'
+  | 'nl'
+  | 'sv'
+  | 'no'
+  | 'fi'
+  | 'da'
+  | 'cs'
+  | 'uk'
+  | 'hu'
+  | 'th'
+  | 'el';
 
 /**
  * Gets the current UI language
  * @returns Current language code
  */
 export function getCurrentLanguage(): SupportedLanguage {
-    // In a real implementation, this would get the language from VSCode settings
-    // or from the user's OS settings
-    return 'en';
+  // In a real implementation, this would get the language from VSCode settings
+  // or from the user's OS settings
+  return 'en';
 }
 
 /**
@@ -58,8 +81,8 @@ export function getCurrentLanguage(): SupportedLanguage {
  * @returns Detected language or null
  */
 export function detectLanguage(text: string): SupportedLanguage | null {
-    if (!localizationService) {
-        return null;
-    }
-    return localizationService.detectLanguage(text);
+  if (!localizationService) {
+    return null;
+  }
+  return localizationService.detectLanguage(text);
 }

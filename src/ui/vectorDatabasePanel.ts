@@ -3,146 +3,158 @@ import { getCodeSearchService } from '../services/vectordb/codeSearch';
 import { getVectorDatabaseManager } from '../services/vectordb/manager';
 
 export class VectorDatabasePanel {
-    public static readonly viewType = 'copilotPPA.vectorDatabasePanel';
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
+  public static readonly viewType = 'copilotPPA.vectorDatabasePanel';
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(extensionUri: vscode.Uri) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+  public static createOrShow(extensionUri: vscode.Uri) {
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
 
-        // If we already have a panel, show it.
-        // Otherwise, create a new panel.
-        const panel = vscode.window.createWebviewPanel(
-            VectorDatabasePanel.viewType,
-            'Vector Database',
-            column || vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
+    // If we already have a panel, show it.
+    // Otherwise, create a new panel.
+    const panel = vscode.window.createWebviewPanel(
+      VectorDatabasePanel.viewType,
+      'Vector Database',
+      column != null || vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+      },
+    );
+
+    return new VectorDatabasePanel(panel, extensionUri);
+  }
+
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    this._panel = panel;
+
+    // Set the webview's initial html content
+    this._update();
+
+    // Listen for when the panel is disposed
+    // This happens when the user closes the panel or when the panel is closed programmatically
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+    // Update the content based on view changes
+    this._panel.onDidChangeViewState(
+      (e) => {
+        if (this._panel.visible) {
+          this._update();
+        }
+      },
+      null,
+      this._disposables,
+    );
+
+    // Handle messages from the webview
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        const manager = getVectorDatabaseManager();
+        const searchService = getCodeSearchService();
+
+        switch (message.command) {
+          case 'getProviders':
+            this._panel.webview.postMessage({
+              command: 'providersLoaded',
+              providers: manager.getProviders().map((p) => ({
+                name: p.name,
+                isAvailable: p.isAvailable,
+              })),
+              activeProvider: manager.getActiveProvider()?.name || null,
+              isEnabled: manager.isVectorDatabaseEnabled(),
+            });
+            return;
+
+          case 'setEnabled':
+            manager.setEnabled(message.enabled);
+            this._panel.webview.postMessage({
+              command: 'statusChanged',
+              isEnabled: manager.isVectorDatabaseEnabled(),
+            });
+            return;
+
+          case 'setActiveProvider':
+            try {
+              const success = await manager.setActiveProvider(message.provider);
+              if (success) {
+                this._panel.webview.postMessage({
+                  command: 'providerChanged',
+                  activeProvider: message.provider,
+                });
+                vscode.window.showInformationMessage(
+                  `${message.provider} is now the active provider`,
+                );
+              } else {
+                vscode.window.showErrorMessage(
+                  `Failed to set ${message.provider} as active provider`,
+                );
+              }
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Error: ${error instanceof Error ? error.message : String(error)}`,
+              );
             }
-        );
+            return;
 
-        return new VectorDatabasePanel(panel, extensionUri);
-    }
+          case 'searchCode':
+            try {
+              const results = await searchService.semanticSearch(message.query, message.limit);
+              this._panel.webview.postMessage({
+                command: 'searchResults',
+                results,
+              });
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Search failed: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+            return;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        this._panel = panel;
+          case 'indexWorkspace':
+            try {
+              const count = await searchService.indexWorkspace(
+                message.includePattern,
+                message.excludePattern,
+              );
+              vscode.window.showInformationMessage(`Successfully indexed ${count} files`);
+              this._panel.webview.postMessage({
+                command: 'indexingComplete',
+                count,
+              });
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Indexing failed: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+            return;
 
-        // Set the webview's initial html content
-        this._update();
+          case 'openFile':
+            try {
+              const uri = vscode.Uri.parse(message.fileUri);
+              const document = await vscode.workspace.openTextDocument(uri);
+              await vscode.window.showTextDocument(document);
+            } catch (error) {
+              vscode.window.showErrorMessage(
+                `Failed to open file: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+            return;
+        }
+      },
+      null,
+      this._disposables,
+    );
+  }
 
-        // Listen for when the panel is disposed
-        // This happens when the user closes the panel or when the panel is closed programmatically
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+  private _update() {
+    this._panel.title = 'Vector Database';
+    this._panel.webview.html = this._getHtmlForWebview();
+  }
 
-        // Update the content based on view changes
-        this._panel.onDidChangeViewState(
-            e => {
-                if (this._panel.visible) {
-                    this._update();
-                }
-            },
-            null,
-            this._disposables
-        );
-
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            async message => {
-                const manager = getVectorDatabaseManager();
-                const searchService = getCodeSearchService();
-
-                switch (message.command) {
-                    case 'getProviders':
-                        this._panel.webview.postMessage({
-                            command: 'providersLoaded',
-                            providers: manager.getProviders().map(p => ({
-                                name: p.name,
-                                isAvailable: p.isAvailable
-                            })),
-                            activeProvider: manager.getActiveProvider()?.name || null,
-                            isEnabled: manager.isVectorDatabaseEnabled()
-                        });
-                        return;
-
-                    case 'setEnabled':
-                        manager.setEnabled(message.enabled);
-                        this._panel.webview.postMessage({
-                            command: 'statusChanged',
-                            isEnabled: manager.isVectorDatabaseEnabled()
-                        });
-                        return;
-
-                    case 'setActiveProvider':
-                        try {
-                            const success = await manager.setActiveProvider(message.provider);
-                            if (success) {
-                                this._panel.webview.postMessage({
-                                    command: 'providerChanged',
-                                    activeProvider: message.provider
-                                });
-                                vscode.window.showInformationMessage(`${message.provider} is now the active provider`);
-                            } else {
-                                vscode.window.showErrorMessage(`Failed to set ${message.provider} as active provider`);
-                            }
-                        } catch (error) {
-                            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
-                        }
-                        return;
-
-                    case 'searchCode':
-                        try {
-                            const results = await searchService.semanticSearch(message.query, message.limit);
-                            this._panel.webview.postMessage({
-                                command: 'searchResults',
-                                results
-                            });
-                        } catch (error) {
-                            vscode.window.showErrorMessage(`Search failed: ${error instanceof Error ? error.message : String(error)}`);
-                        }
-                        return;
-
-                    case 'indexWorkspace':
-                        try {
-                            const count = await searchService.indexWorkspace(
-                                message.includePattern,
-                                message.excludePattern
-                            );
-                            vscode.window.showInformationMessage(`Successfully indexed ${count} files`);
-                            this._panel.webview.postMessage({
-                                command: 'indexingComplete',
-                                count
-                            });
-                        } catch (error) {
-                            vscode.window.showErrorMessage(`Indexing failed: ${error instanceof Error ? error.message : String(error)}`);
-                        }
-                        return;
-
-                    case 'openFile':
-                        try {
-                            const uri = vscode.Uri.parse(message.fileUri);
-                            const document = await vscode.workspace.openTextDocument(uri);
-                            await vscode.window.showTextDocument(document);
-                        } catch (error) {
-                            vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : String(error)}`);
-                        }
-                        return;
-                }
-            },
-            null,
-            this._disposables
-        );
-    }
-
-    private _update() {
-        this._panel.title = "Vector Database";
-        this._panel.webview.html = this._getHtmlForWebview();
-    }
-
-    private _getHtmlForWebview() {
-        return `<!DOCTYPE html>
+  private _getHtmlForWebview() {
+    return `<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
@@ -597,17 +609,17 @@ export class VectorDatabasePanel {
             </script>
         </body>
         </html>`;
-    }
+  }
 
-    public dispose() {
-        // Clean up resources
-        this._panel.dispose();
+  public dispose() {
+    // Clean up resources
+    this._panel.dispose();
 
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
-            }
-        }
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
     }
+  }
 }

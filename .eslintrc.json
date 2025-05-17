@@ -75,7 +75,16 @@
         "**/*.d.ts",
         "node_modules",
         "jest.config.js",
-        "webpack.config.js"
+        "webpack.config.js",
+        "zzzbuild/",
+        "zzzscripts/",
+        "tools/",
+        "coverage/",
+        "media/",
+        "test/",
+        "tests/",
+        "src/**/*.js",
+        "src/**/*.js.map"
     ],
     "env": {
         "node": true,
@@ -86,5 +95,21 @@
         "jest": {
             "version": 29
         }
-    }
+    },
+    "overrides": [
+        {
+            "files": ["src/**/*.js"],
+            "parser": "espree",
+            "plugins": [],
+            "extends": ["eslint:recommended"],
+            "rules": {
+                // Disable TypeScript-specific rules for JS files
+                "@typescript-eslint/no-var-requires": "off",
+                "@typescript-eslint/no-unused-vars": "off",
+                "@typescript-eslint/no-explicit-any": "off",
+                "@typescript-eslint/explicit-function-return-type": "off",
+                "@typescript-eslint/naming-convention": "off"
+            }
+        }
+    ]
 }

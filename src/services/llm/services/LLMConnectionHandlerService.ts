@@ -2,7 +2,12 @@ import { EventEmitter } from 'events';
 import { Logger } from '../../../utils/logger';
 import { LLMProvider } from '../../llm/llm-provider';
 import { LLMConnectionError } from '../errors';
-import { ConnectionState, ConnectionStatus, ILLMConnectionProvider, LLMConnectionOptions } from '../types';
+import {
+  ConnectionState,
+  ConnectionStatus,
+  ILLMConnectionProvider,
+  LLMConnectionOptions,
+} from '../types';
 
 /**
  * Handles LLM provider connection lifecycle with structured error handling and logging.
@@ -24,7 +29,7 @@ export class LLMConnectionHandlerService extends EventEmitter {
       retryBackoffFactor: options.retryBackoffFactor || 2,
       connectionTimeout: options.connectionTimeout || 30000,
       reconnectOnError: options.reconnectOnError ?? true,
-      healthCheckInterval: options.healthCheckInterval || 30000
+      healthCheckInterval: options.healthCheckInterval || 30000,
     };
   }
 
@@ -62,11 +67,9 @@ export class LLMConnectionHandlerService extends EventEmitter {
    */
   public async connect(connection: ILLMConnectionProvider): Promise<void> {
     if (!this._activeProvider) {
-      throw new LLMConnectionError(
-        'ProviderNotFound',
-        'No active provider set',
-        { method: 'connect' }
-      );
+      throw new LLMConnectionError('ProviderNotFound', 'No active provider set', {
+        method: 'connect',
+      });
     }
     try {
       this._currentState = ConnectionState.CONNECTING;
@@ -74,7 +77,7 @@ export class LLMConnectionHandlerService extends EventEmitter {
 
       await connection.connect({
         ...this.options,
-        provider: this._activeProvider
+        provider: this._activeProvider,
       });
 
       this._activeConnection = connection;
@@ -84,19 +87,20 @@ export class LLMConnectionHandlerService extends EventEmitter {
       this.emit('connected', await this.getConnectionStatus());
       this.emit('stateChanged', this._currentState);
     } catch (error) {
-      const err = error instanceof LLMConnectionError
-        ? error
-        : new LLMConnectionError(
-            'Unknown',
-            error instanceof Error ? error.message : String(error),
-            { method: 'connect', provider: this._activeProvider?.name }
-          );
+      const err =
+        error instanceof LLMConnectionError
+          ? error
+          : new LLMConnectionError(
+              'Unknown',
+              error instanceof Error ? error.message : String(error),
+              { method: 'connect', provider: this._activeProvider?.name },
+            );
       this._lastError = err;
       this._currentState = ConnectionState.ERROR;
       this.logger.error('Connection error', {
         error: err,
         provider: this._activeProvider?.name,
-        state: this._currentState
+        state: this._currentState,
       });
       this.emit('error', err);
       this.emit('stateChanged', this._currentState);
@@ -113,16 +117,17 @@ export class LLMConnectionHandlerService extends EventEmitter {
       try {
         await this._activeConnection.disconnect();
       } catch (error) {
-        const err = error instanceof LLMConnectionError
-          ? error
-          : new LLMConnectionError(
-              'DisconnectError',
-              error instanceof Error ? error.message : String(error),
-              { method: 'disconnect', provider: this._activeProvider?.name }
-            );
+        const err =
+          error instanceof LLMConnectionError
+            ? error
+            : new LLMConnectionError(
+                'DisconnectError',
+                error instanceof Error ? error.message : String(error),
+                { method: 'disconnect', provider: this._activeProvider?.name },
+              );
         this.logger.error('Error disconnecting', {
           error: err,
-          provider: this._activeProvider?.name
+          provider: this._activeProvider?.name,
         });
       }
       this._activeConnection = null;
@@ -140,7 +145,7 @@ export class LLMConnectionHandlerService extends EventEmitter {
       state: this._currentState,
       provider: this._activeProvider?.name || 'unknown',
       modelInfo: this._activeConnection ? await this._activeConnection.getModelInfo() : undefined,
-      error: this._lastError?.message
+      error: this._lastError?.message,
     };
   }
 
@@ -149,16 +154,17 @@ export class LLMConnectionHandlerService extends EventEmitter {
    */
   public dispose(): void {
     this.disconnect().catch((error) => {
-      const err = error instanceof LLMConnectionError
-        ? error
-        : new LLMConnectionError(
-            'DisposeError',
-            error instanceof Error ? error.message : String(error),
-            { method: 'dispose', provider: this._activeProvider?.name }
-          );
+      const err =
+        error instanceof LLMConnectionError
+          ? error
+          : new LLMConnectionError(
+              'DisposeError',
+              error instanceof Error ? error.message : String(error),
+              { method: 'dispose', provider: this._activeProvider?.name },
+            );
       this.logger.error('Error during dispose disconnect', {
         error: err,
-        provider: this._activeProvider?.name
+        provider: this._activeProvider?.name,
       });
     });
     this.removeAllListeners();

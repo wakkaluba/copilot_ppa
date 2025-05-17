@@ -6,7 +6,7 @@ export function run(): Promise<void> {
   // Create the mocha test
   const mocha = new (Mocha as any)({
     ui: 'tdd',
-    color: true
+    color: true,
   });
 
   const testsRoot = path.resolve(__dirname, '..');
@@ -26,9 +26,9 @@ export function run(): Promise<void> {
     };
 
     globPromise('**/**.test.js', { cwd: testsRoot })
-      .then(files => {
+      .then((files) => {
         // Add files to the test suite
-        files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+        files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
 
         try {
           // Run the mocha test
@@ -44,7 +44,7 @@ export function run(): Promise<void> {
           reject(err);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         reject(err);
       });
   });

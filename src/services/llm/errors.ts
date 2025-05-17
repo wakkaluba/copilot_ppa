@@ -10,7 +10,7 @@ export class LLMProviderError extends Error {
   constructor(
     public readonly code: string,
     message: string,
-    public readonly cause?: unknown
+    public readonly cause?: unknown,
   ) {
     super(message);
     this.name = 'LLMProviderError';
@@ -24,7 +24,7 @@ export class LLMConnectionError extends Error {
   constructor(
     public readonly code: string,
     message: string,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'LLMConnectionError';
@@ -38,7 +38,7 @@ export class LLMResourceError extends Error {
   constructor(
     public readonly resource: string,
     message: string,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'LLMResourceError';
@@ -52,7 +52,7 @@ export class ConfigurationError extends Error {
   constructor(
     message: string,
     public readonly providerId: string,
-    public readonly setting: string
+    public readonly setting: string,
   ) {
     super(message);
     this.name = 'ConfigurationError';
@@ -63,7 +63,10 @@ export class ConfigurationError extends Error {
  * Error thrown when a provider fails in a generic way.
  */
 export class ProviderError extends Error {
-  constructor(message: string, public readonly providerId: string) {
+  constructor(
+    message: string,
+    public readonly providerId: string,
+  ) {
     super(message);
     this.name = 'ProviderError';
   }

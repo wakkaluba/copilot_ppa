@@ -16,7 +16,7 @@ const fallbackLogger: ILogger = {
   info: () => {},
   warn: () => {},
   error: () => {},
-  critical: () => {}
+  critical: () => {},
 };
 
 /**
@@ -60,7 +60,7 @@ export class ConnectionPoolManager extends EventEmitter {
     }
 
     // Try to find an available connection
-    const availableConnection = pool.find(conn => !conn.inUse);
+    const availableConnection = pool.find((conn) => !conn.inUse);
     if (availableConnection) {
       availableConnection.inUse = true;
       availableConnection.lastUsed = Date.now();
@@ -73,14 +73,16 @@ export class ConnectionPoolManager extends EventEmitter {
       const provider = pool[0]?.provider;
       if (!provider) {
         this.logger.error(`No provider template available: ${providerId}`);
-        throw new LLMConnectionError('NO_PROVIDER_TEMPLATE', 'No provider template available', { providerId });
+        throw new LLMConnectionError('NO_PROVIDER_TEMPLATE', 'No provider template available', {
+          providerId,
+        });
       }
       // Shallow clone for demonstration; real implementation may require deep clone or factory
       const newProvider = { ...provider } as LLMProvider;
       const connection: PoolConnection = {
         provider: newProvider,
         inUse: true,
-        lastUsed: Date.now()
+        lastUsed: Date.now(),
       };
       pool.push(connection);
       this.logger.info(`Created new provider connection: ${providerId}`);
@@ -102,7 +104,7 @@ export class ConnectionPoolManager extends EventEmitter {
       this.logger.warn(`Attempted to release connection for uninitialized provider: ${providerId}`);
       return;
     }
-    const connection = pool.find(conn => conn.provider === provider);
+    const connection = pool.find((conn) => conn.provider === provider);
     if (connection) {
       connection.inUse = false;
       connection.lastUsed = Date.now();
@@ -119,8 +121,8 @@ export class ConnectionPoolManager extends EventEmitter {
     setInterval(() => {
       const now = Date.now();
       for (const [providerId, pool] of this.pools) {
-        const activeConnections = pool.filter(conn => {
-          const isIdle = !conn.inUse && (now - conn.lastUsed) > this.idleTimeout;
+        const activeConnections = pool.filter((conn) => {
+          const isIdle = !conn.inUse && now - conn.lastUsed > this.idleTimeout;
           if (isIdle) {
             // No dispose method on LLMProvider interface; just log
             this.logger.info(`Idle connection would be disposed: ${providerId}`);
@@ -143,7 +145,9 @@ export class ConnectionPoolManager extends EventEmitter {
         try {
           await conn.provider.disconnect?.();
         } catch (err) {
-          this.logger.error(`Error disconnecting provider: ${err instanceof Error ? err.message : String(err)}`);
+          this.logger.error(
+            `Error disconnecting provider: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
         // No dispose method on LLMProvider interface
       }
