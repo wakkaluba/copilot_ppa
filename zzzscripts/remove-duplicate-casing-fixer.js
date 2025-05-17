@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('./logger');
 
 // Configuration
 const rootDir = path.resolve(__dirname, '..');
@@ -20,7 +21,7 @@ const reportPath = path.join(rootDir, 'zzzbuild', 'orphaned-code-report.md');
  * Create backup of files before making changes
  */
 function backupFiles() {
-  console.log('Creating backups...');
+  logger.log('Creating backups...');
 
   // Create backup directory with timestamp
   const timestampedBackupDir = path.join(backupDir, timestamp);
@@ -32,18 +33,18 @@ function backupFiles() {
   if (fs.existsSync(primaryFile)) {
     const primaryBackupPath = path.join(timestampedBackupDir, 'fix-file-casing.js');
     fs.copyFileSync(primaryFile, primaryBackupPath);
-    console.log(`✅ Backed up: ${path.relative(rootDir, primaryFile)}`);
+    logger.log(`✅ Backed up: ${path.relative(rootDir, primaryFile)}`);
   } else {
-    console.log(`⚠️ Primary file not found: ${path.relative(rootDir, primaryFile)}`);
+    logger.log(`⚠️ Primary file not found: ${path.relative(rootDir, primaryFile)}`);
   }
 
   // Backup duplicate file
   if (fs.existsSync(duplicateFile)) {
     const duplicateBackupPath = path.join(timestampedBackupDir, 'fix-casing.js');
     fs.copyFileSync(duplicateFile, duplicateBackupPath);
-    console.log(`✅ Backed up: ${path.relative(rootDir, duplicateFile)}`);
+    logger.log(`✅ Backed up: ${path.relative(rootDir, duplicateFile)}`);
   } else {
-    console.log(`⚠️ Duplicate file not found: ${path.relative(rootDir, duplicateFile)}`);
+    logger.log(`⚠️ Duplicate file not found: ${path.relative(rootDir, duplicateFile)}`);
   }
 
   return timestampedBackupDir;
@@ -54,11 +55,11 @@ function backupFiles() {
  */
 function compareFiles() {
   if (!fs.existsSync(primaryFile) || !fs.existsSync(duplicateFile)) {
-    console.log('Cannot compare files - one or both files missing');
+    logger.log('Cannot compare files - one or both files missing');
     return false;
   }
 
-  console.log('Comparing files...');
+  logger.log('Comparing files...');
   const primaryContent = fs.readFileSync(primaryFile, 'utf8');
   const duplicateContent = fs.readFileSync(duplicateFile, 'utf8');
 
@@ -74,10 +75,10 @@ function compareFiles() {
   const primaryFunctions = (primaryContent.match(/function\s+[a-zA-Z0-9_]+\(/g) || []).length;
   const duplicateFunctions = (duplicateContent.match(/function\s+[a-zA-Z0-9_]+\(/g) || []).length;
 
-  console.log(`Exact content match: ${exactMatch}`);
-  console.log(`Normalized content match: ${similarMatch}`);
-  console.log(`Primary file has ${primaryFunctions} functions`);
-  console.log(`Duplicate file has ${duplicateFunctions} functions`);
+  logger.log(`Exact content match: ${exactMatch}`);
+  logger.log(`Normalized content match: ${similarMatch}`);
+  logger.log(`Primary file has ${primaryFunctions} functions`);
+  logger.log(`Duplicate file has ${duplicateFunctions} functions`);
 
   // Generate a comparison report for reference
   return {
@@ -97,11 +98,11 @@ function compareFiles() {
  */
 function removeDuplicateFile() {
   if (!fs.existsSync(duplicateFile)) {
-    console.log('Duplicate file does not exist, nothing to remove');
+    logger.log('Duplicate file does not exist, nothing to remove');
     return false;
   }
 
-  console.log('Removing duplicate file...');
+  logger.log('Removing duplicate file...');
 
   try {
     // Check if file is tracked by git
@@ -117,17 +118,17 @@ function removeDuplicateFile() {
 
     if (isTracked) {
       // Remove via git for tracked files
-      console.log('File is git-tracked, removing via git rm');
+      logger.log('File is git-tracked, removing via git rm');
       execSync(`git rm "${duplicateFile}"`, { stdio: 'inherit' });
     } else {
       // Direct filesystem removal for untracked files
       fs.unlinkSync(duplicateFile);
-      console.log(`Removed file: ${path.relative(rootDir, duplicateFile)}`);
+      logger.log(`Removed file: ${path.relative(rootDir, duplicateFile)}`);
     }
 
     return true;
   } catch (error) {
-    console.error(`❌ Error removing duplicate file: ${error.message}`);
+    logger.error(`❌ Error removing duplicate file: ${error.message}`);
     return false;
   }
 }
@@ -137,7 +138,7 @@ function removeDuplicateFile() {
  */
 function updateOrphanedCodeReport(comparison) {
   if (!fs.existsSync(reportPath)) {
-    console.error('❌ Could not find orphaned-code-report.md to update');
+    logger.error('❌ Could not find orphaned-code-report.md to update');
     return;
   }
 
@@ -159,9 +160,9 @@ function updateOrphanedCodeReport(comparison) {
     );
 
     fs.writeFileSync(reportPath, reportContent);
-    console.log('✅ Updated orphaned-code-report.md');
+    logger.log('✅ Updated orphaned-code-report.md');
   } catch (error) {
-    console.error(`❌ Error updating orphaned-code-report.md: ${error.message}`);
+    logger.error(`❌ Error updating orphaned-code-report.md: ${error.message}`);
   }
 }
 
@@ -169,11 +170,11 @@ function updateOrphanedCodeReport(comparison) {
  * Main function
  */
 function main() {
-  console.log('=== Duplicate File-Casing Fixer Cleanup Tool ===');
+  logger.log('=== Duplicate File-Casing Fixer Cleanup Tool ===');
 
   // Step 1: Back up files
   const backupFolder = backupFiles();
-  console.log(`Backups created in: ${backupFolder}`);
+  logger.log(`Backups created in: ${backupFolder}`);
 
   // Step 2: Compare files to confirm duplication
   const comparison = compareFiles();
@@ -182,12 +183,12 @@ function main() {
   let proceedWithRemoval = true;
 
   if (!comparison.exactMatch && !comparison.similarMatch) {
-    console.log('\n⚠️ Warning: Files are not detected as duplicates!');
-    console.log('Please review the files manually before proceeding.');
+    logger.log('\n⚠️ Warning: Files are not detected as duplicates!');
+    logger.log('Please review the files manually before proceeding.');
     proceedWithRemoval = false;
   } else if (comparison.additionalFunctionsInDuplicate) {
-    console.log('\n⚠️ Warning: The file to be removed may contain additional functions!');
-    console.log('Please review the files manually before proceeding.');
+    logger.log('\n⚠️ Warning: The file to be removed may contain additional functions!');
+    logger.log('Please review the files manually before proceeding.');
     proceedWithRemoval = false;
   }
 
@@ -196,8 +197,8 @@ function main() {
   if (proceedWithRemoval) {
     removalSuccessful = removeDuplicateFile();
   } else {
-    console.log('Skipping removal based on comparison results.');
-    console.log('Files have been backed up if you wish to proceed manually.');
+    logger.log('Skipping removal based on comparison results.');
+    logger.log('Files have been backed up if you wish to proceed manually.');
   }
 
   // Step 5: Update the orphaned code report
@@ -205,7 +206,7 @@ function main() {
     updateOrphanedCodeReport(comparison);
   }
 
-  console.log('\n=== Process completed ===');
+  logger.log('\n=== Process completed ===');
 }
 
 // Run the script

@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const logger = require('./logger');
 
 // Configuration
 const scriptsDir = __dirname;
@@ -16,26 +17,26 @@ if (!fs.existsSync(outputDir)) {
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const logFile = path.join(outputDir, `orphaned-code-analysis-${timestamp}.log`);
 
-console.log('Starting orphaned code analysis...');
-console.log(`Log will be saved to ${logFile}`);
+logger.log('Starting orphaned code analysis...');
+logger.log(`Log will be saved to ${logFile}`);
 
 // Run the existing unused code analyzer script
 try {
-  console.log('\n1. Running UnusedCodeAnalyzer refactoring analysis...');
+  logger.log('\n1. Running UnusedCodeAnalyzer refactoring analysis...');
   const output = execSync(`node "${path.join(scriptsDir, 'refactor-unused-code-analyzer.js')}"`, {
     encoding: 'utf8'
   });
-  console.log(output);
+  logger.log(output);
   fs.appendFileSync(logFile, `\n\n=== UNUSED CODE ANALYZER ANALYSIS ===\n${output}`);
-  console.log('Analysis completed successfully.');
+  logger.log('Analysis completed successfully.');
 } catch (error) {
-  console.error(`Error running analysis: ${error.message}`);
+  logger.error(`Error running analysis: ${error.message}`);
   fs.appendFileSync(logFile, `\n\nERROR: ${error.message}`);
 }
 
 // Generate a summary based on the orphaned-code-report.md file
 try {
-  console.log('\n2. Generating summary from orphaned-code-report.md...');
+  logger.log('\n2. Generating summary from orphaned-code-report.md...');
   const reportPath = path.join(rootDir, 'zzzbuild', 'orphaned-code-report.md');
 
   if (fs.existsSync(reportPath)) {
@@ -46,10 +47,10 @@ try {
     const classMatches = reportContent.match(/### \d+\. .+?\n- \*\*File/g) || [];
     const implementationGaps = reportContent.match(/### \d+\. .+?\n- \*\*Description\*\*/g) || [];
 
-    console.log('\nSummary:');
-    console.log(`- Orphaned Files Categories: ${fileMatches.length}`);
-    console.log(`- Orphaned Classes/Methods Categories: ${classMatches.length}`);
-    console.log(`- Implementation Gaps: ${implementationGaps.length}`);
+    logger.log('\nSummary:');
+    logger.log(`- Orphaned Files Categories: ${fileMatches.length}`);
+    logger.log(`- Orphaned Classes/Methods Categories: ${classMatches.length}`);
+    logger.log(`- Implementation Gaps: ${implementationGaps.length}`);
 
     // Extract and display status counts
     const statusMatches = reportContent.match(/\*\*Status\*\*: (.+)$/gm) || [];
@@ -60,9 +61,9 @@ try {
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
-    console.log('\nStatus Breakdown:');
+    logger.log('\nStatus Breakdown:');
     Object.entries(statusCounts).forEach(([status, count]) => {
-      console.log(`- ${status}: ${count}`);
+      logger.log(`- ${status}: ${count}`);
     });
 
     // Save summary to log
@@ -75,20 +76,20 @@ try {
       fs.appendFileSync(logFile, `- ${status}: ${count}\n`);
     });
   } else {
-    console.log('orphaned-code-report.md file not found.');
+    logger.log('orphaned-code-report.md file not found.');
     fs.appendFileSync(logFile, '\n\norphaned-code-report.md file not found.');
   }
 } catch (error) {
-  console.error(`Error generating summary: ${error.message}`);
+  logger.error(`Error generating summary: ${error.message}`);
   fs.appendFileSync(logFile, `\n\nERROR generating summary: ${error.message}`);
 }
 
-console.log('\nAnalysis complete!');
-console.log(`Full results saved to ${logFile}`);
-console.log('Next steps:');
-console.log('1. Review the analysis output for orphaned code');
-console.log('2. Update orphaned-code-report.md with any new findings');
-console.log('3. Create tickets or tasks for cleaning up identified orphaned code');
+logger.log('\nAnalysis complete!');
+logger.log(`Full results saved to ${logFile}`);
+logger.log('Next steps:');
+logger.log('1. Review the analysis output for orphaned code');
+logger.log('2. Update orphaned-code-report.md with any new findings');
+logger.log('3. Create tickets or tasks for cleaning up identified orphaned code');
 
 module.exports = {
   // For testability, export main and any helper functions you want to test

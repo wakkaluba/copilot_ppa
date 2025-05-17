@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('./logger');
 
 // Configuration
 const rootDir = path.resolve(__dirname, '..');
@@ -43,10 +44,10 @@ function backupFile(filePath) {
 
     // Copy file to backup
     fs.copyFileSync(fullPath, backupPath);
-    console.log(`Created backup of ${filePath}`);
+    logger.log(`Created backup of ${filePath}`);
     return true;
   } catch (error) {
-    console.error(`Error creating backup for ${filePath}: ${error.message}`);
+    logger.error(`Error creating backup for ${filePath}: ${error.message}`);
     return false;
   }
 }
@@ -85,7 +86,7 @@ function analyzeImports(filePath) {
       ...requireMatches.map(m => m.replace(/require\(['"](.*)['"].*/, '$1'))
     ];
   } catch (error) {
-    console.error(`Error analyzing imports in ${filePath}: ${error.message}`);
+    logger.error(`Error analyzing imports in ${filePath}: ${error.message}`);
     return [];
   }
 }
@@ -94,44 +95,44 @@ function analyzeImports(filePath) {
  * Main function
  */
 async function main() {
-  console.log('Starting UnusedCodeAnalyzer refactoring analysis...');
+  logger.log('Starting UnusedCodeAnalyzer refactoring analysis...');
 
   // Check each file
   for (const file of targetFiles) {
-    console.log(`\nAnalyzing ${file}...`);
+    logger.log(`\nAnalyzing ${file}...`);
 
     const fullPath = path.join(rootDir, file);
     if (!fs.existsSync(fullPath)) {
-      console.log(`  File does not exist: ${file}`);
+      logger.log(`  File does not exist: ${file}`);
       continue;
     }
 
     // Check references to this file
     const references = checkReferences(file);
-    console.log(`  Referenced by ${references.length} files`);
+    logger.log(`  Referenced by ${references.length} files`);
 
     if (references.length > 0) {
-      console.log('  This file is still being referenced by:');
-      references.forEach(ref => console.log(`    - ${ref}`));
-      console.log('  Consider updating these files before removing this code.');
+      logger.log('  This file is still being referenced by:');
+      references.forEach(ref => logger.log(`    - ${ref}`));
+      logger.log('  Consider updating these files before removing this code.');
     } else {
-      console.log('  This file appears to be unused and can be safely removed.');
+      logger.log('  This file appears to be unused and can be safely removed.');
     }
 
     // Analyze imports
     const imports = analyzeImports(file);
     if (imports.length > 0) {
-      console.log('  This file imports:');
-      imports.forEach(imp => console.log(`    - ${imp}`));
+      logger.log('  This file imports:');
+      imports.forEach(imp => logger.log(`    - ${imp}`));
     }
   }
 
-  console.log('\nAnalysis completed.');
-  console.log('Based on the analysis, you may need to:');
-  console.log('1. Update references to UnusedCodeAnalyzer in dependent files');
-  console.log('2. Consider consolidating functionality if needed');
-  console.log('3. Create backups before removing any code');
-  console.log('4. Remove unused files after dependencies are resolved');
+  logger.log('\nAnalysis completed.');
+  logger.log('Based on the analysis, you may need to:');
+  logger.log('1. Update references to UnusedCodeAnalyzer in dependent files');
+  logger.log('2. Consider consolidating functionality if needed');
+  logger.log('3. Create backups before removing any code');
+  logger.log('4. Remove unused files after dependencies are resolved');
 }
 
 main();

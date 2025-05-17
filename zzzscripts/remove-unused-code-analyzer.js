@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('./logger');
 
 // Configuration
 const rootDir = path.resolve(__dirname, '..');
@@ -29,7 +30,7 @@ const filesToRemove = [
  * Create backup of files before deletion
  */
 function backupFiles() {
-  console.log(`Creating backups in ${backupDir}...`);
+  logger.log(`Creating backups in ${backupDir}...`);
 
   // Create backup directory with timestamp
   const timestampedBackupDir = path.join(backupDir, timestamp);
@@ -53,17 +54,17 @@ function backupFiles() {
 
         // Copy file to backup
         fs.copyFileSync(fullPath, backupFilePath);
-        console.log(`✅ Backed up: ${filePath}`);
+        logger.log(`✅ Backed up: ${filePath}`);
         backedUpFiles.push(filePath);
       } catch (error) {
-        console.error(`❌ Error backing up ${filePath}: ${error.message}`);
+        logger.error(`❌ Error backing up ${filePath}: ${error.message}`);
       }
     } else {
-      console.log(`⚠️ File not found, skipping backup: ${filePath}`);
+      logger.log(`⚠️ File not found, skipping backup: ${filePath}`);
     }
   }
 
-  console.log(`Backup completed. ${backedUpFiles.length}/${filesToRemove.length} files backed up.`);
+  logger.log(`Backup completed. ${backedUpFiles.length}/${filesToRemove.length} files backed up.`);
   return backedUpFiles;
 }
 
@@ -71,7 +72,7 @@ function backupFiles() {
  * Remove files from codebase
  */
 function removeFiles(backedUpFiles) {
-  console.log('\nRemoving files...');
+  logger.log('\nRemoving files...');
 
   for (const filePath of filesToRemove) {
     const fullPath = path.join(rootDir, filePath);
@@ -90,22 +91,22 @@ function removeFiles(backedUpFiles) {
 
         if (isTracked) {
           // Remove via git for tracked files
-          console.log(`🗑️ Removing git-tracked file: ${filePath}`);
+          logger.log(`🗑️ Removing git-tracked file: ${filePath}`);
           execSync(`git rm "${fullPath}"`, { stdio: 'inherit' });
         } else {
           // Direct filesystem removal for untracked files
           fs.unlinkSync(fullPath);
-          console.log(`🗑️ Removed file: ${filePath}`);
+          logger.log(`🗑️ Removed file: ${filePath}`);
         }
       } catch (error) {
-        console.error(`❌ Error removing ${filePath}: ${error.message}`);
+        logger.error(`❌ Error removing ${filePath}: ${error.message}`);
       }
     } else {
-      console.log(`⚠️ File already removed: ${filePath}`);
+      logger.log(`⚠️ File already removed: ${filePath}`);
     }
   }
 
-  console.log('Removal completed.');
+  logger.log('Removal completed.');
 }
 
 /**
@@ -115,7 +116,7 @@ function updateOrphanedCodeReport() {
   const reportPath = path.join(rootDir, 'zzzbuild', 'orphaned-code-report.md');
 
   if (!fs.existsSync(reportPath)) {
-    console.error('❌ Could not find orphaned-code-report.md to update');
+    logger.error('❌ Could not find orphaned-code-report.md to update');
     return;
   }
 
@@ -147,9 +148,9 @@ function updateOrphanedCodeReport() {
     );
 
     fs.writeFileSync(reportPath, reportContent);
-    console.log('✅ Updated orphaned-code-report.md');
+    logger.log('✅ Updated orphaned-code-report.md');
   } catch (error) {
-    console.error(`❌ Error updating orphaned-code-report.md: ${error.message}`);
+    logger.error(`❌ Error updating orphaned-code-report.md: ${error.message}`);
   }
 }
 
@@ -157,7 +158,7 @@ function updateOrphanedCodeReport() {
  * Main function
  */
 function main() {
-  console.log('=== UnusedCodeAnalyzer Removal Tool ===');
+  logger.log('=== UnusedCodeAnalyzer Removal Tool ===');
 
   // Step 1: Back up files
   const backedUpFiles = backupFiles();
@@ -169,9 +170,9 @@ function main() {
     // Step 3: Update the orphaned code report
     updateOrphanedCodeReport();
 
-    console.log(`\n✅ Process completed. Files were backed up to: ${backupDir}/${timestamp}`);
+    logger.log(`\n✅ Process completed. Files were backed up to: ${backupDir}/${timestamp}`);
   } else {
-    console.log('\n⚠️ No files were backed up. Removal canceled.');
+    logger.log('\n⚠️ No files were backed up. Removal canceled.');
   }
 }
 

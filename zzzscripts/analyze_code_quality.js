@@ -13,6 +13,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
+const logger = require('./logger');
 
 // Core configuration with validation
 const config = {
@@ -69,7 +70,7 @@ function getTypeScriptFiles() {
  * Analyze code complexity with memory-efficient streaming
  */
 async function analyzeComplexity() {
-    console.log('📊 Analyzing code complexity...');
+    logger.log('📊 Analyzing code complexity...');
 
     const results = {
         averageComplexity: 0,
@@ -138,7 +139,7 @@ async function analyzeComplexity() {
                     });
                 }
             } catch (error) {
-                console.warn(`Failed to analyze complexity for ${file}: ${error.message}`);
+                logger.warn(`Failed to analyze complexity for ${file}: ${error.message}`);
             }
         }
 
@@ -150,7 +151,7 @@ async function analyzeComplexity() {
 
         return results;
     } catch (error) {
-        console.error('Failed to analyze code complexity:', error.message);
+        logger.error('Failed to analyze code complexity:', error.message);
         return results;
     }
 }
@@ -173,7 +174,7 @@ function readFileContent(filePath) {
  * Detect code duplication with optimized analysis
  */
 async function detectDuplication() {
-    console.log('🔍 Detecting code duplication...');
+    logger.log('🔍 Detecting code duplication...');
 
     const duplicationData = {
         percentage: 0,
@@ -210,7 +211,7 @@ async function detectDuplication() {
 
         return duplicationData;
     } catch (error) {
-        console.error('Failed to detect code duplication:', error.message);
+        logger.error('Failed to detect code duplication:', error.message);
         return duplicationData;
     }
 }
@@ -257,7 +258,7 @@ function identifyHotspots(data) {
 
 // Analyze comments to code ratio
 function analyzeCommentsRatio() {
-  console.log('📝 Analyzing comments to code ratio...');
+  logger.log('📝 Analyzing comments to code ratio...');
 
   const results = {
     totalLines: 0,
@@ -312,7 +313,7 @@ function analyzeCommentsRatio() {
 
       results.fileResults.push(fileStats);
     } catch (error) {
-      console.warn(`Failed to analyze comments for ${file}: ${error.message}`);
+      logger.warn(`Failed to analyze comments for ${file}: ${error.message}`);
     }
   });
 
@@ -323,7 +324,7 @@ function analyzeCommentsRatio() {
 
 // Analyze dependencies
 function analyzeDependencies() {
-  console.log('🔗 Analyzing dependencies...');
+  logger.log('🔗 Analyzing dependencies...');
 
   try {
     const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
@@ -350,7 +351,7 @@ function analyzeDependencies() {
 
     return dependencies;
   } catch (error) {
-    console.error('Failed to analyze dependencies:', error.message);
+    logger.error('Failed to analyze dependencies:', error.message);
     return {
       total: 0,
       direct: 0,
@@ -654,7 +655,7 @@ function generateHtmlReport(results) {
 
 // Run the analysis
 function runAnalysis() {
-  console.log('🔍 Starting code quality analysis...');
+  logger.log('🔍 Starting code quality analysis...');
 
   ensureDirectoryExists(config.reporting.outputDir);
 
@@ -693,22 +694,22 @@ function runAnalysis() {
   );
 
   // Print summary
-  console.log('\n📊 Code Quality Summary:');
-  console.log('=======================');
-  console.log(`Cyclomatic Complexity: ${results.complexity.averageComplexity.toFixed(2)} (${results.complexity.complexFunctions.length} complex functions)`);
-  console.log(`Code Duplication: ${results.duplication.percentage.toFixed(2)}% (${results.duplication.duplicates.length} duplicates)`);
-  console.log(`Code to Comments Ratio: ${results.commentsRatio.ratio.toFixed(2)}:1`);
-  console.log(`Dependencies: ${results.dependencies.total} total, ${results.dependencies.outdated} outdated`);
-  console.log(`Technical Debt Score: ${results.technicalDebt.overall.toFixed(2)}`);
-  console.log(`Estimated Hours to Fix: ${results.technicalDebt.estimate.hoursToFix.toFixed(0)}`);
-  console.log(`Priority: ${results.technicalDebt.estimate.priority.toUpperCase()}`);
+  logger.log('\n📊 Code Quality Summary:');
+  logger.log('=======================');
+  logger.log(`Cyclomatic Complexity: ${results.complexity.averageComplexity.toFixed(2)} (${results.complexity.complexFunctions.length} complex functions)`);
+  logger.log(`Code Duplication: ${results.duplication.percentage.toFixed(2)}% (${results.duplication.duplicates.length} duplicates)`);
+  logger.log(`Code to Comments Ratio: ${results.commentsRatio.ratio.toFixed(2)}:1`);
+  logger.log(`Dependencies: ${results.dependencies.total} total, ${results.dependencies.outdated} outdated`);
+  logger.log(`Technical Debt Score: ${results.technicalDebt.overall.toFixed(2)}`);
+  logger.log(`Estimated Hours to Fix: ${results.technicalDebt.estimate.hoursToFix.toFixed(0)}`);
+  logger.log(`Priority: ${results.technicalDebt.estimate.priority.toUpperCase()}`);
 
-  console.log(`\n✅ Analysis complete! Detailed reports saved to ${config.reporting.outputDir}/`);
+  logger.log(`\n✅ Analysis complete! Detailed reports saved to ${config.reporting.outputDir}/`);
 }
 
 // Main analysis runner
 async function runAnalysis() {
-    console.log('🔍 Starting code quality analysis...');
+    logger.log('🔍 Starting code quality analysis...');
 
     ensureDirectoryExists(config.reporting.outputDir);
 

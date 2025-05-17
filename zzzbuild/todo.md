@@ -1,338 +1,104 @@
-# VSCode Local LLM Agent - Aufgabenliste
+# 🧹 Automated & Expanded Cleanup/Refactoring Task List
 
-## 1. Projektaufbau und Grundlagen
-- ✅ Einen neuen VS Code Extension-Projekt initialisieren (100%)
-  - ✅ Yeoman Generator für VS Code Extensions installieren (`npm install -g yo generator-code`) (100%)
-  - ✅ Neues Projekt generieren (`yo code`) (100%)
-  - ✅ Grundlegende Extension-Struktur einrichten (100%)
-- ✅ Git-Repository einrichten (100%)
-- ✅ Abhängigkeiten und devDependencies festlegen (100%)
-  - ✅ TypeScript-Konfiguration anpassen (100%)
-  - ✅ ESLint/Prettier einrichten für Codequalität (100%)
+## 1. Linting & Code Quality
+- [ ] Integrate Husky pre-commit hook for `npm run lint` and `npm run format`
+- [ ] Add CI job to block merges on lint/test failures
+- [ ] Run `npm run lint:fix` to auto-fix issues
+- [ ] Review and refactor code flagged by linter for maintainability
+- [ ] Enforce consistent coding standards (e.g., Airbnb, Google) using ESLint/TSLint
+- [ ] Set up automated code formatting with Prettier
+- [ ] Implement import sorting and deduplication
+- [ ] Remove unused dependencies and scripts from `package.json`
+- [ ] Optimize asset sizes and formats (images, fonts, etc.)
+- [ ] Enable stricter type checking in TypeScript (noImplicitAny, strictNullChecks, etc.)
 
-## 2. LLM-Integration
-- ✅ Recherche zu Ollama API und LM Studio API (100%)
-- ✅ Modulare Schnittstelle für LLM-Dienste entwerfen (100%)
-  - ✅ Interface für LLM-Provider definieren (100%)
-  - ✅ Ollama-Provider implementieren (100%)
-  - ✅ LM Studio-Provider implementieren (100%)
-- ✅ Konfigurationsmöglichkeiten für LLM-Verbindung erstellen (100%)
-  - ✅ Einstellungen für Modellauswahl (100%)
-  - ✅ Einstellungen für API-Endpunkte (100%)
-  - ✅ Caching-Strategie für API-Anfragen (100%)
+## 2. Test Suite Automation
+- [x] Add/expand tests for CodeQualityService and its exports (test/services/codeQuality/index.js)
+- [x] Run the test suite to verify coverage improvements
+- [x] Scaffold and expand tests for `src/copilot/copilotIntegrationProvider.ts` and `src/copilot/copilotIntegrationService.ts`
+- [ ] Implement detailed test logic and assertions for Copilot integration provider/service
+- [ ] Ensure all test files are auto-discovered (update `jest.config.js` if needed)
+- [ ] Add/verify `npm run test:watch` for local development
+- [ ] Add script to run only changed/affected tests
+- [ ] Restore integration and E2E test execution (currently 0/0 passing)
+- [ ] Add missing test cases for edge/error scenarios
+- [ ] Migrate tests to use React Testing Library or similar for better maintainability
+- [ ] Add performance benchmarks for critical components and pages
+- [ ] Implement visual regression testing for UI components
+- [ ] Set up contract testing for API integrations
 
-## 3. UI-Komponenten
-- ✅ Sidebar-Panel für den Agenten erstellen (100%)
-- ✅ Chat-Interface für Benutzereingaben implementieren (100%)
-- ✅ Modelauswahl für Agenten (100%)
-- ✅ Statusanzeige für LLM-Verbindung (100%)
-- ✅ Fortschrittsanzeige für laufende Aufgaben (100%)
-- ✅ Kontext-Menüeinträge für Code-Aktionen hinzufügen (100%)
-- ✅ Befehlspalette-Einträge für Agentenfunktionen (100%)
-- ✅ Code-Aktionen für Agenten implementieren (100%)
-- ✅ automatisch den LLM host starten und stoppen (100%)
-- ✅ automatisch mit der LLM verbinden, wenn erst erfolgreich eingebunden (100%)
+## 3. Coverage & Reporting
+- [ ] Integrate coverage reporting into CI pipeline
+- [ ] Auto-generate coverage badges and summary reports
+- [ ] Increase coverage for:
+  - `src/webview/codeExamples.js` (rendering, interaction)
+  - `src/services/logging/FileLogManager.ts` (file operation errors)
+  - `src/performance/bottleneckDetector.js` (performance analysis)
+  - All files marked ⏳ in code-coverage.md and test-coverage-report.md
+- [ ] Add tests for high-priority categories: LLM providers, vector DBs, UI components, performance tools, refactoring services
+- [ ] Set up code quality gates (e.g., SonarQube, CodeClimate) in CI
+- [ ] Generate and publish test report summaries to a shared location
 
-## 4. Agent-Funktionalität
-- ✅ Kern-Agent-Logik implementieren (100%)
-  - ✅ Prompt-Engineering für verschiedene Aufgabentypen (100%)
-  - ✅ Kontextmanagement für Gespräche (100%)
-  - ✅ Befehlsparser für Aktionen, die der Agent ausführen soll (100%)
-- ✅ Konversationsgeschichte verwalten (100%)
+## 4. Utility & Refactoring Scripts
+- [ ] Schedule weekly runs for:
+  - `zzzscripts/analyze_code_quality.js`
+  - `zzzscripts/cleanup-orphaned-code.js`
+  - `zzzscripts/identify-unused-code.js`
+  - `zzzscripts/improve-code-coverage.js`
+  - `zzzscripts/refactor-unused-code-analyzer.js`
+  - `zzzscripts/remove-duplicate-casing-fixer.js`
+  - `zzzscripts/remove-unused-code-analyzer.js`
+  - `zzzscripts/run-orphaned-code-analysis.js`
+  - `zzzscripts/update-refactoring-status.js`
+- [ ] Auto-backup and report before deleting code
+- [ ] Create a script to update dependencies and lock file maintenance
+- [ ] Implement a script to check for and report security vulnerabilities
+- [ ] Add a script to optimize and minify assets (CSS, JS, images)
+- [ ] Create a script to generate and publish release notes
 
-## 5. Workspace-Integration
-- ✅ VS Code Workspace-API verwenden (100%)
-  - ✅ Dateizugriff implementieren (Lesen, Schreiben, Löschen) (100%)
-  - ✅ Verzeichnisoperationen unterstützen (100%)
-  - ✅ Codeformatierung nach Änderungen (100%)
+## 5. Performance & Security
+- [ ] Address uncovered branches in performance and security test configs
+- [ ] Add/restore performance and security test automation
+- [ ] Schedule `npm audit` and `npm outdated` checks; auto-create issues for critical vulnerabilities
+- [ ] Integrate security scanning (e.g., Snyk, Dependabot) into CI pipeline
+- [ ] Set up automated performance monitoring and alerting
+- [ ] Optimize critical rendering path and reduce initial load time
+- [ ] Implement lazy loading for images and other non-critical resources
+- [ ] Enable HTTP/2 or HTTP/3 support on the server
+- [ ] Set up a Content Delivery Network (CDN) for static assets
 
-## 6. Sicherheit und Benutzerinteraktion
-- ✅ Genehmigungsmechanismen für Dateiänderungen (100%)
-  - ✅ Bestätigungsdialoge für kritische Operationen (100%)
-  - ✅ Vorschauansicht für Änderungen vor der Anwendung (100%)
-- ✅ Workspace Trust-Integration (100%)
-- ✅ Datenschutzmechanismen (100%)
-  - ✅ Lokale Speicherung von Konversationen (100%)
-  - ✅ Keine Datenübertragung an externe Dienste (außer lokales LLM) (100%)
-- ✅ Rückgängig-Funktion für vom Agenten vorgenommene Änderungen (100%)
+## 6. Documentation & Status Tracking
+- [ ] Add script to scan for TODOs and incomplete implementations
+- [ ] Auto-update status indicators (✅, ⏳, ❗, etc.) in documentation
+- [ ] Keep documentation in sync with code changes
+- [ ] Generate API documentation from code comments (e.g., JSDoc, TypeDoc)
+- [ ] Create and maintain a developer onboarding guide
+- [ ] Document common troubleshooting steps and solutions
+- [ ] Set up a changelog generator to maintain a history of changes
+- [ ] Automate the deployment of documentation to a hosting platform
 
-## 7. Tests und Qualitätssicherung
-- ✅ Unit-Tests für Kernkomponenten (100%)
-- ✅ Integrationstests für LLM-Interaktion (100%)
-- ✅ End-to-End-Tests für Agentenfunktionen (100%)
-- ✅ Performance-Tests (100%)
-- ✅ Sicherheitsüberprüfungen (100%)
+## 7. Continuous Integration
+- [ ] Ensure CI pipeline runs all tests and lint checks
+- [ ] Block merges on failed tests or lint errors
+- [ ] Integrate coverage and audit checks into CI
+- [ ] Set up environment-specific configuration and secrets management
+- [ ] Automate deployment to staging and production environments
+- [ ] Implement rollback procedures and disaster recovery testing
+- [ ] Schedule regular maintenance windows and notifications
+- [ ] Monitor CI/CD pipeline performance and optimize for speed
 
-## 8. Dokumentation und Distribution
-- ✅ README mit Installationsanweisungen (100%)
-- ✅ Benutzerhandbuch erstellen (100%)
-- ✅ Beispielprompts und Anwendungsfälle dokumentieren (100%)
-- ✅ VS Code Marketplace-Einträge vorbereiten (100%)
-- ✅ Release-Workflow einrichten (100%)
-  - ✅ Versionierungsstrategie (100%)
-  - ✅ CI/CD-Pipeline für automatisches Deployment (100%)
-
-## 9. Erweiterungen und zukünftige Funktionen
-- ✅ Multi-Modell-Unterstützung (100%)
-- ✅ Spezialisierte Agenten für verschiedene Programmiersprachen (100%)
-- ✅ Teamintegration (Mehrbenutzerunterstützung) (100%)
-- ✅ Offline-Modus-Optimierungen (100%)
-- ✅ Leistungsverbesserungen für große Codebases (100%)
-- ✅ Workspace-Zugriff-Schalter implementieren (100%)
-- ✅ Repository-Management-Funktionen hinzufügen (100%)
-  - ✅ Ein-/Ausschalten des Repository-Zugriffs (100%)
-  - ✅ Funktion zum Erstellen eines neuen Repositories implementieren (100%)
-- ✅ Unterstützung für verschiedene Repository-Provider implementieren (100%)
-  - ✅ GitHub Provider implementieren (100%)
-  - ✅ GitLab Provider implementieren (100%)
-  - ✅ Bitbucket Provider implementieren (100%)
-- ✅ CI/CD-Integration für verschiedene Plattformen (100%)
-  - ✅ GitHub Actions Integrationsunterstützung (100%)
-  - ✅ GitLab CI/CD Integrationsunterstützung (100%)
-  - ✅ Bitbucket Pipelines Integrationsunterstützung (100%)
-- ✅ Prompt-Templates-Bibliothek implementieren (100%)
-  - ✅ Speichern und Verwalten von benutzerdefinierten Prompts (100%)
-  - ✅ Import/Export von Prompt-Templates (100%)
-  - ✅ Kategorisierung von Templates nach Anwendungsfall (100%)
-- ✅ Integration mit Vektordatenbanken (100%)
-  - ✅ Anbindung an lokale Vektordatenbanken (Chroma, FAISS) (100%)
-  - ✅ Semantische Suche im Codekontext (100%)
-  - ✅ Automatische Indexierung des Workspaces (100%)
-- ✅ Benutzerdefinierte UI-Anpassungen (100%)
-  - ✅ Anpassbare Themes für das Agent-Interface (100%)
-  - ✅ Konfigurierbare Tastenkombinationen (100%)
-  - ✅ Benutzerdefinierte Darstellungsoptionen (100%)
-- ✅ Konversationsmanagement erweitern (100%)
-  - ✅ Export/Import von Gesprächsverläufen (100%)
-  - ✅ Filtern und Suchen in der Konversationshistorie (100%)
-  - ✅ Speichern von Konversationsausschnitten als Snippets (100%)
-- ✅ Test-Runner-Funktionalität implementieren (100%)
-  - ✅ Befehlsintegration für verschiedene Testtypen (100%)
-    - ✅ Unit-Tests ausführen (100%)
-    - ✅ Integrationstests ausführen (100%)
-    - ✅ End-to-End-Tests ausführen (100%)
-    - ✅ Performance-Tests ausführen (100%)
-  - ✅ Code-Qualitäts-Checks integrieren (100%)
-    - ✅ Statische Code-Analyse ausführen (100%)
-    - ✅ Dynamische Code-Analyse ausführen (100%)
-    - ✅ Code-Coverage-Tests ausführen (100%)
-    - ✅ Sicherheitstests ausführen (100%)
-  - ✅ Testberichterstattung und Visualisierung (100%)
-    - ✅ Testergebnisse formatieren und anzeigen (100%)
-    - ✅ Historische Trendanalyse für Testergebnisse (100%)
-    - ✅ Exportfunktionen für Testberichte (100%)
-- ✅ Terminal-Integration implementieren (100%)
-  - ✅ Shell-Umgebungen einbinden (100%)
-    - ✅ PowerShell-Integration (100%)
-    - ✅ Git Bash-Integration (100%)
-    - ✅ WSL Bash-Integration (100%)
-    - ✅ VS Code Terminal-Integration (100%)
-  - ✅ Interaktive Shell-Funktionen (100%)
-    - ✅ Befehlsausführung in ausgewählten Terminals (100%)
-    - ✅ Terminalausgabe erfassen und verarbeiten (100%)
-    - ✅ Ausgabeformatierung und -filterung (100%)
-  - ✅ KI-gestützte Terminal-Hilfe (100%)
-    - ✅ Befehlsvorschläge basierend auf Kontext (100%)
-    - ✅ Fehleranalyse für fehlgeschlagene Befehle (100%)
-    - ✅ Automatische Befehlsgenerierung aus natürlicher Sprache (100%)
-- ✅ Mehrsprachige Unterstützung (100%)
-  - ✅ Lokalisierung der Benutzeroberfläche (100%)
-  - ✅ Unterstützung für mehrsprachige Prompts und Antworten (100%)
-  - ✅ Automatische Spracherkennung (100%)
-- ✅ Integrierbare Code-Tools (100%)
-  - ✅ Code-Analyse-Tools einbinden (100%)
-    - ✅ Linter-Integration (ESLint, TSLint, etc.) (100%)
-    - ✅ Code-Komplexitätsanalyse-Tools (100%)
-    - ✅ Abhängigkeitsanalysatoren (100%)
-  - ✅ Refactoring-Werkzeuge (100%)
-    - ✅ Automatische Codevereinfachung (100%)
-    - ✅ Strukturreorganisation (100%)
-    - ✅ Unnötigen Code erkennen und entfernen (100%)
-  - ✅ Dokumentationsgeneratoren (100%)
-    - ✅ JSDoc/TSDoc-Integration (100%)
-    - ✅ README/Wiki-Generatoren (100%) - Implemented comprehensive test coverage for both TypeScript and JavaScript implementations
-    - ✅ API-Dokumentation erstellen (100%)
-  - ✅ Build-Tools-Integration (100%)
-    - ✅ Webpack/Rollup/Vite-Konfigurationsunterstützung (100%)
-    - ✅ Build-Skript-Optimierung (100%)
-    - ✅ Bundle-Analyse (100%)
-- ✅ Code-Editor-Funktionalitäten (100%)
-  - ✅ Code-Auswahl und -ausführung (100%)
-  - ✅ Code-Formatierung und -optimierung (100%)
-  - ✅ Code-Referenzierung und -verknüpfung (100%)
-  - ✅ Code-Übersicht und -Anzeige (100%)
-- ✅ Code-Qualitätssicherheit und -optimierung (100%)
-  - ✅ Sicherheitsscanner implementieren (100%)
-    - ✅ Abhängigkeitsüberprüfung auf Schwachstellen (100%)
-    - ✅ Erkennung von Sicherheitsproblemen im Code (100%)
-    - ✅ Proaktive Sicherheitsempfehlungen (100%)
-  - ✅ Code-Optimierungstools einbinden (100%)
-    - ✅ Performanceanalyse und Bottleneck-Erkennung (100%)
-    - ✅ Speichernutzungsoptimierung (100%)
-    - ✅ Laufzeitanalysatoren (100%)
-  - ✅ Best-Practices-Überprüfung (100%)
-    - ✅ Mustererkennung für Anti-Patterns (100%)
-    - ✅ Vorschläge für Designverbesserungen (100%)
-    - ✅ Konsistenzprüfung im Codebase (100%)
-  - ✅ Automatisierte Code-Reviews (100%)
-    - ✅ Schwellenwertdefinition für Codequalität (100%)
-    - ✅ Pull-Request-Integrationen (100%)
-    - ✅ Code-Review-Checklisten und -Berichte (100%)
-- ✅ Den gesamten Code auf veraltete Daten hin prüfen und aktualisieren (100%)
-  - ✅ Sprachdateien (100%)
-  - ✅ Konfigurationsdateien (100%)
-  - ✅ Code-Struktursdateien (100%)
-  - ✅ Code-Testfälle (100%)
-  - ✅ Code-Performance (100%)
-  - ✅ Code-Verständlichkeit (100%)
-- ✅ Den gesamten Code testen (JUnit test, Unit test, LINT usw.) (100%)
-  - ✅ Wie ist die Code Coverage (100%)
-    - ✅ Test coverage for CodeCoverageOptions (100%)
-    - ✅ Test coverage for CoverageToolService (100%)
-    - ✅ Test coverage for CoverageParserService (100%)
-    - ✅ Test coverage for CoverageThresholdService (100%)
-    - ✅ Test coverage for CommandExecutorService (100%)
-  - ✅ Fehlerrate/-quote (100%)
-
-## 10. Conversation History Management
-- ✅ Implement comprehensive conversation history tracking (100%)
-  - ✅ Store conversation history in dedicated files (100%)
-  - ✅ Create reference system for previous messages in replies (100%)
-  - ✅ Track project objectives in a main file (100%)
-  - ✅ Add a "forget" button to remove messages from history (100%)
-  - ✅ Implement "chapter" functionality to create new history files (100%)
-- ✅ Use conversation history to improve agent responses (100%)
-  - ✅ Generate new ideas based on previous conversations (100%)
-  - ✅ Generate tests using conversation history (100%)
-
-## 11. Error Handling for HTML Output
-- ✅ Improve memory management for Copilot (100%)
-  - ✅ Add button to clear Copilot memory (100%)
-  - ✅ Add button to restart Copilot (100%)
-
-## 12. Third-Party Extension Integration
-- ✅ Enable access to other VS Code extensions (100%)
-  - ✅ Create API for accessing installed extensions (100%)
-  - ✅ Implement extension validation service (100%)
-- ✅ Allow configuration changes for VS Code and extensions (100%)
-  - ✅ Create safe API for configuration modifications (100%)
-  - ✅ Add configuration change tracking (100%)
-- ✅ Enable installation of extensions (100%)
-  - ✅ Implement extension recommendation system (100%)
-  - ✅ Support additional language-specific extensions (100%)
-- ✅ Provide access to VS Code API (100%)
-  - ✅ Create sandbox for safe API access (100%)
-  - ✅ Implement suspicious activity detection (100%)
-
-## Testing
-- ✅ Implement tests for RollupConfigAnalyzer (100%)
-- ✅ Implement tests for RollupConfigDetector (100%)
-- ✅ Implement tests for RollupConfigUIService (100%)
-- ✅ Implement tests for RollupConfigValidationService (100%)
-- ✅ Implement tests for AnalysisError (100%)
-- ✅ Implement tests for ConfigDetectionError (100%)
-- ✅ Implement tests for OptimizationError (100%)
-- ✅ Implement tests for rollupConfigHandler (100%)
-- ✅ Implement tests for rollupConfigManager (100%)
-- ✅ Implement tests for rollup types (100%)
-- ✅ Implement tests for buildTools types (100%)
-- ✅ Implement tests for buildTools utils/terminalUtils (100%)
-- ✅ Implement tests for buildTools vite/types/index (100%)
-- ✅ Implement tests for buildTools vite/viteConfigHandler (100%)
-- ✅ Implement tests for buildTools vite/viteConfigManager (100%)
-- ✅ Implement tests for buildTools webpack/services/WebpackConfigAnalyzer (100%)
-
-## Testing and Quality Assurance
-
-- ✅ Create tests for terminal utilities (100%)
-- ✅ Create tests for Vite types index (100%)
-- ✅ Create tests for Vite config handler (100%)
-- ✅ Create tests for Vite config manager (100%)
-- ✅ Create tests for Webpack config analyzer (100%)
-- ✅ Implement tests for buildTools/vite/types/index.js and index.ts (100%)
-- ✅ Implement tests for buildTools/webpack/types/index.js and index.ts (100%)
-- ✅ Implement tests for chat/enhancedChatProvider.js and enhancedChatProvider.ts (100%)
-- ✅ Implement tests for codeEditor/codeEditorManager.js and codeEditorManager.ts (100%)
-- ✅ Implement tests for codeEditor/services/codeExecutor.js and codeExecutor.ts (100%)
-- ✅ Implement tests for codeEditor/services/codeLinker.js and codeLinker.ts (100%)
-- ✅ Implement tests for codeEditor/services/codeNavigator.js and codeNavigator.ts (100%)
-- ✅ Implement tests for codeEditor/types.js and types.ts (100%)
-- ✅ Implement tests for codeEditor/webviews/codeOverviewWebview.js and codeOverviewWebview.ts (100%)
-- ✅ Implement tests for codeReview/codeReviewWebviewProvider.js and codeReviewWebviewProvider.ts (100%)
-- ✅ Implement tests for codeReview/errors/ReviewChecklistError.js and ReviewChecklistError.ts (100%)
-- ✅ Implement tests for codeReview/reviewChecklist.js and reviewChecklist.ts (100%)
-- ✅ Implement tests for codeReview/services/CodeReviewService.js and codeReview/services/CodeReviewService.ts (100%)
-- ✅ Implement tests for codeReview/pullRequestIntegration.js and pullRequestIntegration.ts (100%)
-- ✅ Implement tests for codeTools/codeToolsManager.js and codeToolsManager.ts (100%)
-
-# Todo List
-
-## Testing Tasks
-
-- ✅ Add unit tests for src/codeReview/pullRequestIntegration.js and src/codeReview/pullRequestIntegration.ts (100%)
-- ✅ Add unit tests for src/buildTools/vite/types/index.js and src/buildTools/vite/types/index.ts (100%)
-- ✅ Add unit tests for src/buildTools/webpack/types/index.js and src/buildTools/webpack/types/index.ts (100%)
-- ✅ Add unit tests for src/chat/enhancedChatProvider.js and src/chat/enhancedChatProvider.ts (100%)
-- ✅ Add unit tests for src/codeEditor/codeEditorManager.js and src/codeEditor/codeEditorManager.ts (100%)
-- ✅ Add unit tests for src/codeEditor/services/codeExecutor.js and src/codeEditor/services/codeExecutor.ts (100%)
-- ✅ Add unit tests for src/codeEditor/services/codeLinker.js and src/codeEditor/services/codeLinker.ts (100%)
-- ✅ Add unit tests for src/codeEditor/services/codeNavigator.js and src/codeEditor/services/codeNavigator.ts (100%)
-- ✅ Add unit tests for src/codeEditor/types.js and src/codeEditor/types.ts (100%)
-- ✅ Add unit tests for src/codeEditor/webviews/codeOverviewWebview.js and src/codeEditor/webviews/codeOverviewWebview.ts (100%)
-- ✅ Add unit tests for src/codeReview/codeReviewWebviewProvider.js and src/codeReview/codeReviewWebviewProvider.ts (100%)
-- ✅ Add unit tests for src/codeReview/errors/ReviewChecklistError.js and src/codeReview/errors/ReviewChecklistError.ts (100%)
-- ✅ Add unit tests for src/codeReview/reviewChecklist.js and src/codeReview/reviewChecklist.ts (100%)
-- ✅ Add unit tests for src/codeReview/services/CodeReviewService.js and codeReview/services/CodeReviewService.ts (100%)
-- ✅ Add unit tests for src/codeTools/codeToolsManager.js and src/codeTools/codeToolsManager.ts (100%)
-- ✅ Add unit tests for src/codeTools/linterIntegration.js and src/codeTools/linterIntegration.ts (100%)
-- ✅ Add unit tests for src/codeTools/refactoringTools.js and src/codeTools/refactoringTools.ts (100%)
-- ✅ Add unit tests for src/codeTools/services/CodeDiffService.ts (100%)
-- ✅ Add unit tests for src/codeTools/services/CodeSimplificationService.ts (100%)
-- ✅ Add unit tests for src/codeTools/services/LLMRefactoringService.ts (100%)
-- ✅ Add unit tests for src/codeTools/services/RefactoringOutputService.ts (100%)
-- ✅ Add unit tests for src/commands/ExtensionCommandRegistrar.ts (100%)
-- ✅ Add unit tests for src/commands/codeFormatCommands.js and src/commands/codeFormatCommands.ts (100%)
-- ✅ Add unit tests for src/commands/confirmationCommands.ts (100%)
-- ✅ Add unit tests for src/commands/confirmationSettingsCommand.ts (100%)
-- ✅ Add unit tests for src/commands/conversationExportCommand.js and src/commands/conversationExportCommand.ts (100%)
-- ✅ Add unit tests for src/commands/conversationImportCommand.js and src/commands/conversationImportCommand.ts (100%)
-- ✅ Add unit tests for src/commands/conversationManagementCommand.js and src/commands/conversationManagementCommand.ts (100%)
-- ✅ Add unit tests for src/commands/displaySettingsCommand.js and src/commands/displaySettingsCommand.ts (100%)
-
-## Testing Infrastructure
-- ✅ Create and run script to generate empty test folders for files missing tests (100%)
-  - Script located at `zzzscripts/create-test-folders.js`
-  - Run with `npm run create-test-folders`
+## 8. Refactoring & Maintenance
+- [ ] Run `zzzscripts/update-refactoring-status.js` after each refactor PR
+- [ ] Auto-update `refactoring-progress.md` and `finished.md`
+- [ ] Continue refactoring UI components, core services, and build system as per `refactoring-progress.md`
+- [ ] Archive or delete obsolete branches, tags, and releases
+- [ ] Review and update third-party service integrations and APIs
+- [ ] Optimize database queries and indexes for performance
+- [ ] Regularly review and update server and application configurations
+- [ ] Conduct periodic security audits and vulnerability assessments
 
 ---
-
-## Error Handling, Logging, and Linting Refactor (In Progress)
-
-### A. Refactor Remaining Error Handling
-- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMChatManager.ts`.
-- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMConnectionHandlerService.ts`. (Restored and refactored in main source tree)
-- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMErrorHandlerService.ts`.
-- ✅ Refactored error handling and structured logging in `src/services/llm/providers/OllamaProvider.ts`.
-- ✅ Refactored error handling and structured logging in `src/services/llm/services/ConnectionPoolManager.ts`.
-- ✅ Refactored error handling and structured logging in `src/services/llm/services/LLMStreamProvider.ts`.
-- ✅ Ensure all errors use custom error types and propagate context. <!-- Example: see DataFetchError usage and context propagation in service methods -->
-
-### B. Fix and Expand Test Mocks
-- [x] Update test setup to globally mock fs, VS Code APIs, and logger.
-- [x] Replace sinon.stub with Jest mocks in pullRequestIntegration.test.js
-- [x] Ensure all error paths and logger calls are covered by tests für VectorDatabaseManager.
-- [x] Replace any remaining sinon.stub with Jest mocks for consistency.  <!-- ✅ All sinon.stub replaced with Jest mocks in all relevant test files -->
-
-### C. Address Lint Warnings
-- [x] Remove unused imports and variables in VectorDatabaseManager tests.
-- [x] Add explicit types and return types in VectorDatabaseManager tests.
-- [x] Rename interfaces to use the I prefix. <!-- All interfaces in orphaned code and types now use the I prefix. -->
-- [ ] Replace console statements with logger calls.
-
-### D. Expand Logger and Error Coverage
-- 🔄 Ensure all error and warning code paths in logger and error handler modules are covered by tests.
-- [x] Update test setup to globally mock fs, VS Code APIs, and logger.
-- [x] Replace sinon.stub with Jest mocks in pullRequestIntegration.test.js
-- [x] Ensure all error paths and logger calls are covered by tests für VectorDatabaseManager.
-- [x] Replace any remaining sinon.stub with Jest mocks for consistency.  <!-- ✅ All sinon.stub replaced with Jest mocks in all relev
-
+> **Next Steps:**
+> 1. Set up automation for linting, testing, and code quality scripts.
+> 2. Expand test coverage and restore all test suites.
+> 3. Review and update this list weekly; automate status updates where possible.

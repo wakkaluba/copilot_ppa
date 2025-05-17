@@ -47,7 +47,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 ## special folders
 ### zzzbuild/
 - Build scripts and automation
-- build artifacts-
+- Build artifacts like compiled code, Docker images, and distribution packages, vsix files, etc.
 - "meta" files: important for building the project or environemnt but not necessarily direct part of the build environment.
 
 ### zzzdocs/
@@ -94,6 +94,12 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - Mock external dependencies
 - Test edge cases and error conditions
 - Maintain high test coverage for critical paths
+- Ensure tests are run automatically on code changes
+- Use a testing framework (e.g., Jest, Mocha) for automated testing
+- Use test doubles (mocks/stubs) for testing dependencies
+- Use code coverage tools to ensure tests cover the code
+- Use a continuous integration tool (e.g., Jenkins, Travis CI) for automated testing
+- Only test methods and behaviors that are actually implemented and exported
 
 ## Performance Considerations
 
@@ -153,6 +159,8 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - Always use the project's configured linter and formatter (e.g., ESLint, Prettier) before committing code
 - Do not ignore linter errors unless justified and documented
 - Use automated tools for dependency updates where possible
+- run appropriate test suite to verify coverage improvements
+- Use automated tools for code analysis (e.g., SonarQube, ESLint, Prettier)
 
 ## Dependency Management
 

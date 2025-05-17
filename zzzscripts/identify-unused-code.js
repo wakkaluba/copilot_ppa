@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const glob = require('glob');
+const logger = require('./logger');
 
 // Configuration
 const rootDir = path.resolve(__dirname, '..');
@@ -81,7 +82,7 @@ function analyzeFileContent(filePath) {
 
     return orphaned;
   } catch (error) {
-    console.error(`Error analyzing ${filePath}: ${error.message}`);
+    logger.error(`Error analyzing ${filePath}: ${error.message}`);
     return { classes: [], methods: [] };
   }
 }
@@ -117,18 +118,18 @@ function generateReport(orphanedFiles, orphanedClasses) {
 
   // Write the report
   fs.writeFileSync(reportPath, report);
-  console.log(`Report generated at ${reportPath}`);
+  logger.log(`Report generated at ${reportPath}`);
 }
 
 /**
  * Main function
  */
 function main() {
-  console.log('Analyzing codebase for orphaned code...');
+  logger.log('Analyzing codebase for orphaned code...');
 
   // Find all code files
   const files = findCodeFiles();
-  console.log(`Found ${files.length} code files to analyze`);
+  logger.log(`Found ${files.length} code files to analyze`);
 
   // Check for orphaned files
   const orphanedFiles = [];
@@ -136,7 +137,7 @@ function main() {
 
   files.forEach((file, index) => {
     if (index % 50 === 0) {
-      console.log(`Analyzed ${index}/${files.length} files...`);
+      logger.log(`Analyzed ${index}/${files.length} files...`);
     }
 
     // Check if file is referenced anywhere
@@ -149,8 +150,8 @@ function main() {
     orphanedClasses.push(...orphaned.classes);
   });
 
-  console.log(`Found ${orphanedFiles.length} potentially orphaned files`);
-  console.log(`Found ${orphanedClasses.length} potentially orphaned classes`);
+  logger.log(`Found ${orphanedFiles.length} potentially orphaned files`);
+  logger.log(`Found ${orphanedClasses.length} potentially orphaned classes`);
 
   // Generate report
   generateReport(orphanedFiles, orphanedClasses);
@@ -158,12 +159,12 @@ function main() {
   // Special handling for UnusedCodeAnalyzer which appears in the matches
   const unusedCodeAnalyzerFiles = files.filter(f => f.includes('UnusedCodeAnalyzer'));
   if (unusedCodeAnalyzerFiles.length > 0) {
-    console.log('\nPotential action items:');
-    console.log('The following UnusedCodeAnalyzer files might need refactoring or consolidation:');
-    unusedCodeAnalyzerFiles.forEach(f => console.log(`- ${f}`));
+    logger.log('\nPotential action items:');
+    logger.log('The following UnusedCodeAnalyzer files might need refactoring or consolidation:');
+    unusedCodeAnalyzerFiles.forEach(f => logger.log(`- ${f}`));
   }
 
-  console.log('\nAnalysis completed. Check the report for details.');
+  logger.log('\nAnalysis completed. Check the report for details.');
 }
 
 main();

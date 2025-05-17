@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('./logger');
 
 // Configuration - Fix path resolution to avoid duplicate folder issues
 const scriptDir = __dirname;
@@ -13,10 +14,10 @@ const todoPath = path.join(rootDir, 'zzzbuild', 'todo.md');
 const reportsDir = path.join(rootDir, 'zzzbuild', 'coverage-reports');
 
 // Log paths to verify correct resolution
-console.log('Script directory:', scriptDir);
-console.log('Root directory:', rootDir);
-console.log('Todo path:', todoPath);
-console.log('Reports directory:', reportsDir);
+logger.log('Script directory:', scriptDir);
+logger.log('Root directory:', rootDir);
+logger.log('Todo path:', todoPath);
+logger.log('Reports directory:', reportsDir);
 
 // Create reports directory if it doesn't exist
 if (!fs.existsSync(reportsDir)) {
@@ -27,7 +28,7 @@ if (!fs.existsSync(reportsDir)) {
  * Run tests and generate coverage report
  */
 function runTestsWithCoverage() {
-  console.log('Running tests with coverage...');
+  logger.log('Running tests with coverage...');
 
   try {
     // Create timestamp for report
@@ -38,11 +39,11 @@ function runTestsWithCoverage() {
     try {
       const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
       if (!packageJson.scripts || !packageJson.scripts.test) {
-        console.warn('⚠️ No test script found in package.json, skipping test execution');
+        logger.warn('⚠️ No test script found in package.json, skipping test execution');
         return { success: false, error: 'No test script defined' };
       }
     } catch (e) {
-      console.warn('⚠️ Could not parse package.json, proceeding with test attempt anyway');
+      logger.warn('⚠️ Could not parse package.json, proceeding with test attempt anyway');
     }
 
     // Run tests with coverage (customize this command based on your test framework)
@@ -54,7 +55,7 @@ function runTestsWithCoverage() {
 
     // Save the output
     fs.writeFileSync(outputFile, result);
-    console.log(`✅ Tests executed successfully. Report saved to ${outputFile}`);
+    logger.log(`✅ Tests executed successfully. Report saved to ${outputFile}`);
 
     return {
       success: true,
@@ -62,7 +63,7 @@ function runTestsWithCoverage() {
       reportPath: outputFile
     };
   } catch (error) {
-    console.error(`❌ Error running tests: ${error.message}`);
+    logger.error(`❌ Error running tests: ${error.message}`);
     return {
       success: false,
       error: error.message
@@ -74,7 +75,7 @@ function runTestsWithCoverage() {
  * Analyze test cases for completeness
  */
 function analyzeTestCases() {
-  console.log('Analyzing test cases...');
+  logger.log('Analyzing test cases...');
 
   // Find all test files
   const testFiles = findTestFiles();
@@ -97,8 +98,8 @@ function analyzeTestCases() {
     coverage: Math.round((mappedFiles.length / implementationFiles.length) * 100)
   };
 
-  console.log(`Found ${implementationFiles.length} implementation files and ${testFiles.length} test files`);
-  console.log(`Test case coverage: ${report.coverage}%`);
+  logger.log(`Found ${implementationFiles.length} implementation files and ${testFiles.length} test files`);
+  logger.log(`Test case coverage: ${report.coverage}%`);
 
   return report;
 }
@@ -115,7 +116,7 @@ function findTestFiles() {
 
     return result.trim().split('\n').filter(Boolean);
   } catch (error) {
-    console.error(`Error finding test files: ${error.message}`);
+    logger.error(`Error finding test files: ${error.message}`);
     return [];
   }
 }
@@ -134,7 +135,7 @@ function findImplementationFiles() {
 
     return result.trim().split('\n').filter(Boolean);
   } catch (error) {
-    console.error(`Error finding implementation files: ${error.message}`);
+    logger.error(`Error finding implementation files: ${error.message}`);
     return [];
   }
 }
@@ -169,7 +170,7 @@ function mapImplementationToTests(implementationFiles, testFiles) {
  * Analyze code performance
  */
 function analyzeCodePerformance() {
-  console.log('Analyzing code performance...');
+  logger.log('Analyzing code performance...');
 
   try {
     // First check if ESLint config exists
@@ -182,7 +183,7 @@ function analyzeCodePerformance() {
     } else if (fs.existsSync(eslintConfigJsonPath)) {
       eslintConfig = '--config .eslintrc.json';
     } else {
-      console.log('No ESLint config found, using default configuration');
+      logger.log('No ESLint config found, using default configuration');
       eslintConfig = '';
     }
 
@@ -198,7 +199,7 @@ function analyzeCodePerformance() {
     try {
       results = JSON.parse(perfResult);
     } catch (parseError) {
-      console.error('Failed to parse ESLint output:', parseError.message);
+      logger.error('Failed to parse ESLint output:', parseError.message);
       return {
         totalFilesChecked: 0,
         filesWithComplexityIssues: 0,
@@ -220,21 +221,21 @@ function analyzeCodePerformance() {
         Math.round((1 - (complexityIssues.length / results.length)) * 100) : 100
     };
 
-    console.log(`Code performance score: ${report.complexityScore}%`);
+    logger.log(`Code performance score: ${report.complexityScore}%`);
 
     return report;
   } catch (error) {
-    console.error(`Error analyzing code performance: ${error.message}`);
+    logger.error(`Error analyzing code performance: ${error.message}`);
     // Fallback to manual file analysis if ESLint fails
     try {
-      console.log('Falling back to manual complexity analysis...');
+      logger.log('Falling back to manual complexity analysis...');
       const jsFiles = findJsAndTsFiles();
       // Estimate complexity based on file length
       const report = analyzeFileComplexity(jsFiles);
-      console.log(`Estimated code performance score: ${report.complexityScore}%`);
+      logger.log(`Estimated code performance score: ${report.complexityScore}%`);
       return report;
     } catch (fallbackError) {
-      console.error(`Fallback analysis also failed: ${fallbackError.message}`);
+      logger.error(`Fallback analysis also failed: ${fallbackError.message}`);
       return {
         totalFilesChecked: 0,
         filesWithComplexityIssues: 0,
@@ -272,7 +273,7 @@ function findJsAndTsFiles() {
 
     return walkSync(rootDir);
   } catch (error) {
-    console.error(`Error finding files: ${error.message}`);
+    logger.error(`Error finding files: ${error.message}`);
     return [];
   }
 }
@@ -311,7 +312,7 @@ function analyzeFileComplexity(files) {
  * Analyze code comprehensibility
  */
 function analyzeCodeComprehensibility() {
-  console.log('Analyzing code comprehensibility...');
+  logger.log('Analyzing code comprehensibility...');
 
   try {
     // Check for documentation comments
@@ -336,7 +337,7 @@ function analyzeCodeComprehensibility() {
     const docRatio = fileCount > 0 ? docCount / fileCount : 0;
     const comprehensibilityScore = Math.min(100, Math.round(docRatio * 50) + 50); // Base 50% + doc ratio
 
-    console.log(`Code comprehensibility score: ${comprehensibilityScore}%`);
+    logger.log(`Code comprehensibility score: ${comprehensibilityScore}%`);
 
     return {
       docCount,
@@ -345,7 +346,7 @@ function analyzeCodeComprehensibility() {
       comprehensibilityScore
     };
   } catch (error) {
-    console.error(`Error analyzing code comprehensibility: ${error.message}`);
+    logger.error(`Error analyzing code comprehensibility: ${error.message}`);
     return {
       docCount: 0,
       fileCount: 0,
@@ -360,7 +361,7 @@ function analyzeCodeComprehensibility() {
  * Analyze error rate from tests
  */
 function analyzeErrorRate() {
-  console.log('Analyzing error rate from tests...');
+  logger.log('Analyzing error rate from tests...');
 
   try {
     // Run tests and capture results (customize based on your test framework)
@@ -378,7 +379,7 @@ function analyzeErrorRate() {
     const passedTests = results.numPassedTests || 0;
     const passRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
 
-    console.log(`Test pass rate: ${passRate}%`);
+    logger.log(`Test pass rate: ${passRate}%`);
 
     return {
       totalTests,
@@ -386,7 +387,7 @@ function analyzeErrorRate() {
       passRate
     };
   } catch (error) {
-    console.error(`Error analyzing error rate: ${error.message}`);
+    logger.error(`Error analyzing error rate: ${error.message}`);
     // Try to extract the test summary even if the JSON parsing failed
     try {
       const summaryMatch = error.message.match(/(\d+) passed, (\d+) total/);
@@ -395,7 +396,7 @@ function analyzeErrorRate() {
         const totalTests = parseInt(summaryMatch[2]);
         const passRate = Math.round((passedTests / totalTests) * 100);
 
-        console.log(`Test pass rate (from error output): ${passRate}%`);
+        logger.log(`Test pass rate (from error output): ${passRate}%`);
 
         return {
           totalTests,
@@ -421,12 +422,12 @@ function analyzeErrorRate() {
  * Update the todo.md file with new completion percentages
  */
 function updateTodoFile(testCasesReport, performanceReport, comprehensibilityReport, errorRateReport) {
-  console.log('Updating todo.md file...');
+  logger.log('Updating todo.md file...');
 
   try {
     // Check if todo.md exists
     if (!fs.existsSync(todoPath)) {
-      console.error(`❌ Todo file not found at ${todoPath}`);
+      logger.error(`❌ Todo file not found at ${todoPath}`);
       return false;
     }
 
@@ -490,14 +491,14 @@ function updateTodoFile(testCasesReport, performanceReport, comprehensibilityRep
     // Write updated content back to todo.md
     if (updated) {
       fs.writeFileSync(todoPath, todoContent);
-      console.log('✅ Updated todo.md with new completion status');
+      logger.log('✅ Updated todo.md with new completion status');
     } else {
-      console.log('⚠️ No matching patterns found in todo.md to update');
+      logger.log('⚠️ No matching patterns found in todo.md to update');
     }
 
     return true;
   } catch (error) {
-    console.error(`❌ Error updating todo.md: ${error.message}`);
+    logger.error(`❌ Error updating todo.md: ${error.message}`);
     return false;
   }
 }
@@ -506,7 +507,7 @@ function updateTodoFile(testCasesReport, performanceReport, comprehensibilityRep
  * Generate comprehensive coverage report
  */
 function generateCoverageReport(testCasesReport, performanceReport, comprehensibilityReport, errorRateReport) {
-  console.log('Generating comprehensive coverage report...');
+  logger.log('Generating comprehensive coverage report...');
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const reportPath = path.join(reportsDir, `comprehensive-coverage-report-${timestamp}.md`);
@@ -561,7 +562,7 @@ For more detailed reports, check the coverage reports directory.
 `;
 
   fs.writeFileSync(reportPath, report);
-  console.log(`✅ Comprehensive report saved to ${reportPath}`);
+  logger.log(`✅ Comprehensive report saved to ${reportPath}`);
   return reportPath;
 }
 
@@ -569,7 +570,7 @@ For more detailed reports, check the coverage reports directory.
  * Main function
  */
 function main() {
-  console.log('=== Code Coverage Completion Tool ===');
+  logger.log('=== Code Coverage Completion Tool ===');
 
   // Run tests with coverage
   const testCoverageResult = runTestsWithCoverage();
@@ -591,17 +592,17 @@ function main() {
   // Update todo.md
   updateTodoFile(testCasesReport, performanceReport, comprehensibilityReport, errorRateReport);
 
-  console.log('\n=== Process Completed ===');
-  console.log(`Full report available at: ${reportPath}`);
-  console.log('Todo.md file has been updated to reflect 100% completion of code coverage tasks.');
+  logger.log('\n=== Process Completed ===');
+  logger.log(`Full report available at: ${reportPath}`);
+  logger.log('Todo.md file has been updated to reflect 100% completion of code coverage tasks.');
 
   // Print running instructions
-  console.log('\n=== Running Instructions ===');
-  console.log('To run this script correctly:');
-  console.log('1. Navigate to the project root directory:');
-  console.log(`   cd ${rootDir}`);
-  console.log('2. Run the script:');
-  console.log('   node zzzscripts\\improve-code-coverage.js');
+  logger.log('\n=== Running Instructions ===');
+  logger.log('To run this script correctly:');
+  logger.log('1. Navigate to the project root directory:');
+  logger.log(`   cd ${rootDir}`);
+  logger.log('2. Run the script:');
+  logger.log('   node zzzscripts\\improve-code-coverage.js');
 }
 
 // Run the script

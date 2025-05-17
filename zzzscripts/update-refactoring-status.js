@@ -3,6 +3,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 // Configuration
 const REFACTORING_STATUS_PATH = path.join(__dirname, '../zzzrefactoring/refactoring-status.md');
@@ -21,7 +22,7 @@ const currentDate = new Date().toLocaleDateString('en-US', {
  * @returns {Object} Statistics about the refactoring progress
  */
 function analyzeCodebase() {
-  console.log('Analyzing codebase for refactoring progress...');
+  logger.log('Analyzing codebase for refactoring progress...');
 
   // This is a placeholder for actual code analysis
   // In a real implementation, this would scan the codebase
@@ -86,9 +87,9 @@ function updateRefactoringStatus() {
 
     fs.writeFileSync(REFACTORING_STATUS_PATH, statusMarkdown);
 
-    console.log('Refactoring status updated successfully!');
+    logger.log('Refactoring status updated successfully!');
   } catch (error) {
-    console.error('Error updating refactoring status:', error);
+    logger.error('Error updating refactoring status:', error);
   }
 }
 

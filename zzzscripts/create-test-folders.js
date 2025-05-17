@@ -4,6 +4,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 // Configuration
 const config = {
@@ -96,13 +97,13 @@ function createTestFile(sourceFile, testFile) {
     if (!fs.existsSync(testDir)) {
         fs.mkdirSync(testDir, { recursive: true });
         stats.createdTestFolders++;
-        if (config.verbose) console.log(`Created test folder: ${testDir}`);
+        if (config.verbose) logger.log(`Created test folder: ${testDir}`);
     }
 
     // Create test file
     fs.writeFileSync(testFile, testFileContent);
     stats.createdTestFiles++;
-    if (config.verbose) console.log(`Created test file: ${testFile}`);
+    if (config.verbose) logger.log(`Created test file: ${testFile}`);
 }
 
 /**
@@ -135,7 +136,7 @@ function processSourceFile(sourceFile) {
     // Check if test file already exists
     if (fs.existsSync(testFile)) {
         stats.existingTestFiles++;
-        if (config.verbose) console.log(`Test file already exists: ${testFile}`);
+        if (config.verbose) logger.log(`Test file already exists: ${testFile}`);
         return;
     }
 
@@ -169,23 +170,23 @@ function scanDirectory(dir) {
  * Main function
  */
 function main() {
-    console.log('Creating missing test folders and files...');
+    logger.log('Creating missing test folders and files...');
 
     // Process each source root
     for (const sourceRoot of config.sourceRoots) {
         if (fs.existsSync(sourceRoot)) {
             scanDirectory(sourceRoot);
         } else {
-            console.warn(`Source root ${sourceRoot} does not exist.`);
+            logger.warn(`Source root ${sourceRoot} does not exist.`);
         }
     }
 
     // Print stats
-    console.log('\nTest structure creation completed!');
-    console.log(`Found ${stats.foundSourceFiles} source files`);
-    console.log(`${stats.existingTestFiles} already have test files`);
-    console.log(`Created ${stats.createdTestFolders} test folders`);
-    console.log(`Created ${stats.createdTestFiles} test files`);
+    logger.log('\nTest structure creation completed!');
+    logger.log(`Found ${stats.foundSourceFiles} source files`);
+    logger.log(`${stats.existingTestFiles} already have test files`);
+    logger.log(`Created ${stats.createdTestFolders} test folders`);
+    logger.log(`Created ${stats.createdTestFiles} test files`);
 }
 
 // Run the script

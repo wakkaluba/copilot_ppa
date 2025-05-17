@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const logger = require('./logger');
 
 // Configuration
 const rootDir = path.resolve(__dirname, '..');
@@ -47,7 +48,7 @@ function parseOrphanedReport() {
 
     return sections;
   } catch (error) {
-    console.error(`Error parsing orphaned code report: ${error.message}`);
+    logger.error(`Error parsing orphaned code report: ${error.message}`);
     return { files: [], classes: [] };
   }
 }
@@ -75,10 +76,10 @@ function backupFile(filePath) {
 
     // Copy file to backup
     fs.copyFileSync(filePath, backupPath);
-    console.log(`Created backup of ${relativePath}`);
+    logger.log(`Created backup of ${relativePath}`);
     return true;
   } catch (error) {
-    console.error(`Error creating backup for ${filePath}: ${error.message}`);
+    logger.error(`Error creating backup for ${filePath}: ${error.message}`);
     return false;
   }
 }
@@ -88,18 +89,18 @@ function backupFile(filePath) {
  */
 function processOrphanedFiles(files) {
   if (!files || !files.length) {
-    console.log('No orphaned files to process');
+    logger.log('No orphaned files to process');
     return;
   }
 
-  console.log(`Processing ${files.length} orphaned files...`);
+  logger.log(`Processing ${files.length} orphaned files...`);
 
   for (const file of files) {
     try {
       const fullPath = path.join(rootDir, file);
 
       if (!fs.existsSync(fullPath)) {
-        console.log(`File does not exist: ${file}`);
+        logger.log(`File does not exist: ${file}`);
         continue;
       }
 
@@ -113,16 +114,16 @@ function processOrphanedFiles(files) {
           });
 
           // File is tracked in git, remove it using git
-          console.log(`Removing orphaned file from git: ${file}`);
+          logger.log(`Removing orphaned file from git: ${file}`);
           execSync(`git rm "${fullPath}"`, { stdio: 'inherit' });
         } catch (gitError) {
           // File is not tracked in git, just delete it
-          console.log(`Removing orphaned file: ${file}`);
+          logger.log(`Removing orphaned file: ${file}`);
           fs.unlinkSync(fullPath);
         }
       }
     } catch (error) {
-      console.error(`Error processing file ${file}: ${error.message}`);
+      logger.error(`Error processing file ${file}: ${error.message}`);
     }
   }
 }
@@ -131,7 +132,7 @@ function processOrphanedFiles(files) {
  * Main function
  */
 function main() {
-  console.log('Starting orphaned code cleanup...');
+  logger.log('Starting orphaned code cleanup...');
 
   // Parse the report
   const orphanedSections = parseOrphanedReport();
@@ -139,9 +140,9 @@ function main() {
   // Process orphaned files
   processOrphanedFiles(orphanedSections.files);
 
-  console.log('Orphaned code cleanup completed');
-  console.log('Note: Orphaned classes and methods need manual review before removal');
-  console.log(`Classes to review: ${orphanedSections.classes.length}`);
+  logger.log('Orphaned code cleanup completed');
+  logger.log('Note: Orphaned classes and methods need manual review before removal');
+  logger.log(`Classes to review: ${orphanedSections.classes.length}`);
 }
 
 main();
