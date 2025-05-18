@@ -10,6 +10,7 @@ export interface LLMRequest {
   status: LLMRequestStatus;
   error?: LLMRequestError;
 }
+export type ILLMRequest = LLMRequest;
 
 export interface LLMRequestOptions {
   temperature?: number;
@@ -21,6 +22,7 @@ export interface LLMRequestOptions {
   timeout?: number;
   stream?: boolean;
 }
+export type ILLMRequestOptions = LLMRequestOptions;
 
 export enum LLMRequestPriority {
   Low = 'low',
@@ -41,6 +43,7 @@ export interface LLMRequestError {
   message: string;
   details?: unknown;
 }
+export type ILLMRequestError = LLMRequestError;
 
 export interface LLMResponse {
   id: string;
@@ -53,6 +56,7 @@ export interface LLMResponse {
   format?: LLMResponseFormat;
   error?: LLMResponseError;
 }
+export type ILLMResponse = LLMResponse;
 
 export type LLMResponseFormat = 'text' | 'json' | 'markdown' | 'code';
 
@@ -61,18 +65,21 @@ export interface LLMResponseOptions {
   includePrompt?: boolean;
   includeTokenUsage?: boolean;
 }
+export type ILLMResponseOptions = LLMResponseOptions;
 
 export interface LLMResponseError {
   code: string;
   message: string;
   details?: unknown;
 }
+export type ILLMResponseError = LLMResponseError;
 
 export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
 }
+export type ITokenUsage = TokenUsage;
 
 export interface LLMRequestEvent {
   type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
@@ -80,6 +87,7 @@ export interface LLMRequestEvent {
   timestamp: number;
   details?: unknown;
 }
+export type ILLMRequestEvent = LLMRequestEvent;
 
 export interface LLMStreamEvent {
   content: string;
@@ -88,12 +96,14 @@ export interface LLMStreamEvent {
   timestamp?: number;
   tokenCount?: number;
 }
+export type ILLMStreamEvent = LLMStreamEvent;
 
 // Add ILLMMessage interface to match the one in services/llm/types.ts
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
+export type ILLMMessage = LLMMessage;
 
 // Model-related types
 export enum ModelEvents {
@@ -138,6 +148,7 @@ export interface LLMSessionConfig {
   historySize: number;
   systemPrompt?: string;
 }
+export type ILLMSessionConfig = LLMSessionConfig;
 
 export interface SessionState {
   id: string;
@@ -149,6 +160,7 @@ export interface SessionState {
   model: string;
   provider: string;
 }
+export type ISessionState = SessionState;
 
 export interface SessionStats {
   totalRequests: number;
@@ -156,6 +168,7 @@ export interface SessionStats {
   averageResponseTime: number;
   errorRate: number;
 }
+export type ISessionStats = SessionStats;
 
 // Provider capability types
 export interface ProviderCapabilities {
@@ -170,6 +183,7 @@ export interface ProviderCapabilities {
   supportsPenalties: boolean;
   supportsRetries: boolean;
 }
+export type IProviderCapabilities = ProviderCapabilities;
 
 // Basic interface for LLM providers
 export interface LLMProvider {
@@ -215,6 +229,7 @@ export interface LLMProvider {
   useCachedResponse?(prompt: string): Promise<LLMResponse | null>;
   isConnected(): boolean;
 }
+export type ILLMProvider = LLMProvider;
 
 export interface LLMPromptOptions {
   temperature?: number;
@@ -227,6 +242,7 @@ export interface LLMPromptOptions {
     language?: string;
   };
 }
+export type ILLMPromptOptions = LLMPromptOptions;
 
 export interface LLMModelInfo {
   id: string;
@@ -234,7 +250,7 @@ export interface LLMModelInfo {
   provider: string;
   description?: string;
   contextSize?: number;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   tags?: string[];
   version?: string;
   capabilities?: string[];
@@ -244,6 +260,7 @@ export interface LLMModelInfo {
   recommendedMemoryGB?: number;
   cudaSupport?: boolean;
 }
+export type ILLMModelInfo = LLMModelInfo;
 
 export interface ModelRequirements {
   minRAM: number; // in MB
@@ -254,6 +271,7 @@ export interface ModelRequirements {
     minVRAM?: number;
   };
 }
+export type IModelRequirements = ModelRequirements;
 
 export interface SystemInfo {
   totalRAM: number; // in MB
@@ -267,10 +285,18 @@ export interface SystemInfo {
     vram: number; // in MB
   };
 }
+export type ISystemInfo = SystemInfo;
 
+/**
+ * Logger interface for structured logging.
+ *
+ * @remarks
+ * Avoid use of 'any' in production code. Use 'unknown' for arbitrary data.
+ */
 export interface Logger {
-  debug(message: string, ...args: any[]): void;
-  info(message: string, ...args: any[]): void;
-  warn(message: string, ...args: any[]): void;
-  error(message: string | Error, ...args: any[]): void;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string | Error, ...args: unknown[]): void;
 }
+export type ILogger = Logger;

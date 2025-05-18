@@ -40,10 +40,7 @@
     "audit": "npm audit --audit-level=high || true",
     "outdated": "npm outdated || true",
     "prepare": "husky install",
-    "build:watch": "npm run watch",
-    "dev": "npm run build:watch",
-    "clean": "rimraf out",
-    "create-test-folders": "node zzzscripts/create-test-folders.js"
+    "clean": "rimraf out"
   },
   "contributes": {
     "commands": [

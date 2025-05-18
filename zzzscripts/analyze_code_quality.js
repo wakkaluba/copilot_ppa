@@ -68,6 +68,42 @@ function getTypeScriptFiles() {
 }
 
 /**
+ * Helper: Analyze a single file's complexity and maintainability
+ */
+function analyzeFileComplexity(file, config, analysisCache) {
+    const cacheKey = `complexity-${file}-${fs.statSync(file).mtimeMs}`;
+    let report;
+    if (analysisCache.has(cacheKey)) {
+        report = analysisCache.get(cacheKey);
+    } else {
+        const output = execSync(`cr --format json ${file}`, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+        report = JSON.parse(output);
+        analysisCache.set(cacheKey, report);
+    }
+    return report;
+}
+
+/**
+ * Helper: Aggregate complexity results from a report
+ */
+function aggregateComplexityResults(report, file, config, results, totals) {
+    report.functions.forEach(func => {
+        totals.totalComplexity += func.complexity.cyclomatic;
+        totals.totalCognitiveComplexity += func.complexity.cognitive || 0;
+        if (func.complexity.cyclomatic > config.thresholds.complexity) {
+            results.complexFunctions.push({ file, function: func.name, line: func.line, complexity: func.complexity.cyclomatic });
+        }
+        if ((func.complexity.cognitive || 0) > config.thresholds.maxCognitiveComplexity) {
+            results.cognitiveComplexity.highComplexityFunctions.push({ file, function: func.name, line: func.line, cognitiveComplexity: func.complexity.cognitive });
+        }
+    });
+    totals.totalMaintainability += report.maintainability;
+    if (report.maintainability < config.thresholds.maintainability) {
+        results.poorMaintainability.push({ file, maintainability: report.maintainability });
+    }
+}
+
+/**
  * Analyzes code complexity, maintainability, and cognitive complexity for TypeScript files.
  * Uses caching for performance and processes each file individually.
  * @returns {Promise<Object>} An object containing average complexity, maintainability, and lists of complex/poor maintainability functions.
@@ -88,68 +124,22 @@ async function analyzeComplexity() {
 
     try {
         const files = getTypeScriptFiles();
-        let totalComplexity = 0;
-        let totalMaintainability = 0;
-        let totalCognitiveComplexity = 0;
-        let fileCount = 0;
+        let totals = { totalComplexity: 0, totalMaintainability: 0, totalCognitiveComplexity: 0, fileCount: 0 };
 
         for (const file of files) {
             try {
-                const cacheKey = `complexity-${file}-${fs.statSync(file).mtimeMs}`;
-                let report;
-
-                if (analysisCache.has(cacheKey)) {
-                    report = analysisCache.get(cacheKey);
-                } else {
-                    const output = execSync(`cr --format json ${file}`, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
-                    report = JSON.parse(output);
-                    analysisCache.set(cacheKey, report);
-                }
-
-                fileCount++;
-
-                // Process function complexity
-                report.functions.forEach(func => {
-                    totalComplexity += func.complexity.cyclomatic;
-                    totalCognitiveComplexity += func.complexity.cognitive || 0;
-
-                    if (func.complexity.cyclomatic > config.thresholds.complexity) {
-                        results.complexFunctions.push({
-                            file,
-                            function: func.name,
-                            line: func.line,
-                            complexity: func.complexity.cyclomatic
-                        });
-                    }
-
-                    if ((func.complexity.cognitive || 0) > config.thresholds.maxCognitiveComplexity) {
-                        results.cognitiveComplexity.highComplexityFunctions.push({
-                            file,
-                            function: func.name,
-                            line: func.line,
-                            cognitiveComplexity: func.complexity.cognitive
-                        });
-                    }
-                });
-
-                // Process maintainability
-                totalMaintainability += report.maintainability;
-
-                if (report.maintainability < config.thresholds.maintainability) {
-                    results.poorMaintainability.push({
-                        file,
-                        maintainability: report.maintainability
-                    });
-                }
+                const report = analyzeFileComplexity(file, config, analysisCache);
+                totals.fileCount++;
+                aggregateComplexityResults(report, file, config, results, totals);
             } catch (error) {
                 logger.warn(`Failed to analyze complexity for ${file}: ${error.message}`);
             }
         }
 
-        if (fileCount > 0) {
-            results.averageComplexity = totalComplexity / fileCount;
-            results.averageMaintainability = totalMaintainability / fileCount;
-            results.cognitiveComplexity.average = totalCognitiveComplexity / fileCount;
+        if (totals.fileCount > 0) {
+            results.averageComplexity = totals.totalComplexity / totals.fileCount;
+            results.averageMaintainability = totals.totalMaintainability / totals.fileCount;
+            results.cognitiveComplexity.average = totals.totalCognitiveComplexity / totals.fileCount;
         }
 
         return results;
@@ -192,25 +182,7 @@ async function detectDuplication() {
 
         if (fs.existsSync(outputFile)) {
             const report = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-            duplicationData.percentage = report.statistics.total.percentage;
-
-            // Process duplicates with additional context
-            report.duplicates.forEach(dupe => {
-                const sourceContext = extractContext(dupe.source.path, dupe.source.start, dupe.source.end);
-                const targetContext = extractContext(dupe.target.path, dupe.target.start, dupe.target.end);
-
-                duplicationData.duplicates.push({
-                    sourceFile: dupe.source.path,
-                    targetFile: dupe.target.path,
-                    lines: dupe.source.end - dupe.source.start,
-                    sourceContext,
-                    targetContext,
-                    fragment: dupe.fragment
-                });
-            });
-
-            // Identify duplication hotspots
-            identifyHotspots(duplicationData);
+            processDuplicationReport(report, duplicationData);
         }
 
         return duplicationData;
@@ -218,6 +190,26 @@ async function detectDuplication() {
         logger.error('Failed to detect code duplication:', error.message);
         return duplicationData;
     }
+}
+
+/**
+ * Helper: Process duplication report
+ */
+function processDuplicationReport(report, duplicationData) {
+    duplicationData.percentage = report.statistics.total.percentage;
+    report.duplicates.forEach(dupe => {
+        const sourceContext = extractContext(dupe.source.path, dupe.source.start, dupe.source.end);
+        const targetContext = extractContext(dupe.target.path, dupe.target.start, dupe.target.end);
+        duplicationData.duplicates.push({
+            sourceFile: dupe.source.path,
+            targetFile: dupe.target.path,
+            lines: dupe.source.end - dupe.source.start,
+            sourceContext,
+            targetContext,
+            fragment: dupe.fragment
+        });
+    });
+    identifyHotspots(duplicationData);
 }
 
 /**
