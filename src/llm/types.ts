@@ -300,3 +300,41 @@ export interface Logger {
   error(message: string | Error, ...args: unknown[]): void;
 }
 export type ILogger = Logger;
+
+/**
+ * Represents a running model instance.
+ */
+export interface ModelInstance {
+  id: string;
+  status: string;
+  allocation: ResourceAllocation;
+  startTime: number;
+  metrics: {
+    requests: number;
+    errors: number;
+    latency: number;
+  };
+}
+export type IModelInstance = ModelInstance;
+
+/**
+ * Event emitted when a model is provisioned or deprovisioned.
+ */
+export interface ProvisioningEvent {
+  modelId: string;
+  instance?: ModelInstance;
+  allocation?: ResourceAllocation;
+  timestamp: Date;
+}
+export type IProvisioningEvent = ProvisioningEvent;
+
+/**
+ * Resource allocation details for a model instance.
+ */
+export interface ResourceAllocation {
+  memory: number; // in MB
+  cpu: number; // in cores
+  gpu: number; // in count
+  network: number; // in Mbps
+}
+export type IResourceAllocation = ResourceAllocation;
