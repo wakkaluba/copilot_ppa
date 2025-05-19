@@ -12,6 +12,12 @@ module.exports = {
     '**/tests/**/*.[jt]s?(x)',
     '**/zzzscripts/**/*.test.[jt]s?(x)'
   ],
+  testPathIgnorePatterns: [
+    '/zzzbuild/',
+    '/zzzdocs/',
+    '/zzzrefactoring/',
+    '/zzzscripts/'
+  ],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1'
   }

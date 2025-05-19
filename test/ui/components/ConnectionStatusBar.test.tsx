@@ -1,13 +1,15 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-// NOTE: This is a placeholder. The actual ConnectionStatusBar is a VS Code extension UI class, not a React component.
-// For demonstration, we show how a React component test would look.
+import { ConnectionStatusBar } from '../../../src/ui/components/ConnectionStatusBar';
 
-describe('ConnectionStatusBar (React placeholder)', () => {
+describe('ConnectionStatusBar', () => {
   it('renders a status bar with Connected status', () => {
-    // Example placeholder: In a real migration, ConnectionStatusBar would be a React component
-    const StatusBar = () => <div>LLM: Connected</div>;
-    render(<StatusBar />);
+    render(<ConnectionStatusBar status="Connected" />);
     expect(screen.getByText('LLM: Connected')).toBeInTheDocument();
+  });
+
+  it('renders a status bar with Disconnected status', () => {
+    render(<ConnectionStatusBar status="Disconnected" />);
+    expect(screen.getByText('LLM: Disconnected')).toBeInTheDocument();
   });
 });
