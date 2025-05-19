@@ -338,3 +338,21 @@ export interface ResourceAllocation {
   network: number; // in Mbps
 }
 export type IResourceAllocation = ResourceAllocation;
+
+// --- ModelPerformanceMetrics canonical type ---
+/**
+ * Canonical metrics for model performance tracking.
+ *
+ * @remarks
+ * Used by ModelMetricsManager, ModelOptimizer, and related services.
+ */
+export interface ModelPerformanceMetrics {
+  modelId: string;
+  averageResponseTime: number;
+  tokenThroughput: number;
+  errorRate: number;
+  totalRequests: number;
+  totalTokens: number;
+  timestamp: number;
+}
+export type IModelPerformanceMetrics = ModelPerformanceMetrics;

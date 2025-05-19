@@ -1,1 +1,0 @@
-# New feature ideas for future versions
