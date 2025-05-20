@@ -55,7 +55,14 @@ function main() {
   orphaned.forEach(f => console.log(f));
   // Optionally, backup and delete (disabled by default)
   // orphaned.forEach(f => fs.unlinkSync(f));
+  return orphaned;
 }
+
+module.exports = {
+  findAllFiles,
+  isFileReferenced,
+  main
+};
 
 if (require.main === module) {
   main();
