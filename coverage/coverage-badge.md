@@ -1,14 +1,12 @@
-# Code Coverage Badge
+# Code Coverage
 
-![Coverage](https://img.shields.io/badge/Coverage-0.16%25-red)
+![Coverage Badge](https://img.shields.io/badge/coverage-0%25-red.svg)
 
-## Coverage Summary
+| Metric      | % Covered | Covered / Total |
+|-------------|-----------|-----------------|
+| Lines       | 0.16% | 5 / 3031 |
+| Statements  | 0.15% | 5 / 3126 |
+| Functions   | 0.13% | 1 / 759 |
+| Branches    | 0.2% | 2 / 975 |
 
-| Metric      | Covered | Total | Percentage |
-|------------|---------|-------|------------|
-| Lines      | 5       | 3031  | 0.16%      |
-| Statements | 5       | 3126  | 0.15%      |
-| Functions  | 1       | 759   | 0.13%      |
-| Branches   | 2       | 975   | 0.20%      |
-
-> Generated from Jest/Istanbul coverage-summary.json
+_Last updated: 2025-05-20T05:00:11.807Z_

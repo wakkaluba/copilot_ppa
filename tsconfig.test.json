@@ -6,6 +6,7 @@
     "noImplicitAny": true,
     "rootDir": ".",
     "baseUrl": ".",
+    "jsx": "react-jsx",
     "paths": {
       "@test/*": ["tests/*"],
       "@src/*": ["src/*"]
