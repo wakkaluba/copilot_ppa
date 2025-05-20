@@ -1,0 +1,29 @@
+# See https://docs.codeclimate.com/docs/configuring-your-code-climate-yml for full options
+version: '2'
+plugins:
+  eslint:
+    enabled: true
+  duplication:
+    enabled: true
+  fixme:
+    enabled: true
+  coverage:
+    enabled: true
+    config:
+      report_paths:
+        - coverage/lcov.info
+  complexity:
+    enabled: true
+    config:
+      languages:
+        - javascript
+        - typescript
+      threshold: 15
+exclude_patterns:
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/zzzbuild/**"
+  - "**/zzzdocs/**"
+  - "**/zzzrefactoring/**"
+  - "**/zzzscripts/**"
+  - "**/coverage/**"

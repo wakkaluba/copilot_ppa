@@ -41,7 +41,8 @@
     "outdated": "npm outdated || true",
     "prepare": "husky install",
     "clean": "rimraf out",
-    "create-test-folders": "node zzzscripts/create-test-folders.js"
+    "create-test-folders": "node zzzscripts/create-test-folders.js",
+    "run:maintenance": "npm run analyze:quality && npm run cleanup:orphaned && npm run identify:unused && npm run improve:coverage && npm run refactor:unused && npm run remove:duplicate-casing && npm run remove:unused && npm run run:orphaned-analysis && npm run update:refactoring-status"
   },
   "contributes": {
     "commands": [

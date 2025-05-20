@@ -51,6 +51,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - Build scripts and automation
 - Build artifacts like compiled code, Docker images, and distribution packages, vsix files, etc.
 - "meta" files: important for building the project or environemnt but not necessarily direct part of the build environment.
+- todo.md and other progress lists needed for coding and building the project.
 
 ### zzzdocs/
  - Project documentation and related files
@@ -128,6 +129,8 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - Squash multiple commits that address the same issue
 
 ## Language-Specific Guidelines
+### Common Rules
+- don't pre-pend letters in front of methods and interfaces e.g.not `export interface IMessage` but `export interface Message`
 
 ### JavaScript/TypeScript
 - Prefer `const` over `let`, avoid `var`

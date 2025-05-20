@@ -1,0 +1,9 @@
+# Ignore nothing by default
+
+# Only ignore build, test, and zzz* folders
+coverage/
+dist/
+node_modules/
+zzz*/
+test/
+tests/

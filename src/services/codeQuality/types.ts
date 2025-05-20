@@ -57,3 +57,25 @@ export interface AnalysisHistory {
   metrics: AnalysisMetrics[];
   maxEntries: number;
 }
+
+export interface CodeAnalysis {
+  filePath: string;
+  issues: QualityIssue[];
+  metrics: CodeMetrics;
+}
+
+export interface OptimizationResult {
+  filePath: string;
+  optimized: boolean;
+  freedMemory?: number;
+  details?: string;
+  issues?: QualityIssue[];
+}
+
+export interface Suggestion {
+  file: string;
+  line: number;
+  suggestion: string;
+  reason?: string;
+  type?: string;
+}

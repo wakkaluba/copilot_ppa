@@ -1,6 +1,7 @@
 # Copilot PPA - Productivity and Performance Analyzer
 
 ![Coverage](https://img.shields.io/badge/Coverage-0.16%25-red)
+[![CodeClimate](https://img.shields.io/badge/CodeClimate-pending-lightgrey?logo=code-climate)](https://codeclimate.com/)
 
 > **Coverage Summary**
 >

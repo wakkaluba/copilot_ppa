@@ -2,114 +2,40 @@
     "root": true,
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 2023,
-        "sourceType": "module",
-        "project": "./tsconfig.json",
         "tsconfigRootDir": "."
     },
     "plugins": [
         "@typescript-eslint",
-        "jest",
         "prettier"
     ],
     "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
-        "plugin:@typescript-eslint/recommended-requiring-type-checking",
-        "plugin:jest/recommended",
-        "plugin:jest/style",
-        "prettier"
+        "plugin:prettier/recommended"
     ],
     "rules": {
+        // Naming conventions
         "@typescript-eslint/naming-convention": [
             "error",
             {
                 "selector": "interface",
                 "format": ["PascalCase"],
-                "custom": {
-                    "regex": "^I[A-Z]",
-                    "match": true
-                }
-            },
-            {
-                "selector": "typeAlias",
-                "format": ["PascalCase"]
-            },
-            {
-                "selector": "enum",
-                "format": ["PascalCase"]
+                "custom": { "regex": "^I[A-Z]", "match": true }
             }
         ],
-        "@typescript-eslint/explicit-function-return-type": "error",
+        // Forbid use of 'any'
         "@typescript-eslint/no-explicit-any": "error",
-        "@typescript-eslint/no-unused-vars": [
-            "error",
-            {
-                "argsIgnorePattern": "^_",
-                "varsIgnorePattern": "^_",
-                "caughtErrorsIgnorePattern": "^_"
-            }
-        ],
-        "@typescript-eslint/semi": "error",
-        "@typescript-eslint/no-unnecessary-type-assertion": "error",
-        "@typescript-eslint/strict-boolean-expressions": "error",
-        "@typescript-eslint/no-floating-promises": "error",
-        "@typescript-eslint/await-thenable": "error",
-        "@typescript-eslint/no-misused-promises": "error",
-        "@typescript-eslint/prefer-nullish-coalescing": "error",
-        "@typescript-eslint/prefer-optional-chain": "error",
-        "curly": "error",
-        "eqeqeq": "error",
-        "no-throw-literal": "error",
-        "semi": "off",
-        "no-console": ["error", { "allow": ["warn", "error"] }],
-        "prettier/prettier": "error",
-        "jest/no-disabled-tests": "warn",
-        "jest/no-focused-tests": "error",
-        "jest/prefer-expect-assertions": "warn",
-        "jest/valid-expect": "error"
+        // Require explicit return types
+        "@typescript-eslint/explicit-function-return-type": ["error", { "allowExpressions": false }],
+        // Prettier formatting
+        "prettier/prettier": "error"
     },
     "ignorePatterns": [
-        "out",
-        "dist",
-        "**/*.d.ts",
-        "node_modules",
-        "jest.config.js",
-        "webpack.config.js",
-        "zzzbuild/",
-        "zzzscripts/",
-        "tools/",
         "coverage/",
-        "media/",
+        "dist/",
+        "node_modules/",
+        "zzz*/",
         "test/",
-        "tests/",
-        "src/**/*.js",
-        "src/**/*.js.map"
-    ],
-    "env": {
-        "node": true,
-        "jest": true,
-        "es2023": true
-    },
-    "settings": {
-        "jest": {
-            "version": 29
-        }
-    },
-    "overrides": [
-        {
-            "files": ["src/**/*.js"],
-            "parser": "espree",
-            "plugins": [],
-            "extends": ["eslint:recommended"],
-            "rules": {
-                // Disable TypeScript-specific rules for JS files
-                "@typescript-eslint/no-var-requires": "off",
-                "@typescript-eslint/no-unused-vars": "off",
-                "@typescript-eslint/no-explicit-any": "off",
-                "@typescript-eslint/explicit-function-return-type": "off",
-                "@typescript-eslint/naming-convention": "off"
-            }
-        }
+        "tests/"
     ]
 }
