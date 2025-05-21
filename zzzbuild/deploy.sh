@@ -57,17 +57,25 @@ vsce package -o "$ARTIFACTS_DIR/copilot-ppa-$NEW_VERSION.vsix"
 if [ "$ENVIRONMENT" == "production" ]; then
     echo "Publishing to VS Code Marketplace..."
     vsce publish
-    
+
     # Create git tag for the release
     echo "Creating git tag for version $NEW_VERSION..."
     git tag -a "v$NEW_VERSION" -m "Release version $NEW_VERSION"
     git push origin "v$NEW_VERSION"
-    
+
     echo "Creating GitHub release..."
     # This would use the GitHub CLI or API to create a release
     # gh release create "v$NEW_VERSION" "$ARTIFACTS_DIR/copilot-ppa-$NEW_VERSION.vsix" --title "Release $NEW_VERSION" --notes "Release notes for version $NEW_VERSION"
 else
     echo "Skipping marketplace publishing (development environment)."
+fi
+
+# Deploy documentation to GitHub Pages
+if [ -f "./zzzscripts/deploy-docs.sh" ]; then
+  echo "Deploying documentation to GitHub Pages..."
+  bash ./zzzscripts/deploy-docs.sh
+else
+  echo "Documentation deploy script not found. Skipping docs deployment."
 fi
 
 # Update changelog

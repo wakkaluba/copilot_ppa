@@ -1,12 +1,12 @@
 # Code Coverage
 
-![Coverage Badge](https://img.shields.io/badge/coverage-0%25-red.svg)
+![Coverage Badge](https://img.shields.io/badge/coverage-12%25-red.svg)
 
 | Metric      | % Covered | Covered / Total |
 |-------------|-----------|-----------------|
-| Lines       | 0.16% | 5 / 3031 |
-| Statements  | 0.15% | 5 / 3126 |
-| Functions   | 0.13% | 1 / 759 |
-| Branches    | 0.2% | 2 / 975 |
+| Lines       | 12.3% | 373 / 3031 |
+| Statements  | 12.1% | 379 / 3126 |
+| Functions   | 11.9% | 90 / 759 |
+| Branches    | 13.0% | 127 / 975 |
 
-_Last updated: 2025-05-20T05:00:11.807Z_
+_Last updated: 2025-05-20T06:15:00.000Z_

@@ -33,14 +33,34 @@ jobs:
       - run: npm run improve:coverage || true
       - run: npm run audit || true
       - run: npm run outdated || true
-      - name: Upload coverage report
+      - name: Generate Coverage Report
+        run: npm run test:coverage
+      - name: Generate Coverage Badge
+        run: node zzzscripts/generate-coverage-badge.js
+      - name: Upload Coverage Badge
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage/
+          name: coverage-badge
+          path: coverage/coverage-badge.md
+      - name: Generate Security Audit Report
+        run: node zzzscripts/check-security-vulnerabilities.js
+      - name: Upload Security Audit Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: zzzrefactoring/security-audit-report.json
+      - name: Generate Test Report Summary
+        run: node zzzscripts/generate-test-report-summary.js
+      - name: Upload Test Report Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-summary
+          path: zzzbuild/test-report-summary.md
       - name: Block on test/lint failure
         if: failure()
         run: exit 1
+      - name: Run coverage and security audit
+        run: bash ./zzzscripts/ci-coverage-audit.sh
 
   package:
     needs: build-test-lint

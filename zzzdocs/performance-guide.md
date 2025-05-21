@@ -31,7 +31,7 @@ class ConnectionMetricsTracker {
     recordRequest(latency: number): void {
         this.metrics.requestCount++;
         this.metrics.totalLatency += latency;
-        this.metrics.averageLatency = 
+        this.metrics.averageLatency =
             this.metrics.totalLatency / this.metrics.requestCount;
         this.metrics.lastRequestTime = new Date();
     }
@@ -47,7 +47,7 @@ class ConnectionMetricsTracker {
     }
 
     private updateErrorRate(): void {
-        this.metrics.errorRate = 
+        this.metrics.errorRate =
             this.metrics.failureCount / this.metrics.requestCount;
     }
 }
@@ -118,16 +118,16 @@ interface SystemHealth {
 class HealthChecker {
     async checkHealth(): Promise<SystemHealth> {
         const components = new Map<string, ComponentHealth>();
-        
+
         // Check provider health
         components.set('provider', await this.checkProviderHealth());
-        
+
         // Check connection health
         components.set('connection', await this.checkConnectionHealth());
-        
+
         // Check resource health
         components.set('resources', await this.checkResourceHealth());
-        
+
         return {
             status: this.determineOverallStatus(components),
             components,
@@ -152,7 +152,7 @@ class ProviderHealthMonitor {
         const status = await this.provider.getStatus();
         const responseTime = await this.measureResponseTime();
         const modelStatus = await this.checkModelStatus();
-        
+
         return {
             isAvailable: status.isAvailable,
             isConnected: status.isConnected,
@@ -178,11 +178,11 @@ class RequestQueue {
         priority = 0
     ): Promise<T> {
         const request = { operation, priority };
-        
+
         if (this.canProcess()) {
             return this.process(request);
         }
-        
+
         return new Promise((resolve, reject) => {
             this.queue.push({
                 ...request,
@@ -206,7 +206,7 @@ class ResourceManager {
         if (this.shouldUnloadModels()) {
             await this.unloadLeastUsedModel();
         }
-        
+
         await this.provider.loadModel(modelId);
         this.loadedModels.set(modelId, {
             loadTime: Date.now(),
@@ -271,6 +271,27 @@ class MetricsDashboard {
     }
 }
 ```
+
+### 3. Lazy Loading Images
+
+To improve performance, enable lazy loading for images and other non-critical resources.
+Use the provided utility in `src/webview/lazyLoadImages.ts`:
+
+```typescript
+import { enableLazyLoadingForImages } from '@src/webview/lazyLoadImages';
+
+document.addEventListener('DOMContentLoaded', () => {
+  enableLazyLoadingForImages();
+});
+```
+
+In your HTML, use:
+
+```html
+<img data-src="image.png" alt="..." />
+```
+
+The utility will automatically load images as they enter the viewport.
 
 ## Best Practices
 

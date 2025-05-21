@@ -1,0 +1,150 @@
+src/extension.ts(13,27): error TS2339: Property 'initialize' does not exist on type 'typeof UserConfirmationService'.
+src/extension.ts(16,28): error TS2554: Expected 0 arguments, but got 1.
+src/extension.ts(17,36): error TS2339: Property 'getInstance' does not exist on type 'typeof ServiceRegistry'.
+src/extension.ts(20,20): error TS2554: Expected 0 arguments, but got 2.
+src/extension.ts(25,51): error TS2339: Property 'LLMConnectionManager' does not exist on type 'typeof Services'.
+src/extension.ts(26,45): error TS2339: Property 'LLMHostManager' does not exist on type 'typeof Services'.
+src/extension.ts(27,48): error TS2339: Property 'LLMSessionManager' does not exist on type 'typeof Services'.
+src/extension.ts(32,45): error TS7006: Parameter 'error' implicitly has an 'any' type.
+src/extension.ts(37,55): error TS2554: Expected 0 arguments, but got 1.
+src/extension.ts(38,54): error TS2554: Expected 0 arguments, but got 1.
+src/extension.ts(39,30): error TS2345: Argument of type 'AgentResponseEnhancer' is not assignable to parameter of type '{ dispose(): any; }'.
+  Property 'dispose' is missing in type 'AgentResponseEnhancer' but required in type '{ dispose(): any; }'.
+src/extension.ts(41,27): error TS2554: Expected 0 arguments, but got 2.
+src/extension.ts(54,36): error TS2339: Property 'getInstance' does not exist on type 'typeof ServiceRegistry'.
+src/i18n/index.ts(2,31): error TS2440: Import declaration conflicts with local declaration of 'SupportedLanguage'.
+src/i18n/index.ts(17,51): error TS2554: Expected 0 arguments, but got 1.
+src/i18n/index.ts(37,30): error TS2339: Property 'getString' does not exist on type 'LocalizationService'.
+src/i18n/index.ts(87,30): error TS2339: Property 'detectLanguage' does not exist on type 'LocalizationService'.
+src/llm/llmProvider.ts(1,10): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/llm/lmstudio-provider.ts(1,42): error TS2304: Cannot find name 'LLMProvider'.
+src/llm/ollama-provider.ts(1,37): error TS2304: Cannot find name 'BaseLLMProvider'.
+src/refactoring/index.ts(9,53): error TS2554: Expected 0 arguments, but got 1.
+src/refactoring/index.ts(17,56): error TS2339: Property 'detectUnusedCode' does not exist on type 'UnusedCodeDetector'.
+src/refactoring/index.ts(41,36): error TS2339: Property 'removeUnusedCode' does not exist on type 'UnusedCodeDetector'.
+src/services/codeQuality/bestPracticesChecker.ts(3,10): error TS2724: '"../../utils/logger"' has no exported member named 'Logger'. Did you mean 'ILogger'?
+src/services/codeQuality/codeOptimizer.ts(3,31): error TS2307: Cannot find module '../LoggerService' or its corresponding type declarations.
+src/services/codeQuality/codeOptimizer.ts(21,56): error TS2554: Expected 0 arguments, but got 1.
+src/services/codeQuality/codeOptimizer.ts(22,52): error TS2554: Expected 0 arguments, but got 1.
+src/services/codeQuality/codeOptimizer.ts(48,43): error TS2551: Property 'generateSuggestions' does not exist on type 'SuggestionService'. Did you mean 'getSuggestions'?
+src/services/codeQuality/codeOptimizer.ts(58,45): error TS2339: Property 'applyOptimizations' does not exist on type 'OptimizationService'.
+src/services/codeQuality/codeOptimizer.ts(67,50): error TS2339: Property 'createDecorations' does not exist on type 'SuggestionService'.
+src/services/codeQuality/codeOptimizer.ts(68,52): error TS2339: Property 'getDecorationType' does not exist on type 'SuggestionService'.
+src/services/codeQuality/codeOptimizer.ts(69,91): error TS2339: Property 'getDecorationType' does not exist on type 'SuggestionService'.
+src/services/codeQuality/codeOptimizer.ts(79,30): error TS2339: Property 'dispose' does not exist on type 'OptimizationService'.
+src/services/codeQuality/codeOptimizer.ts(80,28): error TS2339: Property 'dispose' does not exist on type 'SuggestionService'.
+src/services/codeQuality/codeOptimizer.ts(92,24): error TS2353: Object literal may only specify known properties, and 'optimizations' does not exist in type 'OptimizationResult'.
+src/services/codeQuality/codeOptimizer.ts(96,5): error TS2741: Property 'metrics' is missing in type '{ filePath: string; issues: never[]; }' but required in type 'CodeAnalysis'.
+src/services/codeQuality/designImprovementSuggester.ts(25,58): error TS2554: Expected 0 arguments, but got 1.
+src/services/codeQuality/designImprovementSuggester.ts(29,56): error TS2554: Expected 0 arguments, but got 1.
+src/services/codeQuality/designImprovementSuggester.ts(30,28): error TS2339: Property 'report' does not exist on type 'DesignDiagnosticService'.
+src/services/codeQuality/designImprovementSuggester.ts(31,5): error TS2322: Type 'void' is not assignable to type 'DesignIssue[]'.
+src/services/codeQuality/designImprovementSuggester.ts(35,51): error TS2339: Property 'analyzeWorkspace' does not exist on type 'ArchitectureAnalysisService'.
+src/services/codeQuality/designImprovementSuggester.ts(40,37): error TS2339: Property 'suggestPatterns' does not exist on type 'ArchitectureAnalysisService'.
+src/services/codeQuality/index.ts(3,30): error TS2307: Cannot find module './codeReviewer' or its corresponding type declarations.
+src/services/codeQuality/index.ts(24,29): error TS2304: Cannot find name 'Logger'.
+src/services/codeQuality/index.ts(27,24): error TS2304: Cannot find name 'Logger'.
+src/services/codeQuality/index.ts(34,5): error TS2739: Type '{ severityLevels: { security: "error"; style: "warning"; performance: "info"; }; ignorePatterns: never[]; excludeTypes: never[]; }' is missing the following properties from type 'CodeQualityConfig': enableSecurity, enablePerformance, enableMaintainability, maxHistoryEntries, severityThresholds
+src/services/codeQuality/index.ts(74,31): error TS2339: Property 'analyzeDocument' does not exist on type 'SecurityScanner'.
+src/services/codeQuality/index.ts(75,29): error TS2339: Property 'analyzeDocument' does not exist on type 'CodeOptimizer'.
+src/services/codeQuality/index.ts(76,36): error TS2339: Property 'analyzeDocument' does not exist on type 'BestPracticesChecker'.
+src/services/codeQuality/index.ts(216,46): error TS2339: Property 'analyzeDocument' does not exist on type 'CodeOptimizer'.
+src/services/codeQuality/index.ts(217,46): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/services/llm/index.ts(6,15): error TS2307: Cannot find module '../../types/llm' or its corresponding type declarations.
+src/services/llm/index.ts(9,15): error TS2307: Cannot find module './connectionUtils' or its corresponding type declarations.
+src/services/llm/index.ts(12,32): error TS2307: Cannot find module './LLMHostManager' or its corresponding type declarations.
+src/services/llm/index.ts(13,38): error TS2307: Cannot find module './LLMConnectionManager' or its corresponding type declarations.
+src/services/llm/index.ts(19,8): error TS2307: Cannot find module './LLMSessionManager' or its corresponding type declarations.
+src/services/llm/index.ts(20,29): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/services/llm/providers/OllamaProvider.ts(2,10): error TS2724: '"../../../utils/logger"' has no exported member named 'Logger'. Did you mean 'ILogger'?
+src/services/llm/providers/OllamaProvider.ts(3,22): error TS2724: '"../types"' has no exported member named 'LLMModelInfo'. Did you mean 'ILLMModelInfo'?
+src/services/llm/providers/OllamaProvider.ts(10,8): error TS2307: Cannot find module './BaseLLMProvider' or its corresponding type declarations.
+src/services/llm/providers/OllamaProvider.ts(97,23): error TS2551: Property 'apiEndpoint' does not exist on type 'ProviderConfig'. Did you mean 'endpoint'?
+src/services/llm/providers/OllamaProvider.ts(98,23): error TS2339: Property 'requestTimeout' does not exist on type 'ProviderConfig'.
+src/services/llm/providers/OllamaProvider.ts(134,10): error TS2339: Property 'validateConfig' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(135,10): error TS2339: Property 'setState' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(140,79): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(146,12): error TS2339: Property 'setState' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(149,12): error TS2339: Property 'setError' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(156,10): error TS2339: Property 'setState' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(158,10): error TS2339: Property 'setState' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(173,68): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(189,58): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(238,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'LLMResponse'.
+src/services/llm/providers/OllamaProvider.ts(256,14): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(320,14): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/providers/OllamaProvider.ts(342,22): error TS2339: Property 'id' does not exist on type 'OllamaProvider'.
+src/services/llm/services/ConnectionPoolManager.ts(2,10): error TS2724: '"../../../types"' has no exported member named 'ILogger'. Did you mean 'Logger'?
+src/services/llm/services/LLMConnectionHandlerService.ts(2,10): error TS2724: '"../../../utils/logger"' has no exported member named 'Logger'. Did you mean 'ILogger'?
+src/services/llm/services/LLMConnectionHandlerService.ts(3,29): error TS2307: Cannot find module '../../llm/llm-provider' or its corresponding type declarations.
+src/services/llm/services/LLMConnectionHandlerService.ts(6,3): error TS2305: Module '"../types"' has no exported member 'ConnectionState'.
+src/services/llm/services/LLMConnectionHandlerService.ts(7,3): error TS2305: Module '"../types"' has no exported member 'ConnectionStatus'.
+src/services/llm/services/LLMConnectionHandlerService.ts(8,3): error TS2305: Module '"../types"' has no exported member 'ILLMConnectionProvider'.
+src/services/llm/services/LLMConnectionHandlerService.ts(9,3): error TS2305: Module '"../types"' has no exported member 'LLMConnectionOptions'.
+src/services/llm/services/LLMModelValidator.ts(1,10): error TS2305: Module '"../errors"' has no exported member 'ModelValidationError'.
+src/services/llm/services/LLMModelValidator.ts(184,46): error TS1016: A required parameter cannot follow an optional parameter.
+src/services/llm/services/ModelOptimizationService.ts(5,10): error TS2305: Module '"../types"' has no exported member 'ModelEvents'.
+src/services/llm/services/ModelOptimizationService.ts(5,23): error TS2305: Module '"../types"' has no exported member 'OptimizationRequest'.
+src/services/llm/services/ModelOptimizationService.ts(5,44): error TS2305: Module '"../types"' has no exported member 'OptimizationResult'.
+src/services/llm/services/ModelOptimizationService.ts(14,13): error TS2693: 'ILogger' only refers to a type, but is being used as a value here.
+src/statusBar/index.ts(3,37): error TS2307: Cannot find module './connectionStatus' or its corresponding type declarations.
+src/statusBar/index.ts(4,35): error TS2307: Cannot find module './providerStatus' or its corresponding type declarations.
+src/statusBar/index.ts(8,37): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/statusBar/index.ts(8,50): error TS2339: Property 'ConnectionStatus' does not exist on type 'typeof Services'.
+src/statusBar/index.ts(9,36): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/statusBar/index.ts(9,49): error TS2339: Property 'LLMProviderManager' does not exist on type 'typeof Services'.
+src/statusBar/index.ts(10,33): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/statusBar/index.ts(10,46): error TS2339: Property 'ThemeManager' does not exist on type 'typeof Services'.
+src/statusBar/index.ts(11,36): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/statusBar/index.ts(11,49): error TS2339: Property 'DisplaySettings' does not exist on type 'typeof Services'.
+src/terminal/index.ts(3,33): error TS2307: Cannot find module './terminalManager' or its corresponding type declarations.
+src/terminal/index.ts(4,34): error TS2307: Cannot find module './interactiveShell' or its corresponding type declarations.
+src/terminal/index.ts(5,34): error TS2307: Cannot find module './aiTerminalHelper' or its corresponding type declarations.
+src/terminal/index.ts(6,42): error TS2307: Cannot find module './commandGenerationWebview' or its corresponding type declarations.
+src/terminal/index.ts(7,25): error TS2307: Cannot find module '../logging/ILogger' or its corresponding type declarations.
+src/terminal/index.ts(8,46): error TS2307: Cannot find module './services/TerminalConfigurationService' or its corresponding type declarations.
+src/terminal/index.ts(9,42): error TS2307: Cannot find module './commands/TerminalCommandRegistrar' or its corresponding type declarations.
+src/terminal/index.ts(12,15): error TS2307: Cannot find module './terminalManager' or its corresponding type declarations.
+src/terminal/index.ts(13,15): error TS2307: Cannot find module './interactiveShell' or its corresponding type declarations.
+src/terminal/index.ts(14,15): error TS2307: Cannot find module './aiTerminalHelper' or its corresponding type declarations.
+src/terminal/index.ts(22,6): error TS2304: Cannot find name 'inject'.
+src/terminal/index.ts(80,7): error TS2571: Object is of type 'unknown'.
+src/test/suite/index.ts(6,21): error TS2351: This expression is not constructable.
+  Type 'typeof Mocha' has no construct signatures.
+src/test/suite/index.ts(14,5): error TS2349: This expression is not callable.
+  Type 'typeof import("D:/___coding/tools/copilot_ppa/node_modules/glob/dist/commonjs/index")' has no call signatures.
+src/test/suite/index.ts(14,48): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/test/suite/index.ts(14,53): error TS7006: Parameter 'files' implicitly has an 'any' type.
+src/test/suite/index.ts(20,22): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/test/suite/index.ts(24,20): error TS7006: Parameter 'failures' implicitly has an 'any' type.
+src/test/unit/index.ts(16,57): error TS2694: Namespace '"D:/___coding/tools/copilot_ppa/node_modules/glob/dist/commonjs/index"' has no exported member 'IOptions'.
+src/test/unit/index.ts(18,14): error TS2339: Property 'default' does not exist on type 'typeof import("D:/___coding/tools/copilot_ppa/node_modules/glob/dist/commonjs/index")'.
+src/test/unit/index.ts(18,41): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/test/unit/index.ts(18,46): error TS7006: Parameter 'matches' implicitly has an 'any' type.
+src/testRunner/index.test.ts(3,30): error TS2307: Cannot find module './testReporting' or its corresponding type declarations.
+src/testRunner/index.ts(2,30): error TS2307: Cannot find module './testReporting' or its corresponding type declarations.
+src/testRunner/index.ts(3,28): error TS2307: Cannot find module './testTypes' or its corresponding type declarations.
+src/testRunner/index.ts(5,15): error TS2307: Cannot find module './testTypes' or its corresponding type declarations.
+src/testRunner/index.ts(6,15): error TS2307: Cannot find module './testReporting' or its corresponding type declarations.
+src/testRunner/testReporting.test.ts(3,30): error TS2307: Cannot find module './testReporting' or its corresponding type declarations.
+src/testRunner/testReporting.test.ts(4,28): error TS2307: Cannot find module './testTypes' or its corresponding type declarations.
+src/ui/CodeExampleViewProvider.ts(2,37): error TS2307: Cannot find module '../services/codeExamples/CodeAnalysisService' or its corresponding type declarations.
+src/ui/CodeExampleViewProvider.ts(3,36): error TS2307: Cannot find module '../services/codeExamples/codeExampleService' or its corresponding type declarations.
+src/ui/CodeExampleViewProvider.ts(4,43): error TS2307: Cannot find module '../services/codeExamples/CodeExampleWebviewService' or its corresponding type declarations.
+src/ui/CodeExampleViewProvider.ts(5,36): error TS2307: Cannot find module '../services/webview/WebviewHtmlService' or its corresponding type declarations.
+src/ui/CodeExampleViewProvider.ts(55,47): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/ui/vectorDatabasePanel.ts(2,38): error TS2307: Cannot find module '../services/vectordb/codeSearch' or its corresponding type declarations.
+src/ui/vectorDatabasePanel.ts(3,10): error TS2724: '"../services/vectordb/manager"' has no exported member named 'getVectorDatabaseManager'. Did you mean 'VectorDatabaseManager'?
+src/ui/vectorDatabasePanel.ts(20,7): error TS2345: Argument of type 'true | ViewColumn.One' is not assignable to parameter of type 'ViewColumn | { readonly viewColumn: ViewColumn; readonly preserveFocus?: boolean | undefined; }'.
+  Type 'true' is not assignable to type 'ViewColumn | { readonly viewColumn: ViewColumn; readonly preserveFocus?: boolean | undefined; }'.
+src/ui/vectorDatabasePanel.ts(61,54): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/webview/index.ts(2,34): error TS2307: Cannot find module './chatView' or its corresponding type declarations.
+src/webview/index.ts(7,39): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/webview/index.ts(7,52): error TS2339: Property 'LLMProviderManager' does not exist on type 'typeof Services'.
+src/webview/index.ts(8,35): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/webview/index.ts(8,48): error TS2339: Property 'LLMSessionManager' does not exist on type 'typeof Services'.
+src/webview/index.ts(9,35): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/webview/index.ts(9,48): error TS2339: Property 'ContextManager' does not exist on type 'typeof Services'.
+src/webview/index.ts(10,37): error TS2339: Property 'get' does not exist on type 'ServiceRegistry'.
+src/webview/index.ts(10,50): error TS2339: Property 'ConnectionStatus' does not exist on type 'typeof Services'.

@@ -46,6 +46,12 @@ This document outlines coding standards, domain knowledge, and preferences that 
 - 🧹 Maintenance
 - 🧪 Testing
 
+## Credentials and Secrets
+- GitHub
+  - url: https://github.com/wakkaluba
+  - username: wakkaluba
+  - password: Bl4ckB3rr!!
+
 ## special folders
 ### zzzbuild/
 - Build scripts and automation
