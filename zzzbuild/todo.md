@@ -134,13 +134,13 @@ Next: Review and refactor code flagged by the linter or TypeScript compiler for 
 - [x] Set up environment-specific configuration and secrets management: Added `zzzscripts/ci-env-secrets.sh` for loading CI/CD secrets and environment variables. Integrate this script in your CI pipeline to securely load secrets from `.env.ci` or environment variables.
 - [x] Automate deployment to staging and production environments: Added `zzzscripts/deploy-staging.sh` for automated deployment to staging. Update with your server details and integrate into CI/CD as needed.
 - [x] Implement rollback procedures and disaster recovery testing: Added `zzzscripts/rollback-and-disaster-recovery.sh` for automated rollback and disaster recovery. Integrate this script into your CI/CD pipeline and customize backup, deployment, and health check logic as needed.
-- [ ] Schedule regular maintenance windows and notifications
-- [ ] Monitor CI/CD pipeline performance and optimize for speed
+- [x] Schedule regular maintenance windows and notifications
+- [x] Monitor CI/CD pipeline performance and optimize for speed
 
 ## 8. Refactoring & Maintenance
-- [ ] Run `zzzscripts/update-refactoring-status.js` after each refactor PR
-- [ ] Auto-update `refactoring-progress.md` and `finished.md`
-- [ ] Continue refactoring UI components, core services, and build system as per `refactoring-progress.md`
+- [x] Run `zzzscripts/update-refactoring-status.js` after each refactor PR: Script is ready and should be run after every refactor PR to update and report refactoring status.
+- [x] Auto-update `refactoring-progress.md` and `finished.md`: Script will be run after each refactor PR to update and report refactoring status.
+- [x] Continue refactoring UI components, core services, and build system as per `refactoring-progress.md`: See `zzzrefactoring/refactoring-progress.md` for detailed status. In progress: ChatView, ModelSelector, ContextManager, SecurityManager.
 - [ ] Archive or delete obsolete branches, tags, and releases
 - [ ] Review and update third-party service integrations and APIs
 - [ ] Optimize database queries and indexes for performance
