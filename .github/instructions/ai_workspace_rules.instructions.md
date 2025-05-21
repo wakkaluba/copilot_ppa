@@ -136,7 +136,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 
 ## Language-Specific Guidelines
 ### Common Rules
-- don't pre-pend letters in front of methods and interfaces e.g.not `export interface IMessage` but `export interface Message`
+- use PascalCase naming
 
 ### JavaScript/TypeScript
 - Prefer `const` over `let`, avoid `var`

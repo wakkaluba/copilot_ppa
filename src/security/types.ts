@@ -8,7 +8,7 @@ export enum SecuritySeverity {
   Info = 'info',
 }
 
-export interface ISecurityIssue {
+export interface SecurityIssue {
   id: string;
   name: string;
   description: string;
@@ -21,7 +21,7 @@ export interface ISecurityIssue {
   category: SecurityCategory;
   cwe?: string;
 }
-export type SecurityIssue = ISecurityIssue;
+export type SecurityIssue = SecurityIssue;
 
 export enum SecurityCategory {
   Injection = 'injection',
@@ -35,7 +35,7 @@ export enum SecurityCategory {
   Other = 'other',
 }
 
-export interface ISecurityAnalysisResult {
+export interface SecurityAnalysisResult {
   issues: SecurityIssue[];
   timestamp: Date;
   summary: {
@@ -48,34 +48,34 @@ export interface ISecurityAnalysisResult {
   };
   fixableCount: number;
 }
-export type SecurityAnalysisResult = ISecurityAnalysisResult;
+export type SecurityAnalysisResult = SecurityAnalysisResult;
 
-export interface ISecurityScanOptions {
+export interface SecurityScanOptions {
   includeDependencies?: boolean;
   includeNodeModules?: boolean;
   severity?: SecuritySeverity;
   fastScan?: boolean;
   categories?: SecurityCategory[];
 }
-export type SecurityScanOptions = ISecurityScanOptions;
+export type SecurityScanOptions = SecurityScanOptions;
 
-export interface ISecurityReportOptions {
+export interface SecurityReportOptions {
   includeRecommendations?: boolean;
   includeFix?: boolean;
   format?: 'json' | 'html' | 'markdown';
   outputPath?: string;
 }
-export type SecurityReportOptions = ISecurityReportOptions;
+export type SecurityReportOptions = SecurityReportOptions;
 
-export interface ISecurityViewOptions {
+export interface SecurityViewOptions {
   showInEditor?: boolean;
   groupBySeverity?: boolean;
   groupByCategory?: boolean;
   sortByLocation?: boolean;
 }
-export type SecurityViewOptions = ISecurityViewOptions;
+export type SecurityViewOptions = SecurityViewOptions;
 
-export interface ISecurityProvider {
+export interface SecurityProvider {
   id: string;
   name: string;
   description: string;
@@ -83,37 +83,37 @@ export interface ISecurityProvider {
   generateReport(result: SecurityAnalysisResult, options: SecurityReportOptions): Promise<string>;
   applyFix?(issue: SecurityIssue): Promise<boolean>;
 }
-export type SecurityProvider = ISecurityProvider;
+export type SecurityProvider = SecurityProvider;
 
-export interface ISecurityCodeActionProvider {
+export interface SecurityCodeActionProvider {
   provideFixes(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[];
   registerCodeActionProvider(): vscode.Disposable;
 }
-export type SecurityCodeActionProvider = ISecurityCodeActionProvider;
+export type SecurityCodeActionProvider = SecurityCodeActionProvider;
 
-export interface ISecurityDiagnosticProvider {
+export interface SecurityDiagnosticProvider {
   provideDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[];
   registerDiagnosticCollection(): vscode.DiagnosticCollection;
 }
-export type SecurityDiagnosticProvider = ISecurityDiagnosticProvider;
+export type SecurityDiagnosticProvider = SecurityDiagnosticProvider;
 
-export interface ISecurityHoverProvider {
+export interface SecurityHoverProvider {
   provideHover(document: vscode.TextDocument, position: vscode.Position): vscode.Hover | undefined;
   registerHoverProvider(): vscode.Disposable;
 }
-export type SecurityHoverProvider = ISecurityHoverProvider;
+export type SecurityHoverProvider = SecurityHoverProvider;
 
-export interface ISecurityPattern {
+export interface SecurityPattern {
   id: string;
   regex: RegExp;
   severity: 'critical' | 'high' | 'medium' | 'low';
   description: string;
   recommendation: string;
 }
-export type SecurityPattern = ISecurityPattern;
+export type SecurityPattern = SecurityPattern;
 
-export interface ICodeScanResult {
+export interface CodeScanResult {
   issues: SecurityIssue[];
   scannedFiles: number;
 }
-export type CodeScanResult = ICodeScanResult;
+export type CodeScanResult = CodeScanResult;
