@@ -16,6 +16,8 @@ module.exports = {
   testPathIgnorePatterns: ['/zzzbuild/', '/zzzdocs/', '/zzzrefactoring/', '/zzzscripts/'],
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
+    '^vscode$': '<rootDir>/test/__mocks__/vscode.js',
   },
+  transformIgnorePatterns: ['/node_modules/(?!(sinon|chai)/)'],
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.js'],
 };
