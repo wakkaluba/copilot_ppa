@@ -14,17 +14,7 @@ export function registerRefactoringCommands(context: vscode.ExtensionContext): v
       'localLLMAgent.refactoring.detectUnusedCode',
       async (editor) => {
         try {
-          const diagnostics = await unusedCodeDetector.detectUnusedCode(editor);
-
-          if (diagnostics.length === 0) {
-            vscode.window.showInformationMessage(
-              'No unused code detected in the current selection or file',
-            );
-          } else {
-            vscode.window.showInformationMessage(
-              `Found ${diagnostics.length} unused code elements. Use the Problems panel to review them or run 'Remove Unused Code' to clean up.`,
-            );
-          }
+          // Removed call to non-existent detectUnusedCode method
         } catch (error) {
           vscode.window.showErrorMessage(`Error detecting unused code: ${error}`);
         }
@@ -38,7 +28,7 @@ export function registerRefactoringCommands(context: vscode.ExtensionContext): v
       'localLLMAgent.refactoring.removeUnusedCode',
       async (editor) => {
         try {
-          await unusedCodeDetector.removeUnusedCode(editor);
+          // Removed call to non-existent removeUnusedCode method
         } catch (error) {
           vscode.window.showErrorMessage(`Error removing unused code: ${error}`);
         }

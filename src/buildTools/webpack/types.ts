@@ -9,7 +9,7 @@ export interface IWebpackOutput {
   publicPath?: string | undefined;
 }
 
-export interface IWebpackLoader {
+export interface IIWebpackLoader {
   name: string;
   test: string;
   options: Record<string, unknown>;
@@ -20,17 +20,17 @@ export interface IWebpackPlugin {
   description: string;
 }
 
-export interface IWebpackOptimization {
+export interface IIWebpackOptimization {
   title: string;
   description: string;
   code: string;
 }
 
-export interface IWebpackConfigAnalysis {
+export interface IIWebpackConfigAnalysis {
   entryPoints: IWebpackEntry[];
   output: IWebpackOutput;
-  loaders: IWebpackLoader[];
+  loaders: IIWebpackLoader[];
   plugins: IWebpackPlugin[];
   content: string;
-  optimizationSuggestions: IWebpackOptimization[];
+  optimizationSuggestions: IIWebpackOptimization[];
 }

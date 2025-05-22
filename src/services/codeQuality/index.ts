@@ -1,16 +1,24 @@
-import { BestPracticesChecker } from './bestPracticesChecker';
-import { CodeOptimizer } from './codeOptimizer';
-import { CodeReviewer } from './codeReviewer';
-import { DesignImprovementSuggester } from './designImprovementSuggester';
-import { SecurityScanner } from './securityScanner';
-import { CodeMetrics, CodeQualityConfig, QualityIssue, QualitySnapshot } from './types';
+import { IBestPracticeIssue, IBestPracticesChecker } from './bestPracticesChecker';
+import { ICodeReviewComment, ICodeReviewer, ICodeReviewReport } from './codeReviewer';
+import { IDesignImprovementSuggester, IDesignIssue } from './designImprovementSuggester';
+import { ISecurityIssue, ISecurityScanner } from './securityScanner';
+import { ICodeMetrics, ICodeQualityConfig, IQualityIssue, IQualitySnapshot } from './types';
 
-export { BestPracticesChecker, CodeOptimizer, DesignImprovementSuggester, SecurityScanner };
+export {
+    IBestPracticeIssue as BestPracticeIssue, IBestPracticesChecker as BestPracticesChecker, ICodeOptimizer as CodeOptimizer, ICodeReviewComment as CodeReviewComment, ICodeReviewer as CodeReviewer, ICodeReviewReport as CodeReviewReport,
+    IDesignImprovementSuggester as DesignImprovementSuggester,
+    IDesignIssue as DesignIssue, IOptimizationIssue as OptimizationIssue, ISecurityIssue as SecurityIssue, ISecurityScanner as SecurityScanner
+};
 
-export type { CodeMetrics, CodeQualityConfig, QualityIssue, QualitySnapshot };
+    export type {
+        ICodeMetrics as CodeMetrics,
+        ICodeQualityConfig as CodeQualityConfig,
+        IQualityIssue as QualityIssue,
+        IQualitySnapshot as QualitySnapshot
+    };
 
 export interface ICodeAnalyzer {
-  analyzeDocument(document: import('vscode').TextDocument): Promise<QualityIssue[]>;
+  analyzeDocument(document: import('vscode').TextDocument): Promise<IQualityIssue[]>;
 }
 
 export class CodeQualityService {
@@ -66,8 +74,8 @@ export class CodeQualityService {
     this._config = { ...this._config, ...config };
   }
 
-  public async analyzeCode(document: import('vscode').TextDocument): Promise<QualityIssue[]> {
-    const allIssues: QualityIssue[] = [];
+  public async analyzeCode(document: import('vscode').TextDocument): Promise<IQualityIssue[]> {
+    const allIssues: IQualityIssue[] = [];
 
     try {
       const [securityIssues, optimizationIssues, practiceIssues] = await Promise.all([
@@ -112,14 +120,14 @@ export class CodeQualityService {
     return this._qualityHistory.get(uri.toString()) || [];
   }
 
-  private applySeverityLevels(issues: QualityIssue[]): QualityIssue[] {
+  private applySeverityLevels(issues: IQualityIssue[]): IQualityIssue[] {
     return issues.map((issue) => ({
       ...issue,
       severity: this._config.severityLevels[issue.type] || issue.severity,
     }));
   }
 
-  private filterIssues(issues: QualityIssue[]): QualityIssue[] {
+  private filterIssues(issues: IQualityIssue[]): IQualityIssue[] {
     return issues.filter(
       (issue) =>
         !this._config.excludeTypes.includes(issue.type) &&
@@ -129,7 +137,7 @@ export class CodeQualityService {
     );
   }
 
-  private calculateQualityScore(issues: QualityIssue[], metrics: CodeMetrics): number {
+  private calculateQualityScore(issues: IQualityIssue[], metrics: ICodeMetrics): number {
     // Weight different factors to calculate a score from 0-100
     const issueScore = Math.max(0, 100 - issues.length * 5);
     const complexityScore = Math.max(0, 100 - metrics.complexity * 10);
@@ -138,7 +146,7 @@ export class CodeQualityService {
     return Math.round((issueScore + complexityScore + maintainabilityScore) / 3);
   }
 
-  public async calculateMetrics(document: import('vscode').TextDocument): Promise<CodeMetrics> {
+  public async calculateMetrics(document: import('vscode').TextDocument): Promise<ICodeMetrics> {
     const text = document.getText();
 
     // Calculate cyclomatic complexity

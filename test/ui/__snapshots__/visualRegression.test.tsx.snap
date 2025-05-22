@@ -1,0 +1,201 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Visual Regression: ExampleComponent matches the previous snapshot 1`] = `
+<div>
+  <div
+    style="width: 200px; height: 100px; background: lightblue; color: black;"
+  >
+    Visual Regression Test Example
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: StatusIndicator matches the Error status snapshot 1`] = `
+<div>
+  <div
+    data-testid="status-indicator"
+  >
+    <span
+      style="color: red;"
+    >
+      ✖ Error
+    </span>
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: StatusIndicator matches the Loading status snapshot 1`] = `
+<div>
+  <div
+    data-testid="status-indicator"
+  >
+    <span
+      style="color: orange;"
+    >
+      … Loading
+    </span>
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: StatusIndicator matches the OK status snapshot 1`] = `
+<div>
+  <div
+    data-testid="status-indicator"
+  >
+    <span
+      style="color: green;"
+    >
+      ✔ OK
+    </span>
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: ThemePreview matches the dark theme snapshot 1`] = `
+<div>
+  <div
+    style="width: 200px; height: 100px; background: rgb(34, 34, 34); color: rgb(255, 255, 255);"
+  >
+    Theme: 
+    dark
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: ThemePreview matches the light theme snapshot 1`] = `
+<div>
+  <div
+    style="width: 200px; height: 100px; background: rgb(238, 238, 238); color: rgb(17, 17, 17);"
+  >
+    Theme: 
+    light
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: UISettingsPanel renders general and advanced settings tabs 1`] = `
+<div>
+  <div
+    class="setting-group"
+  >
+    <h2>
+      General Settings
+    </h2>
+    <div
+      class="setting-item"
+    >
+      <label
+        for="theme"
+      >
+        Theme
+      </label>
+      <select
+        id="theme"
+      >
+        <option
+          value="system"
+        >
+          System Default
+        </option>
+        <option
+          value="light"
+        >
+          Light
+        </option>
+        <option
+          value="dark"
+        >
+          Dark
+        </option>
+      </select>
+    </div>
+    <div
+      class="setting-item"
+    >
+      <label
+        for="language"
+      >
+        Language
+      </label>
+      <select
+        id="language"
+      >
+        <option
+          value="en"
+        >
+          English
+        </option>
+        <option
+          value="es"
+        >
+          Español
+        </option>
+        <option
+          value="fr"
+        >
+          Français
+        </option>
+      </select>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Visual Regression: UISettingsPanel renders general and advanced settings tabs 2`] = `
+<div>
+  <div
+    class="setting-group"
+  >
+    <h2>
+      Advanced Settings
+    </h2>
+    <div
+      class="setting-item"
+    >
+      <label
+        for="caching"
+      >
+        Enable Caching
+      </label>
+      <input
+        id="caching"
+        type="checkbox"
+      />
+    </div>
+    <div
+      class="setting-item"
+    >
+      <label
+        for="logging"
+      >
+        Logging Level
+      </label>
+      <select
+        id="logging"
+      >
+        <option
+          value="error"
+        >
+          Error
+        </option>
+        <option
+          value="warn"
+        >
+          Warning
+        </option>
+        <option
+          value="info"
+        >
+          Info
+        </option>
+        <option
+          value="debug"
+        >
+          Debug
+        </option>
+      </select>
+    </div>
+  </div>
+</div>
+`;

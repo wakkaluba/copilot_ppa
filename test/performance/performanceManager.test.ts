@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { PerformanceAnalyzerError } from '../../src/performance/errors';
 import { PerformanceManager } from '../../src/performance/performanceManager';
 
 describe('PerformanceManager', () => {
@@ -106,8 +107,8 @@ describe('PerformanceManager', () => {
     });
 
     it('should handle errors in initializeServices gracefully', async () => {
-        manager['configService'].initialize = jest.fn().mockRejectedValue(new Error('fail'));
-        await expect(manager['initializeServices']()).rejects.toThrow('fail');
+        manager['configService'].initialize = jest.fn().mockRejectedValue(new PerformanceAnalyzerError('fail'));
+        await expect(manager['initializeServices']()).rejects.toThrow(PerformanceAnalyzerError);
     });
 
     it('should throw if getInstance is called without context', () => {

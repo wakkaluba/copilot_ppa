@@ -3,10 +3,11 @@ import { exec } from 'child_process';
 import * as path from 'path';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
+import { SecurityScannerError } from './SecurityScannerError';
 
 const execAsync = promisify(exec);
 
-export interface SecurityIssue {
+export interface ISecurityIssue {
   file: string;
   line: number;
   column: number;
@@ -25,19 +26,26 @@ export class SecurityScanner {
     context.subscriptions.push(this._diagnosticCollection);
   }
 
-  public async scanDependencies(): Promise<SecurityIssue[]> {
-    const issues: SecurityIssue[] = [];
+  public async scanDependencies(): Promise<ISecurityIssue[]> {
+    const issues: ISecurityIssue[] = [];
     const workspaceFolders = vscode.workspace.workspaceFolders;
+
     if (!workspaceFolders) {
       return issues;
     }
+
     for (const folder of workspaceFolders) {
       const packageJsonPath = path.join(folder.uri.fsPath, 'package.json');
       try {
-        const { stdout } = await execAsync('npm audit --json', { cwd: folder.uri.fsPath });
+        // Use npm audit to check for vulnerabilities
+        const { stdout } = await execAsync('npm audit --json', {
+          cwd: folder.uri.fsPath,
+        });
         const auditResult = JSON.parse(stdout);
         if (auditResult.vulnerabilities) {
-          for (const [pkgName, vuln] of Object.entries<any>(auditResult.vulnerabilities)) {
+          for (const [pkgName, vuln] of Object.entries<Record<string, Vulnerability>>(
+            auditResult.vulnerabilities,
+          )) {
             for (const info of vuln.via || []) {
               if (typeof info === 'object') {
                 issues.push({
@@ -46,21 +54,23 @@ export class SecurityScanner {
                   column: 1,
                   severity: this.mapSeverity(info.severity || 'low'),
                   description: `Vulnerability in dependency ${pkgName}: ${info.title || info.name}`,
-                  recommendation: `Update to version ${vuln.fixAvailable?.version || 'latest'} or newer`
+                  recommendation: `Update to version ${vuln.fixAvailable?.version || 'latest'} or newer`,
                 });
               }
             }
           }
         }
       } catch (error) {
-        console.error('Failed to run npm audit:', error);
+        throw new SecurityScannerError(
+          `Failed to scan dependencies in ${packageJsonPath}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
     return issues;
   }
 
-  public async scanFileForIssues(document: vscode.TextDocument): Promise<SecurityIssue[]> {
-    const issues: SecurityIssue[] = [];
+  public async scanFileForIssues(document: vscode.TextDocument): Promise<ISecurityIssue[]> {
+    const issues: ISecurityIssue[] = [];
     const text = document.getText();
     const filePath = document.uri.fsPath;
     const fileExtension = path.extname(filePath).toLowerCase();
@@ -80,16 +90,18 @@ export class SecurityScanner {
     return [];
   }
 
-  private updateDiagnostics(document: vscode.TextDocument, issues: SecurityIssue[]): void {
-    const diagnostics = issues.map(issue => {
+  private updateDiagnostics(document: vscode.TextDocument, issues: ISecurityIssue[]): void {
+    const diagnostics = issues.map((issue) => {
       const range = new vscode.Range(
-        issue.line - 1, issue.column - 1,
-        issue.line - 1, issue.column + 20
+        issue.line - 1,
+        issue.column - 1,
+        issue.line - 1,
+        issue.column + 20,
       );
       const diagnostic = new vscode.Diagnostic(
         range,
         `${issue.description}\n${issue.recommendation}`,
-        this.mapSeverityToDiagnosticSeverity(issue.severity)
+        this.mapSeverityToDiagnosticSeverity(issue.severity),
       );
       diagnostic.source = 'Security';
       return diagnostic;
@@ -97,7 +109,7 @@ export class SecurityScanner {
     this._diagnosticCollection.set(document.uri, diagnostics);
   }
 
-  private mapSeverity(severity: string): SecurityIssue['severity'] {
+  private mapSeverity(severity: string): ISecurityIssue['severity'] {
     switch (severity) {
       case 'critical':
         return 'critical';
@@ -122,15 +134,27 @@ export class SecurityScanner {
     }
   }
 
-  private checkJavaScriptSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+  private checkJavaScriptSecurity(
+    text: string,
+    document: vscode.TextDocument,
+    issues: ISecurityIssue[],
+  ): void {
     // TODO: Implement JavaScript/TypeScript security checks
   }
 
-  private checkPythonSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+  private checkPythonSecurity(
+    text: string,
+    document: vscode.TextDocument,
+    issues: ISecurityIssue[],
+  ): void {
     // TODO: Implement Python security checks
   }
 
-  private checkJavaSecurity(text: string, document: vscode.TextDocument, issues: SecurityIssue[]): void {
+  private checkJavaSecurity(
+    text: string,
+    document: vscode.TextDocument,
+    issues: ISecurityIssue[],
+  ): void {
     // TODO: Implement Java security checks
   }
 

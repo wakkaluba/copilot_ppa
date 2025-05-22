@@ -1,6 +1,6 @@
 // Migrated from orphaned-code
 import * as vscode from 'vscode';
-import { Logger } from '../../utils/logger';
+import { ILogger } from '../../utils/logger';
 import { BestPracticeIssue, BestPracticesService } from './BestPracticesService';
 
 /**
@@ -9,9 +9,9 @@ import { BestPracticeIssue, BestPracticesService } from './BestPracticesService'
 export class BestPracticesChecker implements vscode.Disposable {
   private readonly _service: BestPracticesService;
   private readonly _diagnosticCollection: vscode.DiagnosticCollection;
-  private readonly _logger: Logger;
+  private readonly _logger: ILogger;
 
-  constructor(context: vscode.ExtensionContext, logger: Logger) {
+  constructor(context: vscode.ExtensionContext, logger: ILogger) {
     this._logger = logger;
     this._diagnosticCollection = vscode.languages.createDiagnosticCollection('best-practices');
     this._service = new BestPracticesService(context);
@@ -29,7 +29,9 @@ export class BestPracticesChecker implements vscode.Disposable {
     }
   }
 
-  public async suggestDesignImprovements(document: vscode.TextDocument): Promise<BestPracticeIssue[]> {
+  public async suggestDesignImprovements(
+    document: vscode.TextDocument,
+  ): Promise<BestPracticeIssue[]> {
     try {
       const issues = await this._service.suggestDesignImprovements(document);
       this.updateDiagnostics(document, issues);
@@ -56,7 +58,7 @@ export class BestPracticesChecker implements vscode.Disposable {
       const [antiPatterns, designImprovements, consistencyIssues] = await Promise.all([
         this.detectAntiPatterns(document),
         this.suggestDesignImprovements(document),
-        this.checkCodeConsistency(document)
+        this.checkCodeConsistency(document),
       ]);
       const allIssues = [...antiPatterns, ...designImprovements, ...consistencyIssues];
       this.updateDiagnostics(document, allIssues);
@@ -68,15 +70,17 @@ export class BestPracticesChecker implements vscode.Disposable {
   }
 
   private updateDiagnostics(document: vscode.TextDocument, issues: BestPracticeIssue[]): void {
-    const diagnostics = issues.map(issue => {
+    const diagnostics = issues.map((issue) => {
       const range = new vscode.Range(
-        issue.line - 1, issue.column - 1,
-        issue.line - 1, issue.column + 20
+        issue.line - 1,
+        issue.column - 1,
+        issue.line - 1,
+        issue.column + 20,
       );
       const diagnostic = new vscode.Diagnostic(
         range,
         `${issue.description}\n${issue.recommendation}`,
-        this.mapSeverityToDiagnosticSeverity(issue.severity)
+        this.mapSeverityToDiagnosticSeverity(issue.severity),
       );
       diagnostic.source = 'Best Practices';
       return diagnostic;
