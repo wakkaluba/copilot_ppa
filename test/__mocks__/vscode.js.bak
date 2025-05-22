@@ -1,4 +1,4 @@
-// Unified VS Code mock for Jest (auto-generated)
+// Minimal VS Code mock for Jest
 const EventEmitter = function() {
   this._listeners = [];
   this.event = (listener) => {
