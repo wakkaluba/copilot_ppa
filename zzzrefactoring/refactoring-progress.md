@@ -113,3 +113,11 @@ Next steps:
 8. Add comprehensive reporting system
 9. Add real-time monitoring capabilities
 10. Implement proper cleanup and resource management
+- [ ] Error handling refactored in all core modules
+- [ ] Error scenarios covered by tests
+
+## Error Handling
+
+- Improved error handling in LLMProvider and HostManager
+- Added error logging and custom error types
+- Ongoing: propagate error context and codes throughout the codebase

@@ -1,38 +1,66 @@
-import { LLMStreamProvider } from './LLMStreamProvider';
-// ...existing code...
+import { ConfigurationError, LLMProviderError } from './errors';
 
 /**
  * Factory for accessing LLM services
  */
 export class LLMFactory {
-  private static instance: LLMFactory;
-  // ...existing code...
-  public static getInstance(options: Partial<any> = {}): LLMFactory {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Gets the singleton instance of LLMFactory.
+   * @throws {ConfigurationError} If the factory is not implemented.
+   */
+  public static getInstance(/* options: Partial<LLMFactoryOptions> = {} */): LLMFactory {
+    throw new ConfigurationError(
+      'LLMFactory.getInstance not implemented',
+      'LLMFactory',
+      'getInstance',
+    );
   }
-  public getConnectionManager(): any {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Gets the connection manager.
+   * @throws {LLMProviderError} If not implemented.
+   */
+  public getConnectionManager(): never {
+    throw new LLMProviderError(
+      'NOT_IMPLEMENTED',
+      'LLMFactory.getConnectionManager not implemented',
+    );
   }
-  public getHostManager(): any {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Gets the host manager.
+   * @throws {LLMProviderError} If not implemented.
+   */
+  public getHostManager(): never {
+    throw new LLMProviderError('NOT_IMPLEMENTED', 'LLMFactory.getHostManager not implemented');
   }
-  public getSessionManager(): any {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Gets the session manager.
+   * @throws {LLMProviderError} If not implemented.
+   */
+  public getSessionManager(): never {
+    throw new LLMProviderError('NOT_IMPLEMENTED', 'LLMFactory.getSessionManager not implemented');
   }
-  public createStreamProvider(endpoint?: string): LLMStreamProvider {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Creates a stream provider.
+   * @throws {LLMProviderError} If not implemented.
+   */
+  public createStreamProvider(/* endpoint?: string */): never {
+    throw new LLMProviderError(
+      'NOT_IMPLEMENTED',
+      'LLMFactory.createStreamProvider not implemented',
+    );
   }
+  /**
+   * Initializes the factory.
+   * @throws {LLMProviderError} If not implemented.
+   */
   public async initialize(): Promise<void> {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+    throw new LLMProviderError('NOT_IMPLEMENTED', 'LLMFactory.initialize not implemented');
   }
-  public dispose(): void {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  /**
+   * Disposes the factory.
+   * @throws {LLMProviderError} If not implemented.
+   */
+  public dispose(): never {
+    throw new LLMProviderError('NOT_IMPLEMENTED', 'LLMFactory.dispose not implemented');
   }
 }

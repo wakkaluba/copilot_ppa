@@ -48,17 +48,22 @@ function main() {
     console.error('src/ directory not found.');
     process.exit(1);
   }
-  const files = collectSourceFiles(SRC_DIR);
-  const unused = findUnusedFiles(files);
-  const report = { unusedFiles: unused, analyzedAt: new Date().toISOString() };
-  fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
-  fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
-  console.log(`Unused code analysis complete. Report written to ${REPORT_PATH}`);
-  if (unused.length) {
-    console.log('Unused files:');
-    unused.forEach(f => console.log('  -', f));
-  } else {
-    console.log('No unused files found.');
+  try {
+    const files = collectSourceFiles(SRC_DIR);
+    const unused = findUnusedFiles(files);
+    const report = { unusedFiles: unused, analyzedAt: new Date().toISOString() };
+    fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
+    fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
+    console.log(`Unused code analysis complete. Report written to ${REPORT_PATH}`);
+    if (unused.length) {
+      console.log('Unused files:');
+      unused.forEach(f => console.log('  -', f));
+    } else {
+      console.log('No unused files found.');
+    }
+  } catch (err) {
+    console.error('Failed to analyze unused code:', err.message);
+    process.exit(1);
   }
 }
 

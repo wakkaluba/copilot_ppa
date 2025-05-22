@@ -137,6 +137,7 @@ This document outlines coding standards, domain knowledge, and preferences that 
 ## Language-Specific Guidelines
 ### Common Rules
 - use PascalCase naming
+- use scripts and batch processing, where possible, when multiple files have to be amended
 
 ### JavaScript/TypeScript
 - Prefer `const` over `let`, avoid `var`

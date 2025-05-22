@@ -22,6 +22,12 @@ This document tracks the status of the comprehensive refactoring effort for the 
 6. Update documentation
 7. Remove deprecated code and consolidate duplicated functionality
 
+## Error Handling
+
+- Refactor all modules to use custom error types and codes
+- Ensure all errors are logged and surfaced appropriately
+- Add error handling tests for all critical paths
+
 ## File Categories
 
 ### High Priority (Large and Critical Files)
@@ -50,7 +56,7 @@ These files are the backbone of the extension and need immediate attention:
 Services that handle core functionality:
 
 - [ ] `src/services/conversation/*.ts` - Conversation management
-- [x] `src/services/llm/*.ts` - LLM integration 
+- [x] `src/services/llm/*.ts` - LLM integration
 - [ ] `src/services/cache/*.ts` - Caching system
 - [ ] `src/services/ui/*.ts` - UI management
 - [ ] `src/services/testRunner/*.ts` - Test execution

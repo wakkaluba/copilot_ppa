@@ -1,11 +1,12 @@
-export interface LLMProviderOptions {
+export interface ILLMProviderOptions {
   model?: string;
   maxTokens?: number;
   temperature?: number;
-  [key: string]: any;
+  // Use unknown for extensibility, avoid any
+  [key: string]: unknown;
 }
 
-export interface LLMProvider {
+export interface ILLMProvider {
   id: string;
   name: string;
   isConnected(): boolean;
@@ -17,7 +18,7 @@ export interface LLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMProviderOptions,
+    options?: unknown,
   ): Promise<{
     content: string;
     model: string;
@@ -27,10 +28,10 @@ export interface LLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMProviderOptions,
+    options?: unknown,
     callback?: (event: { content: string; done: boolean }) => void,
   ): Promise<void>;
-  getModelInfo?(modelId: string): Promise<{
+  getModelInfo(modelId: string): Promise<{
     id: string;
     name: string;
     provider: string;

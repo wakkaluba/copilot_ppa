@@ -69,9 +69,7 @@ describe('cleanup-orphaned-code.js', () => {
         });
 
         it('should handle missing file gracefully', () => {
-            fs.existsSync.returns(false);
-
-            const result = parseOrphanedReport('report.md');
+            const result = require('../zzzscripts/cleanup-orphaned-code').parseOrphanedReport('missing.json');
             expect(result).to.deep.equal({
                 files: [],
                 classes: [],

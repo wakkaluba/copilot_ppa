@@ -44,11 +44,15 @@ function getEventLoopLag(cb) {
 
 function logMetrics(metrics) {
   const line = `${new Date().toISOString()} | RSS_MB=${metrics.memoryRssMB} | CPU=${metrics.cpuPercent.toFixed(1)}% | Lag=${metrics.eventLoopLagMs.toFixed(1)}ms${metrics.alert ? ' | ALERT: ' + metrics.alert : ''}`;
-  fs.appendFileSync(LOG_FILE, line + os.EOL);
-  if (metrics.alert) {
-    // Print alert to console for CI pickup
-    // eslint-disable-next-line no-console
-    console.error('[PERF ALERT]', metrics.alert, line);
+  try {
+    fs.appendFileSync(LOG_FILE, line + os.EOL);
+    if (metrics.alert) {
+      // Print alert to console for CI pickup
+      // eslint-disable-next-line no-console
+      console.error('[PERF ALERT]', metrics.alert, line);
+    }
+  } catch (err) {
+    console.error('Failed to log metrics:', err.message);
   }
 }
 

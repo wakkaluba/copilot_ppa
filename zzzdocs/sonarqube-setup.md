@@ -39,6 +39,9 @@ This document describes how to integrate SonarQube analysis into the CI pipeline
 - Ensure the token has correct permissions.
 - Check that coverage and source paths match your project structure.
 - Review SonarQube logs in CI for errors.
+- If you see errors such as 'Failed to parse coverage', check the coverage file format and path.
+- For authentication errors, verify your token and permissions.
+- For other errors, consult the SonarQube documentation and logs for troubleshooting steps.
 
 ---
 _Last updated: 2025-05-20_

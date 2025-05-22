@@ -3,8 +3,6 @@
  * Source: src\services\llm\errors.ts
  */
 import * as assert from 'assert';
-import * as path from 'path';
-import * as vscode from 'vscode';
 // TODO: Import the module to test
 // import { } from '../../src/services/llm/errors.ts';
 
@@ -20,5 +18,15 @@ describe('errors', () => {
     it('should be properly tested', () => {
         // TODO: Implement tests
         assert.strictEqual(true, true);
+    });
+
+    it('should throw and catch a custom error', () => {
+        class CustomError extends Error {}
+        try {
+            throw new CustomError('Custom error occurred');
+        } catch (err) {
+            assert.ok(err instanceof CustomError);
+            assert.strictEqual(err.message, 'Custom error occurred');
+        }
     });
 });

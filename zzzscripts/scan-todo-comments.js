@@ -75,10 +75,14 @@ function generateReport(matches) {
 }
 
 function main() {
-  const matches = walk(ROOT_DIR);
-  const report = generateReport(matches);
-  fs.writeFileSync(OUTPUT_FILE, report, 'utf8');
-  console.log(`Scan complete. Report written to ${OUTPUT_FILE}`);
+  try {
+    const matches = walk(ROOT_DIR);
+    const report = generateReport(matches);
+    fs.writeFileSync(OUTPUT_FILE, report, 'utf8');
+    console.log(`Scan complete. Report written to ${OUTPUT_FILE}`);
+  } catch (err) {
+    console.error('Error during scanning or report generation:', err.message);
+  }
 }
 
 if (require.main === module) {

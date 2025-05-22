@@ -1,5 +1,11 @@
 # LLM System Error Handling Guide
 
+## Error Handling
+
+This document describes error handling strategies, patterns, and best practices for the project. See code and service documentation for implementation details.
+
+---
+
 ## Overview
 
 The LLM system implements a comprehensive error handling strategy across all layers. This guide explains the error handling patterns and best practices.
@@ -9,67 +15,45 @@ The LLM system implements a comprehensive error handling strategy across all lay
 ### 1. Provider Errors
 ```typescript
 export class LLMProviderError extends Error {
-    constructor(
-        public readonly code: string,
-        message: string,
-        public readonly cause?: unknown
-    ) {
-        super(message);
-        this.name = 'LLMProviderError';
-    }
+  constructor(message: string, public code?: string) {
+    super(message);
+    this.name = 'LLMProviderError';
+  }
 }
 ```
 
-Common provider error codes:
-- `CONNECTION_FAILED` - Failed to connect to provider
-- `GENERATE_FAILED` - Text generation failed
-- `CHAT_FAILED` - Chat completion failed
-- `FETCH_MODELS_FAILED` - Failed to fetch model list
-- `FETCH_MODEL_INFO_FAILED` - Failed to get model info
-- `MODEL_NOT_FOUND` - Requested model not found
-- `INVALID_REQUEST` - Invalid request parameters
-
-### 2. Connection Errors
+### 2. Service Errors
 ```typescript
-export class LLMConnectionError extends Error {
-    constructor(
-        public readonly code: ConnectionErrorCode,
-        message: string,
-        public readonly details?: Record<string, unknown>
-    ) {
-        super(message);
-        this.name = 'LLMConnectionError';
-    }
+export class ServiceError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+    this.name = 'ServiceError';
+  }
 }
 ```
 
-Connection error codes:
-- `CONNECTION_TIMEOUT` - Connection attempt timed out
-- `CONNECTION_REFUSED` - Connection refused by host
-- `HOST_UNREACHABLE` - Host not reachable
-- `AUTHENTICATION_FAILED` - Failed to authenticate
-- `NETWORK_ERROR` - Network-related errors
+### 3. Usage
+- Always throw specific error types for domain errors.
+- Use error codes for programmatic handling.
+- Add context to error messages.
+- Never silently swallow exceptions.
 
-### 3. Resource Errors
+## Stubs and Fallbacks
+- When a module is missing, export a stub that throws a meaningful error on use.
+- Example:
 ```typescript
-export class LLMResourceError extends Error {
-    constructor(
-        public readonly resource: string,
-        message: string,
-        public readonly details?: Record<string, unknown>
-    ) {
-        super(message);
-        this.name = 'LLMResourceError';
-    }
+export class NotImplementedStub {
+  static getInstance(): never {
+    throw new ServiceError('This feature is not implemented.');
+  }
 }
 ```
 
-Resource types:
-- Memory allocation
-- Process limits
-- File system access
-- Model loading
-- Cache storage
+## Best Practices
+- Use try/catch for async operations.
+- Log errors with context.
+- Return user-friendly messages in UI.
+- Document all thrown errors in JSDoc.
 
 ## Error Handling Patterns
 

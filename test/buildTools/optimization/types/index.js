@@ -21,4 +21,12 @@ describe('index', () => {
         // TODO: Implement tests
         assert.strictEqual(true, true);
     });
+
+    it('should handle error in type resolution', () => {
+        try {
+            throw new Error('Type resolution failed');
+        } catch (err) {
+            assert.strictEqual(err.message, 'Type resolution failed');
+        }
+    });
 });

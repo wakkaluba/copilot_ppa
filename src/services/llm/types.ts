@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
 
-export interface LLMMessage {
+export interface ILLMMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-export interface LLMRequestOptions {
+export interface ILLMRequestOptions {
   temperature?: number;
   maxTokens?: number;
   topK?: number;
@@ -14,7 +14,7 @@ export interface LLMRequestOptions {
   stopSequences?: string[];
 }
 
-export interface LLMResponse {
+export interface ILLMResponse {
   content: string;
   usage: {
     promptTokens: number;
@@ -23,19 +23,19 @@ export interface LLMResponse {
   };
 }
 
-export interface LLMStreamEvent {
+export interface ILLMStreamEvent {
   content: string;
   done: boolean;
 }
 
-export interface ProviderCapabilities {
+export interface IProviderCapabilities {
   maxContextLength: number;
   supportsChatCompletion: boolean;
   supportsStreaming: boolean;
   supportsSystemPrompts: boolean;
 }
 
-export interface ProviderConfig {
+export interface IProviderConfig {
   apiEndpoint: string;
   apiKey?: string;
   requestTimeout?: number;
@@ -48,7 +48,7 @@ export interface ProviderConfig {
 export interface IHealthCheckResult {
   isHealthy: boolean;
   timestamp: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ILLMModelInfo {
@@ -56,9 +56,9 @@ export interface ILLMModelInfo {
   name: string;
   provider: string;
   maxContextLength: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   features: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export enum ProviderState {
@@ -78,7 +78,7 @@ export interface IProviderStatus {
   lastHealthCheck?: IHealthCheckResult;
 }
 
-export interface LLMProvider extends EventEmitter {
+export interface ILLMProvider extends EventEmitter {
   readonly id: string;
   readonly name: string;
 
@@ -88,67 +88,67 @@ export interface LLMProvider extends EventEmitter {
   getStatus(): IProviderStatus;
   getAvailableModels(): Promise<ILLMModelInfo[]>;
   getModelInfo(modelId: string): Promise<ILLMModelInfo>;
-  getCapabilities(): Promise<ProviderCapabilities>;
+  getCapabilities(): Promise<IProviderCapabilities>;
 
   generateCompletion(
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse>;
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse>;
 
   generateChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse>;
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse>;
 
   streamCompletion(
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void>;
 
   streamChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void>;
 }
 
-export interface ModelInfo {
+export interface IModelInfo {
   version: string;
   provider: string;
-  hardwareRequirements?: HardwareRequirements;
+  hardwareRequirements?: IHardwareRequirements;
   capabilities: string[];
   supportedFormats: string[];
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
-export interface ModelRequirements {
+export interface IModelRequirements {
   minVersion?: string;
-  hardware?: HardwareRequirements;
+  hardware?: IHardwareRequirements;
   capabilities?: string[];
   formats?: string[];
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
-export interface ModelValidationResult {
+export interface IModelValidationResult {
   isValid: boolean;
-  errors: any[];
+  errors: unknown[];
   warnings: string[];
 }
 
-export interface ModelCompatibilityResult {
+export interface IModelCompatibilityResult {
   isCompatible: boolean;
-  errors: any[];
+  errors: unknown[];
   warnings: string[];
 }
 
-export interface HardwareRequirements {
+export interface IHardwareRequirements {
   minMemoryGB?: number;
   minCPUCores?: number;
   gpuRequired?: boolean;

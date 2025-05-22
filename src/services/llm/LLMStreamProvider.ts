@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { LLMProviderError } from './errors';
 
 /**
  * Chunk of text from a streaming LLM response
@@ -29,21 +30,21 @@ export class LLMStreamProvider extends EventEmitter {
 
   /**
    * Streams a message to the LLM and emits data events as chunks arrive.
+   * @throws {LLMProviderError} If not implemented.
    */
-  public async streamMessage(
-    payload: any, // TODO: Replace 'any' with LLMMessagePayload
-    config?: Partial<any>, // TODO: Replace 'any' with LLMSessionConfig
-  ): Promise<void> {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+  public async streamMessage(/* payload: LLMMessagePayload, config?: Partial<LLMSessionConfig> */): Promise<void> {
+    throw new LLMProviderError(
+      'NOT_IMPLEMENTED',
+      'LLMStreamProvider.streamMessage not implemented',
+    );
   }
 
   /**
    * Aborts the current stream.
+   * @throws {LLMProviderError} If not implemented.
    */
   public abort(): void {
-    // Implementation placeholder
-    throw new Error('Not implemented');
+    throw new LLMProviderError('NOT_IMPLEMENTED', 'LLMStreamProvider.abort not implemented');
   }
 
   public override on(event: 'data', listener: (chunk: LLMStreamChunk) => void): this;

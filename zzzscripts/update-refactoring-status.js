@@ -24,17 +24,6 @@ function parseCurrentStatus() {
       console.error('Failed to parse status file:', e);
     }
   }
-  return {
-    timestamp: new Date().toISOString(),
-    completedTasks: [],
-    pendingTasks: [],
-    failedTasks: [],
-    statistics: {
-      filesRefactored: 0,
-      linesChanged: 0,
-      successRate: 100
-    }
-  };
 }
 
 /**

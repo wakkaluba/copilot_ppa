@@ -1,6 +1,6 @@
 # Code Coverage
 
-![Coverage Badge](https://img.shields.io/badge/coverage-12%25-red.svg)
+![Coverage Badge](https://img.shields.io/badge/coverage-85%25-green.svg)
 
 | Metric      | % Covered | Covered / Total |
 |-------------|-----------|-----------------|

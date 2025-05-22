@@ -1,18 +1,17 @@
 // Basic LLM types for the VS Code extension
 
-export interface LLMRequest {
+export interface ILLMRequest {
   id: string;
   prompt: string;
   model: string;
-  options?: LLMRequestOptions;
-  priority: LLMRequestPriority;
+  options?: ILLMRequestOptions;
+  priority: ILLMRequestPriority;
   timestamp: number;
-  status: LLMRequestStatus;
-  error?: LLMRequestError;
+  status: ILLMRequestStatus;
+  error?: ILLMRequestError;
 }
-export type ILLMRequest = LLMRequest;
 
-export interface LLMRequestOptions {
+export interface ILLMRequestOptions {
   temperature?: number;
   maxTokens?: number;
   topK?: number;
@@ -22,15 +21,14 @@ export interface LLMRequestOptions {
   timeout?: number;
   stream?: boolean;
 }
-export type ILLMRequestOptions = LLMRequestOptions;
 
-export enum LLMRequestPriority {
+export enum ILLMRequestPriority {
   Low = 'low',
   Normal = 'normal',
   High = 'high',
 }
 
-export enum LLMRequestStatus {
+export enum ILLMRequestStatus {
   Pending = 'pending',
   InProgress = 'in-progress',
   Completed = 'completed',
@@ -38,119 +36,95 @@ export enum LLMRequestStatus {
   Cancelled = 'cancelled',
 }
 
-export interface LLMRequestError {
+export interface ILLMRequestError {
   code: string;
   message: string;
   details?: unknown;
 }
-export type ILLMRequestError = LLMRequestError;
 
-export interface LLMResponse {
+export interface ILLMResponse {
   id: string;
   requestId: string;
   content: string;
   model: string;
   prompt: string;
   timestamp: number;
-  tokenUsage?: TokenUsage;
-  format?: LLMResponseFormat;
-  error?: LLMResponseError;
+  tokenUsage?: ITokenUsage;
+  format?: ILLMResponseFormat;
+  error?: ILLMResponseError;
 }
-export type ILLMResponse = LLMResponse;
 
-export type LLMResponseFormat = 'text' | 'json' | 'markdown' | 'code';
+export type ILLMResponseFormat = 'text' | 'json' | 'markdown' | 'code';
 
-export interface LLMResponseOptions {
-  format?: LLMResponseFormat;
+export interface ILLMResponseOptions {
+  format?: ILLMResponseFormat;
   includePrompt?: boolean;
   includeTokenUsage?: boolean;
 }
-export type ILLMResponseOptions = LLMResponseOptions;
 
-export interface LLMResponseError {
+export interface ILLMResponseError {
   code: string;
   message: string;
   details?: unknown;
 }
-export type ILLMResponseError = LLMResponseError;
 
-export interface TokenUsage {
+export interface ITokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
 }
-export type ITokenUsage = TokenUsage;
 
-export interface LLMRequestEvent {
+export interface ILLMRequestEvent {
   type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
-  request: LLMRequest;
+  request: ILLMRequest;
   timestamp: number;
   details?: unknown;
 }
-export type ILLMRequestEvent = LLMRequestEvent;
 
-export interface LLMStreamEvent {
+export interface ILLMStreamEvent {
   content: string;
   done: boolean;
-  error?: LLMResponseError;
+  error?: ILLMResponseError;
   timestamp?: number;
   tokenCount?: number;
 }
-export type ILLMStreamEvent = LLMStreamEvent;
 
-// Add ILLMMessage interface to match the one in services/llm/types.ts
-export interface LLMMessage {
+export interface ILLMMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
-export type ILLMMessage = LLMMessage;
 
-// Model-related types
-export enum ModelEvents {
-  // Evaluation events
+export enum IModelEvents {
   EvaluationStarted = 'evaluation:started',
   EvaluationCompleted = 'evaluation:completed',
-
-  // Optimization events
   OptimizationStarted = 'optimization:started',
   OptimizationCompleted = 'optimization:completed',
   OptimizationProgress = 'optimization:progress',
-
-  // Scheduling events
   SchedulingStarted = 'scheduling:started',
   SchedulingCompleted = 'scheduling:completed',
-
-  // Execution events
   ExecutionStarted = 'execution:started',
   ExecutionCompleted = 'execution:completed',
-
-  // Task events
   TaskStarted = 'task:started',
   TaskCompleted = 'task:completed',
   TaskFailed = 'task:failed',
-
-  // Tuning events
   TuningStarted = 'tuning:started',
   TuningCompleted = 'tuning:completed',
   TuningProgress = 'tuning:progress',
-
-  // Metrics events
   MetricsUpdated = 'metrics:updated',
   MetricsExpired = 'metrics:expired',
   MetricsAggregated = 'metrics:aggregated',
 }
 
-export interface LLMSessionConfig {
+export interface ILLMSessionConfig {
   model: string;
   provider: string;
-  parameters: LLMRequestOptions;
+  parameters: ILLMRequestOptions;
   contextSize: number;
   historySize: number;
   systemPrompt?: string;
 }
-export type ILLMSessionConfig = LLMSessionConfig;
 
-export interface SessionState {
+export interface ISessionState {
   id: string;
   active: boolean;
   startTime: number;
@@ -160,40 +134,35 @@ export interface SessionState {
   model: string;
   provider: string;
 }
-export type ISessionState = SessionState;
 
-export interface SessionStats {
+export interface ISessionStats {
   totalRequests: number;
   totalTokens: number;
   averageResponseTime: number;
   errorRate: number;
 }
-export type ISessionStats = SessionStats;
 
-// Provider capability types
-export interface ProviderCapabilities {
+export interface IProviderCapabilities {
   maxContextLength: number;
   supportsChatCompletion: boolean;
   supportsStreaming: boolean;
   supportsSystemPrompts: boolean;
-  supportedFormats: LLMResponseFormat[];
+  supportedFormats: ILLMResponseFormat[];
   multimodalSupport: boolean;
   supportsTemperature: boolean;
   supportsTopP: boolean;
   supportsPenalties: boolean;
   supportsRetries: boolean;
 }
-export type IProviderCapabilities = ProviderCapabilities;
 
-// Basic interface for LLM providers
-export interface LLMProvider {
-  id: string; // Added id property to match what LLMProviderManager expects
+export interface ILLMProvider {
+  id: string;
   getName(): string;
-  getCapabilities(): ProviderCapabilities;
+  getCapabilities(): IProviderCapabilities;
   isAvailable(): Promise<boolean>;
   getStatus(): 'active' | 'inactive' | 'error';
-  completePrompt(request: LLMRequest): Promise<LLMResponse>;
-  streamPrompt?(request: LLMRequest): AsyncIterable<LLMResponse>;
+  completePrompt(request: ILLMRequest): Promise<ILLMResponse>;
+  streamPrompt?(request: ILLMRequest): AsyncIterable<ILLMResponse>;
   cancelRequest(requestId: string): Promise<boolean>;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -201,37 +170,33 @@ export interface LLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse>;
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse>;
   streamCompletion(
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void>;
-
-  // Add missing methods that the LLMProviderManager expects
   generateChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse>;
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse>;
   streamChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void>;
-
   setOfflineMode(enabled: boolean): void;
-  cacheResponse?(prompt: string, response: LLMResponse): Promise<void>;
-  useCachedResponse?(prompt: string): Promise<LLMResponse | null>;
+  cacheResponse?(prompt: string, response: ILLMResponse): Promise<void>;
+  useCachedResponse?(prompt: string): Promise<ILLMResponse | null>;
   isConnected(): boolean;
 }
-export type ILLMProvider = LLMProvider;
 
-export interface LLMPromptOptions {
+export interface ILLMPromptOptions {
   temperature?: number;
   maxTokens?: number;
   language?: string;
@@ -242,9 +207,8 @@ export interface LLMPromptOptions {
     language?: string;
   };
 }
-export type ILLMPromptOptions = LLMPromptOptions;
 
-export interface LLMModelInfo {
+export interface ILLMModelInfo {
   id: string;
   name: string;
   provider: string;
@@ -260,54 +224,41 @@ export interface LLMModelInfo {
   recommendedMemoryGB?: number;
   cudaSupport?: boolean;
 }
-export type ILLMModelInfo = LLMModelInfo;
 
-export interface ModelRequirements {
-  minRAM: number; // in MB
-  minCPU: number; // in MHz
-  minDisk: number; // in MB
+export interface IModelRequirements {
+  minRAM: number;
+  minCPU: number;
+  minDisk: number;
   gpu?: {
     required: boolean;
     minVRAM?: number;
   };
 }
-export type IModelRequirements = ModelRequirements;
 
-export interface SystemInfo {
-  totalRAM: number; // in MB
+export interface ISystemInfo {
+  totalRAM: number;
   availableRAM: number;
-  cpuSpeed: number; // in MHz
+  cpuSpeed: number;
   cpuCores: number;
-  totalDisk: number; // in MB
+  totalDisk: number;
   freeDisk: number;
   gpu?: {
     name: string;
-    vram: number; // in MB
+    vram: number;
   };
 }
-export type ISystemInfo = SystemInfo;
 
-/**
- * Logger interface for structured logging.
- *
- * @remarks
- * Avoid use of 'any' in production code. Use 'unknown' for arbitrary data.
- */
-export interface Logger {
+export interface ILogger {
   debug(message: string, ...args: unknown[]): void;
   info(message: string, ...args: unknown[]): void;
   warn(message: string, ...args: unknown[]): void;
   error(message: string | Error, ...args: unknown[]): void;
 }
-export type ILogger = Logger;
 
-/**
- * Represents a running model instance.
- */
-export interface ModelInstance {
+export interface IModelInstance {
   id: string;
   status: string;
-  allocation: ResourceAllocation;
+  allocation: IResourceAllocation;
   startTime: number;
   metrics: {
     requests: number;
@@ -315,38 +266,22 @@ export interface ModelInstance {
     latency: number;
   };
 }
-export type IModelInstance = ModelInstance;
 
-/**
- * Event emitted when a model is provisioned or deprovisioned.
- */
-export interface ProvisioningEvent {
+export interface IProvisioningEvent {
   modelId: string;
-  instance?: ModelInstance;
-  allocation?: ResourceAllocation;
+  instance?: IModelInstance;
+  allocation?: IResourceAllocation;
   timestamp: Date;
 }
-export type IProvisioningEvent = ProvisioningEvent;
 
-/**
- * Resource allocation details for a model instance.
- */
-export interface ResourceAllocation {
-  memory: number; // in MB
-  cpu: number; // in cores
-  gpu: number; // in count
-  network: number; // in Mbps
+export interface IResourceAllocation {
+  memory: number;
+  cpu: number;
+  gpu: number;
+  network: number;
 }
-export type IResourceAllocation = ResourceAllocation;
 
-// --- ModelPerformanceMetrics canonical type ---
-/**
- * Canonical metrics for model performance tracking.
- *
- * @remarks
- * Used by ModelMetricsManager, ModelOptimizer, and related services.
- */
-export interface ModelPerformanceMetrics {
+export interface IModelPerformanceMetrics {
   modelId: string;
   averageResponseTime: number;
   tokenThroughput: number;
@@ -355,4 +290,3 @@ export interface ModelPerformanceMetrics {
   totalTokens: number;
   timestamp: number;
 }
-export type IModelPerformanceMetrics = ModelPerformanceMetrics;

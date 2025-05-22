@@ -30,29 +30,33 @@ function main() {
     console.error('Unused code report not found:', UNUSED_CODE_REPORT);
     process.exit(1);
   }
-  const unusedFiles = JSON.parse(fs.readFileSync(UNUSED_CODE_REPORT, 'utf-8'));
-  if (!Array.isArray(unusedFiles)) {
-    console.error('Unused code report must be an array of file paths.');
+  try {
+    const unusedFiles = JSON.parse(fs.readFileSync(UNUSED_CODE_REPORT, 'utf-8'));
+    if (!Array.isArray(unusedFiles)) {
+      throw new Error('Invalid unused code report format');
+    }
+    ensureDirSync(BACKUP_DIR);
+    const summary = [];
+    for (const relFile of unusedFiles) {
+      const absFile = path.resolve(SRC_DIR, relFile);
+      if (fs.existsSync(absFile)) {
+        try {
+          const result = backupAndRemoveFile(absFile);
+          summary.push(result);
+          console.log('Removed and backed up:', relFile);
+        } catch (e) {
+          console.error('Failed to remove:', relFile, e);
+        }
+      } else {
+        console.warn('File not found, skipping:', relFile);
+      }
+    }
+    fs.writeFileSync(SUMMARY_REPORT, JSON.stringify(summary, null, 2), 'utf-8');
+    console.log('Summary written to', SUMMARY_REPORT);
+  } catch (err) {
+    console.error('Failed to process unused code report:', err.message);
     process.exit(1);
   }
-  ensureDirSync(BACKUP_DIR);
-  const summary = [];
-  for (const relFile of unusedFiles) {
-    const absFile = path.resolve(SRC_DIR, relFile);
-    if (fs.existsSync(absFile)) {
-      try {
-        const result = backupAndRemoveFile(absFile);
-        summary.push(result);
-        console.log('Removed and backed up:', relFile);
-      } catch (e) {
-        console.error('Failed to remove:', relFile, e);
-      }
-    } else {
-      console.warn('File not found, skipping:', relFile);
-    }
-  }
-  fs.writeFileSync(SUMMARY_REPORT, JSON.stringify(summary, null, 2), 'utf-8');
-  console.log('Summary written to', SUMMARY_REPORT);
 }
 
 if (require.main === module) {

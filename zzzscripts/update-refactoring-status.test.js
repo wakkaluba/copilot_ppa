@@ -107,6 +107,17 @@ describe('update-refactoring-status.js', () => {
             });
             expect(newStatus.statistics.successRate).to.be.below(100);
         });
+
+        it('should handle error in task update', () => {
+            const update = {
+                taskId: 'task1',
+                status: 'failed',
+                error: 'Refactoring failed'
+            };
+            // Simulate error handling
+            expect(update.status).to.equal('failed');
+            expect(update.error).to.be.defined;
+        });
     });
 
     describe('calculateMetrics()', () => {

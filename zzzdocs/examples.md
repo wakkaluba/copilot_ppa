@@ -91,7 +91,7 @@ describe('UserAuth', () => {
         const result = await authenticate('user', 'pass');
         expect(result.success).toBe(true);
     });
-    
+
     it('should reject invalid credentials', async () => {
         const result = await authenticate('user', 'wrong');
         expect(result.success).toBe(false);
@@ -120,14 +120,14 @@ describe('UserAuth', () => {
 ### Error Handling
 **Prompt:** "Implement error handling for API requests"
 ```typescript
-async function safeRequest<T>(url: string): Promise<T> {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error(`Request failed: ${error.message}`);
-        throw error;
-    }
+/**
+ * Makes a safe API request and returns the result or throws a ServiceError.
+ */
+async function safeApiRequest<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    throw new ServiceError('API request failed', error);
+  }
 }
 ```

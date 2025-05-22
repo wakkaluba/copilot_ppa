@@ -15,7 +15,12 @@ function getCoverageSummary() {
     console.error('Coverage summary not found:', COVERAGE_SUMMARY_PATH);
     process.exit(1);
   }
-  return JSON.parse(fs.readFileSync(COVERAGE_SUMMARY_PATH, 'utf-8'));
+  try {
+    return JSON.parse(fs.readFileSync(COVERAGE_SUMMARY_PATH, 'utf-8'));
+  } catch (err) {
+    console.error('Failed to parse coverage summary:', err.message);
+    process.exit(1);
+  }
 }
 
 function findLowCoverageFiles(coverageSummary) {

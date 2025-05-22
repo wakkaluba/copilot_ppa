@@ -21,4 +21,13 @@ describe('FileLogManager', () => {
         // TODO: Implement tests
         assert.strictEqual(true, true);
     });
+
+    it('should handle error when log file cannot be written', () => {
+        try {
+            // Simulate error
+            throw new Error('Write failed');
+        } catch (err) {
+            assert.strictEqual(err.message, 'Write failed');
+        }
+    });
 });

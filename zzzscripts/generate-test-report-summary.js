@@ -18,8 +18,12 @@ function getCoverage() {
 
 function getLint() {
   if (!fs.existsSync(lintReport)) return 'No lint report found.';
-  const data = JSON.parse(fs.readFileSync(lintReport, 'utf8'));
-  return `**Lint**\n- Errors: ${data.errorCount}\n- Warnings: ${data.warningCount}`;
+  try {
+    const data = JSON.parse(fs.readFileSync(lintReport, 'utf8'));
+    return `**Lint**\n- Errors: ${data.errorCount}\n- Warnings: ${data.warningCount}`;
+  } catch (err) {
+    return `**Lint**\n- Error reading lint report: ${(err as Error).message}`;
+  }
 }
 
 function getTest() {

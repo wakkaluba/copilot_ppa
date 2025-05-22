@@ -324,3 +324,23 @@ The utility will automatically load images as they enter the viewport.
    - Provide metrics dashboard
    - Alert on degradation
    - Offer optimization options
+
+## Error Handling
+
+All performance monitoring scripts should log errors and handle exceptions gracefully. Alerts should be generated for critical failures, and logs should include error context for troubleshooting.
+
+- Track error counts and error rates in all metrics.
+- Log error details for failed requests.
+- Use try/catch in all metric-collecting functions.
+- Example:
+```typescript
+try {
+  // ...perform operation...
+  metrics.successCount++;
+} catch (err) {
+  metrics.failureCount++;
+  metrics.lastError = (err as Error).message;
+  logError(err);
+}
+```
+- Alert on high error rates.

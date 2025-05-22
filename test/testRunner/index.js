@@ -21,4 +21,16 @@ describe('index', () => {
         // TODO: Implement tests
         assert.strictEqual(true, true);
     });
+
+    it('should reject with error on failure', async () => {
+        await new Promise((resolve) => {
+            function runWithError() {
+                return Promise.reject(new Error('Test failure'));
+            }
+            runWithError().catch((err) => {
+                assert.strictEqual(err.message, 'Test failure');
+                resolve();
+            });
+        });
+    });
 });

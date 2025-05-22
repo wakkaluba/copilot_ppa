@@ -11,7 +11,7 @@ This guide explains how to implement a new LLM provider for the system. All prov
 ```typescript
 export class CustomProvider extends BaseLLMProvider {
     readonly name = 'Custom';
-    
+
     constructor(options: CustomProviderOptions) {
         super();
         // Initialize provider-specific resources
@@ -93,12 +93,15 @@ async streamChatCompletion(
 
 - Use the provider's error handling utilities:
 ```typescript
-protected handleError(error: unknown, code = 'UNKNOWN_ERROR'): never {
-    const providerError = new LLMProviderError(code, error.message);
-    this.updateStatus({ error: error.message });
-    throw providerError;
+try {
+  await provider.connect();
+} catch (error) {
+  // Handle connection error
+  throw new ProviderConnectionError('Failed to connect to provider', error);
 }
 ```
+- Always provide meaningful error messages.
+- Document all thrown errors in provider APIs.
 
 ### 4. Status Management
 
