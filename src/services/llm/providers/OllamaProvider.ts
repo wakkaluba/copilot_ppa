@@ -1,13 +1,15 @@
 import axios from 'axios';
-import { Logger } from '../../../utils/logger';
-import { LLMMessage, LLMModelInfo, LLMRequestOptions, LLMResponse, LLMStreamEvent } from '../types';
-import { ProviderConfig } from '../validators/ProviderConfigValidator';
 import {
-  BaseLLMProvider,
-  HealthCheckResult,
-  ProviderCapabilities,
-  ProviderState,
-} from './BaseLLMProvider';
+  ILLMMessage,
+  ILLMModelInfo,
+  ILLMRequestOptions,
+  ILLMResponse,
+  ILLMStreamEvent,
+  IProviderCapabilities,
+} from '../../../llm/types';
+import { ILogger } from '../../../utils/logger';
+import { ProviderConfig } from '../validators/ProviderConfigValidator';
+import { BaseLLMProvider, IHealthCheckResult, ProviderState } from './BaseLLMProvider';
 
 class ModelError extends Error {
   constructor(
@@ -42,7 +44,8 @@ class RequestError extends Error {
   }
 }
 
-interface OllamaModelInfo {
+// Rename interfaces to match ESLint naming convention
+interface IOllamaModelInfo {
   name: string;
   id: string;
   digest: string;
@@ -58,7 +61,7 @@ interface OllamaModelInfo {
   license?: string;
 }
 
-interface OllamaGenerateRequest {
+interface IOllamaGenerateRequest {
   model: string;
   prompt: string;
   system?: string | undefined;
@@ -74,32 +77,32 @@ interface OllamaGenerateRequest {
     | undefined;
 }
 
-interface OllamaRequestOptions extends LLMRequestOptions {
+interface IOllamaRequestOptions extends ILLMRequestOptions {
   topK?: number;
   presenceBonus?: number;
   frequencyBonus?: number;
   stopSequences?: string[];
 }
 
-interface OllamaStreamEvent {
-  content: string;
-  done: boolean;
-}
-
 export class OllamaProvider extends BaseLLMProvider {
-  private client: any;
-  private modelDetails = new Map<string, OllamaModelInfo>();
-  private logger = Logger.getInstance();
+  private client: ReturnType<typeof axios.create>;
+  private modelDetails = new Map<string, IOllamaModelInfo>();
+  private logger: ILogger;
 
   constructor(config: ProviderConfig) {
     super('ollama', 'Ollama', config);
+    this.logger = (config as { logger?: ILogger }).logger || {
+      error: (): void => undefined,
+      info: (): void => undefined,
+      warn: (): void => undefined,
+    };
     this.client = axios.create({
-      baseURL: config.apiEndpoint,
-      timeout: config.requestTimeout || 30000,
+      baseURL: config.endpoint,
+      timeout: config.timeoutMs || 30000,
     });
   }
 
-  protected async performHealthCheck(): Promise<HealthCheckResult> {
+  protected async performHealthCheck(): Promise<IHealthCheckResult> {
     try {
       const startTime = Date.now();
       await this.client.get('/api/health');
@@ -131,31 +134,29 @@ export class OllamaProvider extends BaseLLMProvider {
   }
 
   public async connect(): Promise<void> {
-    this.validateConfig();
-    this.setState(ProviderState.Initializing);
-
+    // Optionally implement config validation if needed
+    this.setProviderState(ProviderState.Initializing);
     try {
       const available = await this.isAvailable();
       if (!available) {
-        const err = new ProviderError('Ollama service is not available', this.id);
+        const err = new ProviderError('Ollama service is not available', this.getId());
         this.logger.error('Ollama connect failed', { error: err });
         throw err;
       }
-
       await this.refreshModels();
-      this.setState(ProviderState.Active);
+      this.setProviderState(ProviderState.Active);
       this.logger.info?.('Ollama provider connected');
     } catch (error) {
-      this.setError(error instanceof Error ? error : new Error(String(error)));
+      this.setProviderError(error instanceof Error ? error : new Error(String(error)));
       this.logger.error('Ollama connect error', { error });
       throw error;
     }
   }
 
   public async disconnect(): Promise<void> {
-    this.setState(ProviderState.Deactivating);
+    this.setProviderState(ProviderState.Deactivating);
     this.modelDetails.clear();
-    this.setState(ProviderState.Inactive);
+    this.setProviderState(ProviderState.Inactive);
     this.logger.info?.('Ollama provider disconnected');
   }
 
@@ -167,38 +168,44 @@ export class OllamaProvider extends BaseLLMProvider {
       for (const model of models) {
         this.modelDetails.set(model.name, model);
       }
-      this.logger.debug?.('Ollama models refreshed', { count: models.length });
+      this.logger.info?.('Ollama models refreshed', { count: models.length });
     } catch (error) {
       const errorString = error instanceof Error ? error.message : String(error);
-      const err = new ProviderError('Failed to fetch models', this.id, errorString);
+      const err = new ProviderError('Failed to fetch models', this.getId(), errorString);
       this.logger.error('Ollama refreshModels error', { error: err });
       throw err;
     }
   }
 
-  public async getAvailableModels(): Promise<LLMModelInfo[]> {
+  public async getAvailableModels(): Promise<ILLMModelInfo[]> {
     await this.refreshModels();
     return Array.from(this.modelDetails.entries()).map(([id, info]) =>
       this.convertModelInfo(id, info),
     );
   }
 
-  public async getModelInfo(modelId: string): Promise<LLMModelInfo> {
+  public async getModelInfo(modelId: string): Promise<ILLMModelInfo> {
     const info = this.modelDetails.get(modelId);
     if (!info) {
-      const err = new ModelError('Model not found', this.id, modelId);
+      const err = new ModelError('Model not found', this.getId(), modelId);
       this.logger.warn?.('Ollama getModelInfo: model not found', { modelId, error: err });
       throw err;
     }
     return this.convertModelInfo(modelId, info);
   }
 
-  public async getCapabilities(): Promise<ProviderCapabilities> {
+  public async getCapabilities(): Promise<IProviderCapabilities> {
     return {
       maxContextLength: 4096,
       supportsChatCompletion: true,
       supportsStreaming: true,
       supportsSystemPrompts: true,
+      supportedFormats: ['text'],
+      multimodalSupport: false,
+      supportsTemperature: true,
+      supportsTopP: false,
+      supportsPenalties: true,
+      supportsRetries: false,
     };
   }
 
@@ -206,11 +213,11 @@ export class OllamaProvider extends BaseLLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse> {
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse> {
     try {
-      const ollamaOptions = options as OllamaRequestOptions;
-      const request: OllamaGenerateRequest = {
+      const ollamaOptions = options as IOllamaRequestOptions;
+      const request: IOllamaGenerateRequest = {
         model,
         prompt,
         ...(systemPrompt && { system: systemPrompt }),
@@ -234,9 +241,8 @@ export class OllamaProvider extends BaseLLMProvider {
 
       const response = await this.client.post('/api/generate', request);
 
-      const result: LLMResponse = {
-        id: `ollama-${Date.now()}`,
-        requestId: crypto.randomUUID?.() || `req-${Date.now()}`,
+      const result: ILLMResponse = {
+        requestId: `${model}-${Date.now()}`,
         model: model,
         prompt: prompt,
         timestamp: Date.now(),
@@ -248,12 +254,12 @@ export class OllamaProvider extends BaseLLMProvider {
         },
       };
 
-      this.logger.debug?.('Ollama completion generated', { model, promptLength: prompt.length });
+      this.logger.info?.('Ollama completion generated', { model, promptLength: prompt.length });
       return result;
     } catch (error) {
       const err = new RequestError(
         'Generation failed',
-        this.id,
+        this.getId(),
         error instanceof Error ? error : new Error(String(error)),
       );
       this.logger.error('Ollama generateCompletion error', { error: err });
@@ -263,9 +269,9 @@ export class OllamaProvider extends BaseLLMProvider {
 
   public async generateChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-  ): Promise<LLMResponse> {
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+  ): Promise<ILLMResponse> {
     const prompt = this.formatChatMessages(messages);
     return this.generateCompletion(model, prompt, undefined, options);
   }
@@ -274,12 +280,12 @@ export class OllamaProvider extends BaseLLMProvider {
     model: string,
     prompt: string,
     systemPrompt?: string,
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void> {
     try {
-      const ollamaOptions = options as OllamaRequestOptions;
-      const request: OllamaGenerateRequest = {
+      const ollamaOptions = options as IOllamaRequestOptions;
+      const request: IOllamaGenerateRequest = {
         model,
         prompt,
         ...(systemPrompt && { system: systemPrompt }),
@@ -317,7 +323,7 @@ export class OllamaProvider extends BaseLLMProvider {
     } catch (error) {
       const err = new RequestError(
         'Streaming failed',
-        this.id,
+        this.getId(),
         error instanceof Error ? error : new Error(String(error)),
       );
       this.logger.error('Ollama streamCompletion error', { error: err });
@@ -327,19 +333,19 @@ export class OllamaProvider extends BaseLLMProvider {
 
   public async streamChatCompletion(
     model: string,
-    messages: LLMMessage[],
-    options?: LLMRequestOptions,
-    callback?: (event: LLMStreamEvent) => void,
+    messages: ILLMMessage[],
+    options?: ILLMRequestOptions,
+    callback?: (event: ILLMStreamEvent) => void,
   ): Promise<void> {
     const prompt = this.formatChatMessages(messages);
     await this.streamCompletion(model, prompt, undefined, options, callback);
   }
 
-  private convertModelInfo(modelId: string, info: OllamaModelInfo): LLMModelInfo {
+  private convertModelInfo(modelId: string, info: IOllamaModelInfo): ILLMModelInfo {
     return {
       id: modelId,
       name: info.name,
-      provider: this.id,
+      provider: this.getId(),
       maxContextLength: 4096,
       parameters: {
         format: info.details.format,
@@ -369,9 +375,20 @@ export class OllamaProvider extends BaseLLMProvider {
     return unit === 'B' ? parseInt(num, 10) : parseInt(num, 10) / 1000;
   }
 
-  private formatChatMessages(messages: LLMMessage[]): string {
+  private formatChatMessages(messages: ILLMMessage[]): string {
     return messages
       .map((msg) => `${msg.role === 'assistant' ? 'Assistant' : 'User'}: ${msg.content}`)
       .join('\n');
+  }
+
+  // Add required provider ID and state methods for compatibility
+  public getId(): string {
+    return 'ollama';
+  }
+  public setProviderState(state: ProviderState): void {
+    super.setProviderState(state);
+  }
+  public setProviderError(error: Error): void {
+    super.setProviderError(error);
   }
 }

@@ -14,12 +14,7 @@ export interface ILLMRequest {
 export interface ILLMRequestOptions {
   temperature?: number;
   maxTokens?: number;
-  topK?: number;
-  presenceBonus?: number;
-  frequencyBonus?: number;
-  stopSequences?: string[];
-  timeout?: number;
-  stream?: boolean;
+  [key: string]: unknown;
 }
 
 export enum ILLMRequestPriority {
@@ -43,15 +38,16 @@ export interface ILLMRequestError {
 }
 
 export interface ILLMResponse {
-  id: string;
   requestId: string;
-  content: string;
   model: string;
   prompt: string;
   timestamp: number;
-  tokenUsage?: ITokenUsage;
-  format?: ILLMResponseFormat;
-  error?: ILLMResponseError;
+  content: string;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export type ILLMResponseFormat = 'text' | 'json' | 'markdown' | 'code';
@@ -68,19 +64,6 @@ export interface ILLMResponseError {
   details?: unknown;
 }
 
-export interface ITokenUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
-
-export interface ILLMRequestEvent {
-  type: 'created' | 'started' | 'progress' | 'completed' | 'failed' | 'cancelled';
-  request: ILLMRequest;
-  timestamp: number;
-  details?: unknown;
-}
-
 export interface ILLMStreamEvent {
   content: string;
   done: boolean;
@@ -90,8 +73,22 @@ export interface ILLMStreamEvent {
 }
 
 export interface ILLMMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+export interface ILLMModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  maxContextLength: number;
+  parameters: {
+    format: string;
+    family: string;
+    size?: number;
+  };
+  features: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export enum IModelEvents {
@@ -206,23 +203,6 @@ export interface ILLMPromptOptions {
     format?: string;
     language?: string;
   };
-}
-
-export interface ILLMModelInfo {
-  id: string;
-  name: string;
-  provider: string;
-  description?: string;
-  contextSize?: number;
-  parameters?: Record<string, unknown>;
-  tags?: string[];
-  version?: string;
-  capabilities?: string[];
-  quantization?: string;
-  license?: string;
-  minMemoryGB?: number;
-  recommendedMemoryGB?: number;
-  cudaSupport?: boolean;
 }
 
 export interface IModelRequirements {

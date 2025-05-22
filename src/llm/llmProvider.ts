@@ -1,1 +1,2 @@
-export { LLMPromptOptions } from './types';
+export type { ILLMPromptOptions } from './types';
+
