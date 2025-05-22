@@ -180,11 +180,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -289,127 +289,127 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as vscode from 'vscode';
-&nbsp;
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
 /**
  * Supported build tool types
  */
 export enum BuildToolType {
-    Webpack = 'webpack',
-    Rollup = 'rollup',
-    Vite = 'vite'
+  Webpack = 'webpack',
+  Rollup = 'rollup',
+  Vite = 'vite',
 }
 &nbsp;
 /**
  * Base interface for any build configuration analysis
  */
-export interface BuildConfigAnalysis {
-    configPath: string;
-    optimizationSuggestions: OptimizationSuggestion[];
+export interface IBuildConfigAnalysis {
+  configPath: string;
+  optimizationSuggestions: IOptimizationSuggestion[];
 }
 &nbsp;
 /**
  * Optimization suggestion for build config
  */
-export interface OptimizationSuggestion {
-    title: string;
-    description: string;
-    code: string;
-    benefit?: string;
-    complexity: 'low' | 'medium' | 'high';
-    beforeAfter?: {
-        before: string;
-        after: string;
-    };
+export interface IOptimizationSuggestion {
+  title: string;
+  description: string;
+  code: string;
+  benefit?: string;
+  complexity: 'low' | 'medium' | 'high';
+  beforeAfter?: {
+    before: string;
+    after: string;
+  };
 }
 &nbsp;
 /**
  * Interface for build script optimization
  */
-export interface BuildScriptOptimization {
-    title: string;
-    description: string;
-    benefit: string;
-    before: string;
-    after: string;
+export interface IBuildScriptOptimization {
+  title: string;
+  description: string;
+  benefit: string;
+  before: string;
+  after: string;
 }
 &nbsp;
 /**
  * Interface for bundle analysis results
  */
-export interface BundleAnalysisResult {
-    totalSize: number;
-    jsSize: number;
-    cssSize: number;
-    imageSize: number;
-    otherSize: number;
-    files: BundleFile[];
-    recommendations: BundleRecommendation[];
+export interface IBundleAnalysisResult {
+  totalSize: number;
+  jsSize: number;
+  cssSize: number;
+  imageSize: number;
+  otherSize: number;
+  files: IBundleFile[];
+  recommendations: IBundleRecommendation[];
 }
 &nbsp;
 /**
  * Interface for individual file in a bundle analysis
  */
-export interface BundleFile {
-    path: string;
-    size: number;
-    type: 'js' | 'css' | 'image' | 'other';
+export interface IBundleFile {
+  path: string;
+  size: number;
+  type: 'js' | 'css' | 'image' | 'other';
 }
 &nbsp;
 /**
  * Interface for bundle optimization recommendation
  */
-export interface BundleRecommendation {
-    title: string;
-    description: string;
-    potentialSavings?: number;
+export interface IBundleRecommendation {
+  title: string;
+  description: string;
+  potentialSavings?: number;
 }
 &nbsp;
 /**
  * Interface to be implemented by all build tool config managers
  */
-export interface BuildToolConfigManager {
-    detectConfigs(workspacePath: string): Promise&lt;string[]&gt;;
-    analyzeConfig(configPath: string): Promise&lt;BuildConfigAnalysis&gt;;
-    generateOptimizations(configPath: string): Promise&lt;OptimizationSuggestion[]&gt;;
-    validateConfig?(configPath: string): Promise&lt;ValidationResult&gt;;
+export interface IBuildToolConfigManager {
+  detectConfigs(workspacePath: string): Promise&lt;string[]&gt;;
+  analyzeConfig(configPath: string): Promise&lt;IBuildConfigAnalysis&gt;;
+  generateOptimizations(configPath: string): Promise&lt;IOptimizationSuggestion[]&gt;;
+  validateConfig?(configPath: string): Promise&lt;IValidationResult&gt;;
 }
 &nbsp;
 /**
  * Interface for configuration validation results
  */
-export interface ValidationResult {
-    isValid: boolean;
-    errors: ValidationError[];
-    warnings: ValidationWarning[];
+export interface IValidationResult {
+  isValid: boolean;
+  errors: IValidationError[];
+  warnings: IValidationWarning[];
 }
 &nbsp;
 /**
  * Interface for validation errors
  */
-export interface ValidationError {
-    message: string;
-    line?: number;
-    column?: number;
-    severity: 'error';
+export interface IValidationError {
+  message: string;
+  line?: number;
+  column?: number;
+  severity: 'error';
 }
 &nbsp;
 /**
  * Interface for validation warnings
  */
-export interface ValidationWarning {
-    message: string;
-    line?: number;
-    column?: number;
-    severity: 'warning';
-}</pre></td></tr></table></pre>
+export interface IValidationWarning {
+  message: string;
+  line?: number;
+  column?: number;
+  severity: 'warning';
+}
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-05-15T19:55:19.240Z
+                at 2025-05-22T19:03:46.488Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

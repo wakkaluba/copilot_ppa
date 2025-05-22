@@ -74,93 +74,36 @@
 <a name='L9'></a><a href='#L9'>9</a>
 <a name='L10'></a><a href='#L10'>10</a>
 <a name='L11'></a><a href='#L11'>11</a>
-<a name='L12'></a><a href='#L12'>12</a>
-<a name='L13'></a><a href='#L13'>13</a>
-<a name='L14'></a><a href='#L14'>14</a>
-<a name='L15'></a><a href='#L15'>15</a>
-<a name='L16'></a><a href='#L16'>16</a>
-<a name='L17'></a><a href='#L17'>17</a>
-<a name='L18'></a><a href='#L18'>18</a>
-<a name='L19'></a><a href='#L19'>19</a>
-<a name='L20'></a><a href='#L20'>20</a>
-<a name='L21'></a><a href='#L21'>21</a>
-<a name='L22'></a><a href='#L22'>22</a>
-<a name='L23'></a><a href='#L23'>23</a>
-<a name='L24'></a><a href='#L24'>24</a>
-<a name='L25'></a><a href='#L25'>25</a>
-<a name='L26'></a><a href='#L26'>26</a>
-<a name='L27'></a><a href='#L27'>27</a>
-<a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a>
-<a name='L30'></a><a href='#L30'>30</a>
-<a name='L31'></a><a href='#L31'>31</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export interface ValidationErrorDetails {
-    field?: string;
-    value?: any;
-    expected?: any;
-}
-&nbsp;
-/**
- * Custom error class for Vite configuration validation errors
- */
-export class ConfigValidationError extends Error {
-    public readonly code: string;
-    public readonly details?: ValidationErrorDetails;
-&nbsp;
-    constructor(message: string, code: string, details?: ValidationErrorDetails) {
-        super(message);
-        this.name = 'ConfigValidationError';
-        this.code = code;
-        this.details = details;
-&nbsp;
-        // Ensure proper prototype chain for ES5
-        Object.setPrototypeOf(this, ConfigValidationError.prototype);
-    }
-&nbsp;
-    toString(): string {
-        let result = `${this.name}: ${this.message}`;
-        if (this.details) {
-            result += `\nDetails: ${JSON.stringify(this.details, null, 2)}`;
-        }
-        return result;
-    }
-}</pre></td></tr></table></pre>
+<a name='L12'></a><a href='#L12'>12</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span>
+<span class="cline-any cline-no">0</span></td><td class="text"><pre class="prettyprint lang-js">ENOENT: no such file or directory, open 'D:\___coding\tools\copilot_ppa\src\buildTools\vite\errors\ConfigValidationError.ts'
+Error: ENOENT: no such file or directory, open 'D:\___coding\tools\copilot_ppa\src\buildTools\vite\errors\ConfigValidationError.ts'
+    at Object.readFileSync (node:fs:443:20)
+    at MapStore.sourceFinder (D:\___coding\tools\copilot_ppa\node_modules\istanbul-lib-source-maps\lib\map-store.js:157:23)
+    at Context.getSource (D:\___coding\tools\copilot_ppa\node_modules\istanbul-lib-report\lib\context.js:71:21)
+    at annotateSourceCode (D:\___coding\tools\copilot_ppa\node_modules\istanbul-reports\lib\html\annotator.js:249:40)
+    at HtmlReport.onDetail (D:\___coding\tools\copilot_ppa\node_modules\istanbul-reports\lib\html\index.js:414:33)
+    at LcovReport.<computed> [as onDetail] (D:\___coding\tools\copilot_ppa\node_modules\istanbul-reports\lib\lcov\index.js:28:23)
+    at Visitor.value (D:\___coding\tools\copilot_ppa\node_modules\istanbul-lib-report\lib\tree.js:38:38)
+    at ReportNode.visit (D:\___coding\tools\copilot_ppa\node_modules\istanbul-lib-report\lib\tree.js:88:21)
+    at D:\___coding\tools\copilot_ppa\node_modules\istanbul-lib-report\lib\tree.js:92:19
+    at Array.forEach (<anonymous>)</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-05-15T19:55:19.240Z
+                at 2025-05-22T19:03:46.488Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

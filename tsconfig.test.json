@@ -16,5 +16,11 @@
     "src/**/*",
     "test/**/*",
     "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "out",
+    "dist"
   ]
 }
