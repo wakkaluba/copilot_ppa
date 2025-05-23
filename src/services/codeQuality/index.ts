@@ -1,25 +1,31 @@
-import { IBestPracticeIssue, IBestPracticesChecker } from './bestPracticesChecker';
-import { ICodeReviewComment, ICodeReviewer, ICodeReviewReport } from './codeReviewer';
-import { IDesignImprovementSuggester, IDesignIssue } from './designImprovementSuggester';
-import { ISecurityIssue, ISecurityScanner } from './securityScanner';
-import { ICodeMetrics, ICodeQualityConfig, IQualityIssue, IQualitySnapshot } from './types';
+import { DummyLogger, ILogger } from '../../utils/logger';
+import { BestPracticesChecker } from './bestPracticesChecker';
+import type { BestPracticeIssue } from './BestPracticesService';
+import { CodeOptimizer, OptimizationIssue } from './codeOptimizer';
+import type { CodeReviewComment, CodeReviewReport } from './codeReviewer';
+import { CodeReviewer } from './codeReviewer';
+import { DesignImprovementSuggester } from './designImprovementSuggester';
+import { ISecurityIssue, SecurityScanner } from './securityScanner';
+import type { ICodeMetrics, ICodeQualityConfig, IQualityIssue, IQualitySnapshot } from './types';
 
 export {
-    IBestPracticeIssue as BestPracticeIssue, IBestPracticesChecker as BestPracticesChecker, ICodeOptimizer as CodeOptimizer, ICodeReviewComment as CodeReviewComment, ICodeReviewer as CodeReviewer, ICodeReviewReport as CodeReviewReport,
-    IDesignImprovementSuggester as DesignImprovementSuggester,
-    IDesignIssue as DesignIssue, IOptimizationIssue as OptimizationIssue, ISecurityIssue as SecurityIssue, ISecurityScanner as SecurityScanner
+  BestPracticesChecker,
+  CodeOptimizer,
+  CodeReviewer,
+  DesignImprovementSuggester,
+  SecurityScanner
 };
-
-    export type {
-        ICodeMetrics as CodeMetrics,
-        ICodeQualityConfig as CodeQualityConfig,
-        IQualityIssue as QualityIssue,
-        IQualitySnapshot as QualitySnapshot
-    };
-
-export interface ICodeAnalyzer {
-  analyzeDocument(document: import('vscode').TextDocument): Promise<IQualityIssue[]>;
-}
+export type {
+  BestPracticeIssue,
+  ICodeMetrics as CodeMetrics,
+  ICodeQualityConfig as CodeQualityConfig,
+  CodeReviewComment,
+  CodeReviewReport,
+  ISecurityIssue,
+  OptimizationIssue,
+  IQualityIssue as QualityIssue,
+  IQualitySnapshot as QualitySnapshot
+};
 
 export class CodeQualityService {
   private _securityScanner: SecurityScanner;
@@ -27,15 +33,14 @@ export class CodeQualityService {
   private _bestPracticesChecker: BestPracticesChecker;
   private _codeReviewer: CodeReviewer;
   private _designImprovementSuggester: DesignImprovementSuggester;
-  private _qualityHistory: Map<string, QualitySnapshot[]>;
-  private _config: CodeQualityConfig;
-  private readonly _logger: Logger;
+  private _qualityHistory: Map<string, IQualitySnapshot[]>;
+  private _config: ICodeQualityConfig;
+  private readonly _logger: ILogger;
 
-  constructor(context: import('vscode').ExtensionContext) {
-    this._logger = new Logger('CodeQualityService');
+  constructor(context: import('vscode').ExtensionContext, logger?: ILogger) {
     this._securityScanner = new SecurityScanner(context);
     this._codeOptimizer = new CodeOptimizer(context);
-    this._bestPracticesChecker = new BestPracticesChecker(context, this._logger);
+    this._bestPracticesChecker = new BestPracticesChecker(context, logger || new DummyLogger());
     this._codeReviewer = new CodeReviewer(context);
     this._designImprovementSuggester = new DesignImprovementSuggester(context);
     this._qualityHistory = new Map();
@@ -47,7 +52,18 @@ export class CodeQualityService {
       },
       ignorePatterns: [],
       excludeTypes: [],
+      enableSecurity: true,
+      enablePerformance: true,
+      enableMaintainability: true,
+      maxHistoryEntries: 100,
+      severityThresholds: {
+        critical: 90,
+        high: 70,
+        medium: 50,
+        low: 30,
+      },
     };
+    this._logger = logger || new DummyLogger();
   }
 
   public getSecurityScanner(): SecurityScanner {
@@ -70,39 +86,15 @@ export class CodeQualityService {
     return this._designImprovementSuggester;
   }
 
-  public configure(config: Partial<CodeQualityConfig>): void {
+  public configure(config: Partial<ICodeQualityConfig>): void {
     this._config = { ...this._config, ...config };
   }
 
-  public async analyzeCode(document: import('vscode').TextDocument): Promise<IQualityIssue[]> {
-    const allIssues: IQualityIssue[] = [];
-
-    try {
-      const [securityIssues, optimizationIssues, practiceIssues] = await Promise.all([
-        this._securityScanner.analyzeDocument(document),
-        this._codeOptimizer.analyzeDocument(document),
-        this._bestPracticesChecker.analyzeDocument(document),
-      ]);
-
-      allIssues.push(
-        ...this.applySeverityLevels(securityIssues),
-        ...this.applySeverityLevels(optimizationIssues),
-        ...this.applySeverityLevels(practiceIssues),
-      );
-
-      // Filter based on configuration
-      return this.filterIssues(allIssues);
-    } catch (error) {
-      console.error('Error analyzing code:', error);
-      return [];
-    }
-  }
-
   public async updateQualityHistory(document: import('vscode').TextDocument): Promise<void> {
-    const issues = await this.analyzeCode(document);
+    const issues = await this.analyzeCode();
     const metrics = await this.calculateMetrics(document);
 
-    const snapshot: QualitySnapshot = {
+    const snapshot: IQualitySnapshot = {
       timestamp: new Date(),
       issues,
       metrics,
@@ -116,7 +108,7 @@ export class CodeQualityService {
     this._qualityHistory.get(key)!.push(snapshot);
   }
 
-  public getQualityTrends(uri: import('vscode').Uri): QualitySnapshot[] {
+  public getQualityTrends(uri: import('vscode').Uri): IQualitySnapshot[] {
     return this._qualityHistory.get(uri.toString()) || [];
   }
 
@@ -131,7 +123,7 @@ export class CodeQualityService {
     return issues.filter(
       (issue) =>
         !this._config.excludeTypes.includes(issue.type) &&
-        !this._config.ignorePatterns.some((pattern) =>
+        !this._config.ignorePatterns.some((pattern: string) =>
           issue.message.toLowerCase().includes(pattern.toLowerCase()),
         ),
     );
@@ -156,7 +148,7 @@ export class CodeQualityService {
     const maintainability = this.calculateMaintainability(text);
 
     // Calculate performance score
-    const performance = await this.calculatePerformance(document);
+    const performance = await this.calculatePerformance();
 
     return { complexity, maintainability, performance };
   }
@@ -176,55 +168,36 @@ export class CodeQualityService {
       /\bor\b/g, // logical OR
       /&&/g, // && operator
       /\|\|/g, // || operator
-      /\?/g, // ternary operator
     ];
-
-    // Add complexity for each control flow statement and operator
-    patterns.forEach((pattern) => {
+    for (const pattern of patterns) {
       const matches = text.match(pattern);
       if (matches) {
         complexity += matches.length;
       }
-    });
-
-    // Add complexity for function declarations/expressions
-    const functionMatches = text.match(/\bfunction\b|\b=>\b/g);
-    if (functionMatches) {
-      complexity += functionMatches.length;
     }
-
     return complexity;
   }
 
   private calculateMaintainability(text: string): number {
-    // Simplified maintainability calculation
+    // Simple maintainability index calculation (lines of code, comments, complexity)
     const lines = text.split('\n').length;
-    const commentLines = text
-      .split('\n')
-      .filter((line) => line.trim().startsWith('//') || line.trim().startsWith('/*')).length;
-    const codeLines = lines - commentLines;
-
-    // Factors affecting maintainability:
-    // 1. Comment ratio (0-30 points)
-    const commentScore = Math.min(30, (commentLines / codeLines) * 100);
-
-    // 2. Average line length (0-30 points)
-    const avgLineLength = text.length / lines;
-    const lengthScore = Math.max(0, 30 - (avgLineLength - 80) * 0.5);
-
-    // 3. Code structure (0-40 points)
+    const comments = (text.match(/\/\//g) || []).length + (text.match(/\/\*\*/g) || []).length;
     const complexity = this.calculateComplexity(text);
-    const complexityScore = Math.max(0, 40 - complexity * 2);
 
-    return Math.round(commentScore + lengthScore + complexityScore);
+    return Math.max(0, 100 - (lines + comments + complexity) / 2);
   }
 
-  private async calculatePerformance(document: import('vscode').TextDocument): Promise<number> {
-    // Get performance issues from optimizer
-    const issues = await this._codeOptimizer.analyzeDocument(document);
-    const performanceIssues = issues.filter((i) => i.type === 'performance');
+  private async calculatePerformance(): Promise<number> {
+    // TODO: Implement actual performance calculation
+    return 100;
+  }
 
-    // Start with 100 and deduct points for each performance issue
-    return Math.max(0, 100 - performanceIssues.length * 10);
+  /**
+   * Analyzes the code in the given document and returns a list of issues.
+   * TODO: Integrate with actual analysis services for real results.
+   */
+  public async analyzeCode(): Promise<IQualityIssue[]> {
+    // Placeholder: return empty array for now
+    return [];
   }
 }

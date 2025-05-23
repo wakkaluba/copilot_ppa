@@ -1,1 +1,0 @@
-{"version":3,"file":"OptimizationError.js","sourceRoot":"","sources":["../../../../src/buildTools/rollup/errors/OptimizationError.ts"],"names":[],"mappings":";;;AAAA,6FAA6F;AAC7F;;GAEG;AACH,MAAa,iBAAkB,SAAQ,KAAK;IACxC,YAAY,OAAe;QACvB,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,IAAI,GAAG,mBAAmB,CAAC;IACpC,CAAC;CACJ;AALD,8CAKC"}

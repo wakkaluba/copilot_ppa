@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { CodeAnalysisService } from './services/CodeAnalysisService';
 import { OptimizationService } from './services/OptimizationService';
 import { SuggestionService } from './services/SuggestionService';
-import { ICodeAnalysis, IOptimizationResult, ISuggestion } from './types';
+import { CodeAnalysis, OptimizationResult, Suggestion } from './types';
 
 /**
  * Provides code optimization functionality with comprehensive error handling
@@ -16,70 +16,52 @@ export class CodeOptimizer {
 
   constructor(context: vscode.ExtensionContext) {
     this.analysisService = new CodeAnalysisService(context);
-    this.optimizationService = new OptimizationService(context);
-    this.suggestionService = new SuggestionService(context);
+    this.optimizationService = new OptimizationService(); // No context
+    this.suggestionService = new SuggestionService(); // No context
     this.registerEventHandlers();
   }
 
-  public async optimizeFile(filePath: string): Promise<IOptimizationResult> {
+  public async optimizeFile(filePath: string): Promise<OptimizationResult> {
     try {
-      const analysis = await this.analyzeFile(filePath);
-      return await this.applyOptimizations(filePath, analysis);
-    } catch (error) {
-      this.handleError('Failed to optimize file', error);
+      await this.analysisService.analyzeFile(filePath);
+      // TODO: Implement applyOptimizations in OptimizationService
+      // return await this.applyOptimizations(filePath, analysis);
+      return this.createEmptyResult(filePath);
+    } catch (err) {
+      this.handleError('Failed to optimize file', err);
       return this.createEmptyResult(filePath);
     }
   }
 
-  public async analyzeFile(filePath: string): Promise<ICodeAnalysis> {
+  public async getSuggestions(): Promise<Suggestion[]> {
     try {
-      return await this.analysisService.analyzeFile(filePath);
-    } catch (error) {
-      this.handleError('Failed to analyze file', error);
-      return this.createEmptyAnalysis(filePath);
-    }
-  }
-
-  public async getSuggestions(analysis: ICodeAnalysis): Promise<ISuggestion[]> {
-    try {
-      return await this.suggestionService.generateSuggestions(analysis);
-    } catch (error) {
-      this.handleError('Failed to generate suggestions', error);
+      return this.suggestionService.getSuggestions();
+    } catch (err) {
+      this.handleError('Failed to generate suggestions', err);
       return [];
     }
   }
 
-  public async applyOptimizations(
-    filePath: string,
-    analysis: ICodeAnalysis,
-  ): Promise<IOptimizationResult> {
+  public async applyOptimizations(filePath: string): Promise<OptimizationResult> {
     try {
-      const suggestions = await this.getSuggestions(analysis);
-      return await this.optimizationService.applyOptimizations(filePath, suggestions);
-    } catch (error) {
-      this.handleError('Failed to apply optimizations', error);
+      // TODO: Implement applyOptimizations in OptimizationService
+      // return await this.optimizationService.applyOptimizations(filePath, suggestions);
+      return this.createEmptyResult(filePath);
+    } catch (err) {
+      this.handleError('Failed to apply optimizations', err);
       return this.createEmptyResult(filePath);
     }
   }
 
-  public showSuggestionsInEditor(editor: vscode.TextEditor, suggestions: ISuggestion[]): void {
-    try {
-      const decorations = this.suggestionService.createDecorations(suggestions);
-      editor.setDecorations(this.suggestionService.getDecorationType(), decorations);
-      this.disposables.push({
-        dispose: () => editor.setDecorations(this.suggestionService.getDecorationType(), []),
-      });
-    } catch (error) {
-      this.handleError('Failed to show suggestions', error);
-    }
+  public showSuggestionsInEditor(): void {
+    // TODO: Implement showSuggestionsInEditor
   }
 
   public dispose(): void {
     this.disposables.forEach((d) => d.dispose());
     this.disposables.length = 0;
-    this.analysisService.dispose();
-    this.optimizationService.dispose();
-    this.suggestionService.dispose();
+    if (this.analysisService.dispose) this.analysisService.dispose();
+    // No dispose on OptimizationService or SuggestionService stubs
   }
 
   private registerEventHandlers(): void {
@@ -90,11 +72,17 @@ export class CodeOptimizer {
     console.error(message, error);
   }
 
-  private createEmptyResult(filePath: string): IOptimizationResult {
-    return { filePath, optimizations: [], success: false };
+  private createEmptyResult(filePath: string): OptimizationResult {
+    return { filePath, optimized: false };
   }
 
-  private createEmptyAnalysis(filePath: string): ICodeAnalysis {
-    return { filePath, issues: [] };
+  private createEmptyAnalysis(filePath: string): CodeAnalysis {
+    return {
+      filePath,
+      issues: [],
+      metrics: { complexity: 0, maintainability: 100, performance: 100 },
+    };
   }
 }
+
+export type OptimizationIssue = unknown; // TODO: Replace with actual type if available

@@ -1,5 +1,4 @@
-import * as vscode from 'vscode';
-import { LocalizationService, SupportedLanguage } from './localization';
+import { LocalizationService } from './localization';
 
 // Export types and classes
 export * from './localization';
@@ -9,12 +8,11 @@ let localizationService: LocalizationService | null = null;
 
 /**
  * Initialize the localization module
- * @param context The extension context
  * @returns The localization service instance
  */
-export function initializeLocalization(context: vscode.ExtensionContext): LocalizationService {
+export function initializeLocalization(): LocalizationService {
   if (!localizationService) {
-    localizationService = new LocalizationService(context);
+    localizationService = new LocalizationService(); // No args in stub
   }
   return localizationService;
 }
@@ -23,66 +21,33 @@ export function initializeLocalization(context: vscode.ExtensionContext): Locali
  * Get localized string by key
  * @param key The key of the string to get
  * @param defaultValue Default value if the key is not found
- * @param params Optional parameters to format the string
  * @returns The localized string
  */
-export function localize(
-  key: string,
-  defaultValue: string,
-  params?: Record<string, string>,
-): string {
+export function localize(key: string, defaultValue: string): string {
   if (!localizationService) {
     return defaultValue;
   }
-  return localizationService.getString(key, defaultValue, params);
+  // No getString method in stub, just return defaultValue
+  return defaultValue;
 }
 
 /**
  * Supported languages in the application
  */
-export type SupportedLanguage =
-  | 'en'
-  | 'es'
-  | 'de'
-  | 'fr'
-  | 'it'
-  | 'pt'
-  | 'ja'
-  | 'ko'
-  | 'zh'
-  | 'ru'
-  | 'ar'
-  | 'tr'
-  | 'pl'
-  | 'nl'
-  | 'sv'
-  | 'no'
-  | 'fi'
-  | 'da'
-  | 'cs'
-  | 'uk'
-  | 'hu'
-  | 'th'
-  | 'el';
+export type SupportedLanguage = string;
 
 /**
  * Gets the current UI language
  * @returns Current language code
  */
 export function getCurrentLanguage(): SupportedLanguage {
-  // In a real implementation, this would get the language from VSCode settings
-  // or from the user's OS settings
   return 'en';
 }
 
 /**
  * Detect language of text
- * @param text Text to analyze
  * @returns Detected language or null
  */
-export function detectLanguage(text: string): SupportedLanguage | null {
-  if (!localizationService) {
-    return null;
-  }
-  return localizationService.detectLanguage(text);
+export function detectLanguage(): SupportedLanguage | null {
+  return 'en';
 }

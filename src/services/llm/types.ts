@@ -119,39 +119,70 @@ export interface ILLMProvider extends EventEmitter {
   ): Promise<void>;
 }
 
+// --- LLM/Connection Types for Compatibility ---
+
+export interface IConnectionEventData {
+  type: string;
+  payload?: unknown;
+  timestamp: number;
+}
+
+export interface IConnectionEvent {
+  event: string;
+  data: IConnectionEventData;
+}
+
+export interface IHealthCheckResponse {
+  isHealthy: boolean;
+  details?: Record<string, unknown>;
+  timestamp: number;
+}
+
+export enum ConnectionState {
+  Connected = 'connected',
+  Connecting = 'connecting',
+  Disconnected = 'disconnected',
+  Error = 'error',
+}
+
 export interface IModelInfo {
-  version: string;
+  id: string;
+  name: string;
   provider: string;
-  hardwareRequirements?: IHardwareRequirements;
-  capabilities: string[];
-  supportedFormats: string[];
+  maxContextLength: number;
   parameters: Record<string, unknown>;
+  features: string[];
+  metadata?: Record<string, unknown>;
 }
 
-export interface IModelRequirements {
-  minVersion?: string;
-  hardware?: IHardwareRequirements;
-  capabilities?: string[];
-  formats?: string[];
-  parameters?: Record<string, unknown>;
+export interface IRetryConfig {
+  maxRetries: number;
+  retryDelay: number;
 }
 
-export interface IModelValidationResult {
-  isValid: boolean;
-  errors: unknown[];
-  warnings: string[];
+export class LLMConnectionError extends Error {
+  code: LLMConnectionErrorCode;
+  constructor(message: string, code: LLMConnectionErrorCode) {
+    super(message);
+    this.code = code;
+    this.name = 'LLMConnectionError';
+  }
 }
 
-export interface IModelCompatibilityResult {
-  isCompatible: boolean;
-  errors: unknown[];
-  warnings: string[];
+export enum LLMConnectionErrorCode {
+  Timeout = 'timeout',
+  Network = 'network',
+  Unauthorized = 'unauthorized',
+  Unknown = 'unknown',
 }
 
-export interface IHardwareRequirements {
-  minMemoryGB?: number;
-  minCPUCores?: number;
-  gpuRequired?: boolean;
+export interface IHealthCheckConfig {
+  interval: number;
+  timeout: number;
 }
 
-export type ModelCapabilities = string[];
+export interface IProviderCapabilitiesCompat extends IProviderCapabilities {}
+export interface IProviderStatusCompat extends IProviderStatus {}
+
+// LLM Core Types and Interfaces
+// All interfaces and enums are already exported above. No need to re-export.

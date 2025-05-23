@@ -1,1 +1,0 @@
-{"version":3,"file":"AnalysisError.js","sourceRoot":"","sources":["../../../../src/buildTools/rollup/errors/AnalysisError.ts"],"names":[],"mappings":";;;AAAA,yFAAyF;AACzF;;GAEG;AACH,MAAa,aAAc,SAAQ,KAAK;IACpC,YAAY,OAAe;QACvB,KAAK,CAAC,OAAO,CAAC,CAAC;QACf,IAAI,CAAC,IAAI,GAAG,eAAe,CAAC;IAChC,CAAC;CACJ;AALD,sCAKC"}

@@ -1,7 +1,8 @@
 // Migrated from orphaned-code
 import * as vscode from 'vscode';
 import { ILogger } from '../../utils/logger';
-import { BestPracticeIssue, BestPracticesService } from './BestPracticesService';
+import { BestPracticesService } from './BestPracticesService';
+import type { BestPracticeIssue } from './types';
 
 /**
  * Checks and enforces best practices in code

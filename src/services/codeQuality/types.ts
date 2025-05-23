@@ -1,7 +1,6 @@
-import * as vscode from 'vscode';
-import { SecurityIssue } from '../../security/types';
+import { ISecurityIssue } from '../../security/types';
 
-export interface QualityIssue {
+export interface IQualityIssue {
   file: string;
   line: number;
   message: string;
@@ -9,20 +8,20 @@ export interface QualityIssue {
   type: string;
 }
 
-export interface CodeMetrics {
+export interface ICodeMetrics {
   complexity: number;
   maintainability: number;
   performance: number;
 }
 
-export interface QualitySnapshot {
+export interface IQualitySnapshot {
   timestamp: Date;
-  issues: QualityIssue[];
-  metrics: CodeMetrics;
+  issues: IQualityIssue[];
+  metrics: ICodeMetrics;
   score: number;
 }
 
-export interface CodeQualityConfig {
+export interface ICodeQualityConfig {
   severityLevels: {
     [type: string]: 'error' | 'warning' | 'info' | 'suggestion';
   };
@@ -40,12 +39,12 @@ export interface CodeQualityConfig {
   };
 }
 
-export interface AnalysisResult {
-  issues: SecurityIssue[];
-  diagnostics: vscode.Diagnostic[];
+export interface IAnalysisResult {
+  issues: ISecurityIssue[];
+  diagnostics: import('vscode').Diagnostic[];
 }
 
-export interface AnalysisMetrics {
+export interface IAnalysisMetrics {
   complexity: number;
   maintainability: number;
   security: number;
@@ -53,29 +52,35 @@ export interface AnalysisMetrics {
   timestamp: number;
 }
 
-export interface AnalysisHistory {
-  metrics: AnalysisMetrics[];
+export interface IAnalysisHistory {
+  metrics: IAnalysisMetrics[];
   maxEntries: number;
 }
 
-export interface CodeAnalysis {
+export interface ICodeAnalysis {
   filePath: string;
-  issues: QualityIssue[];
-  metrics: CodeMetrics;
+  issues: IQualityIssue[];
+  metrics: ICodeMetrics;
 }
 
-export interface OptimizationResult {
+export interface IOptimizationResult {
   filePath: string;
   optimized: boolean;
   freedMemory?: number;
   details?: string;
-  issues?: QualityIssue[];
+  issues?: IQualityIssue[];
 }
 
-export interface Suggestion {
+export interface ISuggestion {
   file: string;
   line: number;
   suggestion: string;
   reason?: string;
   type?: string;
 }
+
+export interface IBestPracticeIssue extends IQualityIssue {
+  // Optionally extend with more fields if needed
+}
+
+export type { BestPracticeIssue } from './BestPracticesService';

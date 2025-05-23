@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import * as vscode from 'vscode';
-import { Logger } from '../types';
+import { ILogger } from '../../utils/logger';
 
 export interface IScheduledTask {
   id: string;
@@ -36,11 +36,11 @@ export class ModelScheduler implements vscode.Disposable {
   };
   private processingInterval: NodeJS.Timer | null = null;
 
-  private logger: Logger;
+  private logger: ILogger;
   private systemManager: unknown;
 
   constructor(
-    logger: Logger,
+    logger: ILogger,
     systemManager: unknown,
     private readonly _processingIntervalMs: number = 1000,
   ) {
@@ -72,7 +72,9 @@ export class ModelScheduler implements vscode.Disposable {
     this.taskQueue.get(priority)?.push(task);
     this.metrics.totalTasks++;
 
-    this.logger.info(`Scheduled task ${task.id} for model ${modelId} with priority ${priority}`);
+    if (this.logger.info) {
+      this.logger.info(`Scheduled task ${task.id} for model ${modelId} with priority ${priority}`);
+    }
     return task.id;
   }
 
@@ -132,7 +134,7 @@ export class ModelScheduler implements vscode.Disposable {
     }
   }
 
-  private async runTask(task: ScheduledTask): Promise<void> {
+  private async runTask(_: ScheduledTask): Promise<void> {
     // Implementation would depend on the specific task type
     // This is a placeholder for actual task execution
     await new Promise<void>((resolve) => setTimeout(resolve, 1000));
