@@ -1,3 +1,4 @@
+// Mock VSCode API for test environment
 jest.mock('vscode', () => ({
   Uri: {
     joinPath: jest.fn((...args) => args.join('/')),
@@ -21,13 +22,12 @@ jest.mock('vscode', () => ({
   workspace: {},
 }));
 
-// Switch to importing the TypeScript source for compatibility
-const { CodeReviewService } = require('../../../../src/codeReview/services/CodeReviewService.ts');
+import { CodeReviewService } from '../../../../src/codeReview/services/CodeReviewService';
 
 describe('CodeReviewService', () => {
-  let service;
-  let mockLogger;
-  let mockContext;
+  let service: CodeReviewService;
+  let mockLogger: any;
+  let mockContext: any;
 
   beforeEach(() => {
     mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
@@ -47,7 +47,6 @@ describe('CodeReviewService', () => {
       asWebviewUri: jest.fn((uri) => uri),
     };
     const mockExtensionUri = { fsPath: '/mock/uri' };
-    // generateHtml is called internally, so we can spy on it
     service.generateHtml = jest.fn(() => '<html></html>');
     const html = service.getWebviewHtml(mockWebview, mockExtensionUri);
     expect(service.generateHtml).toHaveBeenCalled();
@@ -75,7 +74,6 @@ describe('CodeReviewService', () => {
     const scriptUri = 'script.js';
     const styleUri = 'style.css';
     service.generateNonce = jest.fn(() => 'abc123');
-    // Should not throw
     service.generateHtml(mockWebview, scriptUri, styleUri);
     expect(service.generateNonce).toHaveBeenCalled();
   });

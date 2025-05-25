@@ -1,0 +1,97 @@
+import { BitbucketProvider } from './repository/bitbucketProvider.js';
+import { GitHubProvider } from './repository/githubProvider.js';
+import { GitLabProvider } from './repository/gitlabProvider.js';
+
+/**
+ * Provides integration with Pull Request systems from various Git providers
+ */
+export class PullRequestIntegration {
+  activeProvider: 'github' | 'gitlab' | 'bitbucket' | null = null;
+  gitHubProvider: GitHubProvider;
+  gitLabProvider: GitLabProvider;
+  bitbucketProvider: BitbucketProvider;
+
+  constructor() {
+    this.gitHubProvider = new GitHubProvider();
+    this.gitLabProvider = new GitLabProvider();
+    this.bitbucketProvider = new BitbucketProvider();
+  }
+
+  /**
+   * Detects the Git provider being used in the current workspace
+   */
+  async detectProvider(): Promise<boolean> {
+    if (await this.gitHubProvider.isConnected()) {
+      this.activeProvider = 'github';
+      return true;
+    }
+    if (await this.gitLabProvider.isConnected()) {
+      this.activeProvider = 'gitlab';
+      return true;
+    }
+    if (await this.bitbucketProvider.isConnected()) {
+      this.activeProvider = 'bitbucket';
+      return true;
+    }
+    this.activeProvider = null;
+    return false;
+  }
+
+  /**
+   * Gets the list of open pull requests for the current repository
+   */
+  async getOpenPullRequests(): Promise<unknown[]> {
+    if (!this.activeProvider) {
+      await this.detectProvider();
+    }
+    switch (this.activeProvider) {
+      case 'github':
+        return await this.gitHubProvider.getOpenPullRequests();
+      case 'gitlab':
+        return await this.gitLabProvider.getOpenPullRequests();
+      case 'bitbucket':
+        return await this.bitbucketProvider.getOpenPullRequests();
+      default:
+        throw new Error('No active Git provider detected');
+    }
+  }
+
+  /**
+   * Creates a new pull request with the specified details
+   */
+  async createPullRequest(
+    title: string,
+    description: string,
+    sourceBranch: string,
+    targetBranch: string,
+  ): Promise<unknown> {
+    if (!this.activeProvider) {
+      await this.detectProvider();
+    }
+    switch (this.activeProvider) {
+      case 'github':
+        return await this.gitHubProvider.createPullRequest(
+          title,
+          description,
+          sourceBranch,
+          targetBranch,
+        );
+      case 'gitlab':
+        return await this.gitLabProvider.createPullRequest(
+          title,
+          description,
+          sourceBranch,
+          targetBranch,
+        );
+      case 'bitbucket':
+        return await this.bitbucketProvider.createPullRequest(
+          title,
+          description,
+          sourceBranch,
+          targetBranch,
+        );
+      default:
+        throw new Error('No active Git provider detected');
+    }
+  }
+}

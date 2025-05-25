@@ -1,7 +1,16 @@
-export interface ITestSuite {
+export interface ITestCase {
+  id?: string;
   name: string;
-  tests: unknown[];
-  // Add more fields as needed
+  status?: 'passed' | 'failed' | 'skipped';
+  duration?: number;
+  error?: string;
+  stackTrace?: string;
+}
+
+export interface ITestSuite {
+  id?: string;
+  name: string;
+  tests: ITestCase[];
   suites?: ITestSuite[];
 }
 
@@ -12,6 +21,14 @@ export interface ITestResult {
   skipped: number;
   duration: number;
   suites: ITestSuite[];
+  timestamp?: Date;
+  success?: boolean;
+  message?: string;
+  details?: string;
+  exitCode?: number;
+  stdout?: string;
+  stderr?: string;
+  performanceMetrics?: Record<string, number>;
 }
 
 export type TestResult = ITestResult;
