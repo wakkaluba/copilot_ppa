@@ -102,6 +102,26 @@ describe('analyze_code_quality.js', () => {
                 glob.sync = originalSync;
             }
         });
+
+        it('should handle empty functions array', () => {
+            execSync.returns(JSON.stringify({ functions: [], maintainability: 100 }));
+            const result = analyzeComplexity();
+            expect(result.averageComplexity).to.equal(0);
+            expect(result.complexFunctions).to.have.lengthOf(0);
+            expect(result.cognitiveComplexity.highComplexityFunctions).to.have.lengthOf(0);
+            expect(result.averageMaintainability).to.equal(100);
+        });
+
+        it('should handle malformed JSON output', () => {
+            execSync.returns('not a json');
+            expect(() => analyzeComplexity()).to.throw();
+        });
+
+        it('should handle missing maintainability', () => {
+            execSync.returns(JSON.stringify({ functions: [{ name: 'f', complexity: { cyclomatic: 1, cognitive: 1 } }] }));
+            const result = analyzeComplexity();
+            expect(result.averageMaintainability).to.be.undefined;
+        });
     });
 
     describe('detectDuplication()', () => {

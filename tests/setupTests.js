@@ -141,18 +141,18 @@ jest.mock('vscode', () => ({
 }));
 
 // Mock logger globally for all tests
-jest.mock('../src/utils/logger', () => {
-  return {
-    DummyLogger: class {
-      error = jest.fn();
-      info = jest.fn();
-      warn = jest.fn();
-    },
-    // Optionally export a default logger instance if used in codebase
-    logger: {
-      error: jest.fn(),
-      info: jest.fn(),
-      warn: jest.fn()
-    }
-  };
-});
+// jest.mock('../src/utils/logger', () => {
+//   return {
+//     DummyLogger: class {
+//       error = jest.fn();
+//       info = jest.fn();
+//       warn = jest.fn();
+//     },
+//     // Optionally export a default logger instance if used in codebase
+//     logger: {
+//       error: jest.fn(),
+//       info: jest.fn(),
+//       warn: jest.fn()
+//     }
+//   };
+// });

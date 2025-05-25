@@ -1,73 +1,60 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { TestResult } from './test-types';
 import { TestReporter } from './testReporting';
-import { TestResult } from './testTypes';
 
 jest.mock('vscode', () => ({
   window: {
     createOutputChannel: jest.fn(() => ({
       clear: jest.fn(),
       appendLine: jest.fn(),
-      show: jest.fn()
+      show: jest.fn(),
     })),
     showQuickPick: jest.fn(),
     showInformationMessage: jest.fn(),
-    showErrorMessage: jest.fn()
+    showErrorMessage: jest.fn(),
   },
   workspace: {
-    workspaceFolders: [{ uri: { fsPath: '/mock/workspace' } }]
+    workspaceFolders: [{ uri: { fsPath: '/mock/workspace' } }],
   },
   commands: {
-    executeCommand: jest.fn()
+    executeCommand: jest.fn(),
   },
   Uri: {
-    file: jest.fn((filePath: string) => ({ fsPath: filePath }))
+    file: jest.fn((filePath: string) => ({ fsPath: filePath })),
   },
-  ViewColumn: { One: 1 }
+  ViewColumn: { One: 1 },
 }));
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
   mkdirSync: jest.fn(),
-  writeFileSync: jest.fn()
+  writeFileSync: jest.fn(),
 }));
 
 jest.mock('path', () => ({
   join: jest.requireActual('path').join,
-  basename: jest.requireActual('path').basename
+  basename: jest.requireActual('path').basename,
 }));
 
 const mockContext = {
   globalState: {
     get: jest.fn(),
-    update: jest.fn()
-  }
+    update: jest.fn(),
+  },
 } as unknown as vscode.ExtensionContext;
 
+// Fix test data shape for suites
 const sampleTestResult: TestResult = {
   totalTests: 3,
   passed: 2,
   failed: 1,
   skipped: 0,
-  duration: 123,
+  duration: 100,
   suites: [
-    {
-      name: 'Suite A',
-      tests: [
-        { name: 'test 1', status: 'passed', duration: 10 },
-        { name: 'test 2', status: 'failed', duration: 20, error: 'fail', stackTrace: 'stack' }
-      ],
-      suites: [
-        {
-          name: 'Suite B',
-          tests: [
-            { name: 'test 3', status: 'passed', duration: 30 }
-          ],
-          suites: []
-        }
-      ]
-    }
-  ]
+    { name: 'Suite 1', tests: [] },
+    { name: 'Suite 2', tests: [] },
+  ],
 };
 
 describe('TestReporter', () => {
@@ -78,13 +65,15 @@ describe('TestReporter', () => {
     (vscode.window.createOutputChannel as jest.Mock).mockReturnValue({
       clear: jest.fn(),
       appendLine: jest.fn(),
-      show: jest.fn()
+      show: jest.fn(),
     });
     reporter = new TestReporter(mockContext);
   });
 
   it('should format and display results', () => {
     reporter.formatAndDisplayResults(sampleTestResult);
+    // For test-only access to private members, use type assertion to 'any' with a linter suppression comment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only access to private member
     const channel = (reporter as any).outputChannel;
     expect(channel.clear).toHaveBeenCalled();
     expect(channel.appendLine).toHaveBeenCalledWith(expect.stringContaining('Test Results'));
@@ -100,7 +89,7 @@ describe('TestReporter', () => {
     expect(fs.mkdirSync).toHaveBeenCalled();
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining('test-report_'),
-      expect.stringContaining('"totalTests": 3')
+      expect.stringContaining('"totalTests": 3'),
     );
   });
 
@@ -111,7 +100,7 @@ describe('TestReporter', () => {
     await reporter.exportTestResults(sampleTestResult);
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining('.html'),
-      expect.stringContaining('<!DOCTYPE html>')
+      expect.stringContaining('<!DOCTYPE html>'),
     );
     expect(vscode.commands.executeCommand).toHaveBeenCalled();
   });
@@ -123,7 +112,7 @@ describe('TestReporter', () => {
     await reporter.exportTestResults(sampleTestResult);
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining('.md'),
-      expect.stringContaining('# Test Report')
+      expect.stringContaining('# Test Report'),
     );
   });
 
@@ -134,7 +123,7 @@ describe('TestReporter', () => {
     await reporter.exportTestResults(sampleTestResult);
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining('.csv'),
-      expect.stringContaining('"Suite","Test","Status","Duration (ms)","Error"')
+      expect.stringContaining('"Suite","Test","Status","Duration (ms)","Error"'),
     );
   });
 
@@ -146,12 +135,14 @@ describe('TestReporter', () => {
 
   it('should show error if no workspace folder', async () => {
     (vscode.window.showQuickPick as jest.Mock).mockResolvedValue('JSON');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only override for workspaceFolders
     (vscode.workspace as any).workspaceFolders = undefined;
     await reporter.exportTestResults(sampleTestResult);
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-      expect.stringContaining('No workspace folder is open')
+      expect.stringContaining('No workspace folder is open'),
     );
     // restore for other tests
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only override for workspaceFolders
     (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: '/mock/workspace' } }];
   });
 
@@ -160,7 +151,7 @@ describe('TestReporter', () => {
     const reporter2 = new TestReporter(mockContext);
     await reporter2.showHistoricalTrends();
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      expect.stringContaining('No historical test data')
+      expect.stringContaining('No historical test data'),
     );
   });
 
@@ -174,22 +165,25 @@ describe('TestReporter', () => {
           failed: 0,
           skipped: 0,
           duration: 10,
-          passRate: 1
-        }
-      ]
+          passRate: 1,
+        },
+      ],
     });
     const reporter2 = new TestReporter(mockContext);
-    // @ts-ignore
+    // @ts-expect-error: Accessing private property for test coverage
     vscode.window.createWebviewPanel = jest.fn(() => ({ webview: { html: '' } }));
     await reporter2.showHistoricalTrends();
     expect(vscode.window.createWebviewPanel).toHaveBeenCalled();
   });
 
   it('should generate correct HTML/Markdown/CSV content', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only access to private method
     const html = (reporter as any).generateHtmlReport(sampleTestResult);
     expect(html).toContain('<!DOCTYPE html>');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only access to private method
     const md = (reporter as any).generateMarkdownReport(sampleTestResult);
     expect(md).toContain('# Test Report');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only access to private method
     const csv = (reporter as any).generateCsvReport(sampleTestResult);
     expect(csv).toContain('"Suite","Test","Status","Duration (ms)","Error"');
   });

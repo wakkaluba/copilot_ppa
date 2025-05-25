@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
+import { TestResult } from './test-types';
 import { TestReporter } from './testReporting';
-import { TestResult } from './testTypes';
 
-export * from './testTypes';
+export * from './test-types';
 export * from './testReporting';
 
 /**
  * Register commands for test reporting and trend analysis
  */
-export function registerTestReportingCommands(context: vscode.ExtensionContext) {
+export function registerTestReportingCommands(context: vscode.ExtensionContext): TestReporter {
   // Create test reporter instance
   const testReporter = new TestReporter(context);
 

@@ -50,6 +50,18 @@ function suggestTestFile(srcFile) {
   return testFile;
 }
 
+function printCoverageSummary(lowCoverageFiles) {
+  console.log('\nSummary of lowest coverage files:');
+  lowCoverageFiles
+    .sort((a, b) => (a.statements + a.branches + a.functions + a.lines) - (b.statements + b.branches + b.functions + b.lines))
+    .slice(0, 5)
+    .forEach(info => {
+      console.log(
+        `  - ${info.file} (Statements: ${info.statements}%, Branches: ${info.branches}%, Functions: ${info.functions}%, Lines: ${info.lines}%)`
+      );
+    });
+}
+
 function main() {
   const summary = getCoverageSummary();
   const lowCoverageFiles = findLowCoverageFiles(summary);
@@ -67,6 +79,7 @@ function main() {
       console.log(`  Suggest creating test: ${testFile}`);
     }
   }
+  printCoverageSummary(lowCoverageFiles);
 }
 
 if (require.main === module) {

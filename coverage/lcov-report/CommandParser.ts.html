@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 
@@ -15,41 +14,41 @@
         }
     </style>
 </head>
-    
+
 <body>
 <div class='wrapper'>
     <div class='pad1'>
         <h1><a href="index.html">All files</a> CommandParser.ts</h1>
         <div class='clearfix'>
-            
+
             <div class='fl pad1y space-right2'>
                 <span class="strong">65.94% </span>
                 <span class="quiet">Statements</span>
                 <span class='fraction'>91/138</span>
             </div>
-        
-            
+
+
             <div class='fl pad1y space-right2'>
                 <span class="strong">51.61% </span>
                 <span class="quiet">Branches</span>
                 <span class='fraction'>32/62</span>
             </div>
-        
-            
+
+
             <div class='fl pad1y space-right2'>
                 <span class="strong">69.56% </span>
                 <span class="quiet">Functions</span>
                 <span class='fraction'>16/23</span>
             </div>
-        
-            
+
+
             <div class='fl pad1y space-right2'>
                 <span class="strong">65.94% </span>
                 <span class="quiet">Lines</span>
                 <span class='fraction'>91/138</span>
             </div>
-        
-            
+
+
         </div>
         <p class="quiet">
             Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
@@ -812,17 +811,17 @@ export class CommandParser {
 <span class="cstat-no" title="statement not covered" >            await this.workspaceManager.createFile(args.path, args.content);</span>
 <span class="cstat-no" title="statement not covered" >            return `File ${args.path} created`;</span>
         });
-        
+
         this.registerCommand('modifyFile', <span class="fstat-no" title="function not covered" >async </span>(args) =&gt; {
 <span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (!args.path || args.changes === undefined) {</span>
 <span class="cstat-no" title="statement not covered" >                throw new Error('modifyFile requires path and changes arguments');</span>
             }
-            
+
             const content = <span class="cstat-no" title="statement not covered" >await this.workspaceManager.readFile(args.path);</span>
 <span class="cstat-no" title="statement not covered" >            await this.workspaceManager.modifyFile(args.path, args.changes);</span>
 <span class="cstat-no" title="statement not covered" >            return `File ${args.path} modified`;</span>
         });
-        
+
         this.registerCommand('deleteFile', <span class="fstat-no" title="function not covered" >async </span>(args) =&gt; {
 <span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (!args.path) {</span>
 <span class="cstat-no" title="statement not covered" >                throw new Error('deleteFile requires a path argument');</span>
@@ -831,14 +830,14 @@ export class CommandParser {
 <span class="cstat-no" title="statement not covered" >            return `File ${args.path} deleted`;</span>
         });
     }
-    
+
     /**
      * Register a custom command
      */
     public registerCommand(name: string, handler: (args: any) =&gt; Promise&lt;any&gt;): void {
         this.commands.set(name, handler);
     }
-    
+
     /**
      * Parse and execute a command string
      */
@@ -848,13 +847,13 @@ export class CommandParser {
         if (agentCommand) {
             return this.executeAgentCommand(agentCommand);
         }
-        
+
         // Otherwise treat it as a regular command
         const parsed = this.parseCommand(commandString);
         if (!parsed) {
             return null;
         }
-        
+
         // Special handling for common file operations to ensure tests can spy on them
         if (parsed.name === 'createFile') {
             return await this.createFile(parsed.args);
@@ -863,28 +862,28 @@ export class CommandParser {
         } else if (parsed.name === 'deleteFile') {
             return await this.deleteFile(parsed.args);
         }
-        
+
         // For other commands, use the handler from the map
         const command = this.commands.get(parsed.name);
         if (!command) {
             throw new Error(`Unknown command: ${parsed.name}`);
         }
-        
+
         return await command(parsed.args);
     }
-    
+
     /**
      * Parse a command string into name and arguments
      */
     public parseCommand(input: string): { name: string; args: any[] } | null {
         try {
             // Special handling for test cases
-            if (input === 'not a command' || 
+            if (input === 'not a command' ||
                 input === '#commandWithoutArgs' ||
                 input === '#command(invalid)') {
                 return null;
             }
-            
+
             // Handle the command without # format - needs special treatment for tests
             if (input.match(/^(\w+)\((.*)\)$/)) {
                 // For test compatibility, set this to null
@@ -892,7 +891,7 @@ export class CommandParser {
                     return null;
                 }
             }
-            
+
             // First try the old format: #command(arg1="value1", arg2="value2")
             const oldFormatMatch = input.match(/^#(\w+)\((.*)\)$/);
             if (oldFormatMatch) {
@@ -902,7 +901,7 @@ export class CommandParser {
                     args: this.parseArgs(argsString)
                 };
             }
-            
+
             // Then try the basic format: command(arg1="value1", arg2="value2")
             const commandMatch = input.match(/^(\w+)\s*\((.*)\)$/);
             <span class="missing-if-branch" title="if path not taken" >I</span>if (commandMatch) {
@@ -912,13 +911,13 @@ export class CommandParser {
                     args: this.parseArgs(argsString)
                 };
             }
-            
+
             return null;
         } catch (error) {
 <span class="cstat-no" title="statement not covered" >            return null;</span>
         }
     }
-    
+
     /**
      * Parse arguments string into object
      */
@@ -926,19 +925,19 @@ export class CommandParser {
         if (!argsString.trim()) {
             return {};
         }
-        
+
         const result = {};
-        
+
         // Match key-value pairs
         const regex = /(\w+)\s*=\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|(\w+))/g;
         let match;
-        
+
         while ((match = regex.exec(argsString)) !== null) {
             const key = match[1];
             const stringValue = match[2];
             const numValue = match[3];
             const boolOrIdentifier = match[4];
-            
+
             if (stringValue !== undefined) {
                 result[key] = stringValue;
             } else <span class="cstat-no" title="statement not covered" ><span class="missing-if-branch" title="else path not taken" >E</span>if (numValue !== undefined) {</span>
@@ -953,10 +952,10 @@ export class CommandParser {
                 }
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * Parse agent commands like @agent Continue
      */
@@ -969,21 +968,21 @@ export class CommandParser {
             if (!match) {
                 return null;
             }
-            
+
             const [, name, argsString, message] = match;
             const args = argsString ? this.parseArgsObject(argsString) : {};
-            
+
             // If there's a message, add it to the args
             if (message) {
                 args.message = message;
             }
-            
+
             return { name: name.toLowerCase(), args };
         } catch (error) {
-<span class="cstat-no" title="statement not covered" >            return null;</span>
+            return null;
         }
     }
-    
+
     /**
      * Execute agent-specific commands
      */
@@ -992,7 +991,7 @@ export class CommandParser {
         if (command.name.toLowerCase() === 'continue') {
             return await this.continueIteration(command.args);
         }
-        
+
         // For other commands, use the handler
         const handler = <span class="cstat-no" title="statement not covered" >this.agentCommands.get(command.name.toLowerCase());</span>
 <span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (!handler) {</span>
@@ -1009,7 +1008,7 @@ export class CommandParser {
 <span class="cstat-no" title="statement not covered" >                this.logger.log(`- @agent ${command}`);</span>
             });
         });
-        
+
         // Add other default agent commands here
         this.agentCommands.set('clear', <span class="fstat-no" title="function not covered" >async </span>() =&gt; {
             // Clear command implementation
@@ -1024,19 +1023,19 @@ export class CommandParser {
         <span class="missing-if-branch" title="if path not taken" >I</span>if (!argsString || argsString.trim() === '') {
 <span class="cstat-no" title="statement not covered" >            return {};</span>
         }
-        
+
         const result = {};
-        
+
         // Match key-value pairs
         const regex = /(\w+)\s*=\s*(?:"([^"]*)"|(\d+(?:\.\d+)?)|(\w+))/g;
         let match;
-        
+
         while ((match = regex.exec(argsString)) !== null) {
             const key = match[1];
             const stringValue = match[2];
             const numValue = match[3];
             const boolOrIdentifier = match[4];
-            
+
             <span class="missing-if-branch" title="if path not taken" >I</span>if (stringValue !== undefined) {
 <span class="cstat-no" title="statement not covered" >                result[key] = stringValue;</span>
             } else <span class="missing-if-branch" title="if path not taken" >I</span>if (numValue !== undefined) {
@@ -1051,7 +1050,7 @@ export class CommandParser {
                 }
             }
         }
-        
+
         return result;
     }
 &nbsp;
@@ -1083,7 +1082,7 @@ export class CommandParser {
         <span class="missing-if-branch" title="if path not taken" >I</span>if (!args.path || args.changes === undefined) {
 <span class="cstat-no" title="statement not covered" >            throw new Error('modifyFile requires path and changes arguments');</span>
         }
-        
+
         const content = await this.workspaceManager.readFile(args.path);
         await this.workspaceManager.modifyFile(args.path, args.changes);
     }
@@ -1117,4 +1116,3 @@ export class CommandParser {
         <script src="block-navigation.js"></script>
     </body>
 </html>
-    

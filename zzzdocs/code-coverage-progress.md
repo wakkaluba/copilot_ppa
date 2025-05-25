@@ -101,6 +101,17 @@ This document tracks the progress of implementing test coverage for the Copilot 
    - Optimize test execution time
    - Maintain comprehensive coverage as new features are added
 
+4. **Improve Coverage for Low Coverage Files**
+   - Identify files with 0% or low coverage using the coverage report.
+   - Prioritize adding tests for:
+     - `src/codeTools/complexityAnalyzer.ts`
+     - `src/services/codeQuality/index.ts`
+     - `codeReview/services/CodeReviewService.js`
+     - `codeReview/reviewChecklist.js`
+   - Write unit tests for all exported functions and error branches.
+   - Mock dependencies to isolate units under test.
+   - Run tests and verify improvements in coverage reports.
+
 ## Achievements
 
 ### Test Suite Completeness

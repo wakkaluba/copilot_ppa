@@ -39,6 +39,32 @@ describe('CodeQualityService', () => {
     });
 });
 
+describe('CodeQualityService error handling', () => {
+    it('should handle missing context gracefully', () => {
+        // Should not throw if context is undefined/null
+        assert.doesNotThrow(() => new CodeQualityService());
+    });
+    it('should return sub-services even if context is missing', () => {
+        const service = new CodeQualityService();
+        assert(service.getSecurityScanner());
+        assert(service.getCodeOptimizer());
+        assert(service.getBestPracticesChecker());
+        assert(service.getCodeReviewer());
+        assert(service.getDesignImprovementSuggester());
+    });
+});
+
+// Add minimal tests for sub-service constructors (smoke tests)
+describe('Sub-service constructors', () => {
+    it('should instantiate all sub-services without error', () => {
+        assert(new SecurityScanner());
+        assert(new CodeOptimizer());
+        assert(new BestPracticesChecker());
+        assert(new CodeReviewer());
+        assert(new DesignImprovementSuggester());
+    });
+});
+
 describe('Exports', () => {
     it('should export all main classes', () => {
         assert(SecurityScanner);
